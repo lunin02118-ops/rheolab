@@ -129,10 +129,10 @@
 - **Изменение.** `verify_signature()` в `licensing/crypto.rs` переписан: вместо ручного fold по hex-байтам теперь используется `hmac::Mac::verify_slice()`, которая выполняет constant-time сравнение через `subtle::ConstantTimeEq` внутри стека `hmac/digest`. Добавлен ранний возврат `false` при невалидном hex.
 - **DoD.** Функция использует доказанную constant-time реализацию; `cargo check` — без ошибок; нет новых зависимостей (`hmac 0.12` уже присутствовал).
 
-### WP-1.3 Удаление уязвимого `xlsx@0.18.5` ✅ DONE — MITIGATED (2026-04-17)
-- **Анализ.** `xlsx` используется только в `tests/utils/touch-point-fixture.test.ts` для чтения тестовой `.xls`-фикстуры Grace 3600. `exceljs` не поддерживает legacy `.xls` формат, замена невозможна без потери теста. Пакет находится только в `devDependencies` — **не включается в production bundle**.
-- **Митигация.** `npm audit --omit=dev` → 0 уязвимостей в production. Fixtures читаются из внутреннего репозитория, не из пользовательского ввода. Это ADR-уровня решение: риск принят, задокументирован в коде (комментарий `AUD-008`).
-- **DoD.** Production bundle чист; уязвимость GHSA-4r6h-8v6p-xvw6 касается только локальных dev-инструментов на рабочих машинах разработчиков.
+### WP-1.3 Удаление уязвимого `xlsx@0.18.5` ✅ DONE — REMOVED (2026-04-17 → 2026-07-14)
+- **Анализ.** `xlsx` использовался в двух местах: `tests/utils/touch-point-fixture.test.ts` (чтение `.xls`) и `website/src/data/fixtureProfiles.ts` (чтение `.xlsx`).
+- **Решение.** Оба файла-фикстуры сконвертированы в JSON-снапшоты (`tests/fixtures/t-20.02.26-1-561-110C.json`, `tests/fixtures/grace-fixture.json`) скриптами `scripts/utils/xls-to-json.mjs` и `grace-xlsx-to-json.mjs`. Код перенаправлен на чтение JSON напрямую — `xlsx` полностью удалён из `package.json`.
+- **DoD.** `npm ls xlsx` → not found; `tsc --noEmit` чисто; все 4 fixture-теста проходят; production и dev полностью без `xlsx`.
 
 ### WP-1.4 Аудит SQL-конкатенаций ✅ DONE (2026-04-17)
 Проверено **3 места** с `format!("SELECT …")`:

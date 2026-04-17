@@ -116,6 +116,7 @@ if (isBuildCommand) {
   // to avoid polluting the cargo environment with unrelated secrets.
   const KEYS_ALLOWLIST = new Set([
     'INTEGRITY_SECRET_KEY',
+    'BETA_CHANNEL_SECRET',
     'TAURI_SIGNING_PRIVATE_KEY_PASSWORD',
   ]);
 

@@ -1,0 +1,3352 @@
+[
+  {
+    "time_min": 0.0833,
+    "viscosity_cp": 28,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.1667,
+    "viscosity_cp": 25.9,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.25,
+    "viscosity_cp": 30.1,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.3333,
+    "viscosity_cp": 33.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.4167,
+    "viscosity_cp": 42.7,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.5167,
+    "viscosity_cp": 62.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.6,
+    "viscosity_cp": 85.5,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.6833,
+    "viscosity_cp": 110.7,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.7667,
+    "viscosity_cp": 114.2,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.85,
+    "viscosity_cp": 114.2,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 0.9333,
+    "viscosity_cp": 113.5,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.0167,
+    "viscosity_cp": 109.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.1,
+    "viscosity_cp": 107.9,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.1833,
+    "viscosity_cp": 107.9,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.2667,
+    "viscosity_cp": 106.5,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.35,
+    "viscosity_cp": 103.7,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.45,
+    "viscosity_cp": 104.4,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.5333,
+    "viscosity_cp": 103.7,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.6167,
+    "viscosity_cp": 103,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.7,
+    "viscosity_cp": 104.4,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.7833,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.8667,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 1.95,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.0333,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.1167,
+    "viscosity_cp": 100.2,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.2,
+    "viscosity_cp": 100.9,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.3,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.3833,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.4667,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.55,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.6333,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.7167,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.8,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.8833,
+    "viscosity_cp": 103,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 2.9667,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.05,
+    "viscosity_cp": 103.7,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.15,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.2333,
+    "viscosity_cp": 103,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.3167,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.4,
+    "viscosity_cp": 103.7,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.4833,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.5667,
+    "viscosity_cp": 103.7,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.65,
+    "viscosity_cp": 103,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.7333,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.8167,
+    "viscosity_cp": 103.7,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 3.9,
+    "viscosity_cp": 103,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4,
+    "viscosity_cp": 103,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.0833,
+    "viscosity_cp": 103,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.1667,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.25,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.3333,
+    "viscosity_cp": 103,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.4167,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.5,
+    "viscosity_cp": 103,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.5833,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.6667,
+    "viscosity_cp": 104.4,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.75,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.85,
+    "viscosity_cp": 102.3,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 4.9333,
+    "viscosity_cp": 101.6,
+    "shear_rate": 511
+  },
+  {
+    "time_min": 5.0667,
+    "viscosity_cp": 272.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.15,
+    "viscosity_cp": 268.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.2333,
+    "viscosity_cp": 275.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.3333,
+    "viscosity_cp": 268.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.4167,
+    "viscosity_cp": 265.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.5,
+    "viscosity_cp": 272.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.5833,
+    "viscosity_cp": 275.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.6667,
+    "viscosity_cp": 268.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.75,
+    "viscosity_cp": 265.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.8333,
+    "viscosity_cp": 275.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 5.9167,
+    "viscosity_cp": 261.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6,
+    "viscosity_cp": 272.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.0833,
+    "viscosity_cp": 272.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.1833,
+    "viscosity_cp": 265.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.2667,
+    "viscosity_cp": 279.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.35,
+    "viscosity_cp": 275.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.4333,
+    "viscosity_cp": 279.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.5167,
+    "viscosity_cp": 275.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.6,
+    "viscosity_cp": 275.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.6833,
+    "viscosity_cp": 272.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.7667,
+    "viscosity_cp": 279.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.85,
+    "viscosity_cp": 283.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 6.9333,
+    "viscosity_cp": 268.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.0333,
+    "viscosity_cp": 283.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.1167,
+    "viscosity_cp": 272.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.2,
+    "viscosity_cp": 279.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.2833,
+    "viscosity_cp": 268.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.3667,
+    "viscosity_cp": 279.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.45,
+    "viscosity_cp": 268.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.5333,
+    "viscosity_cp": 268.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.6167,
+    "viscosity_cp": 275.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.7,
+    "viscosity_cp": 275.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.7833,
+    "viscosity_cp": 272.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.8833,
+    "viscosity_cp": 268.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 7.9667,
+    "viscosity_cp": 272.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.05,
+    "viscosity_cp": 261.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.1333,
+    "viscosity_cp": 265.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.2167,
+    "viscosity_cp": 279.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.3,
+    "viscosity_cp": 265.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.3833,
+    "viscosity_cp": 258,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.4667,
+    "viscosity_cp": 258,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.55,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.6333,
+    "viscosity_cp": 258,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.7333,
+    "viscosity_cp": 254.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.8167,
+    "viscosity_cp": 250.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.9,
+    "viscosity_cp": 240,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 8.9833,
+    "viscosity_cp": 250.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.0667,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.15,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.2333,
+    "viscosity_cp": 243.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.3167,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.4,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.4833,
+    "viscosity_cp": 250.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.5833,
+    "viscosity_cp": 243.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.6667,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.75,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.8333,
+    "viscosity_cp": 250.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 9.9167,
+    "viscosity_cp": 258,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10,
+    "viscosity_cp": 250.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.0833,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.1667,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.25,
+    "viscosity_cp": 243.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.3333,
+    "viscosity_cp": 250.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.4333,
+    "viscosity_cp": 240,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.5167,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.6,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.6833,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.7667,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.85,
+    "viscosity_cp": 240,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 10.9333,
+    "viscosity_cp": 240,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.0167,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.1,
+    "viscosity_cp": 243.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.1833,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.2833,
+    "viscosity_cp": 243.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.3667,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.45,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.5333,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.6167,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.7,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.7833,
+    "viscosity_cp": 240,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.8667,
+    "viscosity_cp": 243.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 11.95,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.0333,
+    "viscosity_cp": 243.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.1333,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.2167,
+    "viscosity_cp": 225.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.3,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.3833,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.4667,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.55,
+    "viscosity_cp": 240,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.6333,
+    "viscosity_cp": 229.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.7167,
+    "viscosity_cp": 243.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.8,
+    "viscosity_cp": 236.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.8833,
+    "viscosity_cp": 229.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 12.9833,
+    "viscosity_cp": 243.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.0667,
+    "viscosity_cp": 225.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.15,
+    "viscosity_cp": 240,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.2333,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.3167,
+    "viscosity_cp": 215,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.4,
+    "viscosity_cp": 222.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.4833,
+    "viscosity_cp": 229.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.5667,
+    "viscosity_cp": 218.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.65,
+    "viscosity_cp": 225.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.7333,
+    "viscosity_cp": 229.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.8333,
+    "viscosity_cp": 222.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 13.9167,
+    "viscosity_cp": 229.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14,
+    "viscosity_cp": 225.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.0833,
+    "viscosity_cp": 218.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.1667,
+    "viscosity_cp": 218.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.25,
+    "viscosity_cp": 225.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.3333,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.4167,
+    "viscosity_cp": 218.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.5,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.5833,
+    "viscosity_cp": 218.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.6833,
+    "viscosity_cp": 222.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.7667,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.85,
+    "viscosity_cp": 222.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 14.9333,
+    "viscosity_cp": 222.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 15.1167,
+    "viscosity_cp": 262.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 15.3,
+    "viscosity_cp": 267.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 15.4667,
+    "viscosity_cp": 257.9,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 15.6333,
+    "viscosity_cp": 322.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 15.8,
+    "viscosity_cp": 336.7,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 15.9667,
+    "viscosity_cp": 329.5,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 16.1333,
+    "viscosity_cp": 592.1,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 16.3,
+    "viscosity_cp": 609,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 16.4667,
+    "viscosity_cp": 609,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 17.4833,
+    "viscosity_cp": 211.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 18.4833,
+    "viscosity_cp": 247.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 19.4833,
+    "viscosity_cp": 207.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 20.4833,
+    "viscosity_cp": 204.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 21.4833,
+    "viscosity_cp": 218.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 22.4833,
+    "viscosity_cp": 211.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 23.4833,
+    "viscosity_cp": 189.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 24.4833,
+    "viscosity_cp": 189.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 25.1333,
+    "viscosity_cp": 267.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 25.3,
+    "viscosity_cp": 229.2,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 25.4833,
+    "viscosity_cp": 210.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 25.65,
+    "viscosity_cp": 272.2,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 25.8167,
+    "viscosity_cp": 386.8,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 25.9833,
+    "viscosity_cp": 250.7,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 26.15,
+    "viscosity_cp": 524.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 26.3167,
+    "viscosity_cp": 507.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 26.4833,
+    "viscosity_cp": 490.6,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 27.5,
+    "viscosity_cp": 179.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 28.5,
+    "viscosity_cp": 193.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 29.5,
+    "viscosity_cp": 161.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 30.5,
+    "viscosity_cp": 182.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 31.5,
+    "viscosity_cp": 197,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 32.5,
+    "viscosity_cp": 232.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 33.5,
+    "viscosity_cp": 189.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 34.5,
+    "viscosity_cp": 172,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 35.15,
+    "viscosity_cp": 214.9,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 35.3167,
+    "viscosity_cp": 200.5,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 35.4833,
+    "viscosity_cp": 205.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 35.6667,
+    "viscosity_cp": 279.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 35.8333,
+    "viscosity_cp": 250.7,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 36,
+    "viscosity_cp": 257.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 36.1667,
+    "viscosity_cp": 406,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 36.3333,
+    "viscosity_cp": 439.8,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 36.5,
+    "viscosity_cp": 473.6,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 37.5,
+    "viscosity_cp": 172,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 38.5,
+    "viscosity_cp": 182.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 39.5,
+    "viscosity_cp": 182.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 40.5,
+    "viscosity_cp": 175.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 41.5,
+    "viscosity_cp": 172,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 42.5,
+    "viscosity_cp": 200.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 43.5,
+    "viscosity_cp": 182.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 44.5,
+    "viscosity_cp": 168.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 45.1667,
+    "viscosity_cp": 181.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 45.3333,
+    "viscosity_cp": 181.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 45.5,
+    "viscosity_cp": 176.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 45.6667,
+    "viscosity_cp": 222.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 45.85,
+    "viscosity_cp": 236.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 46.0167,
+    "viscosity_cp": 179.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 46.1833,
+    "viscosity_cp": 389.1,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 46.35,
+    "viscosity_cp": 439.8,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 46.5167,
+    "viscosity_cp": 456.7,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 47.5333,
+    "viscosity_cp": 164.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 48.5333,
+    "viscosity_cp": 172,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 49.5333,
+    "viscosity_cp": 172,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 50.5333,
+    "viscosity_cp": 175.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 51.5333,
+    "viscosity_cp": 164.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 52.5333,
+    "viscosity_cp": 168.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 53.5333,
+    "viscosity_cp": 161.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 54.5333,
+    "viscosity_cp": 157.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 55.1833,
+    "viscosity_cp": 176.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 55.35,
+    "viscosity_cp": 195.8,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 55.5167,
+    "viscosity_cp": 195.8,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 55.7,
+    "viscosity_cp": 250.7,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 55.8667,
+    "viscosity_cp": 257.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 56.0333,
+    "viscosity_cp": 257.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 56.2,
+    "viscosity_cp": 389.1,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 56.3667,
+    "viscosity_cp": 406,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 56.5333,
+    "viscosity_cp": 406,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 57.55,
+    "viscosity_cp": 150.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 58.55,
+    "viscosity_cp": 146.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 59.55,
+    "viscosity_cp": 154,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 60.55,
+    "viscosity_cp": 157.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 61.55,
+    "viscosity_cp": 146.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 62.55,
+    "viscosity_cp": 150.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 63.55,
+    "viscosity_cp": 154,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 64.55,
+    "viscosity_cp": 150.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 65.2,
+    "viscosity_cp": 186.2,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 65.3667,
+    "viscosity_cp": 162.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 65.5333,
+    "viscosity_cp": 162.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 65.7167,
+    "viscosity_cp": 200.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 65.8833,
+    "viscosity_cp": 214.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 66.05,
+    "viscosity_cp": 214.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 66.2167,
+    "viscosity_cp": 389.1,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 66.3833,
+    "viscosity_cp": 355.2,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 66.55,
+    "viscosity_cp": 372.1,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 67.5667,
+    "viscosity_cp": 136.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 68.5667,
+    "viscosity_cp": 136.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 69.5667,
+    "viscosity_cp": 129,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 70.5667,
+    "viscosity_cp": 146.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 71.5667,
+    "viscosity_cp": 129,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 72.5667,
+    "viscosity_cp": 139.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 73.5667,
+    "viscosity_cp": 143.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 74.5667,
+    "viscosity_cp": 139.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 75.2167,
+    "viscosity_cp": 167.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 75.3833,
+    "viscosity_cp": 157.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 75.5667,
+    "viscosity_cp": 167.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 75.7333,
+    "viscosity_cp": 179.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 75.9,
+    "viscosity_cp": 186.2,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 76.0667,
+    "viscosity_cp": 200.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 76.2333,
+    "viscosity_cp": 355.2,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 76.4,
+    "viscosity_cp": 304.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 76.5667,
+    "viscosity_cp": 304.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 77.5833,
+    "viscosity_cp": 125.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 78.5833,
+    "viscosity_cp": 136.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 79.5833,
+    "viscosity_cp": 132.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 80.5833,
+    "viscosity_cp": 125.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 81.5833,
+    "viscosity_cp": 129,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 82.5833,
+    "viscosity_cp": 132.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 83.5833,
+    "viscosity_cp": 139.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 84.5833,
+    "viscosity_cp": 121.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 85.2333,
+    "viscosity_cp": 148,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 85.4,
+    "viscosity_cp": 162.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 85.5833,
+    "viscosity_cp": 138.5,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 85.75,
+    "viscosity_cp": 193.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 85.9167,
+    "viscosity_cp": 186.2,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 86.0833,
+    "viscosity_cp": 171.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 86.25,
+    "viscosity_cp": 304.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 86.4167,
+    "viscosity_cp": 355.2,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 86.5833,
+    "viscosity_cp": 304.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 87.6,
+    "viscosity_cp": 114.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 88.6,
+    "viscosity_cp": 114.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 89.6,
+    "viscosity_cp": 121.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 90.6,
+    "viscosity_cp": 132.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 91.6,
+    "viscosity_cp": 125.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 92.6,
+    "viscosity_cp": 125.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 93.6,
+    "viscosity_cp": 121.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 94.6,
+    "viscosity_cp": 114.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 95.25,
+    "viscosity_cp": 133.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 95.4333,
+    "viscosity_cp": 128.9,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 95.6,
+    "viscosity_cp": 143.2,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 95.7667,
+    "viscosity_cp": 179.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 95.9333,
+    "viscosity_cp": 157.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 96.1,
+    "viscosity_cp": 171.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 96.2667,
+    "viscosity_cp": 321.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 96.4333,
+    "viscosity_cp": 321.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 96.6,
+    "viscosity_cp": 321.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 97.6167,
+    "viscosity_cp": 103.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 98.6167,
+    "viscosity_cp": 114.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 99.6167,
+    "viscosity_cp": 114.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 100.6167,
+    "viscosity_cp": 100.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 101.6167,
+    "viscosity_cp": 118.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 102.6167,
+    "viscosity_cp": 114.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 103.6167,
+    "viscosity_cp": 103.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 104.6167,
+    "viscosity_cp": 103.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 105.2667,
+    "viscosity_cp": 128.9,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 105.4333,
+    "viscosity_cp": 124.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 105.6167,
+    "viscosity_cp": 124.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 105.7833,
+    "viscosity_cp": 157.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 105.95,
+    "viscosity_cp": 179.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 106.1167,
+    "viscosity_cp": 157.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 106.2833,
+    "viscosity_cp": 270.6,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 106.45,
+    "viscosity_cp": 304.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 106.6167,
+    "viscosity_cp": 236.8,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 107.6333,
+    "viscosity_cp": 100.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 108.6333,
+    "viscosity_cp": 100.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 109.6333,
+    "viscosity_cp": 100.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 110.6333,
+    "viscosity_cp": 111,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 111.6333,
+    "viscosity_cp": 103.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 112.6333,
+    "viscosity_cp": 96.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 113.6333,
+    "viscosity_cp": 89.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 114.6333,
+    "viscosity_cp": 107.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 115.2833,
+    "viscosity_cp": 119.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 115.4667,
+    "viscosity_cp": 100.2,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 115.6333,
+    "viscosity_cp": 109.8,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 115.8,
+    "viscosity_cp": 157.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 115.9667,
+    "viscosity_cp": 150.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 116.1333,
+    "viscosity_cp": 143.2,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 116.3,
+    "viscosity_cp": 203,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 116.4667,
+    "viscosity_cp": 236.8,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 116.6333,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 117.65,
+    "viscosity_cp": 96.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 118.65,
+    "viscosity_cp": 107.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 119.65,
+    "viscosity_cp": 103.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 120.65,
+    "viscosity_cp": 107.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 121.65,
+    "viscosity_cp": 93.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 122.65,
+    "viscosity_cp": 100.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 123.65,
+    "viscosity_cp": 103.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 124.65,
+    "viscosity_cp": 103.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 125.3,
+    "viscosity_cp": 119.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 125.4667,
+    "viscosity_cp": 109.8,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 125.6333,
+    "viscosity_cp": 114.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 125.8167,
+    "viscosity_cp": 150.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 125.9833,
+    "viscosity_cp": 136.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 126.15,
+    "viscosity_cp": 143.2,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 126.3167,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 126.4833,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 126.65,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 127.6667,
+    "viscosity_cp": 103.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 128.6667,
+    "viscosity_cp": 89.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 129.6667,
+    "viscosity_cp": 96.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 130.6667,
+    "viscosity_cp": 78.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 131.6667,
+    "viscosity_cp": 82.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 132.6667,
+    "viscosity_cp": 93.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 133.6667,
+    "viscosity_cp": 100.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 134.6667,
+    "viscosity_cp": 86,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 135.3167,
+    "viscosity_cp": 100.2,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 135.5,
+    "viscosity_cp": 114.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 135.6667,
+    "viscosity_cp": 90.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 135.8333,
+    "viscosity_cp": 150.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 136,
+    "viscosity_cp": 128.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 136.1667,
+    "viscosity_cp": 121.7,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 136.3333,
+    "viscosity_cp": 169.1,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 136.5,
+    "viscosity_cp": 169.1,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 136.6667,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 137.6833,
+    "viscosity_cp": 82.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 138.6833,
+    "viscosity_cp": 93.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 139.6833,
+    "viscosity_cp": 82.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 140.6833,
+    "viscosity_cp": 71.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 141.6833,
+    "viscosity_cp": 89.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 142.6833,
+    "viscosity_cp": 68,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 143.6833,
+    "viscosity_cp": 89.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 144.6833,
+    "viscosity_cp": 78.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 145.35,
+    "viscosity_cp": 90.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 145.5167,
+    "viscosity_cp": 85.9,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 145.6833,
+    "viscosity_cp": 81.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 145.85,
+    "viscosity_cp": 100.3,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 146.0167,
+    "viscosity_cp": 100.3,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 146.1833,
+    "viscosity_cp": 93.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 146.35,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 146.5167,
+    "viscosity_cp": 203,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 146.7,
+    "viscosity_cp": 135.3,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 147.7,
+    "viscosity_cp": 78.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 148.7,
+    "viscosity_cp": 64.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 149.7,
+    "viscosity_cp": 82.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 150.7,
+    "viscosity_cp": 89.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 151.7,
+    "viscosity_cp": 75.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 152.7,
+    "viscosity_cp": 75.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 153.7,
+    "viscosity_cp": 71.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 154.7,
+    "viscosity_cp": 82.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 155.3667,
+    "viscosity_cp": 76.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 155.5333,
+    "viscosity_cp": 81.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 155.7,
+    "viscosity_cp": 95.5,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 155.8667,
+    "viscosity_cp": 114.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 156.0333,
+    "viscosity_cp": 85.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 156.2,
+    "viscosity_cp": 93.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 156.3667,
+    "viscosity_cp": 118.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 156.5333,
+    "viscosity_cp": 118.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 156.7167,
+    "viscosity_cp": 152.2,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 157.7167,
+    "viscosity_cp": 68,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 158.7167,
+    "viscosity_cp": 64.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 159.7167,
+    "viscosity_cp": 78.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 160.7167,
+    "viscosity_cp": 82.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 161.7167,
+    "viscosity_cp": 82.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 162.7167,
+    "viscosity_cp": 60.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 163.7167,
+    "viscosity_cp": 75.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 164.7167,
+    "viscosity_cp": 75.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 165.3833,
+    "viscosity_cp": 76.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 165.55,
+    "viscosity_cp": 81.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 165.7167,
+    "viscosity_cp": 95.5,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 165.8833,
+    "viscosity_cp": 85.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 166.05,
+    "viscosity_cp": 114.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 166.2167,
+    "viscosity_cp": 71.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 166.3833,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 166.5667,
+    "viscosity_cp": 118.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 166.7333,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 167.7333,
+    "viscosity_cp": 75.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 168.7333,
+    "viscosity_cp": 71.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 169.7333,
+    "viscosity_cp": 60.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 170.7333,
+    "viscosity_cp": 60.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 171.7333,
+    "viscosity_cp": 57.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 172.7333,
+    "viscosity_cp": 78.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 173.7333,
+    "viscosity_cp": 68,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 174.7333,
+    "viscosity_cp": 64.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 175.4,
+    "viscosity_cp": 90.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 175.5667,
+    "viscosity_cp": 81.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 175.7333,
+    "viscosity_cp": 66.8,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 175.9,
+    "viscosity_cp": 78.8,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 176.0667,
+    "viscosity_cp": 107.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 176.2333,
+    "viscosity_cp": 100.3,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 176.4,
+    "viscosity_cp": 203,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 176.5833,
+    "viscosity_cp": 152.2,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 176.75,
+    "viscosity_cp": 169.1,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 177.75,
+    "viscosity_cp": 75.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 178.75,
+    "viscosity_cp": 57.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 179.75,
+    "viscosity_cp": 68,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 180.75,
+    "viscosity_cp": 64.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 181.75,
+    "viscosity_cp": 75.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 182.75,
+    "viscosity_cp": 75.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 183.75,
+    "viscosity_cp": 53.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 184.75,
+    "viscosity_cp": 71.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 185.4167,
+    "viscosity_cp": 71.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 185.5833,
+    "viscosity_cp": 76.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 185.75,
+    "viscosity_cp": 62,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 185.9167,
+    "viscosity_cp": 85.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 186.0833,
+    "viscosity_cp": 57.3,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 186.25,
+    "viscosity_cp": 93.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 186.4167,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 186.6,
+    "viscosity_cp": 84.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 186.7667,
+    "viscosity_cp": 152.2,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 187.7667,
+    "viscosity_cp": 64.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 188.7667,
+    "viscosity_cp": 53.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 189.7667,
+    "viscosity_cp": 64.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 190.7667,
+    "viscosity_cp": 57.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 191.7667,
+    "viscosity_cp": 50.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 192.7667,
+    "viscosity_cp": 50.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 193.7667,
+    "viscosity_cp": 50.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 194.7667,
+    "viscosity_cp": 43,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 195.4333,
+    "viscosity_cp": 62,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 195.6,
+    "viscosity_cp": 57.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 195.7667,
+    "viscosity_cp": 62,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 195.9333,
+    "viscosity_cp": 85.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 196.1,
+    "viscosity_cp": 64.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 196.2667,
+    "viscosity_cp": 64.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 196.4333,
+    "viscosity_cp": 186,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 196.6,
+    "viscosity_cp": 67.6,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 196.7833,
+    "viscosity_cp": 67.6,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 197.7833,
+    "viscosity_cp": 53.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 198.7833,
+    "viscosity_cp": 43,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 199.7833,
+    "viscosity_cp": 43,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 200.7833,
+    "viscosity_cp": 53.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 201.7833,
+    "viscosity_cp": 43,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 202.7833,
+    "viscosity_cp": 57.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 203.7833,
+    "viscosity_cp": 57.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 204.7833,
+    "viscosity_cp": 53.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 205.45,
+    "viscosity_cp": 38.2,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 205.6167,
+    "viscosity_cp": 52.5,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 205.7833,
+    "viscosity_cp": 66.8,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 205.95,
+    "viscosity_cp": 85.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 206.1167,
+    "viscosity_cp": 78.8,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 206.2833,
+    "viscosity_cp": 42.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 206.45,
+    "viscosity_cp": 101.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 206.6333,
+    "viscosity_cp": 135.3,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 206.8,
+    "viscosity_cp": 84.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 207.8,
+    "viscosity_cp": 35.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 208.8,
+    "viscosity_cp": 35.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 209.8,
+    "viscosity_cp": 50.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 210.8,
+    "viscosity_cp": 43,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 211.8,
+    "viscosity_cp": 43,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 212.8,
+    "viscosity_cp": 46.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 213.8,
+    "viscosity_cp": 43,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 214.8,
+    "viscosity_cp": 43,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 215.4667,
+    "viscosity_cp": 28.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 215.6333,
+    "viscosity_cp": 38.2,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 215.8,
+    "viscosity_cp": 33.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 215.9667,
+    "viscosity_cp": 64.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 216.1333,
+    "viscosity_cp": 85.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 216.3,
+    "viscosity_cp": 57.3,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 216.4667,
+    "viscosity_cp": 50.7,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 216.6333,
+    "viscosity_cp": 118.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 216.8167,
+    "viscosity_cp": 118.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 217.8167,
+    "viscosity_cp": 50.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 218.8167,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 219.8167,
+    "viscosity_cp": 35.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 220.8167,
+    "viscosity_cp": 35.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 221.8167,
+    "viscosity_cp": 35.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 222.8167,
+    "viscosity_cp": 32.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 223.8167,
+    "viscosity_cp": 25,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 224.8167,
+    "viscosity_cp": 35.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 225.4833,
+    "viscosity_cp": 47.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 225.65,
+    "viscosity_cp": 33.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 225.8167,
+    "viscosity_cp": 28.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 225.9833,
+    "viscosity_cp": 42.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 226.15,
+    "viscosity_cp": 64.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 226.3167,
+    "viscosity_cp": 28.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 226.4833,
+    "viscosity_cp": 101.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 226.65,
+    "viscosity_cp": 118.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 226.8333,
+    "viscosity_cp": 50.7,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 227.8333,
+    "viscosity_cp": 32.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 228.8333,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 229.8333,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 230.8333,
+    "viscosity_cp": 35.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 231.8333,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 232.8333,
+    "viscosity_cp": 39.4,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 233.8333,
+    "viscosity_cp": 32.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 234.8333,
+    "viscosity_cp": 35.8,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 235.5,
+    "viscosity_cp": 47.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 235.6667,
+    "viscosity_cp": 28.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 235.8333,
+    "viscosity_cp": 47.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 236,
+    "viscosity_cp": 42.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 236.1667,
+    "viscosity_cp": 35.8,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 236.3333,
+    "viscosity_cp": 28.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 236.5,
+    "viscosity_cp": 50.7,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 236.6833,
+    "viscosity_cp": 33.8,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 236.85,
+    "viscosity_cp": 84.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 237.85,
+    "viscosity_cp": 32.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 238.85,
+    "viscosity_cp": 21.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 239.85,
+    "viscosity_cp": 21.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 240.85,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 241.85,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 242.85,
+    "viscosity_cp": 25,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 243.85,
+    "viscosity_cp": 14.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 244.85,
+    "viscosity_cp": 10.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 245.5167,
+    "viscosity_cp": 38.2,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 245.6833,
+    "viscosity_cp": 28.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 245.85,
+    "viscosity_cp": 14.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 246.0167,
+    "viscosity_cp": 28.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 246.1833,
+    "viscosity_cp": 50.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 246.35,
+    "viscosity_cp": 21.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 246.5167,
+    "viscosity_cp": 101.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 246.6833,
+    "viscosity_cp": 67.6,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 246.85,
+    "viscosity_cp": 16.9,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 247.8667,
+    "viscosity_cp": 14.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 248.8667,
+    "viscosity_cp": 25,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 249.8667,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 250.8667,
+    "viscosity_cp": 14.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 251.8667,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 252.8667,
+    "viscosity_cp": 10.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 253.8667,
+    "viscosity_cp": 21.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 254.8667,
+    "viscosity_cp": 10.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 255.5333,
+    "viscosity_cp": 14.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 255.7,
+    "viscosity_cp": 14.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 255.8667,
+    "viscosity_cp": 33.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 256.0333,
+    "viscosity_cp": 0,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 256.2,
+    "viscosity_cp": 42.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 256.3667,
+    "viscosity_cp": 21.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 256.5333,
+    "viscosity_cp": 50.7,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 256.7,
+    "viscosity_cp": 0,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 256.8667,
+    "viscosity_cp": 33.8,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 257.8833,
+    "viscosity_cp": 14.3,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 258.8833,
+    "viscosity_cp": 32.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 259.8833,
+    "viscosity_cp": 21.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 260.8833,
+    "viscosity_cp": 7.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 261.8833,
+    "viscosity_cp": 25,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 262.8833,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 263.8833,
+    "viscosity_cp": 21.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 264.8833,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 265.5333,
+    "viscosity_cp": 23.8,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 265.7,
+    "viscosity_cp": 28.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 265.8667,
+    "viscosity_cp": 23.8,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 266.0333,
+    "viscosity_cp": 7.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 266.2,
+    "viscosity_cp": 42.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 266.3833,
+    "viscosity_cp": 21.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 266.55,
+    "viscosity_cp": 50.7,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 266.7167,
+    "viscosity_cp": 0,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 266.8833,
+    "viscosity_cp": 50.7,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 267.8833,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 268.8833,
+    "viscosity_cp": 32.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 269.8833,
+    "viscosity_cp": 7.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 270.8833,
+    "viscosity_cp": 10.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 271.8833,
+    "viscosity_cp": 25,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 272.8833,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 273.8833,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 274.8833,
+    "viscosity_cp": 25,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 275.5333,
+    "viscosity_cp": 33.4,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 275.7167,
+    "viscosity_cp": 9.5,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 275.8833,
+    "viscosity_cp": 19.1,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 276.05,
+    "viscosity_cp": 42.9,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 276.2167,
+    "viscosity_cp": 7.1,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 276.3833,
+    "viscosity_cp": 57.3,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 276.55,
+    "viscosity_cp": 16.9,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 276.7167,
+    "viscosity_cp": 16.9,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 276.8833,
+    "viscosity_cp": 101.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 277.9,
+    "viscosity_cp": 32.2,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 278.9,
+    "viscosity_cp": 7.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 279.9,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 280.9,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 281.9,
+    "viscosity_cp": 25,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 282.9,
+    "viscosity_cp": 28.6,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 283.9,
+    "viscosity_cp": 21.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 284.9,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 285.5667,
+    "viscosity_cp": 9.5,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 285.7333,
+    "viscosity_cp": 28.6,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 285.9,
+    "viscosity_cp": 9.5,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 286.0667,
+    "viscosity_cp": 14.3,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 286.2333,
+    "viscosity_cp": 28.6,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 286.4,
+    "viscosity_cp": 35.8,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 286.5667,
+    "viscosity_cp": 101.5,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 286.7333,
+    "viscosity_cp": 0,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 286.9167,
+    "viscosity_cp": 118.4,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 287.9167,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 288.9167,
+    "viscosity_cp": 25,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 289.9167,
+    "viscosity_cp": 21.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 290.9167,
+    "viscosity_cp": 10.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 291.9167,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 292.9167,
+    "viscosity_cp": 7.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 293.9167,
+    "viscosity_cp": 3.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 294.9167,
+    "viscosity_cp": 0,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 295.5667,
+    "viscosity_cp": 4.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 295.7333,
+    "viscosity_cp": 14.3,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 295.9,
+    "viscosity_cp": 23.8,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 296.0667,
+    "viscosity_cp": 35.8,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 296.25,
+    "viscosity_cp": 21.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 296.4167,
+    "viscosity_cp": 21.4,
+    "shear_rate": 49.9
+  },
+  {
+    "time_min": 296.5833,
+    "viscosity_cp": 16.9,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 296.75,
+    "viscosity_cp": 67.6,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 296.9167,
+    "viscosity_cp": 33.8,
+    "shear_rate": 21.1
+  },
+  {
+    "time_min": 297.9167,
+    "viscosity_cp": 7.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 298.9167,
+    "viscosity_cp": 21.5,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 299.9167,
+    "viscosity_cp": 10.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 300.9167,
+    "viscosity_cp": 7.1,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 301.9167,
+    "viscosity_cp": 0,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 302.9167,
+    "viscosity_cp": 0,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 303.9167,
+    "viscosity_cp": 10.7,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 304.9167,
+    "viscosity_cp": 17.9,
+    "shear_rate": 99.9
+  },
+  {
+    "time_min": 305.5833,
+    "viscosity_cp": 4.7,
+    "shear_rate": 75
+  },
+  {
+    "time_min": 305.75,
+    "viscosity_cp": 9.5,
+    "shear_rate": 75
+  }
+]
