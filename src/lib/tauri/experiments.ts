@@ -5,7 +5,7 @@
  * flow commands (import batches, payloads, artifacts, search projections).
  */
 
-import { invoke } from './core';
+import { safeInvoke as invoke } from './core';
 import type {
   ExperimentDeleteResponse,
   ExperimentsExportResponse,

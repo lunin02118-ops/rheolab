@@ -50,6 +50,21 @@ export default tseslint.config(
     }
   },
   {
+    // Domain modules must use safeInvoke (via './core') instead of raw invoke.
+    // Only core.ts itself is allowed to import the raw invoke.
+    files: ["src/lib/tauri/*.ts"],
+    ignores: ["src/lib/tauri/core.ts", "src/lib/tauri/index.ts"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "./core",
+          importNames: ["invoke"],
+          message: "Use `safeInvoke as invoke` from './core' for unified error handling.",
+        }],
+      }],
+    },
+  },
+  {
     // E2E test infrastructure: browser-script injection mocks require dynamic
     // typing with `any` (functions are serialised and executed in browser context).
     // All other rules (no-unused-vars, no-unsafe-function-type) still apply.

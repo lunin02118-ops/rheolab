@@ -7,6 +7,7 @@
  */
 
 import { invoke as tauriInvoke, isTauri as tauriCoreIsTauri } from '@tauri-apps/api/core';
+import { TauriError } from './errors';
 
 const TAURI_BOOT_RETRY_ATTEMPTS = 2;
 const TAURI_BOOT_RETRY_DELAY_MS = 150;
@@ -173,4 +174,29 @@ export async function invoke<T>(cmd: string, args?: Record<string, unknown>): Pr
   }
 
   throw (lastError ?? new Error('Tauri invoke failed'));
+}
+
+/**
+ * Type-safe Tauri IPC wrapper that normalises all errors into {@link TauriError}
+ * and logs them before re-throwing.
+ *
+ * All domain modules (`src/lib/tauri/*.ts`) must use this instead of the raw
+ * `invoke`.  The raw `invoke` function remains available for `core.ts`-internal
+ * use only (retry logic, legacy fallbacks).
+ */
+export async function safeInvoke<T>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
+  try {
+    return await invoke<T>(cmd, args);
+  } catch (error) {
+    const tauriError = TauriError.from(error);
+    console.error(
+      `[IPC] ${cmd} failed (${tauriError.kind}):`,
+      tauriError.message,
+      tauriError.raw,
+    );
+    throw tauriError;
+  }
 }

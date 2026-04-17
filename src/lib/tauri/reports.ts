@@ -5,7 +5,7 @@
  * and the general file-parsing command.
  */
 
-import { invoke } from './core';
+import { safeInvoke as invoke } from './core';
 import type {
   FixtureReadResponse,
   FixtureSummaryResponse,

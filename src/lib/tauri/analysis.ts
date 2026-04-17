@@ -6,7 +6,7 @@
  * functions for GraceCycleResult serialised by Rust serde.
  */
 
-import { invoke } from './core';
+import { safeInvoke as invoke } from './core';
 import type { RheoStep, RheoCycle, ExpertSettings, GraceCycleResult, DetectionSettingsInput } from '@/lib/analysis/types';
 import type { RheoPointsColumnar } from '@/types/tauri';
 

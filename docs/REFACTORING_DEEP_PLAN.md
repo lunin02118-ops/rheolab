@@ -188,21 +188,13 @@
 - Паттерн `Regex::new(…).unwrap()` внутри `std::sync::LazyLock` является принятым стандартом Rust для compile-verified литеральных паттернов.
 - **Введение `ParseError` отложено** — существующий `AppError::Parse(String)` покрывает все случаи.
 
-### WP-2.4 `safeInvoke` обёртка для Frontend IPC ⏳ TODO- **Текущая ситуация.** В `src/lib/tauri/*.ts` ≥ 10 прямых вызовов `invoke('cmd', ...)` без единообразного error-handling.
-- **Целевой API.**
-  ```ts
-  // src/lib/tauri/bridge/safeInvoke.ts
-  export async function safeInvoke<T>(cmd: TauriCommand, args?: unknown): Promise<T> {
-    try { return await invoke<T>(cmd, args as InvokeArgs); }
-    catch (e) {
-      logger.error('ipc.error', { cmd, error: toAppError(e) });
-      throw AppError.fromIpc(e, cmd);
-    }
-  }
-  ```
-- **Миграция.** Сначала параллельно добавить обёртку, мигрировать вызовы постепенно (`src/lib/tauri/sync.ts` → `experiments.ts` → `parsing.ts` → ...).
-- **ESLint rule.** После миграции: кастомное правило (или `no-restricted-imports`), запрещающее прямой `invoke` вне `bridge/`.
-- **DoD.** В e2e-прогоне full-workflow нет unhandled promise rejections; все ошибки попадают в единый toast/логгер.
+### WP-2.4 `safeInvoke` обёртка для Frontend IPC ✅ DONE
+
+- **Реализовано.** `safeInvoke<T>` добавлен в `src/lib/tauri/core.ts` — оборачивает `invoke` в `TauriError.from()` + `console.error` для единообразного IPC error-handling.
+- **Миграция.** Все 9 доменных модулей (`api-keys`, `analysis`, `backup`, `experiments`, `laboratories`, `reagents`, `operators`, `sync`, `reports`) переведены на `import { safeInvoke as invoke } from './core'`.
+- **ESLint rule.** `no-restricted-imports` в `eslint.config.mjs` запрещает прямой `import { invoke }` из `./core` в доменных файлах (кроме `core.ts` и `index.ts`).
+- **Re-export.** `safeInvoke` экспортируется из `index.ts` и default-объекта `tauriApi`.
+- **Проверка.** `tsc --noEmit` + `eslint src/lib/tauri/` — чисто.
 
 ### WP-2.5 Ротация `startup.log` + структурированный лог ⏳ TODO- **Действия.** В `lib.rs`:
   ```rust
