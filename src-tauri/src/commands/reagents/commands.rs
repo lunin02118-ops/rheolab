@@ -1,6 +1,7 @@
 ﻿use crate::db::repositories::reagents as repo;
 use crate::error::Result;
 use crate::state::AppState;
+use crate::utils::validation::{validate_bounded_str, validate_hash_id};
 use rusqlite::params;
 use rusqlite::OptionalExtension;
 use serde_json::{json, Value};
@@ -23,6 +24,15 @@ pub async fn reagents_create(
     state: State<'_, AppState>,
     payload: ReagentUpsertPayload,
 ) -> Result<ReagentMutationResponse> {
+    // WP-1.5: string length bounds
+    validate_bounded_str(&payload.name, 255, "name")?;
+    validate_bounded_str(&payload.category, 255, "category")?;
+    if let Some(ref v) = payload.manufacturer { validate_bounded_str(v, 255, "manufacturer")?; }
+    if let Some(ref v) = payload.country { validate_bounded_str(v, 255, "country")?; }
+    if let Some(ref v) = payload.description { validate_bounded_str(v, 2000, "description")?; }
+    if let Some(ref v) = payload.active_substance { validate_bounded_str(v, 255, "activeSubstance")?; }
+    if let Some(ref v) = payload.form { validate_bounded_str(v, 255, "form")?; }
+
     let name = payload.name.trim().to_string();
     let category = payload.category.trim().to_string();
 
@@ -84,6 +94,16 @@ pub async fn reagents_update(
     id: String,
     payload: ReagentUpsertPayload,
 ) -> Result<ReagentMutationResponse> {
+    // WP-1.5: validate ID format + string bounds
+    validate_hash_id(&id, "id")?;
+    validate_bounded_str(&payload.name, 255, "name")?;
+    validate_bounded_str(&payload.category, 255, "category")?;
+    if let Some(ref v) = payload.manufacturer { validate_bounded_str(v, 255, "manufacturer")?; }
+    if let Some(ref v) = payload.country { validate_bounded_str(v, 255, "country")?; }
+    if let Some(ref v) = payload.description { validate_bounded_str(v, 2000, "description")?; }
+    if let Some(ref v) = payload.active_substance { validate_bounded_str(v, 255, "activeSubstance")?; }
+    if let Some(ref v) = payload.form { validate_bounded_str(v, 255, "form")?; }
+
     let name = payload.name.trim().to_string();
     let category = payload.category.trim().to_string();
 
@@ -149,6 +169,9 @@ pub async fn reagents_delete(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<ReagentDeleteResponse> {
+    // WP-1.5: validate ID format
+    validate_hash_id(&id, "id")?;
+
     let conn = state.pool_conn()?;
 
     // Wrap existence check + usage check + DELETE + sync outbox in a transaction.

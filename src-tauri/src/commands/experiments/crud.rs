@@ -3,6 +3,7 @@
 use crate::error::Result;
 use crate::commands::licensing::{can_write_via_engine, maybe_increment_demo_save};
 use crate::state::AppState;
+use crate::utils::validation::{validate_bounded_str, validate_hash_id};
 use rusqlite::params;
 use rusqlite::OptionalExtension;
 use tauri::State;
@@ -14,6 +15,9 @@ pub async fn experiments_get(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<ExperimentGetResponse> {
+    // WP-1.5: validate hash ID
+    validate_hash_id(&id, "id")?;
+
     let conn = state.pool_conn()?;
     let exp = load_experiment_by_id(&conn, &id)?;
     match exp {
@@ -27,6 +31,9 @@ pub async fn experiments_get_batch(
     state: State<'_, AppState>,
     ids: Vec<String>,
 ) -> Result<ExperimentGetBatchResponse> {
+    // WP-1.5: validate each hash ID
+    for id in &ids { validate_hash_id(id, "ids[]")?; }
+
     let conn = state.pool_conn()?;
     match load_experiments_batch(&conn, &ids) {
         Ok(experiments) => Ok(ExperimentGetBatchResponse {
@@ -50,6 +57,9 @@ pub async fn experiments_check_existence(
     state: State<'_, AppState>,
     ids: Vec<String>,
 ) -> Result<ExperimentExistenceResponse> {
+    // WP-1.5: validate each hash ID
+    for id in &ids { validate_hash_id(id, "ids[]")?; }
+
     let conn = state.pool_conn()?;
     if ids.is_empty() {
         return Ok(ExperimentExistenceResponse { existing_ids: vec![] });
@@ -70,6 +80,18 @@ pub async fn experiments_save(
     state: State<'_, AppState>,
     payload: ExperimentSavePayload,
 ) -> Result<ExperimentSaveResponse> {
+    // WP-1.5: string length bounds on key fields
+    validate_bounded_str(&payload.name, 500, "name")?;
+    validate_bounded_str(&payload.water_source, 255, "waterSource")?;
+    validate_bounded_str(&payload.original_filename, 500, "originalFilename")?;
+    validate_bounded_str(&payload.instrument_type, 255, "instrumentType")?;
+    validate_bounded_str(&payload.fluid_type, 255, "fluidType")?;
+    validate_bounded_str(&payload.test_group, 255, "testGroup")?;
+    if let Some(ref v) = payload.field_name { validate_bounded_str(v, 255, "fieldName")?; }
+    if let Some(ref v) = payload.operator_name { validate_bounded_str(v, 255, "operatorName")?; }
+    if let Some(ref v) = payload.well_number { validate_bounded_str(v, 100, "wellNumber")?; }
+    if let Some(ref v) = payload.geometry { validate_bounded_str(v, 255, "geometry")?; }
+
     // F-08: License gate — must call BEFORE acquiring Connection (!Send across .await)
     if !can_write_via_engine(&state).await {
         return Ok(ExperimentSaveResponse {
@@ -252,6 +274,9 @@ pub async fn experiments_delete(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<ExperimentDeleteResponse> {
+    // WP-1.5: validate hash ID
+    validate_hash_id(&id, "id")?;
+
     let conn = state.pool_conn()?;
     let tx = conn.unchecked_transaction()?;
 

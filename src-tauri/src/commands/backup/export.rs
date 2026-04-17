@@ -42,6 +42,9 @@ pub async fn backup_export_db(
     state: State<'_, AppState>,
     target_path: String,
 ) -> Result<BackupResult> {
+    // WP-1.5: validate user-supplied export path
+    crate::utils::validation::validate_user_file_path(&target_path, false)?;
+
     let db_path = &state.database_path;
 
     if !db_path.exists() {

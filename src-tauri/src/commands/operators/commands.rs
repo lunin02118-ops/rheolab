@@ -2,6 +2,7 @@
 
 use crate::error::Result;
 use crate::state::AppState;
+use crate::utils::validation::{validate_bounded_str, validate_uuid};
 use rusqlite::{params, OptionalExtension};
 use tauri::State;
 use uuid::Uuid;
@@ -62,6 +63,10 @@ pub async fn operators_create(
     state: State<'_, AppState>,
     payload: OperatorUpsertPayload,
 ) -> Result<OperatorMutationResponse> {
+    // WP-1.5: string length bounds
+    validate_bounded_str(&payload.name, 255, "name")?;
+    if let Some(ref p) = payload.position { validate_bounded_str(p, 255, "position")?; }
+
     let name = payload.name.trim().to_string();
     if name.is_empty() {
         return Ok(OperatorMutationResponse::err("Имя оператора обязательно"));
@@ -105,6 +110,11 @@ pub async fn operators_update(
     id: String,
     payload: OperatorUpsertPayload,
 ) -> Result<OperatorMutationResponse> {
+    // WP-1.5: validate ID format + string bounds
+    validate_uuid(&id, "id")?;
+    validate_bounded_str(&payload.name, 255, "name")?;
+    if let Some(ref p) = payload.position { validate_bounded_str(p, 255, "position")?; }
+
     let name = payload.name.trim().to_string();
     if name.is_empty() {
         return Ok(OperatorMutationResponse::err("Имя оператора обязательно"));
@@ -150,6 +160,9 @@ pub async fn operators_delete(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<OperatorDeleteResponse> {
+    // WP-1.5: validate ID format
+    validate_uuid(&id, "id")?;
+
     let conn = state.pool_conn()?;
     // Soft-delete: mark inactive
     let changed = conn

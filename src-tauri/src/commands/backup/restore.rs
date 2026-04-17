@@ -99,15 +99,16 @@ pub async fn backup_import_db(
     state: State<'_, AppState>,
     file_path: String,
 ) -> Result<MergeResult> {
-    let source = std::path::Path::new(&file_path);
-
-    if !source.exists() {
-        return Ok(MergeResult::err("Р¤Р°Р№Р» РЅРµ РЅР°Р№РґРµРЅ"));
-    }
+    // WP-1.5: validate user-supplied path (null bytes, sensitive dirs)
+    let source_path = crate::utils::validation::validate_user_file_path(&file_path, true)?;
+    let source = source_path.as_path();
 
     if source.extension().and_then(|e| e.to_str()) != Some("db") {
         return Ok(MergeResult::err("Р¤Р°Р№Р» РґРѕР»Р¶РµРЅ РёРјРµС‚СЊ СЂР°СЃС€РёСЂРµРЅРёРµ .db"));
     }
+
+    // WP-1.5: reject files > 2 GB
+    crate::utils::validation::validate_file_size(source, 2 * 1024 * 1024 * 1024)?;
 
     // F-08: License gate — must call BEFORE acquiring Connection (!Send across .await)
     if !can_write_via_engine(&state).await {

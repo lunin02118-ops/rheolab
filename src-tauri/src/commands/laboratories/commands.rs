@@ -2,6 +2,7 @@
 
 use crate::error::Result;
 use crate::state::AppState;
+use crate::utils::validation::{validate_bounded_str, validate_uuid};
 use rusqlite::{params, OptionalExtension};
 use tauri::State;
 use uuid::Uuid;
@@ -62,6 +63,11 @@ pub async fn laboratories_create(
     state: State<'_, AppState>,
     payload: LaboratoryUpsertPayload,
 ) -> Result<LaboratoryMutationResponse> {
+    // WP-1.5: string length bounds
+    validate_bounded_str(&payload.name, 255, "name")?;
+    if let Some(ref d) = payload.description { validate_bounded_str(d, 2000, "description")?; }
+    if let Some(ref l) = payload.location { validate_bounded_str(l, 500, "location")?; }
+
     let name = payload.name.trim().to_string();
     if name.is_empty() {
         return Ok(LaboratoryMutationResponse::err("Название лаборатории обязательно"));
@@ -105,6 +111,12 @@ pub async fn laboratories_update(
     id: String,
     payload: LaboratoryUpsertPayload,
 ) -> Result<LaboratoryMutationResponse> {
+    // WP-1.5: validate ID format + string bounds
+    validate_uuid(&id, "id")?;
+    validate_bounded_str(&payload.name, 255, "name")?;
+    if let Some(ref d) = payload.description { validate_bounded_str(d, 2000, "description")?; }
+    if let Some(ref l) = payload.location { validate_bounded_str(l, 500, "location")?; }
+
     let name = payload.name.trim().to_string();
     if name.is_empty() {
         return Ok(LaboratoryMutationResponse::err("Название лаборатории обязательно"));
@@ -151,6 +163,9 @@ pub async fn laboratories_delete(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<LaboratoryDeleteResponse> {
+    // WP-1.5: validate ID format
+    validate_uuid(&id, "id")?;
+
     let conn = state.pool_conn()?;
 
     // Guard: don't delete if experiments reference this laboratory
