@@ -239,7 +239,7 @@
 - **Цель.** `default-features = false, features = ["json","stream","rustls-tls","gzip"]` — убирает OpenSSL-зависимость, сокращает бинарник.
 - **Проверка.** `license.vizbuka.ru` должен поддерживать TLS 1.2+ с ECDHE (rustls по умолчанию). Acceptance — e2e licensing smoke.
 
-### WP-3.3 Индексы SQLite ⏳ TODO- **Метод.**
+### WP-3.3 Индексы SQLite ✅ DONE- **Метод.**
   1. Извлечь все `SELECT/UPDATE/DELETE` из `repositories/` и `commands/`.
   2. На тестовой БД размером ≥ 100 МБ прогнать `EXPLAIN QUERY PLAN`.
   3. Для каждого `SCAN TABLE` решить — нужен индекс или перефразировка.

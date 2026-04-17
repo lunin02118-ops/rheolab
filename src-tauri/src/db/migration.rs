@@ -322,6 +322,12 @@ CREATE INDEX IF NOT EXISTS idx_experiment_dominant_pattern ON Experiment(dominan
 CREATE INDEX IF NOT EXISTS idx_experiment_geometry      ON Experiment(geometry);
 CREATE INDEX IF NOT EXISTS idx_experiment_fluid_type    ON Experiment(fluidType);
 
+-- WP-3.3 performance indexes: previously unindexed query paths
+-- sync_engine: SELECT id FROM Experiment WHERE updatedAt > ?1 ORDER BY updatedAt
+CREATE INDEX IF NOT EXISTS idx_experiment_updated_at ON Experiment(updatedAt);
+-- list/query.rs: WHERE e.testType = ? (exact match filter, not covered by FTS5)
+CREATE INDEX IF NOT EXISTS idx_experiment_test_type ON Experiment(testType);
+
 -- ============================================
 -- ExperimentData — columnar-binary + zstd blob storage (V6 + V10 FK fix)
 -- ON DELETE/UPDATE CASCADE ensures orphan blobs are cleaned up automatically.
