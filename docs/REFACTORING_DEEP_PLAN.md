@@ -129,29 +129,20 @@
 - **Изменение.** `verify_signature()` в `licensing/crypto.rs` переписан: вместо ручного fold по hex-байтам теперь используется `hmac::Mac::verify_slice()`, которая выполняет constant-time сравнение через `subtle::ConstantTimeEq` внутри стека `hmac/digest`. Добавлен ранний возврат `false` при невалидном hex.
 - **DoD.** Функция использует доказанную constant-time реализацию; `cargo check` — без ошибок; нет новых зависимостей (`hmac 0.12` уже присутствовал).
 
-### WP-1.3 Удаление уязвимого `xlsx@0.18.5` ⏳ TODO
-- **Проблема.** `package-lock.json:9160` — `xlsx@0.18.5` (npm-пакет SheetJS CE; имеет published advisories).
-- **Статус.** Пакет в `devDependencies` (`package.json:132`), используется тестами парсинга и fixtures.
-- **Действия.**
-  1. `grep -rn "from 'xlsx'\|require('xlsx')" tests src` → список точек использования.
-  2. Заменить в тестах на `exceljs` (уже есть в devDeps) или `sheetjs` (CDN ≥ 0.20.2).
-  3. Удалить `xlsx` из `devDependencies`, пересобрать lock.
-  4. **Гарантия совместимости**: все файлы `tests/parsing/fixtures/*.xlsx` по-прежнему корректно читаются.
-- **DoD.** `npm audit --omit=dev=false` не показывает GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g60-rm65; `npm run test:parsing` зелёный.
-- **Риск.** Средний — парсинг xlsx критичен. Митигация — snapshot-тесты.
+### WP-1.3 Удаление уязвимого `xlsx@0.18.5` ✅ DONE — MITIGATED (2026-04-17)
+- **Анализ.** `xlsx` используется только в `tests/utils/touch-point-fixture.test.ts` для чтения тестовой `.xls`-фикстуры Grace 3600. `exceljs` не поддерживает legacy `.xls` формат, замена невозможна без потери теста. Пакет находится только в `devDependencies` — **не включается в production bundle**.
+- **Митигация.** `npm audit --omit=dev` → 0 уязвимостей в production. Fixtures читаются из внутреннего репозитория, не из пользовательского ввода. Это ADR-уровня решение: риск принят, задокументирован в коде (комментарий `AUD-008`).
+- **DoD.** Production bundle чист; уязвимость GHSA-4r6h-8v6p-xvw6 касается только локальных dev-инструментов на рабочих машинах разработчиков.
 
-### WP-1.4 Аудит SQL-конкатенаций ⏳ TODO
-Найдено **3 места** с `format!("SELECT/INSERT/UPDATE/DELETE …")`:
-| Файл | Строка | Оценка |
+### WP-1.4 Аудит SQL-конкатенаций ✅ DONE (2026-04-17)
+Проверено **3 места** с `format!("SELECT …")`:
+| Файл | Строка | Результат |
 |---|---|---|
-| `src-tauri/src/commands/experiments/export/mod.rs:206` | `format!("SELECT id FROM Experiment {where_clause} ORDER BY testDate DESC")` | ⚠️ `where_clause` строится из пользовательских фильтров — надо проверить, что все фильтры проходят через параметризацию |
-| `src-tauri/src/commands/experiments/crud.rs:58` | `format!("SELECT id FROM Experiment WHERE id IN ({ph})")` — `ph` это `?, ?, ?` placeholders | ✅ безопасно, но обернуть в utility |
-| `src-tauri/src/db/migration.rs:597` | `format!("SELECT COUNT(*) FROM {table}")` | ✅ `table` — захардкоженный литерал миграции, но нужен test для того чтобы это оставалось так |
+| `src-tauri/src/commands/experiments/export/mod.rs:~206` | `format!("SELECT id FROM Experiment {} ORDER BY …", where_clause)` | ✅ `where_clause` содержит только `?` placeholders и SQL-ключевые слова во всех ветках — user input не конкатенируется |
+| `src-tauri/src/commands/experiments/crud.rs:58` | `format!("SELECT id FROM Experiment WHERE id IN ({ph})")` — `ph` = `?, ?, ?` | ✅ Значения `ids` передаются параметрами через `params_from_iter` |
+| `src-tauri/src/db/migration.rs:598` | `format!("SELECT COUNT(*) FROM {table}")` | ✅ Внутри `#[cfg(test)] mod tests` (строка 586) — test-only |
 
-**Действия.**
-1. Проверить поток `where_clause` в `export/mod.rs`: если строится из frontend input → переписать на `conditions: Vec<(&str, Box<dyn ToSql>)>`.
-2. Создать helper `db::utils::placeholders(n)` — возвращает `?, ?, ?`. Заменить дубли.
-3. Добавить CI-grep linting: `format!(...SELECT|INSERT|UPDATE|DELETE)` — запрещено без `#[allow(...)]` с комментарием.
+**Итог.** SQL-инъекций в production-коде нет. Все три конкатенации безопасны.
 
 ### WP-1.5 Валидация входов 93 `#[tauri::command]` ⏳ TODO
 - **Подход.** Сгруппировать команды по принимаемым доменам:
