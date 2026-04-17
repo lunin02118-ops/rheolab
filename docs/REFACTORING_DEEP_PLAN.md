@@ -429,12 +429,20 @@ Specta интеграция уже работает:
 
 ## 9. Фаза 6 — Верификация, регрессия, governance
 
-### WP-6.1 Повторный audit ⏳ TODO- `npm run audit:enterprise`, `npm run audit:frontend-ipc`, `npm run audit:rust-commands` — сравнение с baseline из WP-0.1.
-- Регрессия unwrap/panic → CI-block.
+### WP-6.1 Повторный audit ✅ DONE (partial)
+- **Статические метрики (2026-04-18, post-refactor):**
+  - Rust LOC: 32 241 | TypeScript LOC: 29 439
+  - `unwrap()`: 188 | `expect()`: 37 | `panic!()`: 4 (в non-test Rust)
+  - ESLint `--max-warnings=0`: ✅ чисто
+  - `tsc --noEmit`: ✅ чисто
+- **Не выполнено:** полный `audit:enterprise` / `audit:frontend-ipc` требует Tauri build environment (запуск вручную).
+- **Регрессия unwrap/panic:** clippy `warn` добавлен в WP-0.2; CI ESLint `--max-warnings=0` добавлен в WP-5.4.
 
-### WP-6.2 Performance-gate ⏳ TODO- В CI nightly job: `cargo bench --baseline pr-<sha>` vs `main`; при регрессии > 10% — PR блокируется, требует комментария-обоснования.
+### WP-6.2 Performance-gate ⏳ DEFERRED
+- Требуется инфраструктура: `cargo bench` benchmarks, CI nightly job.
+- Отложено до появления бенчмарков в `rheolab-core`.
 
-### WP-6.3 Crash/panic телеметрия (опционально) ⏳ TODO
+### WP-6.3 Crash/panic телеметрия ⏳ DEFERRED (опционально)
 - `std::panic::set_hook` → пишет stack-trace (без PII) в `crash.log`, ротируется.
 - Диалог пользователю: «Приложение столкнулось с внутренней ошибкой. Файл `crash.log` сохранён. Отправить разработчикам?» — явный opt-in.
 
