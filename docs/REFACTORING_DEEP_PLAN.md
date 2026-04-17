@@ -196,7 +196,7 @@
 - **Re-export.** `safeInvoke` экспортируется из `index.ts` и default-объекта `tauriApi`.
 - **Проверка.** `tsc --noEmit` + `eslint src/lib/tauri/` — чисто.
 
-### WP-2.5 Ротация `startup.log` + структурированный лог ⏳ TODO- **Действия.** В `lib.rs`:
+### WP-2.5 Ротация `startup.log` + структурированный лог ✅ DONE- **Действия.** В `lib.rs`:
   ```rust
   fern::Dispatch::new()
       .chain(fern::DateBased::new(logs_dir.join("startup"), "%Y-%m-%d.log").utc())

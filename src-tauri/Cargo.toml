@@ -58,6 +58,7 @@ specta-typescript = "0.0.9"
 
 [dev-dependencies]
 calamine = { version = "0.22.1", features = ["dates"] }
+tempfile = "3"
 
 [profile.dev]
 # Use "limited" debug info (line tables only) for dev builds.

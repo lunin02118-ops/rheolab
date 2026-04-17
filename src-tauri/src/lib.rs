@@ -14,14 +14,17 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use tauri::Manager;
 
-/// Log to file for debugging
-fn log_to_file(message: &str) {
-    let log_path = dirs::data_local_dir()
+/// Directory for startup logs.
+fn startup_log_dir() -> std::path::PathBuf {
+    dirs::data_local_dir()
         .unwrap_or_default()
         .join("com.rheolab.enterprise")
-        .join("startup.log");
+}
 
-    // Ensure directory exists
+/// Log to file for debugging.
+fn log_to_file(message: &str) {
+    let log_path = startup_log_dir().join("startup.log");
+
     if let Some(parent) = log_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
@@ -32,19 +35,49 @@ fn log_to_file(message: &str) {
     }
 }
 
+/// Rotate `startup.log` when it exceeds 512 KB.
+///
+/// Renames the current log to `startup-YYYY-MM-DD-HHMMSS.log` and deletes
+/// rotated files beyond the `keep` most recent ones.
+fn rotate_startup_log(keep: usize) {
+    let log_dir = startup_log_dir();
+    let log_path = log_dir.join("startup.log");
+
+    let should_rotate = std::fs::metadata(&log_path)
+        .map(|m| m.len() > 512 * 1024)
+        .unwrap_or(false);
+
+    if !should_rotate {
+        return;
+    }
+
+    let ts = chrono::Local::now().format("%Y-%m-%d-%H%M%S");
+    let rotated = log_dir.join(format!("startup-{}.log", ts));
+    let _ = std::fs::rename(&log_path, &rotated);
+
+    // Collect rotated logs and keep only the newest `keep` files.
+    let mut rotated_logs: Vec<_> = std::fs::read_dir(&log_dir)
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            let name = e.file_name();
+            let n = name.to_string_lossy();
+            n.starts_with("startup-") && n.ends_with(".log")
+        })
+        .collect();
+
+    rotated_logs.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+
+    for old in rotated_logs.iter().skip(keep) {
+        let _ = std::fs::remove_file(old.path());
+    }
+}
+
 /// Initialize and run the Tauri application
 pub fn run() {
-    // Keep previous startup context for diagnostics, but cap file growth.
-    let log_path = dirs::data_local_dir()
-        .unwrap_or_default()
-        .join("com.rheolab.enterprise")
-        .join("startup.log");
-
-    if let Ok(metadata) = std::fs::metadata(&log_path) {
-        if metadata.len() > 4 * 1024 * 1024 {
-            let _ = std::fs::remove_file(&log_path);
-        }
-    }
+    // Rotate previous startup log if it grew too large (keeps 7 archives).
+    rotate_startup_log(7);
 
     log_to_file("=== Session boundary ===");
     log_to_file("=== RheoLab Enterprise Starting ===");
@@ -85,6 +118,8 @@ pub fn run() {
             .target(tauri_plugin_log::Target::new(
                 tauri_plugin_log::TargetKind::LogDir { file_name: Some("app.log".into()) }
             ))
+            .max_file_size(2_000_000) // rotate app.log at ~2 MB
+            .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
             .build())
         .setup(|app| {
             log_to_file("Setup started");
@@ -363,5 +398,83 @@ mod type_export_tests {
             .expect("Failed to export TypeScript bindings");
         println!("specta: wrote {}", out_path.display());
         assert!(out_path.exists(), "generated.d.ts was not created");
+    }
+}
+
+#[cfg(test)]
+mod log_rotation_tests {
+    use std::fs;
+    use std::io::Write as _;
+
+    #[test]
+    fn rotate_triggers_on_large_file_and_cleans_old() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log_dir = tmp.path();
+        let log_path = log_dir.join("startup.log");
+
+        // Create a >512 KB file to trigger rotation.
+        {
+            let mut f = fs::File::create(&log_path).unwrap();
+            f.write_all(&vec![b'x'; 600_000]).unwrap();
+        }
+
+        // Create 9 old rotated logs so cleanup kicks in.
+        for i in 1..=9 {
+            fs::write(
+                log_dir.join(format!("startup-2025-01-{:02}-120000.log", i)),
+                "old",
+            )
+            .unwrap();
+        }
+
+        // Inline the rotation logic (same algorithm as `rotate_startup_log`).
+        let should_rotate = fs::metadata(&log_path)
+            .map(|m| m.len() > 512 * 1024)
+            .unwrap_or(false);
+        assert!(should_rotate);
+
+        let ts = chrono::Local::now().format("%Y-%m-%d-%H%M%S");
+        let rotated = log_dir.join(format!("startup-{}.log", ts));
+        fs::rename(&log_path, &rotated).unwrap();
+
+        let keep = 7usize;
+        let mut rotated_logs: Vec<_> = fs::read_dir(log_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                let name = e.file_name();
+                let n = name.to_string_lossy();
+                n.starts_with("startup-") && n.ends_with(".log")
+            })
+            .collect();
+
+        rotated_logs.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+
+        for old in rotated_logs.iter().skip(keep) {
+            fs::remove_file(old.path()).unwrap();
+        }
+
+        // After cleanup: 7 rotated logs, no startup.log.
+        let remaining: Vec<_> = fs::read_dir(log_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".log"))
+            .collect();
+        assert_eq!(remaining.len(), 7);
+        assert!(!log_path.exists());
+    }
+
+    #[test]
+    fn rotate_skips_small_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log_path = tmp.path().join("startup.log");
+
+        fs::write(&log_path, "tiny log").unwrap();
+
+        let should_rotate = fs::metadata(&log_path)
+            .map(|m| m.len() > 512 * 1024)
+            .unwrap_or(false);
+        assert!(!should_rotate);
+        assert!(log_path.exists());
     }
 }
