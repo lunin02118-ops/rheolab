@@ -49,7 +49,7 @@ pub(crate) fn query_experiments_list_sql(
     add_like!("e.geometry", query.geometry);
     add_like!("l.name", query.laboratory_name);
 
-    // instrumentType вЂ” all whitespace-separated words must match
+    // instrumentType — all whitespace-separated words must match
     if let Some(ref instrument) = query.instrument_type {
         let instrument = instrument.trim();
         if !instrument.is_empty() {
@@ -183,7 +183,7 @@ pub(crate) fn query_experiments_list_sql(
         }
     }
 
-    // Full-text search вЂ” use FTS5 index when available, fall back to multi-LIKE
+    // Full-text search — use FTS5 index when available, fall back to multi-LIKE
     if let Some(ref search) = query.search_query {
         let s = search.trim();
         if !s.is_empty() {

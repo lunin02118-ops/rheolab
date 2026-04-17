@@ -157,7 +157,7 @@ impl RegroupByPatternInput {
 #[serde(rename_all = "camelCase")]
 pub struct AnalysisOutput {
     cycles: Vec<RheoCycle>,
-    /// `[[cycleId, GraceCycleResult], вЂ¦]`
+    /// `[[cycleId, GraceCycleResult], —¦]`
     results: Vec<(i32, GraceCycleResult)>,
     all_steps: Vec<RheoStep>,
 }
@@ -172,7 +172,7 @@ pub struct DetectStepsOutput {
 // Core pipeline helpers
 // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
-/// Orchestrates cycle detection вЂ” mirrors `detectCyclesWasmOrchestrator` in the worker.
+/// Orchestrates cycle detection — mirrors `detectCyclesWasmOrchestrator` in the worker.
 ///
 /// Priority:
 /// 1. SST pattern в†’ `detect_sst_cycles_internal`
@@ -248,7 +248,7 @@ fn process_all_cycles(
                 if pts_avg > 0 && step.points.len() >= pts_avg {
                     let pts = &step.points[step.points.len() - pts_avg..];
                     let n = pts.len() as f64;
-                    // Single-pass fold over the slice вЂ” avoids 5 separate iterator passes.
+                    // Single-pass fold over the slice — avoids 5 separate iterator passes.
                     let (sum_sr, sum_ss, sum_vis, sum_temp, sum_press) = pts.iter().fold(
                         (0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64),
                         |(sr, ss, vis, temp, press), p| (

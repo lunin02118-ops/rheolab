@@ -1,7 +1,7 @@
 ﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Cryptographic helpers, secure storage, and HMAC-protected SystemState access.
 //!
-//! All items are `pub(super)` вЂ” visible to the parent `licensing/mod.rs` only.
+//! All items are `pub(super)` — visible to the parent `licensing/mod.rs` only.
 
 use crate::error::{AppError, Result};
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, KeyIvInit};
@@ -64,9 +64,9 @@ const RSA_PUBLIC_KEY_DER: &[u8] = include_bytes!("../../../keys/dev_public.der")
 
 /// Verify an RSA-SHA256 (PKCS#1 v1.5) signature produced by the PHP license server.
 ///
-/// - `canonical_json` вЂ” the JSON string that was signed (must match byte-for-byte
+/// - `canonical_json` — the JSON string that was signed (must match byte-for-byte
 ///   what PHP produced with `json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)`).
-/// - `base64_sig` вЂ” the Base64-encoded raw signature returned by the server.
+/// - `base64_sig` — the Base64-encoded raw signature returned by the server.
 ///
 /// Returns `true` if the signature is valid, `false` otherwise (including any
 /// parse / decode errors).
@@ -238,7 +238,7 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
         }
         let nonce = Nonce::from_slice(&nonce_bytes);
 
-        // Try current machine ID with HKDF key (new scheme вЂ” Phase 6.8)
+        // Try current machine ID with HKDF key (new scheme — Phase 6.8)
         let key_bytes = derive_storage_key(&machine_id);
         let gcm_key = GcmKey::<Aes256Gcm>::from_slice(&key_bytes);
         let cipher = Aes256Gcm::new(gcm_key);
@@ -295,7 +295,7 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
         return None;
     }
 
-    // в”Ђв”Ђ V1 format: AES-256-CBC (legacy вЂ” read-only, re-encrypt as GCM) в”Ђв”Ђ
+    // в”Ђв”Ђ V1 format: AES-256-CBC (legacy — read-only, re-encrypt as GCM) в”Ђв”Ђ
     // V1 blobs were always encrypted with the HMAC-based key derivation.
     let iv_hex = data["iv"].as_str()?;
     let content_hex = data["content"].as_str()?;
@@ -322,7 +322,7 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
         }
     }
 
-    // Fallback: try legacy machine IDs (v1 algorithm вЂ” always HMAC-keyed)
+    // Fallback: try legacy machine IDs (v1 algorithm — always HMAC-keyed)
     for legacy_id in all_legacy_ids(app_data_dir) {
         if legacy_id == machine_id {
             continue;

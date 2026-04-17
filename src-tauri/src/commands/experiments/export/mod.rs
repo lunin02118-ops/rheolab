@@ -69,7 +69,7 @@ pub async fn experiments_export(
     state: State<'_, AppState>,
     laboratory_ids: Option<Vec<String>>,
 ) -> Result<Value> {
-    tracing::warn!("experiments_export called вЂ” this non-streaming export is deprecated, use experiments_export_to_file instead");
+    tracing::warn!("experiments_export called — this non-streaming export is deprecated, use experiments_export_to_file instead");
     let selected_lab_ids = laboratory_ids.unwrap_or_default();
     let all_experiments = export_helpers::load_all_experiments(&state, &selected_lab_ids)?;
     let export_time = now_rfc3339();

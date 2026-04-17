@@ -204,7 +204,7 @@ pub async fn experiments_water_sources(
 pub async fn experiments_filter_metadata(
     state: State<'_, AppState>,
 ) -> Result<ExperimentsFilterMetadataResponse> {
-    // Serve cached value when still fresh вЂ” avoids 8 sequential SELECT DISTINCT per call.
+    // Serve cached value when still fresh — avoids 8 sequential SELECT DISTINCT per call.
     if let Ok(guard) = FILTER_META_CACHE.lock() {
         if let Some((ts, ref cached)) = *guard {
             if ts.elapsed() < FILTER_META_TTL {

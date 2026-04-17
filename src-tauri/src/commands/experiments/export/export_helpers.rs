@@ -104,7 +104,7 @@ pub(super) fn load_experiment_batch_no_raw(
 pub(super) fn load_all_experiments(state: &AppState, lab_ids: &[String]) -> Result<Vec<StoredExperiment>> {
     let conn = state.pool_conn()?;
 
-    // Build WHERE clause for laboratory filter вЂ” push into SQL instead of filtering in memory
+    // Build WHERE clause for laboratory filter — push into SQL instead of filtering in memory
     let include_no_lab = lab_ids.iter().any(|id| id.as_str() == NO_LAB_ID);
     let real_ids: Vec<&String> = lab_ids.iter().filter(|id| id.as_str() != NO_LAB_ID).collect();
 

@@ -15,7 +15,7 @@ use super::validate::sanitize_backup_filename;
 /// RAII guard that restores `PRAGMA foreign_keys = ON` when dropped.
 ///
 /// Use this whenever FK checks are temporarily disabled (e.g. during merge).
-/// The guard ensures FK checks are restored on **every** exit path вЂ” normal
+/// The guard ensures FK checks are restored on **every** exit path — normal
 /// return, early `?` propagation, or even panic.
 struct FkGuard<'a> {
     conn: &'a rusqlite::Connection,
@@ -93,7 +93,7 @@ pub async fn backup_restore(
 /// email but different id).  The source DB is structurally valid, so the
 /// resulting data is consistent.
 ///
-/// No app restart is needed вЂ” the data is available immediately.
+/// No app restart is needed — the data is available immediately.
 #[tauri::command]
 pub async fn backup_import_db(
     state: State<'_, AppState>,
@@ -157,7 +157,7 @@ pub async fn backup_import_db(
         if !has_experiment {
             let _ = fs::remove_dir_all(&temp_dir);
             return Ok(MergeResult::err(
-                "Р¤Р°Р№Р» РЅРµ СЃРѕРґРµСЂР¶РёС‚ С‚Р°Р±Р»РёС†Сѓ Experiment вЂ” СЌС‚Рѕ РЅРµ Р±Р°Р·Р° РґР°РЅРЅС‹С… RheoLab",
+                "Файл не содержит таблицу Experiment — это не база данных RheoLab",
             ));
         }
 
@@ -301,7 +301,7 @@ fn merge_attached_databases(conn: &rusqlite::Connection, has_fts: bool) -> Resul
         .query_row("SELECT COUNT(*) FROM main.Experiment", [], |row| row.get(0))
         .unwrap_or(0);
 
-    // RAII transaction вЂ” auto-rolls back on early return or panic.
+    // RAII transaction — auto-rolls back on early return or panic.
     let tx = conn
         .unchecked_transaction()?;
 
@@ -331,7 +331,7 @@ fn merge_attached_databases(conn: &rusqlite::Connection, has_fts: bool) -> Resul
         );
 
         if let Err(e) = tx.execute_batch(&sql) {
-            tracing::warn!("Merge table {} failed: {} вЂ” skipping", table, e);
+            tracing::warn!("Merge table {} failed: {} — skipping", table, e);
         }
     }
 
@@ -410,7 +410,7 @@ pub fn check_pending_restore(app: &AppHandle) -> Result<()> {
             Err(e) => tracing::warn!("Pre-restore orphan cleanup failed (non-fatal): {}", e),
             _ => {}
         }
-    } // PooledConnection dropped here вЂ” connection returned to pool before file ops
+    } // PooledConnection dropped here — connection returned to pool before file ops
 
     // Delete old database and WAL files
     if db_path.exists() {

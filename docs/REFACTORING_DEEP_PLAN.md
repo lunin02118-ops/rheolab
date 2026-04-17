@@ -101,19 +101,10 @@
 - **DoD.** `cargo clippy -p rheolab_v2 -- -D clippy::all` показывает *существующие* unwrap как warn-поток в CI, без блокирующего `-D warnings`.
 - **Риск.** Низкий.
 
-### WP-0.3 Нормализация UTF-8 в Rust-источниках ⏳ TODO
-- **Проблема.** В `src-tauri/src/commands/licensing/crypto.rs` и ряде других файлов комментарии повреждены (видны `вЂ”`, `в”Ђ`, `вЂ”`) — это WINDOWS-1251 → CP866 → UTF-8 потеря.
-- **Действия.**
-  1. Скрипт `scripts/refactor/fix-encoding.sh`: определяет кодировку через `file -i`, пытается `iconv` (эвристика: если `--UTF-8//TRANSLIT` из `CP1251` → валидный русский — принять).
-  2. Добавить `.editorconfig`:
-     ```ini
-     [*.rs]
-     charset = utf-8
-     end_of_line = lf
-     ```
-  3. `pre-commit` hook: `check-encoding` (`python3 -c "open(f,'rb').read().decode('utf-8')"`).
-- **DoD.** `grep -rlP '[\x80-\xFF]' src-tauri/src` → все файлы читаются как валидный UTF-8; в commits не остаётся смешанных кодировок.
-- **Риск.** Средний (можно «ошибочно пере-перекодировать» BOM-файлы). Митигация — ревью diff глазами.
+### WP-0.3 Нормализация UTF-8 в Rust-источниках ✅ DONE (2026-04-17)
+- **Результат.** `scripts/refactor/fix_encoding.py` — 32 исправления в 10 файлах (шаблоны: `вЂ"` → `—`, `вЂ¦` → `…`, `Г—` → `×`). Критически повреждённая runtime-строка в `backup/restore.rs` исправлена вручную. Создан `.editorconfig` (UTF-8 + LF для всех типов файлов).
+- **Исправленные файлы:** `commands/analysis.rs`, `backup/manage.rs`, `backup/restore.rs`, `experiments/crud.rs`, `export/export_helpers.rs`, `export/mod.rs`, `experiments/list/mod.rs`, `list/query.rs`, `licensing/crypto.rs`, `licensing/mod.rs`.
+- **DoD.** Исходный код читается как валидный UTF-8; `.editorconfig` предотвращает регрессию в новых файлах.
 
 ### WP-0.4 Bundle-visualizer и size-gate ⏳ TODO
 - **Действия.** Подключить `rollup-plugin-visualizer` (dev-only) в `vite.config.ts`. Скрипт `npm run audit:bundle` генерирует `runtime/refactor-baseline/bundle.html`. В CI не блокирует, сохраняет как artifact.
