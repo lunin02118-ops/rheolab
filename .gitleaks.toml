@@ -4,6 +4,44 @@
 
 title = "RheoLab Enterprise gitleaks config"
 
+# ──────────────────────────────────────────────────────────────
+# Custom rules — detect private key material by file extension
+# or content patterns (supplements the built-in ruleset).
+# ──────────────────────────────────────────────────────────────
+
+[[rules]]
+  id = "private-key-file-der"
+  description = "Binary DER private key file"
+  path = '''(?i)_private\.der$'''
+  [rules.allowlist]
+    paths = ['''src-tauri/tests/fixtures/.*''', '''tests/fixtures/.*''']
+
+[[rules]]
+  id = "private-key-file-pem"
+  description = "PEM private key file"
+  path = '''(?i)_private\.pem$'''
+  [rules.allowlist]
+    paths = [
+      '''src-tauri/keys/dev_private\.pem''',
+      '''src-tauri/tests/fixtures/.*''',
+      '''tests/fixtures/.*''',
+    ]
+
+[[rules]]
+  id = "pem-private-key-content"
+  description = "PEM-encoded RSA/EC private key in file content"
+  regex = '''-----BEGIN (RSA |EC )?PRIVATE KEY-----'''
+  [rules.allowlist]
+    paths = [
+      '''src-tauri/keys/dev_private\.pem''',
+      '''src-tauri/tests/fixtures/.*''',
+      '''tests/fixtures/.*''',
+    ]
+
+# ──────────────────────────────────────────────────────────────
+# Global allowlist — known safe patterns & paths
+# ──────────────────────────────────────────────────────────────
+
 [allowlist]
   description = "Known safe patterns"
 
@@ -16,10 +54,16 @@ title = "RheoLab Enterprise gitleaks config"
     '''rheolab-hw-''',
   ]
 
-  # Test fixture files and auto-generated keys for dev testing
-  # Note: paths are intentionally narrow to avoid suppressing real secrets in test dirs.
+  # Test fixture files, dev keys, and auto-generated keys for dev testing.
+  # Public keys (*.pub, *_public.*) are safe by nature.
+  # Note: paths are intentionally narrow to avoid suppressing real secrets.
   paths = [
-    '''src-tauri/keys/dev_private\.pem''',
+    '''src-tauri/keys/dev_public\.der''',
+    '''src-tauri/keys/dev_public\.pem''',
+    '''src-tauri/keys/license_public\.der''',
+    '''src-tauri/keys/license_public\.pem''',
+    '''src-tauri/keys/updater\.key\.pub''',
+    '''src-tauri/keys/updater\.pub''',
     '''src-tauri/tests/fixtures/.*''',
     '''tests/fixtures/.*''',
     '''e2e/fixtures/.*''',

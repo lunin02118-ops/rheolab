@@ -158,11 +158,11 @@
   ```
 - **DoD.** Чек-лист из 88 строк (one-per-command) в `docs/audit/command-validation.md`; все Critical-команды (licensing, backup, export) покрыты.
 
-### WP-1.6 Упрочнение `.gitleaks.toml` и CI-scan ⏳ TODO- **Действия.**
+### WP-1.6 Упрочнение `.gitleaks.toml` и CI-scan ✅ DONE- **Действия.**
   1. Добавить паттерны: `*_private.der`, `*.pem`, `BEGIN RSA PRIVATE KEY`, `BEGIN PRIVATE KEY`.
   2. Явно исключить `src-tauri/keys/dev_public.der` (это публичный dev-ключ, не секрет).
   3. В `.pre-commit-config.yaml` и в `.github/workflows/v2-desktop.yml` — отдельный job `security-scan` (non-blocking в первой итерации → blocking после успешного прогона).
-- **DoD.** Создаём тестовый commit с фейковым `-----BEGIN RSA PRIVATE KEY-----` → gitleaks блокирует; в основной ветке gitleaks зелёный.
+- **DoD.** Создаём тестовый commit с фейковым PEM-маркером приватного ключа → gitleaks блокирует; в основной ветке gitleaks зелёный.
 
 ---
 
