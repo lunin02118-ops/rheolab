@@ -1,4 +1,4 @@
-﻿//! Licensing commands вЂ” native Rust implementation (V2).
+﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]//! Licensing commands вЂ” native Rust implementation (V2).
 //!
 //! All licensing logic runs exclusively in Rust via [`LicenseEngine`].
 //! Tauri commands: machine-id, was-ever-licensed, DB checkpoint,

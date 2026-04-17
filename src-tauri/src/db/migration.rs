@@ -1,4 +1,5 @@
-﻿//! Schema for the unified SQLite database.
+﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+//! Schema for the unified SQLite database.
 //!
 //! All 21 tables, indexes, FTS5 virtual table, and triggers are defined
 //! in a single consolidated V1_DDL constant.  All DDL uses `IF NOT EXISTS`

@@ -1,4 +1,5 @@
-﻿//! Online license validation — HTTP calls to the license server.
+﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+//! Online license validation — HTTP calls to the license server.
 //!
 //! Encapsulates `validate_online()` and `activate_online()` logic.
 

@@ -1,3 +1,4 @@
+#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Security checks — clock tampering detection and offline overdue validation.
 //!
 //! Uses the encrypted secure-storage file (outside the DB) to detect system
