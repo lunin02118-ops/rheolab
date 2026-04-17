@@ -1,0 +1,321 @@
+---
+// Library-focused product section: unify incoming files into one working space.
+---
+
+<section class="workflow" id="workflow">
+  <div class="container">
+    <div class="workflow-shell panel">
+      <div class="workflow-copy">
+        <span class="eyebrow">Единая библиотека</span>
+        <h2>Файлы из разных источников собираются в одном рабочем пространстве</h2>
+        <p>
+          График важен, но не он один делает продукт полезным. RheoLab складывает обработанные испытания
+          в общую библиотеку, чтобы данные не терялись между приборами, папками и разрозненными форматами.
+        </p>
+
+        <div class="workflow-steps">
+          <article>
+            <span class="mono">01</span>
+            <div>
+              <strong>Загрузили файл</strong>
+              <p>Программа принимает реальный отчёт и не заставляет пользователя сначала вручную разбирать структуру файла.</p>
+            </div>
+          </article>
+
+          <article>
+            <span class="mono">02</span>
+            <div>
+              <strong>Данные попали в библиотеку</strong>
+              <p>После обработки серия живёт в общей базе испытаний, а не остаётся одноразовым просмотром открытого файла.</p>
+            </div>
+          </article>
+
+          <article>
+            <span class="mono">03</span>
+            <div>
+              <strong>Нужное открывается снова</strong>
+              <p>Позже можно вернуться к этой же серии, найти её по смыслу и снова открыть уже в едином рабочем формате.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="workflow-visual">
+        <div class="library-mock">
+          <div class="library-banner">
+            <div class="library-check" aria-hidden="true">
+              <svg viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="2.8"></circle>
+                <path d="M13 21l5 5 9-11" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </div>
+            <strong>Файл успешно обработан</strong>
+            <span>Отчёт Grace.xlsx</span>
+            <a href="#download">Открыть библиотеку испытаний</a>
+          </div>
+
+          <div class="library-grid">
+            <article class="library-card">
+              <span class="library-kicker">Поток данных</span>
+              <h3>Новые поступления</h3>
+              <ul class="file-list">
+                <li>
+                  <span>Отчёт Grace.xlsx</span>
+                  <small>обработан</small>
+                </li>
+                <li>
+                  <span>Экспорт прибора.csv</span>
+                  <small>нормализован</small>
+                </li>
+                <li>
+                  <span>Лабораторная серия.xls</span>
+                  <small>добавлен в библиотеку</small>
+                </li>
+              </ul>
+            </article>
+
+            <article class="library-card library-card-main">
+              <span class="library-kicker">RheoLab</span>
+              <h3>Библиотека испытаний</h3>
+
+              <div class="library-search">
+                <span>Поиск по серии, температуре, скважине</span>
+              </div>
+
+              <div class="library-records">
+                <div class="record">
+                  <strong>1908 buff2</strong>
+                  <span>Grace / HPHT / 179 мин</span>
+                  <div class="record-tags">
+                    <small>Единый формат</small>
+                    <small>График рядом</small>
+                    <small>Отчёт сохранён</small>
+                  </div>
+                </div>
+
+                <div class="record">
+                  <strong>Серия бурового раствора 24-11</strong>
+                  <span>Импортированное испытание / локально</span>
+                  <div class="record-tags">
+                    <small>Обработан</small>
+                    <small>В библиотеке</small>
+                    <small>Готов к открытию</small>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .workflow {
+    padding: 0 0 var(--section-padding);
+  }
+
+  .workflow-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 1rem;
+    padding: 1.15rem;
+    background: linear-gradient(180deg, rgba(8, 17, 32, 0.96), rgba(15, 23, 42, 0.88));
+  }
+
+  .workflow-copy,
+  .workflow-visual {
+    min-width: 0;
+  }
+
+  .workflow-copy {
+    padding: 1.1rem;
+  }
+
+  .workflow-copy h2 {
+    margin: 1rem 0;
+  }
+
+  .workflow-steps {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 1.6rem;
+  }
+
+  .workflow-steps article {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.85rem;
+    padding: 1rem;
+    border-radius: var(--radius-xl);
+    background: rgba(15, 23, 42, 0.62);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .workflow-steps span {
+    color: var(--color-primary-300);
+    font-size: 0.78rem;
+    padding-top: 0.15rem;
+  }
+
+  .workflow-steps strong {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 1rem;
+  }
+
+  .workflow-steps p {
+    font-size: 0.94rem;
+  }
+
+  .library-mock {
+    display: grid;
+    gap: 1rem;
+    height: 100%;
+    padding: 0.3rem;
+  }
+
+  .library-banner {
+    display: grid;
+    justify-items: center;
+    gap: 0.45rem;
+    padding: 1.35rem 1.2rem;
+    border-radius: var(--radius-2xl);
+    border: 1px dashed rgba(74, 222, 128, 0.44);
+    background:
+      radial-gradient(circle at center, rgba(20, 184, 166, 0.12), transparent 48%),
+      linear-gradient(180deg, rgba(11, 29, 41, 0.92), rgba(10, 23, 38, 0.86));
+    text-align: center;
+  }
+
+  .library-check {
+    width: 5rem;
+    height: 5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #86efac;
+    border-radius: 1.35rem;
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.76));
+    border: 1px solid rgba(74, 222, 128, 0.24);
+  }
+
+  .library-check svg {
+    width: 2.15rem;
+    height: 2.15rem;
+  }
+
+  .library-banner strong {
+    font-size: 1.45rem;
+  }
+
+  .library-banner span {
+    color: #86efac;
+    font-family: var(--font-mono);
+    font-size: 1.02rem;
+  }
+
+  .library-banner a {
+    margin-top: 0.3rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: rgba(148, 163, 184, 0.45);
+    text-underline-offset: 0.22rem;
+  }
+
+  .library-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+    gap: 1rem;
+  }
+
+  .library-card {
+    padding: 1.1rem;
+    border-radius: var(--radius-2xl);
+    background: rgba(8, 17, 32, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  .library-kicker {
+    display: inline-flex;
+    margin-bottom: 0.75rem;
+    color: var(--color-primary-300);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .library-card h3 {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+  }
+
+  .file-list {
+    display: grid;
+    gap: 0.7rem;
+    list-style: none;
+  }
+
+  .file-list li,
+  .record {
+    padding: 0.9rem;
+    border-radius: var(--radius-xl);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+  }
+
+  .file-list span,
+  .record strong {
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  .file-list small,
+  .record span {
+    color: var(--text-secondary);
+  }
+
+  .library-card-main {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(8, 17, 32, 0.92));
+  }
+
+  .library-search {
+    padding: 0.8rem 0.95rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.86);
+    border: 1px solid rgba(96, 165, 250, 0.14);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .library-records {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+
+  .record-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.7rem;
+  }
+
+  .record-tags small {
+    padding: 0.35rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(30, 41, 59, 0.94);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 1080px) {
+    .workflow-shell,
+    .library-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

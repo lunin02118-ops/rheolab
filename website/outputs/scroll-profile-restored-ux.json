@@ -1,0 +1,306 @@
+{
+  "url": "https://rheolab.site",
+  "capturedAt": "2026-04-13T07:14:38.148Z",
+  "baseline": {
+    "title": "RheoLab Enterprise — Инструмент для работы с реологическими данными",
+    "domNodes": 493,
+    "scrollHeight": 5886,
+    "viewportHeight": 900,
+    "transferSize": 12400,
+    "encodedBodySize": 12100,
+    "decodedBodySize": 55703,
+    "responseEnd": 1036.9,
+    "domContentLoaded": 1038.4,
+    "loadEventEnd": 1188.2,
+    "fcp": 1344,
+    "resourceCounts": {
+      "link": 3,
+      "css": 6
+    },
+    "fonts": [
+      {
+        "name": "https://rheolab.site/_astro/ibm-plex-sans-cyrillic-700-normal.D_uavGvn.woff2",
+        "transferSize": 14872,
+        "duration": 159.40000000596046
+      },
+      {
+        "name": "https://rheolab.site/_astro/ibm-plex-sans-cyrillic-600-normal.71GNu3SW.woff2",
+        "transferSize": 15340,
+        "duration": 164.7999999821186
+      },
+      {
+        "name": "https://rheolab.site/_astro/ibm-plex-sans-cyrillic-400-normal.DZqxrq2p.woff2",
+        "transferSize": 15100,
+        "duration": 229.5
+      },
+      {
+        "name": "https://rheolab.site/_astro/ibm-plex-sans-latin-700-normal.Bxkt5Cjx.woff2",
+        "transferSize": 23132,
+        "duration": 90.59999999403954
+      },
+      {
+        "name": "https://rheolab.site/_astro/ibm-plex-sans-latin-600-normal.CuJfVYMP.woff2",
+        "transferSize": 24552,
+        "duration": 87.30000001192093
+      },
+      {
+        "name": "https://rheolab.site/_astro/ibm-plex-sans-latin-400-normal.CDDApCn2.woff2",
+        "transferSize": 22888,
+        "duration": 87
+      }
+    ],
+    "lcp": 1344,
+    "cls": 0.0102
+  },
+  "scroll": {
+    "durationMs": 5000,
+    "maxScroll": 4986,
+    "frameCount": 275,
+    "avgFrameMs": 18.25,
+    "p95FrameMs": 33.3,
+    "maxFrameMs": 33.5,
+    "framesOver16ms": 72,
+    "framesOver33ms": 23,
+    "framesOver50ms": 0,
+    "approxDroppedFramePct": 26.28
+  },
+  "longAnimationFrames": {
+    "count": 1,
+    "maxDurationMs": 310.8,
+    "top": [
+      {
+        "startTimeMs": 974,
+        "durationMs": 310.8,
+        "blockingDurationMs": 46.55
+      }
+    ]
+  },
+  "longTasks": {
+    "count": 1,
+    "maxDurationMs": 95,
+    "top": [
+      {
+        "startTimeMs": 1188.1,
+        "durationMs": 95
+      }
+    ]
+  },
+  "trace": {
+    "longTasksOver16ms": [],
+    "longTasksOver50ms": [],
+    "totalsByEvent": [
+      {
+        "name": "RunTask",
+        "totalMs": 239.76
+      },
+      {
+        "name": "ThreadControllerImpl::RunTask",
+        "totalMs": 232.53
+      },
+      {
+        "name": "ProxyMain::BeginMainFrame",
+        "totalMs": 222.48
+      },
+      {
+        "name": "FireAnimationFrame",
+        "totalMs": 110.08
+      },
+      {
+        "name": "FunctionCall",
+        "totalMs": 103.94
+      },
+      {
+        "name": "UpdateLayoutTree",
+        "totalMs": 57.81
+      },
+      {
+        "name": "PrePaint",
+        "totalMs": 37.09
+      },
+      {
+        "name": "Layout",
+        "totalMs": 17.27
+      },
+      {
+        "name": "Commit",
+        "totalMs": 15.75
+      },
+      {
+        "name": "AnimationHost::TickAnimations",
+        "totalMs": 5.99
+      },
+      {
+        "name": "LayerTreeHost::DoUpdateLayers",
+        "totalMs": 5.23
+      },
+      {
+        "name": "TimerFire",
+        "totalMs": 3.9
+      },
+      {
+        "name": "LocalFrameView::ScheduleAnimation",
+        "totalMs": 3.06
+      },
+      {
+        "name": "LayerTreeHost::ApplyCompositorChanges",
+        "totalMs": 2.61
+      },
+      {
+        "name": "ProxyMain::BeginMainFrame::commit",
+        "totalMs": 1.46
+      },
+      {
+        "name": "ScrollLayer",
+        "totalMs": 1.32
+      },
+      {
+        "name": "UpdateLayer",
+        "totalMs": 1.29
+      },
+      {
+        "name": "LayerTreeHost::WaitForCommitCompletion",
+        "totalMs": 1.29
+      },
+      {
+        "name": "BlinkScheduler_PerformMicrotaskCheckpoint",
+        "totalMs": 1.19
+      },
+      {
+        "name": "AnimationHost::UpdateAnimationState",
+        "totalMs": 0.7
+      }
+    ],
+    "paintTotals": [
+      {
+        "name": "UpdateLayoutTree",
+        "totalMs": 57.81
+      },
+      {
+        "name": "PrePaint",
+        "totalMs": 37.09
+      },
+      {
+        "name": "Layout",
+        "totalMs": 17.27
+      },
+      {
+        "name": "Commit",
+        "totalMs": 15.75
+      },
+      {
+        "name": "UpdateLayer",
+        "totalMs": 1.29
+      },
+      {
+        "name": "Layerize",
+        "totalMs": 0.66
+      },
+      {
+        "name": "Paint",
+        "totalMs": 0.65
+      }
+    ],
+    "topEvents": [
+      {
+        "name": "RunTask",
+        "durationMs": 3.44,
+        "tsMs": 5372.03
+      },
+      {
+        "name": "ThreadControllerImpl::RunTask",
+        "durationMs": 3.43,
+        "tsMs": 5372.04
+      },
+      {
+        "name": "TimerFire",
+        "durationMs": 3.42,
+        "tsMs": 5372.04
+      },
+      {
+        "name": "RunTask",
+        "durationMs": 1.33,
+        "tsMs": 3753.51
+      },
+      {
+        "name": "ThreadControllerImpl::RunTask",
+        "durationMs": 1.31,
+        "tsMs": 3753.51
+      },
+      {
+        "name": "ProxyMain::BeginMainFrame",
+        "durationMs": 1.31,
+        "tsMs": 3753.52
+      },
+      {
+        "name": "RunTask",
+        "durationMs": 1.18,
+        "tsMs": 3949.55
+      },
+      {
+        "name": "RunTask",
+        "durationMs": 1.17,
+        "tsMs": 1183.73
+      },
+      {
+        "name": "ThreadControllerImpl::RunTask",
+        "durationMs": 1.16,
+        "tsMs": 3949.56
+      },
+      {
+        "name": "ProxyMain::BeginMainFrame",
+        "durationMs": 1.15,
+        "tsMs": 3949.56
+      },
+      {
+        "name": "ThreadControllerImpl::RunTask",
+        "durationMs": 1.15,
+        "tsMs": 1183.73
+      },
+      {
+        "name": "ProxyMain::BeginMainFrame",
+        "durationMs": 1.14,
+        "tsMs": 1183.73
+      },
+      {
+        "name": "RunTask",
+        "durationMs": 1.13,
+        "tsMs": 2837.22
+      },
+      {
+        "name": "ThreadControllerImpl::RunTask",
+        "durationMs": 1.12,
+        "tsMs": 2837.22
+      },
+      {
+        "name": "ProxyMain::BeginMainFrame",
+        "durationMs": 1.11,
+        "tsMs": 2837.22
+      },
+      {
+        "name": "RunTask",
+        "durationMs": 1.11,
+        "tsMs": 5174.46
+      },
+      {
+        "name": "RunTask",
+        "durationMs": 1.1,
+        "tsMs": 3831.62
+      },
+      {
+        "name": "ThreadControllerImpl::RunTask",
+        "durationMs": 1.1,
+        "tsMs": 5174.46
+      },
+      {
+        "name": "ProxyMain::BeginMainFrame",
+        "durationMs": 1.09,
+        "tsMs": 5174.47
+      },
+      {
+        "name": "RunTask",
+        "durationMs": 1.09,
+        "tsMs": 933.9
+      }
+    ]
+  }
+}

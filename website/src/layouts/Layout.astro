@@ -1,0 +1,411 @@
+---
+import '../styles/fonts.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  schema?: Record<string, unknown> | Array<Record<string, unknown>>;
+  includeSoftwareSchema?: boolean;
+  robots?: string;
+  ogType?: 'website' | 'article';
+}
+
+const { 
+  title, 
+  description = "RheoLab Enterprise — программа для хранения, сравнения и подготовки отчётов по результатам реологических экспериментов с разных приборов.",
+  schema = [],
+  includeSoftwareSchema = true,
+  robots = 'index, follow',
+  ogType = 'website',
+} = Astro.props;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+const organizationId = new URL('/#organization', Astro.site).toString();
+const websiteId = new URL('/#website', Astro.site).toString();
+const softwareId = new URL('/#software', Astro.site).toString();
+const normalizedSchema = Array.isArray(schema) ? schema : [schema];
+
+const organizationSchema = {
+  '@id': organizationId,
+  '@type': 'Organization',
+  name: 'RheoLab',
+  url: new URL('/', Astro.site).toString(),
+  email: 'info@rheolab.site',
+  description:
+    'RheoLab разрабатывает RheoLab Enterprise — Windows-программу для хранения, сравнения и подготовки отчётов по результатам реологических экспериментов.',
+  logo: new URL('/favicon.svg', Astro.site).toString(),
+  contactPoint: [
+    {
+      '@type': 'ContactPoint',
+      contactType: 'sales',
+      email: 'info@rheolab.site',
+      availableLanguage: ['ru', 'en'],
+    },
+    {
+      '@type': 'ContactPoint',
+      contactType: 'technical support',
+      email: 'support@rheolab.site',
+      availableLanguage: ['ru', 'en'],
+    },
+  ],
+  knowsAbout: [
+    'Rheology software',
+    'Laboratory data management',
+    'Rheological experiment reports',
+    'Instrument data import',
+  ],
+};
+
+const websiteSchema = {
+  '@id': websiteId,
+  '@type': 'WebSite',
+  name: 'RheoLab Enterprise',
+  url: new URL('/', Astro.site).toString(),
+  inLanguage: 'ru-RU',
+  description:
+    'Официальный сайт RheoLab Enterprise с описанием продукта, документацией, FAQ и контактами команды.',
+  publisher: {
+    '@id': organizationId,
+  },
+};
+
+const softwareApplicationSchema = {
+  '@id': softwareId,
+  '@type': 'SoftwareApplication',
+  name: 'RheoLab Enterprise',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Windows 10, Windows 11',
+  description,
+  url: canonicalUrl,
+  downloadUrl: new URL('/download/latest/', Astro.site).toString(),
+  inLanguage: 'ru-RU',
+  publisher: {
+    '@id': organizationId,
+  },
+  featureList: [
+    'Импорт данных с лабораторных приборов',
+    'Локальное хранение результатов экспериментов',
+    'Сравнение серий и расчётных моделей',
+    'Подготовка PDF- и Excel-отчётов',
+  ],
+};
+
+const jsonLdGraph = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    organizationSchema,
+    websiteSchema,
+    ...(includeSoftwareSchema ? [softwareApplicationSchema] : []),
+    ...normalizedSchema.filter(Boolean),
+  ],
+};
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="keywords" content="реология, результаты экспериментов, библиотека данных, лабораторные данные, Grace, Chandler, Fann, BSL, Brookfield, RheoLab, сравнение серий, отчёты" />
+    <meta name="author" content="RheoLab" />
+    <meta name="robots" content={robots} />
+    <meta name="language" content="ru" />
+    <meta name="theme-color" content="#081120" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" href={canonicalUrl} hreflang="ru" />
+    <link rel="alternate" href={canonicalUrl} hreflang="x-default" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:site_name" content="RheoLab Enterprise" />
+    <meta property="og:image" content={new URL('/og-image.svg', Astro.site)} />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL('/og-image.svg', Astro.site)} />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    
+    <title>{title}</title>
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLdGraph)} />
+  </head>
+  <body class="bg-gradient">
+    <a class="skip-link" href="#main-content">Перейти к содержимому</a>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --color-primary-300: #93c5fd;
+    --color-primary-400: #60a5fa;
+    --color-primary-500: #3b82f6;
+    --color-primary-600: #2563eb;
+    --color-primary-700: #1d4ed8;
+
+    --color-accent-300: #99f6e4;
+    --color-accent-400: #5eead4;
+    --color-accent-500: #14b8a6;
+    --color-accent-600: #0f766e;
+
+    --color-cta-400: #fdba74;
+    --color-cta-500: #f97316;
+    --color-cta-600: #ea580c;
+
+    --color-success: #10b981;
+
+    --bg-dark: #020817;
+    --bg-dark-secondary: #081120;
+    --bg-dark-tertiary: #0f172a;
+    --bg-card: rgba(15, 23, 42, 0.82);
+    --bg-panel: rgba(8, 17, 32, 0.92);
+
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+
+    --glass-bg: rgba(15, 23, 42, 0.7);
+    --glass-border: rgba(148, 163, 184, 0.16);
+    --glass-shadow: 0 24px 64px rgba(2, 8, 23, 0.4);
+
+    --font-sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+    --font-display: 'Manrope', 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', Consolas, monospace;
+    --container-max: 1280px;
+    --section-padding: clamp(3rem, 8vw, 6rem);
+    --transition-fast: 150ms ease;
+    --transition-base: 300ms ease;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    background: var(--bg-dark);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background:
+      radial-gradient(circle at 14% 12%, rgba(59, 130, 246, 0.14), transparent 26%),
+      radial-gradient(circle at 84% 8%, rgba(20, 184, 166, 0.11), transparent 22%),
+      linear-gradient(180deg, rgba(8, 17, 32, 0.96), rgba(2, 8, 23, 1));
+  }
+
+  .bg-gradient {
+    background:
+      radial-gradient(circle at 14% 12%, rgba(59, 130, 246, 0.14), transparent 26%),
+      radial-gradient(circle at 84% 8%, rgba(20, 184, 166, 0.11), transparent 22%),
+      linear-gradient(180deg, rgba(8, 17, 32, 0.96), rgba(2, 8, 23, 1));
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -3rem;
+    z-index: 5000;
+    padding: 0.75rem 1rem;
+    background: var(--text-primary);
+    color: var(--bg-dark);
+    border-radius: var(--radius-md);
+    font-weight: 700;
+  }
+
+  .skip-link:focus {
+    top: 1rem;
+  }
+
+  .container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  section[id] {
+    scroll-margin-top: 7.5rem;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  h1 { font-size: clamp(2.5rem, 6vw, 4rem); letter-spacing: -0.02em; }
+  h2 { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.01em; }
+  h3 { font-size: clamp(1.5rem, 3vw, 2rem); }
+
+  p { color: var(--text-secondary); }
+
+  code,
+  pre,
+  .mono {
+    font-family: var(--font-mono);
+  }
+
+  a {
+    color: var(--color-primary-300);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+  a:hover { color: var(--text-primary); }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-primary-300);
+    outline-offset: 3px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: var(--radius-lg);
+    border: none;
+    cursor: pointer;
+    transition: transform var(--transition-base), box-shadow var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), color var(--transition-base);
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-500));
+    color: white;
+    box-shadow: 0 12px 32px rgba(37, 99, 235, 0.28);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 44px rgba(37, 99, 235, 0.32);
+    color: white;
+  }
+
+  .btn-secondary {
+    background: rgba(15, 23, 42, 0.82);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+  }
+  .btn-secondary:hover {
+    background: rgba(15, 23, 42, 0.96);
+    border-color: rgba(96, 165, 250, 0.28);
+    color: var(--text-primary);
+  }
+
+  .btn-cta {
+    background: linear-gradient(135deg, var(--color-cta-500), var(--color-cta-600));
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 12px 32px rgba(249, 115, 22, 0.3);
+  }
+  .btn-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 42px rgba(249, 115, 22, 0.34);
+    color: white;
+  }
+
+  .btn-lg {
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-primary-300), var(--color-accent-400));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .section-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.95rem;
+    border: 1px solid rgba(96, 165, 250, 0.16);
+    border-radius: 999px;
+    background: rgba(30, 41, 59, 0.72);
+    color: var(--color-accent-400);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .section-kicker::before {
+    content: '';
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: var(--color-success);
+    box-shadow: 0 0 0 0.35rem rgba(16, 185, 129, 0.12);
+  }
+
+  .panel {
+    background: rgba(8, 17, 32, 0.98);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-2xl);
+    box-shadow: 0 14px 36px rgba(2, 8, 23, 0.35);
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent-400);
+  }
+
+  .eyebrow::before {
+    content: '';
+    width: 2rem;
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-primary-400), transparent);
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease forwards;
+  }
+
+  .animate-delay-1 { animation-delay: 0.1s; opacity: 0; }
+  .animate-delay-2 { animation-delay: 0.2s; opacity: 0; }
+  .animate-delay-3 { animation-delay: 0.3s; opacity: 0; }
+  .animate-delay-4 { animation-delay: 0.4s; opacity: 0; }
+</style>

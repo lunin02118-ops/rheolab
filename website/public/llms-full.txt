@@ -1,0 +1,50 @@
+# RheoLab Enterprise
+> RheoLab Enterprise is a Windows desktop application for laboratory teams and technical specialists working with rheology experiment data. The product focuses on local-first storage, comparison of experiment series, and report preparation. Primary website language: Russian.
+
+## Product Facts
+- Product type: Windows desktop software for rheology data workflows.
+- Core workflow: import a file, review the graph and calculated values, save the result to the library, compare series, and export reports.
+- Storage model: the public site states that experiment data is stored locally on the user's computer.
+- Trial: a 30-day full-feature trial is available.
+- Connectivity: daily work is local-first; internet is mainly required for activation, updates, and some additional network-assisted scenarios.
+
+## Supported Inputs Mentioned Publicly
+- Instrument families: Grace, Chandler, Fann, OFITE, BSL-R1, Brookfield.
+- File formats: `.xls`, `.xlsx`, `.csv`, `.txt`, `.dat`.
+
+## Primary Audience
+- Laboratory teams working with rheology measurements.
+- Engineering and technical departments handling experiment series.
+- Researchers and lab managers who need a structured result library and repeatable reporting.
+
+## High-Value Pages
+- [Home](https://rheolab.site/): Main product overview and contact path.
+- [About](https://rheolab.site/about/): Product purpose, data-handling principles, and support entry points.
+- [Team](https://rheolab.site/team/): Team roles and operational contact channels.
+- [FAQ](https://rheolab.site/faq/): Public FAQ covering trial, licensing, file formats, instrument support, local storage, and deployment context.
+- [Download](https://rheolab.site/download/latest/): Latest Windows installer redirect.
+- [Privacy](https://rheolab.site/privacy/): Privacy commitments, local data handling, and support/log submission notes.
+- [Terms](https://rheolab.site/terms/): License types, restrictions, user data responsibility, and legal contacts.
+
+## Documentation Map
+### Start Here
+- [Documentation Index](https://rheolab.site/docs/): Documentation hub.
+- [Quick Start](https://rheolab.site/docs/quick-start/): Installation, trial activation, first import, and first saved result.
+
+### Operational Help
+- [Documentation FAQ](https://rheolab.site/docs/faq/): Short answers to common evaluation and usage questions.
+- [Troubleshooting](https://rheolab.site/docs/troubleshooting/): Install, launch, white screen, data, and logging issues.
+
+### Product Workflows
+- [Data Import](https://rheolab.site/docs/parsing/): File formats, source instruments, and import failure guidance.
+- [Interface](https://rheolab.site/docs/interface/): Main areas of the application and the shortest learning path.
+- [Reports](https://rheolab.site/docs/reports/): PDF and Excel reporting flow.
+
+### Domain-Specific Reference
+- [Calculation Models](https://rheolab.site/docs/models/): Power Law, Bingham, and reference notes around model calculations and parameters.
+
+## Contact Endpoints
+- [Commercial Contact](mailto:info@rheolab.site): Product demos, licensing, and deployment planning.
+- [Technical Support](mailto:support@rheolab.site): Setup, import, backup, and troubleshooting.
+- [Privacy Contact](mailto:privacy@rheolab.site): Privacy questions.
+- [Legal Contact](mailto:legal@rheolab.site): Legal questions.

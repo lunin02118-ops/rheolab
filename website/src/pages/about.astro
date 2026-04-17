@@ -1,0 +1,181 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import Navbar from '../components/site/Navbar.astro';
+import Footer from '../components/site/Footer.astro';
+
+const description =
+  'О RheoLab Enterprise: назначение продукта, принципы работы с данными и как команда поддерживает лаборатории.';
+
+const aboutSchema = {
+  '@type': 'AboutPage',
+  name: 'О компании — RheoLab Enterprise',
+  description,
+  url: new URL('/about/', Astro.site).toString(),
+  inLanguage: 'ru-RU',
+  dateModified: '2026-04-12',
+  about: {
+    '@id': new URL('/#organization', Astro.site).toString(),
+  },
+};
+---
+
+<SiteLayout
+  title="О компании — RheoLab Enterprise"
+  description={description}
+  schema={[aboutSchema]}
+>
+  <Navbar />
+
+  <main id="main-content" class="site-about-page">
+    <div class="site-container">
+      <header class="site-about-header">
+        <h1>О RheoLab Enterprise</h1>
+        <p>
+          RheoLab Enterprise — прикладной инструмент для лабораторий, где результаты
+          реологических экспериментов нужно хранить, сравнивать и превращать в отчёты.
+          Мы держим фокус на практической работе с данными: импорт, библиотека,
+          сравнение серий и подготовка итоговых документов.
+        </p>
+      </header>
+
+      <section class="site-about-grid">
+        <article class="site-about-card">
+          <h2>Зачем существует продукт</h2>
+          <p>
+            Команде важно, чтобы у лаборатории было единое место для хранения
+            результатов и повторяемого анализа. Это снижает риск потери данных,
+            ускоряет подготовку отчётов и делает сравнение серий заметно проще.
+          </p>
+        </article>
+
+        <article class="site-about-card">
+          <h2>Принципы работы с данными</h2>
+          <p>
+            Основной сценарий — локальная работа. Данные экспериментов остаются
+            на рабочей станции, а интернет используется лишь для активации лицензии
+            и проверки обновлений.
+          </p>
+        </article>
+
+        <article class="site-about-card">
+          <h2>Как мы поддерживаем пользователей</h2>
+          <p>
+            Мы отвечаем по двум каналам: коммерческие вопросы и внедрение —
+            через <a href="mailto:info@rheolab.site">info@rheolab.site</a>, техническая
+            поддержка — через <a href="mailto:support@rheolab.site">support@rheolab.site</a>.
+          </p>
+        </article>
+      </section>
+
+      <section class="site-about-callouts">
+        <div class="site-about-callout">
+          <h3>Где начать знакомство</h3>
+          <p>
+            Быстрее всего оценить продукт можно через
+            <a href="/docs/quick-start">быстрый старт</a> и
+            <a href="/faq">короткие ответы</a> по лицензии и запуску.
+          </p>
+        </div>
+        <div class="site-about-callout">
+          <h3>Документация</h3>
+          <p>
+            Полная справка и навигация по разделам — в
+            <a href="/docs">документации</a>. Если вопрос короткий, начните с
+            <a href="/docs/faq">FAQ</a>.
+          </p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <Footer />
+</SiteLayout>
+
+<style>
+  .site-about-page {
+    padding: 8rem 0 6rem;
+  }
+
+  .site-about-header {
+    max-width: 820px;
+    margin-bottom: 4rem;
+  }
+
+  .site-about-header h1 {
+    font-size: clamp(2.55rem, 4.3vw, 3.6rem);
+    margin-bottom: 1rem;
+  }
+
+  .site-about-header p {
+    color: var(--site-text-muted);
+    font-size: 1.18rem;
+    line-height: 1.7;
+  }
+
+  .site-about-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.75rem;
+    margin-bottom: 3.5rem;
+  }
+
+  .site-about-card {
+    padding: 1.85rem;
+    background: var(--site-surface);
+    border: 1px solid var(--site-border);
+    border-radius: 14px;
+  }
+
+  .site-about-card h2 {
+    font-size: 1.22rem;
+    margin-bottom: 0.95rem;
+  }
+
+  .site-about-card p {
+    color: var(--site-text-muted);
+    font-size: 1.02rem;
+    line-height: 1.7;
+  }
+
+  .site-about-card a,
+  .site-about-callout a {
+    color: #93c5fd;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+
+  .site-about-card a:hover,
+  .site-about-callout a:hover {
+    border-color: currentColor;
+  }
+
+  .site-about-callouts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.75rem;
+  }
+
+  .site-about-callout {
+    padding: 1.85rem;
+    border-radius: 14px;
+    border: 1px solid var(--site-border);
+    background: rgba(19, 27, 44, 0.6);
+  }
+
+  .site-about-callout h3 {
+    font-size: 1.12rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .site-about-callout p {
+    color: var(--site-text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .site-about-page {
+      padding: 6rem 0 4rem;
+    }
+  }
+</style>

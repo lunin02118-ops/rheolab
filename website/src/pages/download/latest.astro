@@ -1,0 +1,117 @@
+---
+const manifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows-x86_64/stable.json';
+const fallbackUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.0-beta.4/RheoLab%20Enterprise_0.2.0-beta.4_x64-setup.exe';
+const canonicalUrl = new URL('/download/latest/', Astro.site).toString();
+const description = 'Страница автоматической загрузки актуального установщика RheoLab Enterprise для Windows.';
+const downloadSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Загрузка RheoLab Enterprise',
+  description,
+  url: canonicalUrl,
+  inLanguage: 'ru-RU',
+  dateModified: '2026-04-12',
+  isPartOf: {
+    '@id': new URL('/#website', Astro.site).toString(),
+  },
+};
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <title>Переход к загрузке RheoLab</title>
+    <script type="application/ld+json" set:html={JSON.stringify(downloadSchema)} />
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: 'IBM Plex Sans', system-ui, sans-serif;
+        background: #081120;
+        color: #f8fafc;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at top, rgba(59, 130, 246, 0.16), transparent 32%),
+          linear-gradient(180deg, #081120, #020817);
+      }
+
+      main {
+        width: min(42rem, calc(100vw - 2rem));
+        padding: 2rem;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 16px;
+        background: rgba(15, 23, 42, 0.86);
+        box-shadow: 0 24px 60px rgba(2, 8, 23, 0.38);
+      }
+
+      h1 {
+        margin: 0 0 0.8rem;
+        font-size: 1.75rem;
+      }
+
+      p {
+        margin: 0 0 0.9rem;
+        line-height: 1.7;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #93c5fd;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Готовим загрузку RheoLab</h1>
+      <p>Сейчас откроется актуальный установщик для Windows.</p>
+      <p>
+        Если автоматический переход не сработал, используйте
+        <a id="fallback-link" href={fallbackUrl}>резервную ссылку на установщик</a>
+        или
+        <a href="mailto:info@rheolab.site">напишите нам</a>.
+      </p>
+      <noscript>
+        <p>В браузере отключен JavaScript, поэтому выберите резервную ссылку выше.</p>
+      </noscript>
+    </main>
+
+    <script is:inline define:vars={{ manifestUrl, fallbackUrl }}>
+      const fallbackLink = document.getElementById('fallback-link');
+
+      async function resolveInstallerUrl() {
+        const response = await fetch(manifestUrl, { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Manifest request failed with ${response.status}`);
+        }
+
+        const manifest = await response.json();
+        const installerUrl =
+          manifest?.platforms?.['windows-x86_64']?.url ||
+          manifest?.platforms?.['windows-x86_64']?.browser_download_url;
+
+        if (typeof installerUrl !== 'string' || installerUrl.length === 0) {
+          throw new Error('Installer URL missing in manifest');
+        }
+
+        return installerUrl;
+      }
+
+      resolveInstallerUrl()
+        .catch(() => fallbackUrl)
+        .then((url) => {
+          fallbackLink?.setAttribute('href', url);
+          window.location.replace(url);
+        });
+    </script>
+  </body>
+</html>

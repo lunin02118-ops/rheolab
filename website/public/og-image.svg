@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#07111f"/>
+  <rect x="46" y="46" width="1108" height="538" rx="28" fill="#0b1628" stroke="#1c2a44"/>
+  <circle cx="1031" cy="131" r="170" fill="#06b6d4" fill-opacity="0.16"/>
+  <circle cx="214" cy="480" r="190" fill="#d946ef" fill-opacity="0.14"/>
+  <text x="94" y="156" fill="#67e8f9" font-family="IBM Plex Sans, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="1.6">ЛОКАЛЬНЫЙ АНАЛИЗ РЕОЛОГИИ</text>
+  <text x="94" y="236" fill="#F5F7FB" font-family="Manrope, Arial, sans-serif" font-size="64" font-weight="800">RheoLab Enterprise</text>
+  <text x="94" y="304" fill="#B7C0D2" font-family="IBM Plex Sans, Arial, sans-serif" font-size="32">Программа для загрузки, анализа, сравнения и отчётов</text>
+  <rect x="94" y="360" width="386" height="148" rx="24" fill="#122038" stroke="#304566"/>
+  <text x="126" y="409" fill="#F5F7FB" font-family="IBM Plex Sans, Arial, sans-serif" font-size="22" font-weight="700">Что делает программа</text>
+  <text x="126" y="447" fill="#B7C0D2" font-family="IBM Plex Sans, Arial, sans-serif" font-size="20">Загружает файлы Grace, Chandler, Fann,</text>
+  <text x="126" y="476" fill="#B7C0D2" font-family="IBM Plex Sans, Arial, sans-serif" font-size="20">Ofite, Brookfield и нестандартные файлы.</text>
+  <text x="126" y="505" fill="#B7C0D2" font-family="IBM Plex Sans, Arial, sans-serif" font-size="20">Готовит отчёты PDF и Excel локально.</text>
+  <rect x="724" y="180" width="336" height="220" rx="24" fill="#101d31" stroke="#304566"/>
+  <polyline points="770,351 826,319 872,260 930,283 975,218 1022,238" stroke="#67e8f9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="770,337 826,336 872,356 930,353 975,358 1022,356" stroke="#d946ef" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+  <polyline points="770,302 826,294 872,280 930,251 975,226 1022,214" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+  <text x="768" y="438" fill="#F5F7FB" font-family="IBM Plex Sans, Arial, sans-serif" font-size="22" font-weight="700">Для лабораторий и технических отделов</text>
+  <text x="768" y="474" fill="#B7C0D2" font-family="IBM Plex Sans, Arial, sans-serif" font-size="20">Данные остаются на вашем компьютере без облака.</text>
+  <text x="94" y="560" fill="#FCD34D" font-family="IBM Plex Mono, Consolas, monospace" font-size="20">Windows 10/11 • Подписанный установщик • 30 дней бесплатно</text>
+</svg>

@@ -1,0 +1,160 @@
+---
+// Bento Grid for Audience
+---
+<section class="site-audience">
+  <div class="site-container site-audience-content">
+    <div class="site-section-header">
+      <h2>Кому это действительно нужно</h2>
+    </div>
+
+    <div class="site-bento-grid">
+      <div class="site-bento-card">
+        <div class="site-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" class="icon-svg"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Нефтесервисные компании</h3>
+        <p>Быстрая обработка данных с буровых, сравнение опытов по скважинам и стандартный отчёт заказчику без ручной сборки.</p>
+      </div>
+
+      <div class="site-bento-card">
+        <div class="site-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" class="icon-svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3>НИИ и научные центры</h3>
+        <p>Архив опытов с воспроизводимостью, сравнение серий по рецептурам и готовые данные для публикаций без пересборки таблиц.</p>
+      </div>
+
+      <div class="site-bento-card">
+        <div class="site-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" class="icon-svg"><path d="M21 16V8A2 2 0 0 0 19.66 6.27L12.66 2.27A2 2 0 0 0 11.34 2.27L4.34 6.27A2 2 0 0 0 3 8V16A2 2 0 0 0 4.34 17.73L11.34 21.73A2 2 0 0 0 12.66 21.73L19.66 17.73A2 2 0 0 0 21 16Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3.27 6.96L12 12.01L20.73 6.96M12 22.08V12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Нефтедобывающие компании</h3>
+        <p>Контроль качества растворов в едином формате, история по объектам и понятная база для работы супервайзинга.</p>
+      </div>
+
+      <div class="site-bento-card">
+        <div class="site-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" class="icon-svg"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Производители реагентов</h3>
+        <p>Сравнение рецептур на общих осях, контроль стабильности качества и ускорение R&D без ручного сведения данных.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .site-audience {
+    padding: 7.25rem 0;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(37, 99, 235, 0.08), transparent 24%),
+      var(--site-surface);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .site-audience-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .site-section-header {
+    text-align: center;
+    margin-bottom: 4.5rem;
+  }
+
+  .site-section-header h2 {
+    font-size: clamp(2.4rem, 3.8vw, 2.95rem);
+    color: var(--site-text-main);
+  }
+
+  .site-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2.25rem;
+  }
+
+  .site-bento-card {
+    background: var(--site-bg);
+    border: 1px solid var(--site-border);
+    border-radius: 10px;
+    padding: 2.85rem 2.2rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .site-bento-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(37, 99, 235, 0.4);
+  }
+
+  .site-card-icon {
+    width: 56px;
+    height: 56px;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--site-accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.75rem;
+  }
+
+  .icon-svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .site-bento-card h3 {
+    font-size: 1.4rem;
+    color: var(--site-text-main);
+    margin-bottom: 1.1rem;
+    line-height: 1.4;
+  }
+
+  .site-bento-card p {
+    color: var(--site-text-muted);
+    font-size: 1.02rem;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 1280px) {
+    .site-bento-grid {
+      gap: 2.5rem;
+    }
+
+    .site-bento-card {
+      min-height: 20.5rem;
+      padding: 3.1rem 2.45rem;
+    }
+
+    .site-card-icon {
+      width: 60px;
+      height: 60px;
+    }
+
+    .icon-svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .site-bento-card h3 {
+      font-size: 1.48rem;
+    }
+
+    .site-bento-card p {
+      font-size: 1.08rem;
+    }
+  }
+
+  @media (max-width: 1180px) {
+    .site-bento-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 720px) {
+    .site-bento-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,244 @@
+---
+// v2: added "Видео" to nav, replaced "Контакты" with right-side CTA button
+---
+
+<nav class="navbar" id="navbar">
+  <div class="container nav-container">
+    <a href="/v2" class="logo" aria-label="RheoLab">
+      <span class="logo-icon" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <defs>
+            <linearGradient id="siteLogoGradV2" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#14b8a6" />
+              <stop offset="100%" stop-color="#3b82f6" />
+            </linearGradient>
+          </defs>
+          <path d="M16 2C16 2 6 12 6 19C6 24.523 10.477 29 16 29C21.523 29 26 24.523 26 19C26 12 16 2 16 2Z" stroke="url(#siteLogoGradV2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M10 20L14 16L18 19L24 11" stroke="url(#siteLogoGradV2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          <circle cx="14" cy="16" r="1.5" fill="#3b82f6"></circle>
+          <circle cx="18" cy="19" r="1.5" fill="#3b82f6"></circle>
+          <circle cx="24" cy="11" r="1.5" fill="#3b82f6"></circle>
+        </svg>
+      </span>
+      <span class="logo-copy">
+        <strong>RheoLab</strong>
+        <small>для лаборатории</small>
+      </span>
+    </a>
+
+    <div class="nav-center">
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/v2#capabilities">Возможности</a></li>
+        <li><a href="/v2#videos">Видео</a></li>
+        <li><a href="/v2#download">Скачать</a></li>
+        <li><a href="/faq">FAQ</a></li>
+      </ul>
+    </div>
+
+    <a href="/v2#contact" class="nav-cta btn btn-primary">Написать нам</a>
+
+    <button class="nav-toggle" id="nav-toggle" aria-label="Меню">
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+</nav>
+
+<style>
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    padding: 1rem 0;
+    background: rgba(2, 8, 23, 0.78);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    transition: padding var(--transition-base), background-color var(--transition-base), border-color var(--transition-base);
+  }
+
+  .navbar.scrolled {
+    padding: 0.8rem 0;
+    background: rgba(2, 8, 23, 0.92);
+    border-color: rgba(148, 163, 184, 0.16);
+  }
+
+  .nav-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-spacer {
+    flex: 1;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    color: var(--text-primary);
+    min-width: 0;
+  }
+
+  .logo:hover {
+    color: var(--text-primary);
+  }
+
+  .logo-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.9rem;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.72));
+    border: 1px solid rgba(96, 165, 250, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .logo-copy {
+    display: grid;
+    gap: 0.1rem;
+    line-height: 1;
+  }
+
+  .logo-copy strong {
+    font-size: 1.4rem;
+    letter-spacing: -0.03em;
+  }
+
+  .logo-copy small {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    list-style: none;
+    padding: 0.35rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .nav-links a {
+    display: inline-flex;
+    padding: 0.7rem 1rem;
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .nav-links a:hover {
+    color: var(--text-primary);
+    background: rgba(30, 41, 59, 0.9);
+  }
+
+  .nav-cta {
+    margin-left: auto;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .nav-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+  }
+
+  .nav-toggle span {
+    width: 24px;
+    height: 2px;
+    background: var(--text-primary);
+    transition: transform var(--transition-fast), opacity var(--transition-fast);
+  }
+
+  @media (max-width: 1100px) {
+    .nav-center {
+      position: static;
+      transform: none;
+    }
+
+    .nav-links {
+      display: none;
+      position: absolute;
+      top: calc(100% + 0.35rem);
+      left: 1.5rem;
+      right: 1.5rem;
+      flex-direction: column;
+      align-items: stretch;
+      padding: 0.9rem;
+      border-radius: var(--radius-xl);
+      background: rgba(8, 17, 32, 0.98);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      box-shadow: 0 20px 40px rgba(2, 8, 23, 0.42);
+    }
+
+    .nav-links a {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .nav-links.active {
+      display: flex;
+    }
+
+    .nav-toggle {
+      display: flex;
+    }
+
+    .nav-cta {
+      display: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .logo-copy small {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const navbar = document.getElementById('navbar');
+  const navToggle = document.getElementById('nav-toggle');
+  const navLinks = document.getElementById('nav-links');
+
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 20) {
+      navbar?.classList.add('scrolled');
+    } else {
+      navbar?.classList.remove('scrolled');
+    }
+  }, { passive: true });
+
+  navToggle?.addEventListener('click', () => {
+    navLinks?.classList.toggle('active');
+  });
+
+  navLinks?.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => {
+      navLinks.classList.remove('active');
+    });
+  });
+</script>

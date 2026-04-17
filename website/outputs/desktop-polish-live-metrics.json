@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "metrics": {
+    "statusOk": true,
+    "painCardPadding": "38.4px 34.4px",
+    "painCardHeight": "391px",
+    "videoCardPadding": "26.4px",
+    "videoCardHeight": "345px",
+    "audienceCardPadding": "49.6px 39.2px",
+    "audienceCardHeight": "439px",
+    "contactCardPadding": "33.6px",
+    "contactCardHeight": "368px",
+    "featureVisualHeight": "430px"
+  }
+}

@@ -1,0 +1,265 @@
+---
+import GraphBackdrop from '../GraphBackdrop.astro';
+
+const painCards = [
+  {
+    title: 'Где тот файл за прошлый год?',
+    text: 'Результаты экспериментов разбросаны по папкам, флэшкам и почте. Найти нужный опыт — задача на полчаса.',
+    result: 'Единое место хранения, поиск за секунды',
+  },
+  {
+    title: 'У каждого прибора свой формат',
+    text: 'Grace, Chandler и Fann называют одни и те же показатели по-разному. Сравнить их напрямую в Excel — мучение.',
+    result: 'Одинаковые показатели читаются одинаково',
+  },
+  {
+    title: 'Весь день в Excel — это не анализ',
+    text: 'Перенос данных, ручной пересчёт, вёрстка отчёта. Уходит весь рабочий день, и всё равно где-то ошибка.',
+    result: 'Отчёт в PDF или Excel в один клик',
+  },
+  {
+    title: 'Открыл — посмотрел — потерял',
+    text: 'После первого просмотра файл закрыт и результат потерян. Через неделю приходится начинать заново.',
+    result: 'Каждый опыт хранится и открывается повторно',
+  },
+];
+
+const processSteps = [
+  {
+    number: '01',
+    title: 'Импорт файла с прибора',
+    text: 'Программа читает исходный файл — xls, xlsx, csv, dat — и сразу строит график. Определяет циклы нагружения, рассчитывает параметры степенной модели (n, K) и модели Бингама (PV, YP). Не нужно копировать данные вручную.',
+  },
+  {
+    number: '02',
+    title: 'Опыт в библиотеке',
+    text: 'После обработки результат сохраняется с кривыми, расчётными показателями, рецептурой и метаданными. Можно дополнить параметрами воды, объекта, условиями испытания — всё остаётся рядом с опытом.',
+  },
+  {
+    number: '03',
+    title: 'Сравнение и отчёт',
+    text: 'Несколько опытов накладываются на общие оси для сравнения рецептур или партий реагента. Готовый результат выгружается в PDF или Excel — с графиком, таблицей значений и логотипом компании.',
+  },
+];
+
+const orgCards = [
+  {
+    title: 'Нефтесервисные компании',
+    text: 'Быстрая обработка данных с буровых, сравнение опытов по скважинам и стандартный отчёт заказчику без ручной сборки.',
+  },
+  {
+    title: 'НИИ и научные центры',
+    text: 'Архив опытов с воспроизводимостью, сравнение серий по рецептурам и готовые данные для публикаций без пересборки таблиц.',
+  },
+  {
+    title: 'Нефтедобывающие компании',
+    text: 'Контроль качества растворов в едином формате, история по объектам и понятная база для работы супервайзинга.',
+  },
+  {
+    title: 'Производители реагентов',
+    text: 'Сравнение рецептур на общих осях, контроль стабильности качества и ускорение R&D без ручного сведения данных.',
+  },
+];
+---
+
+<section class="capabilities" id="capabilities">
+  <GraphBackdrop variant="capabilities" />
+
+  <div class="container capabilities-container">
+
+    <!-- Intro -->
+    <div class="capabilities-intro">
+      <span class="eyebrow">Что делает программа</span>
+      <h2>Принимает файл с прибора, рассчитывает реологические модели и хранит каждый опыт в единой библиотеке.</h2>
+      <p>
+        Программа автоматически распознаёт выгрузки Grace, Chandler, Fann, Ofite, BSL-R1 и Brookfield,
+        определяет циклы, рассчитывает параметры степенной модели и модели Бингама — и сохраняет результат
+        с графиком, таблицей показателей и готовым отчётом. Позже этот опыт можно найти, сравнить
+        с другой серией на общих осях и выгрузить в PDF или Excel без повторной сборки данных.
+      </p>
+    </div>
+
+    <!-- Process steps -->
+    <div class="capability-block">
+      <div class="process-steps">
+        {processSteps.map((step) => (
+          <article class="process-step panel">
+            <span class="step-number mono">{step.number}</span>
+            <div class="step-body">
+              <strong>{step.title}</strong>
+              <p>{step.text}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+
+    <!-- Pain cards -->
+    <div class="capability-block">
+      <div class="capability-head">
+        <span class="eyebrow">Знакомые проблемы?</span>
+        <p>Программа убирает их все — сразу, без настройки и без Excel как промежуточного звена.</p>
+      </div>
+
+      <div class="pain-grid">
+        {painCards.map((card) => (
+          <article class="pain-card panel">
+            <h3>{card.title}</h3>
+            <p>{card.text}</p>
+            <strong class="pain-result">{card.result}</strong>
+          </article>
+        ))}
+      </div>
+    </div>
+
+    <!-- Org cards -->
+    <div class="capability-block">
+      <div class="capability-head">
+        <span class="eyebrow">Кому подходит</span>
+        <p>Программа делает одно и то же — но конкретная польза зависит от того, кто и где её использует.</p>
+      </div>
+
+      <div class="org-grid">
+        {orgCards.map((card) => (
+          <article class="org-card panel">
+            <h3>{card.title}</h3>
+            <p>{card.text}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .capabilities {
+    position: relative;
+    padding: 0 0 var(--section-padding);
+    overflow: hidden;
+  }
+
+  .capabilities-container {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 3rem;
+  }
+
+  .capabilities-intro {
+    max-width: 56rem;
+  }
+
+  .capabilities-intro h2 {
+    margin: 1rem 0 1rem;
+    line-height: 1.18;
+  }
+
+  .capability-block {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .capability-head {
+    max-width: 50rem;
+  }
+
+  .capability-head p {
+    margin-top: 0.6rem;
+  }
+
+  /* Process steps */
+  .process-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .process-step {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1rem;
+    padding: 1.4rem;
+    background: linear-gradient(180deg, rgba(8, 17, 32, 0.92), rgba(15, 23, 42, 0.82));
+    align-items: start;
+  }
+
+  .step-number {
+    color: var(--color-primary-400);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding-top: 0.1rem;
+  }
+
+  .step-body strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 1.08rem;
+  }
+
+  /* Pain grid */
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .pain-card {
+    padding: 1.35rem;
+    background: linear-gradient(180deg, rgba(8, 17, 32, 0.92), rgba(15, 23, 42, 0.82));
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .pain-card h3 {
+    font-size: 1.08rem;
+    line-height: 1.3;
+  }
+
+  .pain-result {
+    display: block;
+    margin-top: auto;
+    padding-top: 0.5rem;
+    color: var(--color-accent-300);
+    font-size: 0.9rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  /* Org grid */
+  .org-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .org-card {
+    padding: 1.35rem;
+    background: linear-gradient(180deg, rgba(8, 17, 32, 0.92), rgba(15, 23, 42, 0.82));
+  }
+
+  .org-card h3 {
+    font-size: 1.08rem;
+    margin-bottom: 0.7rem;
+  }
+
+  @media (max-width: 1080px) {
+    .pain-grid,
+    .org-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 860px) {
+    .process-steps {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .pain-grid,
+    .org-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

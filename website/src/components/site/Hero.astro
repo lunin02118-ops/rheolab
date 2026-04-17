@@ -1,0 +1,369 @@
+---
+import FixtureChart from '../FixtureChart.astro';
+import HeroBackdrop from './HeroBackdrop.astro';
+---
+<section id="download" class="site-hero">
+  <HeroBackdrop />
+  <div class="site-bg-grid"></div>
+  
+  <div class="site-container site-hero-layout">
+    <div class="site-hero-content">
+      <div class="site-hero-badge site-badge-green">
+        <span class="site-badge-dot"></span>
+        Пробный период 30 дней для проверки на ваших файлах
+      </div>
+
+      <h1 class="site-hero-title">
+        Импорт, хранение<br />
+        <span class="text-gradient">и сравнение результатов<br/>реологических экспериментов</span>
+      </h1>
+
+      <p class="site-hero-desc">
+        RheoLab Enterprise — <strong>Windows-приложение для работы с реологическими данными</strong>.
+        Оно открывает лабораторные файлы
+        Grace, Chandler, Fann, Ofite, BSL R1 и Brookfield,
+        приводит показатели к <strong>единому виду</strong>,
+        рассчитывает параметры по <strong>циклам эксперимента</strong>,
+        сохраняет результаты в <strong>локальную библиотеку</strong>
+        и формирует <strong>отчёты в PDF и Excel</strong>.
+      </p>
+
+      <div class="site-hero-actions">
+        <a href="/download/latest" class="site-btn-primary" style="background:#e85d04;color:#fff;border-color:#e85d04;box-shadow:inset 0 1px 0 rgba(255,255,255,0.2), 0 0 20px rgba(234,88,12,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="btn-icon">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Скачать бесплатно для Windows
+        </a>
+        <a href="#contact" class="site-btn-secondary" style="background:#0f172a;border-color:rgba(255,255,255,0.1)">
+          Написать нам
+        </a>
+      </div>
+
+      <div class="site-hero-trust">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <span>От инженеров, создавших <strong>BSL-R1</strong> — первый российский лабораторный реометр</span>
+      </div>
+    </div>
+
+    <div class="site-hero-mockup-wrapper">
+      <div class="site-app-mockup">
+        <div class="site-app-header">
+          <div class="site-window-controls">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="site-window-tabs">
+            <div class="site-tab active">Анализ</div>
+            <div class="site-tab">Библиотека</div>
+            <div class="site-tab">Сравнение</div>
+            <div class="site-tab">Отчёты</div>
+          </div>
+        </div>
+        <div class="site-app-body">
+          <div class="site-app-content">
+            <!-- Используем оригинальный график в компактном режиме -->
+            <FixtureChart profile="grace" variant="hero" compact={true} />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .site-hero {
+    position: relative;
+    padding: 5.5rem 0 4.75rem;
+    min-height: calc(100vh - 4.75rem);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .site-hero-layout {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.16fr);
+    gap: 4rem;
+    align-items: center;
+  }
+
+  /* Текстовая часть */
+  .site-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 1rem;
+    background: rgba(37, 99, 235, 0.1);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #60a5fa;
+    margin-bottom: 2.25rem;
+  }
+
+  .site-badge-dot {
+    width: 8px;
+    height: 8px;
+    background: #60a5fa;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #60a5fa;
+  }
+
+  .site-badge-green {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+  }
+  
+  .site-badge-green .site-badge-dot {
+    background: #34d399;
+    box-shadow: 0 0 8px #34d399;
+  }
+
+  .site-hero-title {
+    font-size: clamp(3.1rem, 4.85vw, 4.35rem);
+    font-weight: 700;
+    line-height: 1.08;
+    margin-bottom: 1.9rem;
+    color: var(--site-text-main);
+    letter-spacing: -0.02em;
+  }
+
+  .site-hero-desc {
+    font-size: 1.32rem;
+    color: var(--site-text-muted);
+    line-height: 1.62;
+    margin-bottom: 2.75rem;
+    max-width: 95%;
+  }
+
+  .site-hero-desc strong {
+    color: var(--site-text-main);
+    font-weight: 600;
+  }
+
+  .site-hero-actions {
+    display: flex;
+    gap: 1.2rem;
+    margin-bottom: 2.2rem;
+  }
+
+  .btn-icon {
+    margin-right: 0.35rem;
+  }
+
+  .site-hero-trust {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-size: 1.08rem;
+    color: var(--site-text-muted);
+    margin-top: 1.75rem;
+  }
+
+  .site-hero-trust svg {
+    color: #38bdf8;
+    flex-shrink: 0;
+  }
+
+  .site-hero-trust strong {
+    color: var(--site-text-main);
+    font-weight: 600;
+  }
+
+  .site-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: rgba(148, 163, 184, 0.6);
+  }
+
+  .site-meta-divider {
+    width: 4px;
+    height: 4px;
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 50%;
+  }
+
+  /* Мокап интерфейса (Окно программы) */
+  .site-hero-mockup-wrapper {
+    position: relative;
+    border-radius: 12px;
+    z-index: 2;
+    perspective: 1000px;
+    transform: translateX(0.35rem) scale(1.05);
+    transform-origin: center right;
+  }
+
+  .site-app-mockup {
+    background: #0f172a; /* Темный фон, как в V2 (surface) */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    contain: layout paint;
+    transform: rotateY(-5deg) rotateX(2deg);
+    transition: transform 0.5s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .site-app-mockup:hover {
+    transform: rotateY(0) rotateX(0);
+    border-color: rgba(96, 165, 250, 0.28);
+  }
+
+  .site-app-header {
+    background: #1e293b;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    padding: 0 1.25rem;
+    height: 3.5rem;
+  }
+
+  .site-window-controls {
+    display: flex;
+    gap: 10px;
+    margin-right: 2rem;
+  }
+
+  .site-window-controls span {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #475569;
+  }
+
+  /* Вкладки навигации сверху */
+  .site-window-tabs {
+    display: flex;
+    gap: 1.75rem;
+    height: 100%;
+    align-items: center;
+  }
+
+  .site-tab {
+    font-size: 1rem;
+    color: rgba(255,255,255, 0.5);
+    cursor: default;
+    font-weight: 500;
+  }
+
+  .site-tab.active {
+    color: #fff;
+    border-bottom: 2px solid #3b82f6; /* Акцентная линия снизу */
+    padding-top: 2px; /* баланс */
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  .site-app-body {
+    display: block; /* Убираем flex, чтобы позволить содержимому расти */
+    /* Убрана фиксированная высота */
+  }
+
+  .site-app-content {
+    /* Фон берется из FixtureChart, мы только даем обертку */
+  }
+
+  /* Исправление вложенных бордеров и огромных карточек */
+  .site-app-mockup :global(.fixture-chart) {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding-bottom: 0.5rem;
+    gap: 0.3rem !important;
+  }
+  .site-app-mockup :global(.fixture-head) {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+    padding: 0.4rem 1.25rem !important;
+  }
+  .site-app-mockup :global(.fixture-title) {
+    gap: 0.4rem !important;
+  }
+  .site-app-mockup :global(.fixture-chevron) {
+    width: 1.2rem !important;
+    height: 1.2rem !important;
+  }
+  .site-app-mockup :global(.fixture-chevron svg) {
+    width: 0.6rem !important;
+    height: 0.6rem !important;
+  }
+  .site-app-mockup :global(.fixture-title strong) {
+    font-size: 0.85rem !important;
+  }
+  .site-app-mockup :global(.fixture-badges) {
+    gap: 0.4rem !important;
+  }
+  .site-app-mockup :global(.fixture-badge) {
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.7rem !important;
+    border-radius: 0.4rem !important;
+    gap: 0.3rem !important;
+  }
+  .site-app-mockup :global(.fixture-badge i) {
+    width: 0.7rem !important;
+    height: 0.7rem !important;
+  }
+  .site-app-mockup :global(.fixture-stats) {
+    padding: 0 1.25rem !important;
+  }
+  /* Делаем статистику еще компактнее, чтобы график занимал 80% */
+  .site-app-mockup :global(.fixture-chart-compact .stat-card) {
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 0.3rem !important;
+  }
+  .site-app-mockup :global(.fixture-chart-compact .stat-card span) {
+    font-size: 0.55rem !important;
+    margin-bottom: 0.05rem !important;
+    line-height: 1 !important;
+  }
+  .site-app-mockup :global(.fixture-chart-compact .stat-card strong) {
+    font-size: 0.8rem !important;
+    line-height: 1 !important;
+  }
+  .site-app-mockup :global(.fixture-plot) {
+    padding: 0 1.25rem !important;
+    margin-top: 0.2rem !important;
+  }
+
+  @media (max-width: 1024px) {
+    .site-hero-layout {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+    
+    .site-hero-desc {
+      margin: 0 auto 2.5rem;
+    }
+    
+    .site-hero-actions {
+      justify-content: center;
+    }
+
+    .site-hero-meta {
+      justify-content: center;
+    }
+
+    .site-app-mockup {
+      transform: none;
+    }
+
+    .site-hero-mockup-wrapper {
+      transform: none;
+    }
+  }
+</style>
+
+
+
+
+

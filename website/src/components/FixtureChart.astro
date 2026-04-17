@@ -1,0 +1,721 @@
+---
+import { fixtureProfiles, type FixtureProfileKey, type FixturePoint } from '../data/fixtureProfiles';
+
+interface Props {
+  profile?: FixtureProfileKey;
+  variant?: 'hero' | 'section';
+  kicker?: string | false;
+  titleText?: string;
+  noteText?: string | false;
+  showGeometryHint?: boolean;
+  compact?: boolean;
+}
+
+const {
+  profile = 'grace',
+  variant = 'hero',
+  kicker = false,
+  titleText = 'График реологических данных',
+  noteText = false,
+  showGeometryHint = false,
+  compact = false,
+} = Astro.props;
+const chart = fixtureProfiles[profile];
+const isLightChart = variant === 'hero';
+const seriesSampleEvery = compact ? 18 : 12;
+const seriesPoints = isLightChart
+  ? chart.points.filter((_, index, points) => (
+    index === 0 || index === points.length - 1 || index % seriesSampleEvery === 0
+  ))
+  : chart.points;
+
+const width = variant === 'hero' ? 1420 : 1280;
+const height = variant === 'hero' ? 880 : 560;
+const padding = variant === 'hero'
+  ? { top: 18, right: 86, bottom: 78, left: 86 }
+  : { top: 18, right: 82, bottom: 76, left: 82 };
+
+const plotWidth = width - padding.left - padding.right;
+const plotHeight = height - padding.top - padding.bottom;
+
+const xRange = { min: 0, max: Math.ceil((chart.stats.duration + 1) / 10) * 10 };
+const leftRange = { min: 0, max: Math.ceil((chart.stats.maxViscosity + 160) / 200) * 200 };
+const rightRange = { min: 20, max: 110 };
+
+function xScale(time: number) {
+  return padding.left + ((time - xRange.min) / (xRange.max - xRange.min)) * plotWidth;
+}
+
+function yScaleLeft(value: number) {
+  return padding.top + plotHeight - ((value - leftRange.min) / (leftRange.max - leftRange.min)) * plotHeight;
+}
+
+function yScaleRight(value: number) {
+  return padding.top + plotHeight - ((value - rightRange.min) / (rightRange.max - rightRange.min)) * plotHeight;
+}
+
+function linePath(points: FixturePoint[], key: 'viscosity' | 'temperature' | 'shear') {
+  return points
+    .map((point, index) => {
+      const x = xScale(point.time).toFixed(2);
+      const y = (key === 'temperature' ? yScaleRight(point[key]) : yScaleLeft(point[key])).toFixed(2);
+      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+    })
+    .join(' ');
+}
+
+const viscosityPath = linePath(seriesPoints, 'viscosity');
+const temperaturePath = linePath(seriesPoints, 'temperature');
+const shearPath = linePath(seriesPoints, 'shear');
+
+const xTicks = Array.from({ length: xRange.max / 10 + 1 }, (_, index) => index * 10);
+const leftTicks = Array.from({ length: leftRange.max / 200 + 1 }, (_, index) => index * 200);
+const rightTicks = Array.from({ length: (rightRange.max - rightRange.min) / 10 + 1 }, (_, index) => rightRange.min + index * 10);
+
+const highlight = chart.highlight;
+const highlightX = xScale(highlight.time);
+const highlightViscY = yScaleLeft(highlight.viscosity);
+const highlightTempY = yScaleRight(highlight.temperature);
+const highlightShearY = yScaleLeft(highlight.shear);
+const tooltipLeft = Math.min(highlightX + 36, width - 260);
+const tooltipTop = Math.max(highlightViscY - 78, 84);
+const tooltipStyle = `left: ${(tooltipLeft / width) * 100}%; top: ${(tooltipTop / height) * 100}%;`;
+
+function formatCompact(value: number, digits = 0) {
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+---
+
+<figure class:list={['fixture-chart', `fixture-chart-${variant}`, compact && 'fixture-chart-compact']}>
+  <div class="fixture-head">
+    <div class="fixture-title">
+      <span class="fixture-chevron" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="none">
+          <path d="M6 12L10 8L14 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </span>
+      <div>
+        {kicker && <span class="fixture-kicker">{kicker}</span>}
+        <strong>{titleText}</strong>
+      </div>
+    </div>
+
+    <div class="fixture-badges">
+      <span class="fixture-badge fixture-badge-blue">
+        <i aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none">
+            <rect x="4" y="4" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="1.6"></rect>
+            <path d="M7 7h6v6H7z" stroke="currentColor" stroke-width="1.4"></path>
+          </svg>
+        </i>
+        {chart.instrumentType}
+      </span>
+      <span class="fixture-badge fixture-badge-green">
+        <i aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M4 14l5-8 7 4-5 8-7-4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+          </svg>
+        </i>
+        {chart.geometry}
+        {showGeometryHint && <small>(из контекста)</small>}
+      </span>
+    </div>
+  </div>
+
+  <div class="fixture-stats">
+    <article class="stat-card stat-card-blue">
+      <span>Макс. вязкость</span>
+      <strong>{chart.stats.maxViscosity} сП</strong>
+    </article>
+    <article class="stat-card stat-card-purple">
+      <span>Ср. вязкость</span>
+      <strong>{chart.stats.avgViscosity} сП</strong>
+    </article>
+    <article class="stat-card stat-card-orange">
+      <span>Ср. температура</span>
+      <strong>{chart.stats.avgTemperature}°C</strong>
+    </article>
+    <article class="stat-card stat-card-green">
+      <span>Макс. давление</span>
+      <strong>{chart.stats.maxPressure} бар</strong>
+    </article>
+    <article class="stat-card stat-card-green">
+      <span>Длительность</span>
+      <strong>{chart.stats.duration} мин</strong>
+    </article>
+  </div>
+
+  <div class="fixture-plot">
+    <svg viewBox={`0 0 ${width} ${height}`} class="fixture-svg" aria-hidden="true" role="presentation">
+      {xTicks.map((tick) => (
+        <line
+          x1={xScale(tick)}
+          y1={padding.top}
+          x2={xScale(tick)}
+          y2={padding.top + plotHeight}
+          class:list={['grid-line', tick === Math.round(highlight.time) ? 'grid-line-emphasis' : undefined]}
+        />
+      ))}
+
+      {leftTicks.map((tick) => (
+        <line
+          x1={padding.left}
+          y1={yScaleLeft(tick)}
+          x2={padding.left + plotWidth}
+          y2={yScaleLeft(tick)}
+          class:list={['grid-line', tick === 1600 ? 'grid-line-emphasis' : undefined]}
+        />
+      ))}
+
+      {!isLightChart && (
+        <>
+          <line x1={highlightX} y1={padding.top} x2={highlightX} y2={padding.top + plotHeight} class="crosshair-line" />
+          <line x1={padding.left} y1={highlightViscY} x2={padding.left + plotWidth} y2={highlightViscY} class="crosshair-line crosshair-line-soft" />
+        </>
+      )}
+
+      <path d={viscosityPath} class="series series-viscosity" pathLength="100" />
+      <path d={temperaturePath} class="series series-temperature" pathLength="100" />
+      <path d={shearPath} class="series series-shear" pathLength="100" />
+
+      {!isLightChart && (
+        <>
+          <circle cx={highlightX} cy={highlightViscY} r="4.8" class="marker marker-viscosity" />
+          <circle cx={highlightX} cy={highlightTempY} r="4.2" class="marker marker-temperature" />
+          <circle cx={highlightX} cy={highlightShearY} r="4.2" class="marker marker-shear" />
+        </>
+      )}
+
+      <text x={width / 2} y={height - 18} class="axis-label axis-label-x">Время (мин)</text>
+
+      <g transform={`translate(24 ${padding.top + plotHeight / 2}) rotate(-90)`}>
+        <text class="axis-label axis-label-left">Вязкость (сП) / Скор. сдвига (1/с)</text>
+      </g>
+
+      <g transform={`translate(${width - 18} ${padding.top + plotHeight / 2}) rotate(90)`}>
+        <text class="axis-label axis-label-right">Температура (°C)</text>
+      </g>
+
+      {xTicks.filter((tick) => tick > 0 && tick < xRange.max).map((tick) => (
+        <text x={xScale(tick)} y={height - 40} class="tick-label tick-label-x" text-anchor="middle">{tick}</text>
+      ))}
+
+      {leftTicks.map((tick) => (
+        <text x={padding.left - 12} y={yScaleLeft(tick) + 4} class="tick-label tick-label-left" text-anchor="end">
+          {formatCompact(tick)}
+        </text>
+      ))}
+
+      {rightTicks.map((tick) => (
+        <text x={width - padding.right + 12} y={yScaleRight(tick) + 4} class="tick-label tick-label-right">
+          {tick}
+        </text>
+      ))}
+    </svg>
+
+    {!isLightChart && (
+      <div class="fixture-tooltip" style={tooltipStyle}>
+        <strong>Время: {highlight.time.toFixed(2)} мин</strong>
+        <span>Вязкость: {highlight.viscosity.toFixed(1)} сП</span>
+        <span>Температура: {highlight.temperature.toFixed(1)} °C</span>
+        <span>Скор. сдвига: {Math.round(highlight.shear)} 1/с</span>
+      </div>
+    )}
+  </div>
+
+  <div class="fixture-legend">
+    <span><i class="legend-line legend-line-blue"></i>Вязкость</span>
+    <span><i class="legend-line legend-line-orange"></i>Температура</span>
+    <span><i class="legend-line legend-line-purple"></i>Скор. сдвига</span>
+  </div>
+
+  {noteText && (
+    <p class="fixture-note">
+      {noteText}
+    </p>
+  )}
+</figure>
+
+<style>
+  .fixture-chart {
+    position: relative;
+    display: grid;
+    gap: 1rem;
+    padding: 0;
+    border-radius: 1.4rem;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(5, 12, 29, 0.98), rgba(6, 15, 34, 0.96));
+    border: 1px solid rgba(71, 85, 105, 0.7);
+    box-shadow:
+      0 30px 60px rgba(2, 8, 23, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .fixture-chart-hero {
+    contain: layout paint;
+  }
+
+  .fixture-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem 1.25rem 0.9rem;
+    border-bottom: 1px solid rgba(71, 85, 105, 0.5);
+    background: linear-gradient(180deg, rgba(12, 19, 41, 0.95), rgba(8, 17, 32, 0.86));
+  }
+
+  .fixture-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+  }
+
+  .fixture-chevron {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #b7c4de;
+    border-radius: 999px;
+  }
+
+  .fixture-chevron svg {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+
+  .fixture-kicker {
+    display: block;
+    margin-bottom: 0.18rem;
+    color: rgba(151, 166, 193, 0.76);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .fixture-title strong {
+    display: block;
+    color: #eff5ff;
+    font-size: clamp(1.02rem, 2.1vw, 1.3rem);
+    line-height: 1.2;
+  }
+
+  .fixture-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.65rem;
+  }
+
+  .fixture-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.72rem 0.9rem;
+    border-radius: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .fixture-badge i {
+    width: 1rem;
+    height: 1rem;
+    display: inline-flex;
+    color: currentColor;
+  }
+
+  .fixture-badge i svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .fixture-badge small {
+    color: rgba(134, 239, 172, 0.66);
+    font-size: 0.78rem;
+    font-weight: 500;
+  }
+
+  .fixture-badge-blue {
+    color: #8db6ff;
+    background: rgba(37, 99, 235, 0.18);
+    border: 1px solid rgba(96, 165, 250, 0.28);
+  }
+
+  .fixture-badge-green {
+    color: #7ddc9a;
+    background: rgba(22, 163, 74, 0.16);
+    border: 1px solid rgba(74, 222, 128, 0.22);
+  }
+
+  .fixture-stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0 1.25rem;
+  }
+
+  .stat-card {
+    min-width: 0;
+    padding: 0.8rem 0.95rem;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    background: rgba(15, 23, 42, 0.62);
+  }
+
+  .stat-card span {
+    display: block;
+    margin-bottom: 0.22rem;
+    color: rgba(148, 163, 184, 0.82);
+    font-size: 0.78rem;
+  }
+
+  .stat-card strong {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .stat-card-blue {
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.2), rgba(37, 99, 235, 0.08));
+    border-color: rgba(96, 165, 250, 0.25);
+  }
+
+  .stat-card-blue strong {
+    color: #74a7ff;
+  }
+
+  .stat-card-purple {
+    background: linear-gradient(90deg, rgba(124, 58, 237, 0.22), rgba(124, 58, 237, 0.08));
+    border-color: rgba(167, 139, 250, 0.22);
+  }
+
+  .stat-card-purple strong {
+    color: #b59cff;
+  }
+
+  .stat-card-orange {
+    background: linear-gradient(90deg, rgba(234, 88, 12, 0.22), rgba(234, 88, 12, 0.08));
+    border-color: rgba(251, 146, 60, 0.24);
+  }
+
+  .stat-card-orange strong {
+    color: #fb923c;
+  }
+
+  .stat-card-green {
+    background: linear-gradient(90deg, rgba(22, 163, 74, 0.18), rgba(22, 163, 74, 0.08));
+    border-color: rgba(74, 222, 128, 0.2);
+  }
+
+  .stat-card-green strong {
+    color: #86efac;
+  }
+
+  /* Compact mode: small inline stat strip */
+  .fixture-chart-compact .fixture-stats {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.4rem;
+    padding: 0 1rem;
+  }
+
+  .fixture-chart-compact .stat-card {
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.6rem;
+  }
+
+  .fixture-chart-compact .stat-card span {
+    font-size: 0.68rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .fixture-chart-compact .stat-card strong {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  .fixture-plot {
+    position: relative;
+    padding: 0 1.05rem;
+  }
+
+  .fixture-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  .grid-line {
+    stroke: rgba(51, 65, 85, 0.62);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  .grid-line-emphasis {
+    stroke: rgba(91, 122, 165, 0.62);
+  }
+
+  .crosshair-line {
+    stroke: rgba(182, 193, 214, 0.44);
+    stroke-width: 1.2;
+    stroke-dasharray: 3 3;
+  }
+
+  .crosshair-line-soft {
+    opacity: 0.5;
+  }
+
+  .series {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: chartDraw 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .series-viscosity {
+    stroke: #4f86ff;
+    stroke-width: 2.4;
+    filter: drop-shadow(0 0 5px rgba(79, 134, 255, 0.16));
+  }
+
+  .fixture-chart-hero .series {
+    animation: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+
+  .fixture-chart-hero .series-viscosity {
+    filter: none;
+  }
+
+  .series-temperature {
+    stroke: #f78b1f;
+    stroke-width: 2.3;
+    animation-delay: 0.14s;
+  }
+
+  .series-shear {
+    stroke: #9255ff;
+    stroke-width: 2.2;
+    animation-delay: 0.22s;
+  }
+
+  .marker {
+    fill: #081120;
+    stroke-width: 2.1;
+    opacity: 0;
+    transform-origin: center;
+    animation: markerIn 0.45s ease-out forwards 1.7s;
+  }
+
+  .fixture-chart-hero .marker {
+    opacity: 1;
+    animation: none;
+  }
+
+  .marker-viscosity {
+    stroke: #d9e6ff;
+  }
+
+  .marker-temperature {
+    stroke: #ffd7a5;
+  }
+
+  .marker-shear {
+    stroke: #d6c4ff;
+  }
+
+  .axis-label {
+    fill: rgba(148, 163, 184, 0.88);
+    font-size: 14px;
+  }
+
+  .axis-label-left {
+    fill: #6ea1ff;
+  }
+
+  .axis-label-right {
+    fill: #f78b1f;
+  }
+
+  .tick-label {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .tick-label-x {
+    fill: rgba(148, 163, 184, 0.82);
+  }
+
+  .tick-label-left {
+    fill: #6ea1ff;
+  }
+
+  .tick-label-right {
+    fill: #f78b1f;
+  }
+
+  .fixture-tooltip {
+    position: absolute;
+    min-width: 13rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 0.9rem;
+    border: 1px solid rgba(71, 85, 105, 0.65);
+    background: rgba(8, 17, 32, 0.94);
+    box-shadow: 0 18px 30px rgba(2, 8, 23, 0.32);
+    color: #d7e3f7;
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+    animation: tooltipIn 0.45s ease-out forwards 1.8s;
+    pointer-events: none;
+  }
+
+  .fixture-chart-hero .fixture-tooltip {
+    opacity: 1;
+    animation: none;
+    transform: none;
+  }
+
+  .fixture-tooltip strong,
+  .fixture-tooltip span {
+    display: block;
+  }
+
+  .fixture-tooltip strong {
+    margin-bottom: 0.55rem;
+    color: #eff5ff;
+    font-size: 0.95rem;
+  }
+
+  .fixture-tooltip span + span {
+    margin-top: 0.28rem;
+  }
+
+  .fixture-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.4rem;
+    padding: 0 1.25rem 0.2rem;
+    color: rgba(148, 163, 184, 0.9);
+    font-size: 0.92rem;
+  }
+
+  .fixture-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .legend-line {
+    width: 1.7rem;
+    height: 0.18rem;
+    border-radius: 999px;
+    display: inline-block;
+  }
+
+  .legend-line-blue {
+    background: #4f86ff;
+  }
+
+  .legend-line-orange {
+    background: #f78b1f;
+  }
+
+  .legend-line-purple {
+    background: #9255ff;
+  }
+
+  .fixture-note {
+    padding: 0 1.25rem 1.15rem;
+    color: rgba(148, 163, 184, 0.78);
+    font-size: 0.85rem;
+  }
+
+  .fixture-note code {
+    color: #d7e3f7;
+    background: rgba(15, 23, 42, 0.82);
+    padding: 0.14rem 0.38rem;
+    border-radius: 0.35rem;
+  }
+
+  @keyframes chartDraw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes markerIn {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes tooltipIn {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @media (max-width: 1180px) {
+    .fixture-head,
+    .fixture-stats {
+      grid-template-columns: 1fr;
+    }
+
+    .fixture-head {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .fixture-badges {
+      justify-content: flex-start;
+    }
+
+    .fixture-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 760px) {
+    .fixture-stats {
+      grid-template-columns: 1fr;
+    }
+
+    .fixture-badge {
+      white-space: normal;
+    }
+
+    .fixture-tooltip {
+      min-width: auto;
+      max-width: 13rem;
+    }
+
+    .fixture-note {
+      padding-top: 0.25rem;
+    }
+  }
+</style>

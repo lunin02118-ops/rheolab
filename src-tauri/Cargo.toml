@@ -1,0 +1,235 @@
+[package]
+name = "rheolab-enterprise"
+version = "0.2.0-beta.5"
+description = "RheoLab Enterprise - Professional Rheology Analysis Software"
+authors = ["RheoLab Team"]
+license = "Proprietary"
+repository = "https://github.com/Vladimilunin/rheolab-enterprise"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-process = "2"
+tauri-plugin-os = "2"
+tauri-plugin-http = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-log = "2"
+tauri-plugin-updater = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+async-trait = "0.1"
+thiserror = "2"
+anyhow = "1"
+dirs = "5"
+open = "5"
+urlencoding = "2"
+sha2 = "0.10"
+hmac = "0.12"
+hkdf = "0.12"
+hex = "0.4"
+aes = "0.8"
+aes-gcm = "0.10"
+cbc = { version = "0.1", features = ["alloc"] }
+rand = "0.9"
+rsa = { version = "0.9", features = ["sha2"] }
+base64 = "0.22"
+rusqlite = { version = "0.32", features = ["bundled"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.25"
+uuid = { version = "1", features = ["v4"] }
+zstd = "0.13"
+byteorder = "1"
+lru = "0.12"
+rheolab-core = { path = "../src/rust/rheolab-core", default-features = false, features = ["pdf", "excel", "charts"] }
+specta = { version = "2.0.0-rc.22", features = ["derive", "export", "serde_json"] }
+specta-typescript = "0.0.9"
+
+[dev-dependencies]
+calamine = { version = "0.22.1", features = ["dates"] }
+
+[profile.dev]
+# Use "limited" debug info (line tables only) for dev builds.
+# Full debug info (the default = 2) inflates target/debug/deps from ~31 GB to ~10 GB.
+# Line tables are sufficient for meaningful stack traces and panic messages.
+# Our own workspace crate (rheolab-enterprise) is overridden to "full" below.
+debug = 1
+
+[profile.dev.package.rheolab-enterprise]
+# Keep full debug symbols for the workspace crate so attaching a debugger works.
+debug = 2
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = false
+opt-level = "s"
+strip = true
+
+# ── Per-package debug optimisations ──────────────────────────────────────────
+# Typst and its font/layout sub-crates are compute-heavy; at opt-level=0
+# (default debug profile) PDF compilation takes 5+ minutes in tests.
+# Setting opt-level=2 makes Typst ~20–40× faster in debug builds while
+# keeping workspace source (rheolab-enterprise) at level 0 for fast rebuilds.
+# Plotters SVG backend also benefits from level 1 (vector loop hot paths).
+[profile.dev.package.typst]
+opt-level = 2
+[profile.dev.package.typst-pdf]
+opt-level = 2
+[profile.dev.package.typst-utils]
+opt-level = 2
+[profile.dev.package.typst-syntax]
+opt-level = 2
+[profile.dev.package.typst-timing]
+opt-level = 2
+[profile.dev.package.comemo]
+opt-level = 2
+[profile.dev.package.ecow]
+opt-level = 2
+# Font rendering pipeline (used by Typst)
+[profile.dev.package.ttf-parser]
+opt-level = 2
+[profile.dev.package.rustybuzz]
+opt-level = 2
+[profile.dev.package.icu_properties]
+opt-level = 2
+[profile.dev.package.icu_normalizer]
+opt-level = 2
+[profile.dev.package.icu_segmenter]
+opt-level = 2
+[profile.dev.package.kurbo]
+opt-level = 2
+# Chart SVG generation
+[profile.dev.package.plotters]
+opt-level = 1
+[profile.dev.package.rheolab-core]
+opt-level = 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

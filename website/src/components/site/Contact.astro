@@ -1,0 +1,169 @@
+---
+const contactCards = [
+  {
+    title: 'Обсудить внедрение',
+    href: 'mailto:info@rheolab.site',
+    label: 'info@rheolab.site',
+    text: 'Показ продукта, обсуждение лицензии и разбор ваших рабочих сценариев.',
+  },
+  {
+    title: 'Техническая поддержка',
+    href: 'mailto:support@rheolab.site',
+    label: 'support@rheolab.site',
+    text: 'Запуск, импорт файлов, перенос данных и вопросы по работе программы.',
+  },
+];
+---
+
+<section id="contact" class="site-contact">
+  <div class="site-container">
+    <div class="site-section-header site-contact-header">
+      <h2>Связаться с командой</h2>
+      <p>
+        Если хотите быстро понять, как RheoLab ляжет на ваш процесс,
+        напишите нам. Достаточно указать приборы, типы файлов и что сейчас
+        мешает в работе сильнее всего.
+      </p>
+    </div>
+
+    <div class="site-contact-grid">
+      {contactCards.map((card) => (
+        <article class="site-contact-card">
+          <span class="site-contact-kicker">{card.title}</span>
+          <a href={card.href} class="site-contact-link">{card.label}</a>
+          <p>{card.text}</p>
+        </article>
+      ))}
+
+      <aside class="site-contact-card site-contact-checklist">
+        <span class="site-contact-kicker">Что прислать для быстрого ответа</span>
+        <ul>
+          <li>какие приборы и форматы файлов у вас в работе;</li>
+          <li>что сейчас неудобно: хранение, сравнение, отчеты или поиск;</li>
+          <li>нужен ли показ, пробный запуск или разбор ваших данных.</li>
+        </ul>
+        <a href="mailto:info@rheolab.site?subject=RheoLab%20Enterprise" class="site-btn-primary">
+          Написать нам
+        </a>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<style>
+  .site-contact {
+    padding: 8rem 0 7rem;
+    border-top: 1px solid var(--site-border);
+    background:
+      radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.1), transparent 28%),
+      linear-gradient(180deg, rgba(11, 15, 25, 0.98), rgba(6, 10, 19, 1));
+  }
+
+  .site-contact-header {
+    text-align: center;
+    max-width: 860px;
+    margin: 0 auto 3.75rem;
+  }
+
+  .site-contact-header h2 {
+    font-size: clamp(2.45rem, 4vw, 3rem);
+    color: var(--site-text-main);
+    margin-bottom: 1rem;
+    font-weight: 700;
+  }
+
+  .site-contact-header p {
+    color: var(--site-text-muted);
+    font-size: 1.18rem;
+    line-height: 1.7;
+  }
+
+  .site-contact-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+
+  .site-contact-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 100%;
+    padding: 1.85rem;
+    background: var(--site-surface);
+    border: 1px solid var(--site-border);
+    border-radius: 10px;
+  }
+
+  .site-contact-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #60a5fa;
+  }
+
+  .site-contact-link {
+    color: var(--site-text-main);
+    font-size: 1.35rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .site-contact-link:hover {
+    color: #93c5fd;
+  }
+
+  .site-contact-card p,
+  .site-contact-checklist li {
+    color: var(--site-text-muted);
+    font-size: 1.02rem;
+    line-height: 1.65;
+  }
+
+  .site-contact-checklist ul {
+    padding-left: 1.25rem;
+    margin: 0;
+  }
+
+  .site-contact-checklist li + li {
+    margin-top: 0.55rem;
+  }
+
+  .site-contact-checklist .site-btn-primary {
+    margin-top: auto;
+    width: fit-content;
+  }
+
+  @media (min-width: 1280px) {
+    .site-contact-grid {
+      grid-template-columns: 1fr 1fr 1.16fr;
+      gap: 1.75rem;
+    }
+
+    .site-contact-card {
+      min-height: 19.5rem;
+      padding: 2.1rem;
+    }
+
+    .site-contact-link {
+      font-size: 1.42rem;
+    }
+
+    .site-contact-card p,
+    .site-contact-checklist li {
+      font-size: 1.06rem;
+    }
+  }
+
+  @media (max-width: 920px) {
+    .site-contact-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .site-contact-checklist .site-btn-primary {
+      width: 100%;
+    }
+  }
+</style>
+

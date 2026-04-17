@@ -1,0 +1,85 @@
+reagent,manufacturer,region,category,source_type,tds_available,url,notes
+FightR EC-1,Halliburton,USA,Friction Reducer,SDS,yes,https://dam.assets.ohio.gov/image/upload/ohiodnr.gov/documents/oil-gas/msds/FightR%20EC-1_Halliburton_SDS.pdf,SDS публично на ohio.gov (регуляторное раскрытие)
+FightR (product page),Halliburton,USA,Friction Reducer,product_page,login_required,https://www.halliburton.com/en/products/fightr-friction-reducers,TDS за логином на halliburton.com; SDS EC-17 — rangeresources.com/FDP-S1463-22
+OptiKleen-WF,Halliburton,USA,Surfactant,product_page,login_required,https://www.halliburton.com/en/completions/stimulation/stimulation-chemicals,Упомянут в описании FightR; отдельного публичного TDS нет
+Legend Crosslinker,Halliburton (Multi-Chem),USA,Crosslinker,catalog,login_required,https://www.halliburton.com/en/resources/legend-stimulation-chemicals,Каталог Legend™ на halliburton.com; TDS за логином
+Legend Breaker,Halliburton (Multi-Chem),USA,Breaker,catalog,login_required,https://www.halliburton.com/en/resources/legend-stimulation-chemicals,
+Legend Biocide,Halliburton (Multi-Chem),USA,Biocide,catalog,login_required,https://www.halliburton.com/en/resources/legend-stimulation-chemicals,
+Legend Clay Control,Halliburton (Multi-Chem),USA,Clay Control,catalog,login_required,https://www.halliburton.com/en/resources/legend-stimulation-chemicals,
+Legend Scale Inhibitor,Halliburton (Multi-Chem),USA,Scale Inhibitor,catalog,login_required,https://www.halliburton.com/en/resources/legend-stimulation-chemicals,
+GW-3 Guar Polymer,Baker Hughes,USA,Viscosifier,product_page,partial,https://www.bakerhughes.com/completions/stimulation-and-fracturing/fracturing-services/lightning-fracturing-fluid-system,Параметры описаны на странице; PDF-spec: bakerhughes.com/sites/bakerhughes/files/2021-03/lightning-fracturing-fluid-system-spec.pdf
+Lightning Borate Crosslinker,Baker Hughes,USA,Crosslinker,TDS,yes,https://www.bakerhughes.com/sites/bakerhughes/files/2021-03/lightning-fracturing-fluid-system-spec.pdf,Публичный PDF spec-sheet системы Lightning на bakerhughes.com
+FSC100,ChampionX,USA,Scale Inhibitor,product_page,login_required,https://www.championx.com/products-and-solutions/chemical-technologies/well-completion/fracturing/,TDS за логином; продукт подтверждён страницей fracturing ChampionX
+SICI10074A,ChampionX,USA,Scale Inhibitor,brochure,yes,https://www.championx.com/contents/Combos%20Brochure_compressed.pdf,Публичный PDF-брошюра Combos (Scale+Corrosion Inhibitor комбо)
+RenewIQ Frac Water Solution,ChampionX,USA,Surfactant,product_page,login_required,https://www.championx.com/products-and-solutions/chemical-technologies/well-completion/fracturing/,
+FLOJET FR,SNF Group,USA,Friction Reducer,product_page,partial,https://www.snf.com/industry/oil-gas/stimulation/,Страница stimulation SNF; отдельные TDS предоставляются по запросу
+FLOJET XL,SNF Group,USA,Viscosifier,product_page,partial,https://www.snf.com/industry/oil-gas/stimulation/,
+FLOJET Scale Inhibitor,SNF Group,USA,Scale Inhibitor,product_page,partial,https://www.snf.com/industry/oil-gas/stimulation/,
+KemFlow A-4251,Kemira,USA,Friction Reducer,case_study,partial,https://www.kemira.com/company/media/newsroom/news/kemflow-friction-reducer-improves-hydraulic-fracturing/,Новость подтверждает продукт; TDS — по запросу у Kemira oilfield team
+AMA-324,Kemira,USA,Biocide,case_study,partial,https://www.kemira.com/company/media/newsroom/news/kemflow-friction-reducer-improves-hydraulic-fracturing/,
+Tiguar HPG (411/415/HP8FF/418),Syensqo (Solvay Novecare),USA,Viscosifier,brochure,yes,https://www.syensqo.com/sites/g/files/alwlxe161/files/tridion/documents/Tiguar-Brochure.pdf,"Публичная брошюра Tiguar® на syensqo.com; включает 4 марки (411=native guar, 415=HPG, HP8FF=native fast-hydrating, 418=CMHPG)"
+Natrosol 250 HEC,Ashland,USA,Viscosifier,TDS,yes,https://www.dkshdiscover.com/medias/TDS-Natrosol-250-HHR-Ashland.pdf?context=bWFzdGVyfGJhY2tvZmZpY2VleGNlbGltcG9ydHwxMzMwMjR8YXBwbGljYXRpb24vcGRmfGgxOS9oOTQvODgwMzc4OTk0NDA5NC5wZGZ8OWE2MDM5OWEyNWMzZGM4ZTA3MGM2MDhiYWYwNjMzMzUzZjNlYWNjMzIxN2Y1N2VjZGFjNWFhY2RhOTk0OTc5Mg,TDS HR/HHR grade через DKSH; оilfield grade (250 GR) — отдельный запрос Ashland
+OpenFRAC SW,SLB (Schlumberger),USA,Friction Reducer,product_page,yes,https://www.slb.com/products-and-services/innovating-in-oil-and-gas/completions/stimulation/fracturing-services/openfrac,Полный раскрытый состав на странице OpenFRAC slb.com; соответствует FracFocus
+OpenFRAC WF,SLB (Schlumberger),USA,Viscosifier,product_page,yes,https://www.slb.com/products-and-services/innovating-in-oil-and-gas/completions/stimulation/fracturing-services/openfrac,
+OpenFRAC XL,SLB (Schlumberger),USA,Crosslinker,product_page,yes,https://www.slb.com/products-and-services/innovating-in-oil-and-gas/completions/stimulation/fracturing-services/openfrac,
+SLB Crosslinked Borate Fluid,SLB (Schlumberger),USA,Crosslinker,TDS,yes,https://www.slb.com/-/media/files/stimulation/product-sheet/crosslinked-borate-fluid-ps.ashx,Публичный product sheet PDF на slb.com/-/media/
+J120 (SLB FR),SLB (Schlumberger),USA,Friction Reducer,registry,partial,https://www.scribd.com/document/535297826/Products-Codes,Код подтверждён реестром аддитивов SLB (Scribd); TDS за логином my.slb.com
+J285 (SLB Clay Control),SLB (Schlumberger),USA,Clay Control,registry,partial,https://www.scribd.com/document/535297826/Products-Codes,
+J449 (SLB Crosslinker),SLB (Schlumberger),USA,Crosslinker,registry,partial,https://www.scribd.com/document/535297826/Products-Codes,
+J480 / YF100HTD,SLB (Schlumberger),USA,Buffer,SDS,yes,https://www.shell.com.au/content/dam/shell/assets/en/australia/documents/j480.pdf,SDS с полным торговым именем YF100HTD Crosslinker Delay Agent J480 на shell.com.au
+J601 (SLB HT Crosslinker),SLB (Schlumberger),USA,Crosslinker,registry,partial,https://www.scribd.com/document/535297826/Products-Codes,
+J603 (SLB Breaker),SLB (Schlumberger),USA,Breaker,registry,partial,https://www.scribd.com/document/535297826/Products-Codes,
+L047 (SLB Scale Inhibitor),SLB (Schlumberger),USA,Scale Inhibitor,registry,partial,https://www.scribd.com/document/535297826/Products-Codes,
+M091 (SLB Biocide),SLB (Schlumberger),USA,Biocide,registry,partial,https://www.scribd.com/document/535297826/Products-Codes,
+VESMET APA-T,UNP International,China,Viscosifier,catalog,partial,https://www.unpchemicals.com/drilling-completion-fluid-additives.html,Таблица продуктов на сайте; TDS высылается по запросу
+VESMET-EHS,UNP International,China,Viscosifier,catalog,partial,https://www.unpchemicals.com/drilling-completion-fluid-additives.html,
+BIMET 1227,UNP International,China,Biocide,catalog,partial,https://www.unpchemicals.com/drilling-completion-fluid-additives.html,
+BIMET 210,UNP International,China,Biocide,catalog,partial,https://www.unpchemicals.com/drilling-completion-fluid-additives.html,
+High Efficiency Cleanup Additive,Dongying Dayong,China,Surfactant,catalog,partial,https://dayongchemical.en.made-in-china.com/product/admtZVpXbFYG/China-High-Efficiency-Cleanup-Additive-for-Fracturing-Fluids-in-Oilfield.html,Страница made-in-china.com; TDS высылается по запросу поставщику
+SINOFLOC PAM-FR,Beijing Sinofloc,China,Friction Reducer,product_page,partial,https://www.sinofloc.com/news/sinofloc-polyacrylamide-used-as-friction-reducer.html,Статья + страница продукта sinofloc.com; TDS по запросу
+VES2-12,Sichuan Energy,China,Viscosifier,catalog,partial,https://scenergy.en.made-in-china.com/product/cTVYBzUOJQrI/,Made-in-China листинг; TDS высылается поставщиком
+TNPZ,TC Chemicals (Taichang),China,Crosslinker,product_page,partial,https://www.tcchem.com.cn,Сайт производителя; TDS по запросу
+TNBZ,TC Chemicals (Taichang),China,Crosslinker,product_page,partial,https://www.tcchem.com.cn,
+TIPT,TC Chemicals (Taichang),China,Crosslinker,product_page,partial,https://www.tcchem.com.cn,
+IRO Poly-DADMAC,Shandong IRO Polymer,China,Clay Control,product_page,partial,https://www.iropolymer.com/product.htm,Сайт iropolymer.com; TDS по запросу
+IRO APAM,Shandong IRO Polymer,China,Friction Reducer,product_page,partial,https://www.iropolymer.com/Oil/Anionic-Polyacrylamide-APAM.htm,
+СНПХ-5311,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,Сайт snph.ru; TDS по запросу
+СНПХ-5312,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+СНПХ-5313,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+СНПХ-5314,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+СНПХ-5316,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+СНПХ-5317,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+СНПХ-5325,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+СНПХ-5330,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+СНПХ-5340,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+MASFLEX,АО «СНПХ»,Russia,Viscosifier,catalog,partial,https://snph.ru/catalog/,
+Бактерицид СНПХ-1517,АО «СНПХ»,Russia,Biocide,catalog,partial,https://snph.ru/catalog/,
+ФЛЭК-ИСО-501,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+ФЛЭК-ИСО-502,АО «СНПХ»,Russia,Scale Inhibitor,catalog,partial,https://snph.ru/catalog/ingibitory-soloobrazovaniya/,
+ГУАМИН 7000,ГК «Миррико»,Russia,Viscosifier,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/zhidkosti-grp/,Сайт mirrico.ru; TDS по запросу
+ГУАМИН 8000,ГК «Миррико»,Russia,Viscosifier,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/zhidkosti-grp/,
+ГУАМИН 10000,ГК «Миррико»,Russia,Viscosifier,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/zhidkosti-grp/,
+ГУАМИН 7000-FF,ГК «Миррико»,Russia,Viscosifier,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/zhidkosti-grp/,
+ATREN BCL,ГК «Миррико»,Russia,Crosslinker,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+ATREN D-BCL,ГК «Миррико»,Russia,Crosslinker,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+ATREN GB,ГК «Миррико»,Russia,Breaker,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+ATREN GB LIQ,ГК «Миррико»,Russia,Breaker,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+ATREN GB-EN,ГК «Миррико»,Russia,Breaker,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+ATREN D-EM,ГК «Миррико»,Russia,Surfactant,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+ATREN-BIO A,ГК «Миррико»,Russia,Biocide,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+ATREN-BIO P,ГК «Миррико»,Russia,Biocide,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+ATREN CS-135,ГК «Миррико»,Russia,Clay Control,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+DESCUM 2D 3811 C,ГК «Миррико»,Russia,Scale Inhibitor,catalog,partial,https://mirrico.ru/catalog/,
+VES-FRAC,ГК «Миррико»,Russia,Viscosifier,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+ATREN FIBRIL FRAC,ГК «Миррико»,Russia,Viscosifier,catalog,partial,https://mirrico.ru/catalog/khimiya-grp/,
+Гелекс,АО «Полиэкс»,Russia,Viscosifier,catalog,partial,http://polyex-izh.ru/catalog/,Сайт polyex-izh.ru; TDS по запросу
+Литекс,АО «Полиэкс»,Russia,Viscosifier,catalog,partial,http://polyex-izh.ru/catalog/,
+WG-46,ООО «ТД «ЭКОНО-ТЕХ»,Russia,Viscosifier,catalog,partial,https://econotech.ru/catalog/,Сайт econotech.ru; TDS по запросу
+WG-50,ООО «ТД «ЭКОНО-ТЕХ»,Russia,Viscosifier,catalog,partial,https://econotech.ru/catalog/,
+WG-40 LDS,ООО «ТД «ЭКОНО-ТЕХ»,Russia,Viscosifier,catalog,partial,https://econotech.ru/catalog/,
+WG-46 LDS,ООО «ТД «ЭКОНО-ТЕХ»,Russia,Viscosifier,catalog,partial,https://econotech.ru/catalog/,
+WGXL-8.1,ООО «ТД «ЭКОНО-ТЕХ»,Russia,Crosslinker,catalog,partial,https://econotech.ru/catalog/,
+WGXL-8.2,ООО «ТД «ЭКОНО-ТЕХ»,Russia,Crosslinker,catalog,partial,https://econotech.ru/catalog/,
+WGXL-9.1,ООО «ТД «ЭКОНО-ТЕХ»,Russia,Crosslinker,catalog,partial,https://econotech.ru/catalog/,
+WGXL-10.1,ООО «ТД «ЭКОНО-ТЕХ»,Russia,Crosslinker,catalog,partial,https://econotech.ru/catalog/,
+Калий метаборат (БХЗ),АО «Буйский химический завод»,Russia,Crosslinker,product_page,partial,https://bhz.ru/catalog/bornaya-kislota-i-boratnye-soedineniya/metaborat-kaliya/,Страница bhz.ru; ТУ/TDS по запросу

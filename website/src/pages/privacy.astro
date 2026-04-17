@@ -1,0 +1,171 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const description =
+  'Политика конфиденциальности RheoLab Enterprise: хранение данных локально, правила обработки заявок и контакты по вопросам приватности.';
+
+const privacySchema = {
+  '@type': 'PrivacyPolicy',
+  name: 'Политика конфиденциальности — RheoLab Enterprise',
+  description,
+  url: new URL('/privacy/', Astro.site).toString(),
+  inLanguage: 'ru-RU',
+  dateModified: '2026-03-08',
+  isPartOf: {
+    '@id': new URL('/#website', Astro.site).toString(),
+  },
+  publisher: {
+    '@id': new URL('/#organization', Astro.site).toString(),
+  },
+};
+---
+
+<Layout
+  title="Политика конфиденциальности — RheoLab Enterprise"
+  description={description}
+  ogType="article"
+  schema={[privacySchema]}
+>
+  <Navbar />
+  <main class="legal-page">
+    <div class="container">
+      <h1>Политика конфиденциальности</h1>
+      <p class="last-updated">Последнее обновление: 8 марта 2026 г.</p>
+      
+      <div class="legal-content">
+        <h2>1. Введение</h2>
+        <p>Мы, команда RheoLab ("мы", "нас" или "наш"), уважаем вашу конфиденциальность и стремимся защищать ваши личные данные. Настоящая Политика конфиденциальности объясняет, как мы собираем, используем и защищаем вашу информацию при использовании программного обеспечения RheoLab Enterprise ("ПО") и нашего веб-сайта.</p>
+        
+        <h2>2. Сбор данных</h2>
+        <p>RheoLab Enterprise рассчитан на локальную работу. Это означает, что:</p>
+        <ul>
+          <li>Все ваши данные по результатам экспериментов, графикам и отчётам хранятся <strong>локально</strong> на вашем устройстве.</li>
+          <li>Мы <strong>не имеем доступа</strong> к вашим научным или производственным данным.</li>
+          <li>Мы не загружаем ваши файлы на наши серверы без вашего явного согласия (например, при обращении в поддержку).</li>
+        </ul>
+        
+        <h3>2.1. Данные, которые мы можем собирать:</h3>
+        <ul>
+          <li><strong>Информация об активации:</strong> Лицензионный ключ и уникальный идентификатор оборудования для проверки легальности использования ПО.</li>
+          <li><strong>Технические логи (опционально):</strong> При возникновении ошибок вы можете отправить нам логи приложения для диагностики. Это действие выполняется вручную пользователем.</li>
+          <li><strong>Контактные данные:</strong> Адрес эл. почты и имя, если вы обращаетесь в поддержку или оставляете заявку через сайт.</li>
+        </ul>
+        
+        <h2>3. Использование данных</h2>
+        <p>Мы используем собранную информацию исключительно для:</p>
+        <ul>
+          <li>Обеспечения работы системы лицензирования.</li>
+          <li>Улучшения качества ПО и исправления ошибок.</li>
+          <li>Связи с вами по вопросам технической поддержки.</li>
+        </ul>
+
+        <h2>4. Сетевые функции и внешние сервисы</h2>
+        <p>Основной сценарий работы RheoLab Enterprise локальный. При этом отдельные функции могут использовать сеть:</p>
+        <ul>
+          <li><strong>Лицензирование и обновления:</strong> для активации, проверки статуса лицензии и получения обновлений.</li>
+          <li><strong>Вспомогательный разбор нестандартных файлов:</strong> если в вашем рабочем сценарии используется ИИ-помощь для распознавания структуры файла, часть служебных данных может передаваться внешнему провайдеру, выбранному в настройках или встроенной конфигурации.</li>
+        </ul>
+        <p>Если вы не хотите использовать внешние сетевые сервисы для разбора нестандартных файлов, не включайте такой сценарий или не применяйте его к чувствительным данным.</p>
+
+        <h2>5. Обработка заявок с сайта</h2>
+        <p>Форма обратной связи на сайте может использовать внешний сервис для безопасной доставки заявок на наш адрес эл. почты. При отправке формы передаются имя, адрес эл. почты и текст сообщения, которые используются только для обработки запроса и обратной связи.</p>
+        <p>Если вы не хотите передавать данные через веб-форму, используйте прямой адрес эл. почты из раздела контактов.</p>
+        
+        <h2>6. Безопасность</h2>
+        <p>Мы принимаем разумные меры для защиты информации, которую мы собираем. Однако, помните, что ни один метод передачи данных через Интернет или метод электронного хранения не является на 100% безопасным.</p>
+        
+        <h2>7. Изменения в политике</h2>
+        <p>Мы можем время от времени обновлять нашу Политику конфиденциальности. Мы уведомим вас о любых изменениях, разместив новую Политику на этой странице.</p>
+        
+        <h2>8. Контакты</h2>
+        <p>Если у вас есть вопросы о данной Политике конфиденциальности, свяжитесь с нами по адресу: <a href="mailto:privacy@rheolab.site">privacy@rheolab.site</a>.</p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .legal-page {
+    padding-top: 8.5rem;
+    padding-bottom: 5rem;
+    min-height: 100vh;
+    background: var(--bg-dark);
+  }
+
+  .legal-page h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+  }
+
+  .last-updated {
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+    font-size: 1rem;
+  }
+
+  .legal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    padding: 3.5rem;
+    max-width: 960px;
+  }
+
+  .legal-content h2 {
+    font-size: 1.7rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+
+  .legal-content h2:first-child {
+    margin-top: 0;
+  }
+
+  .legal-content h3 {
+    font-size: 1.2rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+  }
+
+  .legal-content p {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  .legal-content ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+  }
+
+  .legal-content li {
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+
+  .legal-content a {
+    color: var(--color-accent-400);
+    text-decoration: none;
+  }
+
+  .legal-content a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .legal-content {
+      padding: 1.5rem;
+    }
+  }
+</style>
+

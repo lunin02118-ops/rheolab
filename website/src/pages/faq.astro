@@ -1,0 +1,292 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import Navbar from '../components/site/Navbar.astro';
+import Footer from '../components/site/Footer.astro';
+
+const description =
+  'Короткие ответы по лицензии, запуску, поддерживаемым форматам, локальному хранению данных и развёртыванию RheoLab Enterprise.';
+
+const faqPageSchema = {
+  '@type': 'WebPage',
+  name: 'Вопросы и ответы — RheoLab Enterprise',
+  description,
+  url: new URL('/faq/', Astro.site).toString(),
+  inLanguage: 'ru-RU',
+  dateModified: '2026-04-12',
+};
+
+const faqSchema = {
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Какова стоимость лицензии?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Стоимость зависит от числа рабочих мест, приборов и сценария внедрения. Для расчёта под конкретную лабораторию нужно связаться с командой RheoLab и коротко описать задачу.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Есть ли пробный период?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Да. Доступен 30-дневный пробный период с полным функционалом, чтобы проверить импорт, библиотеку, сравнение и отчёты на собственных данных.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Что делать после скачивания?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Запустите установщик, активируйте пробный период и импортируйте рабочий файл. Этого достаточно, чтобы увидеть график, расчёты и сохранённый результат в библиотеке.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Требуется ли постоянный интернет?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Нет. Для повседневной работы программа ориентирована на локальный режим. Интернет нужен только для активации лицензии и проверки обновлений.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Какие приборы поддерживаются?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Автоматический импорт поддерживается для Grace, Chandler, Fann, OFITE, BSL-R1 и Brookfield. Если нужного прибора нет в списке, поддержка может быть добавлена по примеру файла.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Какие форматы файлов принимает программа?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Поддерживаются Excel-файлы .xls и .xlsx, CSV-файлы .csv, а также текстовые файлы .txt и .dat. Формат определяется автоматически.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Можно ли установить на Mac или Linux?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Текущая версия рассчитана на Windows 10 и Windows 11 в 64-разрядном варианте.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Где хранятся мои данные?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Все результаты хранятся локально на компьютере в базе данных программы. Для переноса и резервного копирования предусмотрены штатные сценарии.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Можно ли использовать RheoLab как единое рабочее место вместо Excel?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Да. Один из основных сценариев продукта — собрать импорт, хранение, сравнение и отчётность в одном рабочем контуре.',
+      },
+    },
+  ],
+};
+---
+
+<SiteLayout
+  title="Вопросы и ответы — RheoLab Enterprise"
+  description={description}
+  schema={[faqPageSchema, faqSchema]}
+>
+  <Navbar />
+
+  <main id="main-content" class="site-faq-page">
+    <div class="site-container">
+      <header class="site-faq-header">
+        <h1>Вопросы и ответы</h1>
+        <p>Короткие ответы по лицензии, запуску, поддерживаемым форматам и развёртыванию.</p>
+      </header>
+
+      <div class="site-faq-grid">
+        <section class="site-faq-section">
+          <h2>Лицензия и запуск</h2>
+
+          <div class="site-faq-item">
+            <h3>Какова стоимость лицензии?</h3>
+            <p>Стоимость зависит от числа рабочих мест, приборов и сценария внедрения. Если нужен расчёт под вашу лабораторию, лучше сразу <a href="/#contact">связаться с нами</a> и коротко описать задачу.</p>
+          </div>
+
+          <div class="site-faq-item">
+            <h3>Есть ли пробный период?</h3>
+            <p>Да. Доступен <strong>30-дневный пробный период</strong> с полным функционалом, чтобы проверить импорт, библиотеку, сравнение и отчёты на своих данных.</p>
+          </div>
+
+          <div class="site-faq-item">
+            <h3>Что делать после скачивания?</h3>
+            <p>Запустите установщик, активируйте пробный период и импортируйте любой рабочий файл. Этого достаточно, чтобы увидеть график, расчёты и сохранённый результат в библиотеке.</p>
+          </div>
+
+          <div class="site-faq-item">
+            <h3>Требуется ли постоянный интернет?</h3>
+            <p>Нет. Для повседневной работы программа ориентирована на локальный режим. Интернет нужен только для активации лицензии и проверки обновлений.</p>
+          </div>
+        </section>
+
+        <section class="site-faq-section">
+          <h2>Технические детали</h2>
+
+          <div class="site-faq-item">
+            <h3>Какие приборы поддерживаются?</h3>
+            <p>Автоматический импорт поддерживается для <strong>Grace, Chandler, Fann, OFITE, BSL-R1 и Brookfield</strong>. Если вашего прибора пока нет в списке, мы можем добавить поддержку по примеру файла.</p>
+          </div>
+
+          <div class="site-faq-item">
+            <h3>Какие форматы файлов принимает программа?</h3>
+            <p>Excel (<code>.xls</code>, <code>.xlsx</code>), CSV (<code>.csv</code>), текстовые файлы (<code>.txt</code>, <code>.dat</code>). Формат определяется автоматически.</p>
+          </div>
+
+          <div class="site-faq-item">
+            <h3>Можно ли установить на Mac или Linux?</h3>
+            <p>Текущая версия рассчитана на <strong>Windows 10 и Windows 11 (64-bit)</strong>. Это основная рабочая среда продукта на сегодня.</p>
+          </div>
+
+          <div class="site-faq-item">
+            <h3>Где хранятся мои данные?</h3>
+            <p>Все результаты хранятся локально на вашем компьютере в базе данных программы. Для переноса и резервного копирования предусмотрены штатные сценарии.</p>
+          </div>
+
+          <div class="site-faq-item">
+            <h3>Можно ли использовать RheoLab как единое рабочее место вместо Excel?</h3>
+            <p>Да. В этом и состоит один из основных сценариев продукта: импорт, хранение, сравнение и отчётность собраны в одном рабочем контуре.</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="site-faq-cta">
+        <p>Не нашли свой сценарий или формат файла?</p>
+        <a href="/#contact" class="site-btn-primary">Связаться с инженерами</a>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</SiteLayout>
+
+<style>
+  .site-faq-page {
+    padding: 8rem 0 6rem;
+    min-height: 70vh;
+  }
+
+  .site-faq-header {
+    margin-bottom: 4.25rem;
+    max-width: 820px;
+  }
+
+  .site-faq-header h1 {
+    font-size: clamp(2.5rem, 4.3vw, 3.5rem);
+    font-weight: 700;
+    color: var(--site-text-main);
+    margin-bottom: 1rem;
+  }
+
+  .site-faq-header p {
+    font-size: 1.18rem;
+    color: var(--site-text-muted);
+    line-height: 1.7;
+  }
+
+  .site-faq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2.8rem 4rem;
+    margin-bottom: 4.5rem;
+  }
+
+  .site-faq-section h2 {
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #60a5fa;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--site-border);
+  }
+
+  .site-faq-item {
+    margin-bottom: 1.2rem;
+    padding: 1.45rem 1.55rem;
+    background: var(--site-surface);
+    border: 1px solid var(--site-border);
+    border-radius: 12px;
+  }
+
+  .site-faq-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .site-faq-item h3 {
+    font-size: 1.18rem;
+    font-weight: 600;
+    color: var(--site-text-main);
+    margin-bottom: 0.7rem;
+    line-height: 1.4;
+  }
+
+  .site-faq-item p {
+    font-size: 1.02rem;
+    color: var(--site-text-muted);
+    line-height: 1.65;
+  }
+
+  .site-faq-item a {
+    color: #93c5fd;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+
+  .site-faq-item a:hover {
+    border-color: currentColor;
+  }
+
+  .site-faq-item code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.9em;
+    background: rgba(15, 23, 42, 0.85);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+    color: #bfdbfe;
+  }
+
+  .site-faq-item strong {
+    color: #e2e8f0;
+    font-weight: 600;
+  }
+
+  .site-faq-cta {
+    text-align: center;
+    padding: 3rem 2.25rem;
+    background: var(--site-surface);
+    border: 1px solid var(--site-border);
+    border-radius: 14px;
+  }
+
+  .site-faq-cta p {
+    color: var(--site-text-muted);
+    margin-bottom: 1.4rem;
+    font-size: 1.1rem;
+  }
+
+  @media (max-width: 768px) {
+    .site-faq-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .site-faq-page {
+      padding: 6rem 0 4rem;
+    }
+  }
+</style>
+

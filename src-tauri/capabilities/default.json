@@ -1,0 +1,48 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for RheoLab Enterprise",
+  "local": true,
+  "windows": [
+    "main"
+  ],
+  "remote": {
+    "urls": [
+      "https://license.vizbuka.ru"
+    ]
+  },
+  "permissions": [
+    "core:default",
+    "fs:default",
+    "fs:allow-read-file",
+    "fs:allow-read-text-file",
+    "fs:allow-write-file",
+    "fs:allow-write-text-file",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        "$APPDATA/com.rheolab.enterprise/**",
+        "$LOCALAPPDATA/com.rheolab.enterprise/**",
+        "$DOWNLOADS/**",
+        "$TEMP/**",
+        "$DESKTOP/**",
+        "$DOCUMENT/**",
+        "$HOME/**"
+      ]
+    },
+    "dialog:default",
+    "process:default",
+    "os:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        "https://license.vizbuka.ru/*",
+        "https://api.groq.com/*"
+      ]
+    },
+    "opener:default",
+    "log:default",
+    "updater:default"
+  ]
+}

@@ -1,0 +1,28 @@
+# RheoLab Enterprise
+> RheoLab Enterprise is a Windows desktop application for storing, comparing, and reporting rheology experiment results from multiple laboratory instruments. Primary website language: Russian.
+
+## Primary Pages
+- [Home](https://rheolab.site/): Product overview, workflows, supported use cases, and contact entry points.
+- [About](https://rheolab.site/about/): Product mission, data-handling principles, and support entry points.
+- [Team](https://rheolab.site/team/): Team roles, documentation ownership, and contact channels.
+- [FAQ](https://rheolab.site/faq/): Licensing, trial, storage, supported instruments, and deployment questions.
+- [Download](https://rheolab.site/download/latest/): Redirector to the latest Windows installer.
+- [Privacy](https://rheolab.site/privacy/): Privacy and data-handling policy.
+- [Terms](https://rheolab.site/terms/): Terms of use and licensing conditions.
+
+## Documentation
+- [Documentation Index](https://rheolab.site/docs/): Main entry point to the product documentation.
+- [Quick Start](https://rheolab.site/docs/quick-start/): Install the software, start the trial, open the first file, and save the first result.
+- [Data Import](https://rheolab.site/docs/parsing/): Supported file formats and instrument families.
+- [Interface](https://rheolab.site/docs/interface/): Main application areas and navigation.
+- [Calculation Models](https://rheolab.site/docs/models/): Rheology models and calculated parameters.
+- [Reports](https://rheolab.site/docs/reports/): PDF and Excel reporting workflow.
+- [Troubleshooting](https://rheolab.site/docs/troubleshooting/): Installation, launch, and import troubleshooting.
+- [Documentation FAQ](https://rheolab.site/docs/faq/): Short answers for common evaluation and usage questions.
+
+## Contact
+- [Commercial Contact](mailto:info@rheolab.site): Product demos, licensing, and rollout questions.
+- [Technical Support](mailto:support@rheolab.site): Installation, import, backup, and troubleshooting questions.
+
+## Optional
+- [llms-full.txt](https://rheolab.site/llms-full.txt): Expanded machine-readable summary of the site, product facts, and documentation map.

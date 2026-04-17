@@ -1,0 +1,175 @@
+/**
+ * Hook encapsulating report export logic (PDF + Excel).
+ *
+ * Manages exporting state, builds report input, generates blobs,
+ * and saves them via Tauri or browser fallback.
+ */
+
+import { useState, useMemo, useCallback } from 'react';
+import type { ParseResult } from '@/lib/store/experiment-data-store';
+import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
+import type { RecipeComponent } from '@/lib/parsing/types';
+import type { WaterParams } from '@/types';
+import type { ChartSettings } from '@/lib/store/chart-settings-store';
+import { generatePdfReportBlob, generateExcelReportBlob } from '@/lib/reports/client';
+import { saveBlob } from '@/lib/reports/report-save';
+import {
+    mapRawData,
+    mapCycleResults,
+    buildPdfReportInput,
+    buildExcelReportInput,
+    type ReportBuildContext,
+} from '@/lib/reports/report-builders';
+import { extractExperimentMetadata } from '@/lib/metadata-utils';
+import { logger as clientLogger } from '@/lib/client-logger';
+import { debugLog } from '@/lib/utils/debug-logger';
+
+export interface UseReportExportOptions {
+    parseResult: ParseResult;
+    editedRecipe: RecipeComponent[];
+    editedWaterParams: Partial<WaterParams> | null;
+    editedWaterSource: string;
+    cycleResults: Map<number, GraceCycleResult>;
+    cycles: RheoCycle[];
+    // Settings
+    language: 'ru' | 'en';
+    unitSystem: 'SI' | 'Imperial';
+    showTouchPoints: boolean;
+    viscosityThreshold: number;
+    showTargetTime: boolean;
+    targetTime: number;
+    showCalibration: boolean;
+    showRawData: boolean;
+    reportViscosityRates: number[];
+    isExpert: boolean;
+    companyName: string;
+    companyLogo: string | null;
+    reportSettings: ChartSettings;
+}
+
+export function useReportExport(options: UseReportExportOptions) {
+    const [isExporting, setIsExporting] = useState(false);
+    const [isExcelExporting, setIsExcelExporting] = useState(false);
+    const [isCapturing, setIsCapturing] = useState(false);
+    const [exportError, setExportError] = useState<string | null>(null);
+
+    const { parseResult, cycleResults } = options;
+
+    // Pre-compute data mappings once when source data changes
+    const rawDataMapped = useMemo(() => mapRawData(parseResult.data), [parseResult.data]);
+    const cycleResultsMapped = useMemo(() => mapCycleResults(cycleResults), [cycleResults]);
+
+    const legacyFields = useMemo(
+        () => extractExperimentMetadata(parseResult.metadata),
+        [parseResult.metadata],
+    );
+
+    /** Build the shared context object for report builders. */
+    const buildContext = useCallback((): ReportBuildContext => ({
+        rawDataMapped,
+        cycleResultsMapped,
+        metadata: parseResult.metadata,
+        legacyFields,
+        editedRecipe: options.editedRecipe,
+        editedWaterParams: options.editedWaterParams,
+        editedWaterSource: options.editedWaterSource,
+        cycles: options.cycles,
+        companyName: options.companyName,
+        companyLogo: options.companyLogo,
+        reportSettings: options.reportSettings,
+        language: options.language,
+        unitSystem: options.unitSystem,
+        showTouchPoints: options.showTouchPoints,
+        viscosityThreshold: options.viscosityThreshold,
+        showTargetTime: options.showTargetTime,
+        targetTime: options.targetTime,
+        showCalibration: options.showCalibration,
+        showRawData: options.showRawData,
+        reportViscosityRates: options.reportViscosityRates,
+        isExpert: options.isExpert,
+    }), [
+        rawDataMapped, cycleResultsMapped, parseResult.metadata, legacyFields,
+        options.editedRecipe, options.editedWaterParams, options.editedWaterSource,
+        options.cycles, options.companyName, options.companyLogo, options.reportSettings,
+        options.language, options.unitSystem, options.showTouchPoints,
+        options.viscosityThreshold, options.showTargetTime, options.targetTime,
+        options.showCalibration, options.showRawData, options.reportViscosityRates,
+        options.isExpert,
+    ]);
+
+    const handleDownload = useCallback(async () => {
+        setIsExporting(true);
+        setIsCapturing(true);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        setExportError(null);
+
+        const timings: string[] = [];
+        const t0 = performance.now();
+
+        try {
+            debugLog('ReportsPanel', 'Starting PDF generation...');
+            clientLogger.info('[ReportsPanel] Capturing chart as SVG...');
+            const _chartImage = null;
+
+            const t2 = performance.now();
+            timings.push(`Capture: ${(t2 - t0).toFixed(0)}ms`);
+
+            const pdfInput = buildPdfReportInput(buildContext());
+            const blob = await generatePdfReportBlob(pdfInput);
+
+            const t3 = performance.now();
+            timings.push(`PDF Gen: ${(t3 - t2).toFixed(0)}ms`);
+            timings.push(`TOTAL: ${(t3 - t0).toFixed(0)}ms`);
+            clientLogger.info('[ReportsPanel] PDF generation timings:', timings.join(', '));
+
+            const filename = `${parseResult.metadata.filename || 'report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+            await saveBlob({
+                blob,
+                filename,
+                filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
+            });
+        } catch (err) {
+            clientLogger.error('Report generation failed:', err);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            setExportError(`Ошибка генерации PDF: ${errorMessage}`);
+        } finally {
+            setIsCapturing(false);
+            setIsExporting(false);
+        }
+    }, [buildContext, parseResult.metadata.filename]);
+
+    const handleExcelDownload = useCallback(async () => {
+        setIsExcelExporting(true);
+        setExportError(null);
+        try {
+            const excelInput = buildExcelReportInput(buildContext());
+            clientLogger.info('[ReportsPanel] Generating Excel with settings:', excelInput.settings);
+
+            const blob = await generateExcelReportBlob(excelInput);
+            const filename = `${parseResult.metadata.filename || 'report'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            await saveBlob({
+                blob,
+                filename,
+                filters: [{ name: 'Excel Spreadsheet', extensions: ['xlsx'] }],
+            });
+        } catch (err) {
+            clientLogger.error('[ReportsPanel] Excel generation failed:', err);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            setExportError(`Ошибка генерации Excel: ${errorMessage}`);
+        } finally {
+            setIsExcelExporting(false);
+        }
+    }, [buildContext, parseResult.metadata.filename]);
+
+    return {
+        isExporting,
+        isExcelExporting,
+        isCapturing,
+        exportError,
+        clearError: useCallback(() => setExportError(null), []),
+        handleDownload,
+        handleExcelDownload,
+        /** Pre-mapped raw data — reuse for chart preview */
+        chartData: rawDataMapped,
+    };
+}

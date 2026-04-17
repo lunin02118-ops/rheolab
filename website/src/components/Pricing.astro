@@ -1,0 +1,224 @@
+---
+// Pricing section aligned with actual licensing tiers and product capabilities.
+---
+
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="section-header">
+      <span class="eyebrow">Лицензирование</span>
+      <h2>Лицензии для ознакомления, повседневной работы и внедрения в компании</h2>
+      <p>Важно не только показать цену, но и простыми словами объяснить, для какой задачи подходит каждая лицензия.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <article class="pricing-card">
+        <div class="pricing-header">
+          <span class="pricing-tier">Пробный доступ</span>
+          <div class="price">
+            <span class="price-value">Бесплатно</span>
+          </div>
+          <p class="price-period">30 дней для знакомства с программой</p>
+        </div>
+        <ul class="pricing-features">
+          <li>До 10 экспериментов</li>
+          <li>PDF и Excel экспорт</li>
+          <li>Водяной знак на отчётах</li>
+          <li>Подходит для первичного пилота</li>
+        </ul>
+        <a href="#download" class="btn btn-secondary btn-full">Скачать пробную версию</a>
+      </article>
+
+      <article class="pricing-card featured">
+        <div class="pricing-badge">Основной тариф</div>
+        <div class="pricing-header">
+          <span class="pricing-tier">Базовая лицензия</span>
+          <div class="price">
+            <span class="price-value">10 000 ₽</span>
+            <span class="price-suffix">/год</span>
+          </div>
+          <p class="price-period">Для лаборатории или индивидуального инженера</p>
+        </div>
+        <ul class="pricing-features">
+          <li>Полный рабочий цикл анализа</li>
+          <li>Локальная библиотека и сравнение опытов</li>
+          <li>Отчёты без ограничений пробной версии</li>
+          <li>1 лицензия на рабочее место</li>
+        </ul>
+        <a href="#contact" class="btn btn-cta btn-full">Запросить базовую лицензию</a>
+      </article>
+
+      <article class="pricing-card">
+        <div class="pricing-header">
+          <span class="pricing-tier">Расширенная лицензия</span>
+          <div class="price">
+            <span class="price-value">По запросу</span>
+          </div>
+          <p class="price-period">Для сложных инженерных и исследовательских задач</p>
+        </div>
+        <ul class="pricing-features">
+          <li>Расширенные сценарии сравнения</li>
+          <li>Калибровочные возможности</li>
+          <li>Подходит для углублённого анализа</li>
+          <li>Для технических специалистов и методистов</li>
+        </ul>
+        <a href="#contact" class="btn btn-secondary btn-full">Обсудить расширенную лицензию</a>
+      </article>
+
+      <article class="pricing-card">
+        <div class="pricing-header">
+          <span class="pricing-tier">Корпоративная лицензия</span>
+          <div class="price">
+            <span class="price-value">Индивидуально</span>
+          </div>
+          <p class="price-period">Для организаций, лабораторных сетей и внедрения в процессы</p>
+        </div>
+        <ul class="pricing-features">
+          <li>Согласование поставки и внедрения</li>
+          <li>Поддержка требований компании</li>
+          <li>Помощь при внедрении и пилотном запуске</li>
+          <li>Контакт с командой напрямую</li>
+        </ul>
+        <a href="#contact" class="btn btn-secondary btn-full">Связаться по корпоративной лицензии</a>
+      </article>
+    </div>
+
+    <div class="pricing-note panel">
+      <strong>Как это работает на практике</strong>
+      <p>Пробный доступ нужен для проверки на ваших файлах. Базовая лицензия закрывает повседневную работу. Расширенная подходит для сложных расчётов и методических задач. Корпоративная — для внедрения на уровне организации.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .pricing {
+    padding: var(--section-padding) 0;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .section-header {
+    max-width: 760px;
+    margin: 0 auto 3rem;
+    text-align: center;
+  }
+
+  .section-header h2 {
+    margin: 1rem 0;
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+
+  .pricing-card {
+    position: relative;
+    padding: 1.7rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .pricing-card.featured {
+    border-color: rgba(103, 232, 249, 0.3);
+    background: linear-gradient(180deg, rgba(6, 182, 212, 0.1), rgba(255, 255, 255, 0.03));
+  }
+
+  .pricing-badge {
+    position: absolute;
+    top: -0.8rem;
+    left: 1.25rem;
+    padding: 0.38rem 0.75rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--color-primary-500), var(--color-accent-500));
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .pricing-tier {
+    color: var(--color-primary-300);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+
+  .pricing-header {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    margin: 0.8rem 0 0.55rem;
+  }
+
+  .price-value {
+    font-family: var(--font-display);
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .price-suffix,
+  .price-period {
+    color: var(--text-muted);
+  }
+
+  .pricing-features {
+    list-style: none;
+    display: grid;
+    gap: 0.65rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .pricing-features li {
+    position: relative;
+    padding-left: 1rem;
+    color: var(--text-secondary);
+  }
+
+  .pricing-features li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.52rem;
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: var(--color-primary-400);
+  }
+
+  .btn-full {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pricing-note {
+    margin-top: 1.25rem;
+    padding: 1.2rem 1.3rem;
+  }
+
+  .pricing-note strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--text-primary);
+  }
+
+  @media (max-width: 1150px) {
+    .pricing-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 720px) {
+    .pricing-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

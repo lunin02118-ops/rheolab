@@ -1,0 +1,755 @@
+{
+    "_meta": {
+        "description": "Gold Standard эталонные данные для верификации парсинга",
+        "version": "2.0",
+        "created": "2025-12-11",
+        "columns": {
+            "time_sec": "Время в секундах",
+            "sample_temp_c": "Температура образца в °C",
+            "bath_temperature_c": "Температура бани/нагревателя в °C (если есть в файле)",
+            "shear_rate_1s": "Скорость сдвига в 1/s",
+            "shear_stress_pa": "Напряжение сдвига в Pa",
+            "viscosity_cp": "Вязкость в cP (mPa·s)",
+            "pressure_bar": "Давление в bar"
+        },
+        "conversions": {
+            "dyne_cm2_to_pa": 0.1,
+            "psi_to_bar": 0.0689476
+        }
+    },
+    "Отчёт Grace.xlsx": {
+        "instrument": "Grace M5600 HPHT Rheometer",
+        "geometry": "R1/B5",
+        "totalRows": 1219,
+        "firstRows": [
+            {
+                "time_sec": 19.2,
+                "sample_temp_c": 29.8,
+                "bath_temperature_c": 93.8,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 219.375,
+                "viscosity_cp": 2193.755,
+                "pressure_bar": 29.85
+            },
+            {
+                "time_sec": 25.2,
+                "sample_temp_c": 31.2,
+                "bath_temperature_c": 93.3,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 219.438,
+                "viscosity_cp": 2194.385,
+                "pressure_bar": 29.85
+            },
+            {
+                "time_sec": 31.2,
+                "sample_temp_c": 32.6,
+                "bath_temperature_c": 93.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 209.461,
+                "viscosity_cp": 2094.614,
+                "pressure_bar": 29.93
+            },
+            {
+                "time_sec": 37.2,
+                "sample_temp_c": 34.0,
+                "bath_temperature_c": 93.3,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 199.352,
+                "viscosity_cp": 1993.519,
+                "pressure_bar": 29.93
+            },
+            {
+                "time_sec": 44.4,
+                "sample_temp_c": 35.4,
+                "bath_temperature_c": 93.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 196.235,
+                "viscosity_cp": 1962.347,
+                "pressure_bar": 30.00
+            }
+        ],
+        "lastRows": [
+            {
+                "time_sec": 10707,
+                "sample_temp_c": 107.2,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 23.568,
+                "viscosity_cp": 235.676,
+                "pressure_bar": 31.37
+            },
+            {
+                "time_sec": 10714.8,
+                "sample_temp_c": 107.2,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 23.267,
+                "viscosity_cp": 232.666,
+                "pressure_bar": 31.37
+            },
+            {
+                "time_sec": 10721.4,
+                "sample_temp_c": 107.2,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 23.154,
+                "viscosity_cp": 231.537,
+                "pressure_bar": 31.37
+            },
+            {
+                "time_sec": 10728,
+                "sample_temp_c": 107.2,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 23.116,
+                "viscosity_cp": 231.160,
+                "pressure_bar": 31.37
+            },
+            {
+                "time_sec": 10734.6,
+                "sample_temp_c": 107.2,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 22.883,
+                "viscosity_cp": 228.827,
+                "pressure_bar": 31.37
+            }
+        ]
+    },
+    "Brookfeild 4.xlsx": {
+        "instrument": "Brookfield Rheometer",
+        "geometry": "R1/B5",
+        "totalRows": 976,
+        "firstRows": [
+            {
+                "time_sec": 5,
+                "sample_temp_c": 321.8,
+                "shear_rate_1s": 99.9,
+                "shear_stress_pa": 187.27,
+                "viscosity_cp": 1873.40,
+                "pressure_bar": 21.58
+            },
+            {
+                "time_sec": 10,
+                "sample_temp_c": 321.8,
+                "shear_rate_1s": 99.9,
+                "shear_stress_pa": 165.85,
+                "viscosity_cp": 1659.10,
+                "pressure_bar": 21.58
+            },
+            {
+                "time_sec": 15,
+                "sample_temp_c": 321.8,
+                "shear_rate_1s": 99.9,
+                "shear_stress_pa": 148.57,
+                "viscosity_cp": 1486.30,
+                "pressure_bar": 21.58
+            },
+            {
+                "time_sec": 20,
+                "sample_temp_c": 321.8,
+                "shear_rate_1s": 99.9,
+                "shear_stress_pa": 129.22,
+                "viscosity_cp": 1292.70,
+                "pressure_bar": 21.58
+            },
+            {
+                "time_sec": 25,
+                "sample_temp_c": 321.8,
+                "shear_rate_1s": 99.9,
+                "shear_stress_pa": 125.77,
+                "viscosity_cp": 1258.20,
+                "pressure_bar": 21.65
+            }
+        ],
+        "lastRows": []
+    },
+    "Отчёт Chandler.xls": {
+        "instrument": "Chandler Engineering Model 5550 Rheometer",
+        "geometry": "R1/B5",
+        "totalRows": 132,
+        "firstRows": [
+            {
+                "time_sec": 60,
+                "sample_temp_c": 31.0,
+                "bath_temperature_c": 78.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 107.702,
+                "viscosity_cp": 1077.022,
+                "pressure_bar": 26.48
+            },
+            {
+                "time_sec": 120,
+                "sample_temp_c": 46.6,
+                "bath_temperature_c": 92.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 55.037,
+                "viscosity_cp": 550.372,
+                "pressure_bar": 26.48
+            },
+            {
+                "time_sec": 180,
+                "sample_temp_c": 60.1,
+                "bath_temperature_c": 94.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 59.416,
+                "viscosity_cp": 594.160,
+                "pressure_bar": 26.48
+            },
+            {
+                "time_sec": 241,
+                "sample_temp_c": 70.1,
+                "bath_temperature_c": 92.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 62.706,
+                "viscosity_cp": 627.062,
+                "pressure_bar": 26.48
+            },
+            {
+                "time_sec": 301,
+                "sample_temp_c": 77.5,
+                "bath_temperature_c": 91.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 64.320,
+                "viscosity_cp": 643.202,
+                "pressure_bar": 26.48
+            }
+        ],
+        "lastRows": []
+    },
+    "Отчёт BSL.xlsx": {
+        "instrument": "BSL Model R1",
+        "geometry": "R1/B5",
+        "totalRows": 2291,
+        "firstRows": [
+            {
+                "time_sec": 1,
+                "sample_temp_c": 24.100,
+                "bath_temperature_c": 54.570,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 3.661,
+                "viscosity_cp": 37.766,
+                "pressure_bar": 0.125
+            },
+            {
+                "time_sec": 2,
+                "sample_temp_c": 24.100,
+                "bath_temperature_c": 54.570,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 4.804,
+                "viscosity_cp": 47.973,
+                "pressure_bar": 0.125
+            },
+            {
+                "time_sec": 3,
+                "sample_temp_c": 24.100,
+                "bath_temperature_c": 54.570,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 4.804,
+                "viscosity_cp": 47.973,
+                "pressure_bar": 0.125
+            },
+            {
+                "time_sec": 4,
+                "sample_temp_c": 24.107,
+                "bath_temperature_c": 54.570,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 4.804,
+                "viscosity_cp": 47.973,
+                "pressure_bar": 0.125
+            },
+            {
+                "time_sec": 5,
+                "sample_temp_c": 24.140,
+                "bath_temperature_c": 54.469,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 4.804,
+                "viscosity_cp": 47.973,
+                "pressure_bar": 0.125
+            }
+        ],
+        "lastRows": [
+            {
+                "time_sec": 2287,
+                "sample_temp_c": 25.9,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 4.423,
+                "viscosity_cp": 44.169,
+                "pressure_bar": 0.125
+            },
+            {
+                "time_sec": 2288,
+                "sample_temp_c": 25.9,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 4.423,
+                "viscosity_cp": 44.169,
+                "pressure_bar": 0.125
+            },
+            {
+                "time_sec": 2289,
+                "sample_temp_c": 25.9,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 4.423,
+                "viscosity_cp": 44.169,
+                "pressure_bar": 0.125
+            },
+            {
+                "time_sec": 2290,
+                "sample_temp_c": 25.9,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 4.423,
+                "viscosity_cp": 44.169,
+                "pressure_bar": 0.125
+            },
+            {
+                "time_sec": 2291,
+                "sample_temp_c": 25.9,
+                "shear_rate_1s": 100.0,
+                "shear_stress_pa": 4.423,
+                "viscosity_cp": 44.169,
+                "pressure_bar": 0.125
+            }
+        ]
+    },
+    "8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv": {
+        "instrument": "Chandler Engineering Model 5550 Rheometer",
+        "geometry": "R1/B5",
+        "totalRows": 521,
+        "firstRows": [
+            {
+                "time_sec": 5,
+                "sample_temp_c": 24.0,
+                "bath_temperature_c": 26.0,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 17.115,
+                "viscosity_cp": 33.493,
+                "pressure_bar": 5.24
+            },
+            {
+                "time_sec": 10,
+                "sample_temp_c": 24.1,
+                "bath_temperature_c": 27.0,
+                "shear_rate_1s": 511,
+                "viscosity_cp": 35.515,
+                "pressure_bar": 5.24
+            },
+            {
+                "time_sec": 16,
+                "sample_temp_c": 24.2,
+                "bath_temperature_c": 32.0,
+                "shear_rate_1s": 511,
+                "viscosity_cp": 37.312,
+                "pressure_bar": 5.24
+            },
+            {
+                "time_sec": 21,
+                "sample_temp_c": 24.3,
+                "bath_temperature_c": 36.0,
+                "shear_rate_1s": 511,
+                "viscosity_cp": 45.083,
+                "pressure_bar": 5.24
+            },
+            {
+                "time_sec": 26,
+                "sample_temp_c": 24.5,
+                "bath_temperature_c": 40.0,
+                "shear_rate_1s": 511,
+                "viscosity_cp": 45.083,
+                "pressure_bar": 5.24
+            }
+        ],
+        "lastRows": []
+    },
+    "November102008-2.xls": {
+        "instrument": "Fann 50",
+        "geometry": "R1/B5",
+        "totalRows": 180,
+        "requiresAI": true,
+        "_note": "Legacy XLS format with non-standard layout (Fann 50), requires AI-assisted parsing. Time in minutes, converted to seconds by parser. No pressure column in file.",
+        "firstRows": [
+            {
+                "time_sec": 36,
+                "sample_temp_c": 29,
+                "shear_rate_1s": 103.22,
+                "shear_stress_pa": 166.715,
+                "viscosity_cp": 1615
+            },
+            {
+                "time_sec": 66,
+                "sample_temp_c": 31,
+                "shear_rate_1s": 81.55,
+                "shear_stress_pa": 144.44,
+                "viscosity_cp": 1771
+            },
+            {
+                "time_sec": 96,
+                "sample_temp_c": 32,
+                "shear_rate_1s": 59.72,
+                "shear_stress_pa": 122.12,
+                "viscosity_cp": 2045
+            },
+            {
+                "time_sec": 126,
+                "sample_temp_c": 34,
+                "shear_rate_1s": 38.12,
+                "shear_stress_pa": 92.263,
+                "viscosity_cp": 2421
+            },
+            {
+                "time_sec": 187.2,
+                "sample_temp_c": 37,
+                "shear_rate_1s": 103.24,
+                "shear_stress_pa": 136.657,
+                "viscosity_cp": 1324
+            }
+        ],
+        "lastRows": []
+    },
+    "3.8_2.0_0.2_41C(5610_56)23.04.csv": {
+        "instrument": "Chandler Engineering Model 5550 Rheometer",
+        "geometry": "R1/B5",
+        "totalRows": 2074,
+        "firstRows": [
+            {
+                "time_sec": 2,
+                "sample_temp_c": 24.4,
+                "bath_temperature_c": 25.0,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 110.19,
+                "viscosity_cp": 215.636,
+                "pressure_bar": 0.0
+            },
+            {
+                "time_sec": 4,
+                "sample_temp_c": 24.4,
+                "bath_temperature_c": 25.0,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 203.42,
+                "viscosity_cp": 398.087,
+                "pressure_bar": 0.0
+            },
+            {
+                "time_sec": 6,
+                "sample_temp_c": 24.4,
+                "bath_temperature_c": 25.0,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 238.45,
+                "viscosity_cp": 466.641,
+                "pressure_bar": 0.0
+            },
+            {
+                "time_sec": 8,
+                "sample_temp_c": 24.4,
+                "bath_temperature_c": 25.0,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 285.85,
+                "viscosity_cp": 559.385,
+                "pressure_bar": 0.0
+            },
+            {
+                "time_sec": 10,
+                "sample_temp_c": 24.4,
+                "bath_temperature_c": 25.0,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 302.86,
+                "viscosity_cp": 592.683,
+                "pressure_bar": 0.0
+            }
+        ],
+        "lastRows": [
+            {
+                "time_sec": 4140,
+                "sample_temp_c": 38.0,
+                "bath_temperature_c": 38.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 91.02,
+                "viscosity_cp": 910.228,
+                "pressure_bar": 0.0
+            },
+            {
+                "time_sec": 4142,
+                "sample_temp_c": 38.1,
+                "bath_temperature_c": 38.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 91.87,
+                "viscosity_cp": 918.735,
+                "pressure_bar": 0.0
+            },
+            {
+                "time_sec": 4144,
+                "sample_temp_c": 38.0,
+                "bath_temperature_c": 38.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 90.87,
+                "viscosity_cp": 908.726,
+                "pressure_bar": 0.0
+            },
+            {
+                "time_sec": 4146,
+                "sample_temp_c": 38.1,
+                "bath_temperature_c": 38.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 92.57,
+                "viscosity_cp": 925.741,
+                "pressure_bar": 0.0
+            },
+            {
+                "time_sec": 4148,
+                "sample_temp_c": 38.1,
+                "bath_temperature_c": 38.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 92.37,
+                "viscosity_cp": 923.740,
+                "pressure_bar": 0.0
+            }
+        ]
+    },
+    "8958 SWB Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@96C 30.10.25.csv": {
+        "instrument": "Chandler Engineering Model 5550 Rheometer",
+        "geometry": "R1/B5",
+        "totalRows": 1237,
+        "firstRows": [
+            {
+                "time_sec": 5,
+                "sample_temp_c": 30.9,
+                "bath_temperature_c": 34.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 233.10,
+                "viscosity_cp": 2330.95,
+                "pressure_bar": 5.31
+            },
+            {
+                "time_sec": 10,
+                "sample_temp_c": 31.0,
+                "bath_temperature_c": 34.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 203.53,
+                "viscosity_cp": 2035.281,
+                "pressure_bar": 5.31
+            },
+            {
+                "time_sec": 16,
+                "sample_temp_c": 31.1,
+                "bath_temperature_c": 37.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 200.77,
+                "viscosity_cp": 2007.686,
+                "pressure_bar": 5.31
+            },
+            {
+                "time_sec": 21,
+                "sample_temp_c": 31.3,
+                "bath_temperature_c": 42.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 158.14,
+                "viscosity_cp": 1581.43,
+                "pressure_bar": 5.31
+            },
+            {
+                "time_sec": 26,
+                "sample_temp_c": 31.4,
+                "bath_temperature_c": 47.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 147.89,
+                "viscosity_cp": 1478.931,
+                "pressure_bar": 5.31
+            }
+        ],
+        "lastRows": [
+            {
+                "time_sec": 6411,
+                "sample_temp_c": 94.3,
+                "bath_temperature_c": 96.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 9.411,
+                "viscosity_cp": 94.112,
+                "pressure_bar": 5.31
+            },
+            {
+                "time_sec": 6416,
+                "sample_temp_c": 94.4,
+                "bath_temperature_c": 96.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 9.310,
+                "viscosity_cp": 93.096,
+                "pressure_bar": 5.31
+            },
+            {
+                "time_sec": 6421,
+                "sample_temp_c": 94.4,
+                "bath_temperature_c": 96.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 9.208,
+                "viscosity_cp": 92.080,
+                "pressure_bar": 5.31
+            },
+            {
+                "time_sec": 6426,
+                "sample_temp_c": 94.4,
+                "bath_temperature_c": 96.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 9.157,
+                "viscosity_cp": 91.572,
+                "pressure_bar": 5.31
+            },
+            {
+                "time_sec": 6431,
+                "sample_temp_c": 94.3,
+                "bath_temperature_c": 96.0,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 9.056,
+                "viscosity_cp": 90.555,
+                "pressure_bar": 5.31
+            }
+        ]
+    },
+    "562@60C.xlsx": {
+        "instrument": "BSL Model R1",
+        "geometry": "R1/B5",
+        "totalRows": 119,
+        "_note": "Time column 'Время' has no unit suffix — stored in fractional minutes (e.g. 0.017 min = 1.02 sec). Requires data-driven time-unit detection. Pressure in PSI → bar. Fixture is a partial export of the original file (~10 min of data).",
+        "firstRows": [
+            {
+                "time_sec": 1.02,
+                "sample_temp_c": 28.173,
+                "bath_temperature_c": 36.853,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 33.829,
+                "viscosity_cp": 390.048,
+                "pressure_bar": 0.1247
+            },
+            {
+                "time_sec": 6.0,
+                "sample_temp_c": 27.627,
+                "bath_temperature_c": 35.514,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 48.071,
+                "viscosity_cp": 140.632,
+                "pressure_bar": 0.1247
+            },
+            {
+                "time_sec": 10.98,
+                "sample_temp_c": 27.300,
+                "bath_temperature_c": 34.381,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 62.382,
+                "viscosity_cp": 121.918,
+                "pressure_bar": 0.1247
+            },
+            {
+                "time_sec": 16.02,
+                "sample_temp_c": 27.367,
+                "bath_temperature_c": 33.660,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 58.898,
+                "viscosity_cp": 115.109,
+                "pressure_bar": 0.1283
+            },
+            {
+                "time_sec": 21.0,
+                "sample_temp_c": 27.487,
+                "bath_temperature_c": 33.454,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 55.346,
+                "viscosity_cp": 108.167,
+                "pressure_bar": 0.1247
+            }
+        ],
+        "lastRows": []
+    },
+    "t-12.03.26-3BSL.xlsx": {
+        "instrument": "BSL Model R1",
+        "geometry": "R1/B5",
+        "totalRows": 82,
+        "_note": "Mixed-corruption BSL export: early time cells are text fractional minutes (0,017; 0,517), then Excel stores later values as integers with a display-only decimal separator (1017 -> 1,017 min). Parser must repair the whole column as dropped-decimal minutes and convert to seconds.",
+        "firstRows": [
+            {
+                "time_sec": 1.02,
+                "sample_temp_c": 26.9,
+                "bath_temperature_c": 36.75,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 71.503,
+                "viscosity_cp": 1218.714,
+                "pressure_bar": 7.7752
+            },
+            {
+                "time_sec": 31.02,
+                "sample_temp_c": 28.98,
+                "bath_temperature_c": 34.793,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 261.382,
+                "viscosity_cp": 510.84,
+                "pressure_bar": 7.7569
+            },
+            {
+                "time_sec": 61.02,
+                "sample_temp_c": 30.913,
+                "bath_temperature_c": 36.132,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 246.353,
+                "viscosity_cp": 481.467,
+                "pressure_bar": 7.7642
+            },
+            {
+                "time_sec": 91.02,
+                "sample_temp_c": 33.24,
+                "bath_temperature_c": 43.342,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 221.233,
+                "viscosity_cp": 432.373,
+                "pressure_bar": 7.8449
+            },
+            {
+                "time_sec": 121.02,
+                "sample_temp_c": 37.313,
+                "bath_temperature_c": 50.655,
+                "shear_rate_1s": 511,
+                "shear_stress_pa": 195.13,
+                "viscosity_cp": 381.359,
+                "pressure_bar": 7.8815
+            }
+        ],
+        "lastRows": [
+            {
+                "time_sec": 2311.02,
+                "sample_temp_c": 84.9,
+                "bath_temperature_c": 85.057,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 37.893,
+                "viscosity_cp": 378.433,
+                "pressure_bar": 8.3911
+            },
+            {
+                "time_sec": 2341.02,
+                "sample_temp_c": 84.82,
+                "bath_temperature_c": 84.954,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 37.893,
+                "viscosity_cp": 378.433,
+                "pressure_bar": 8.4021
+            },
+            {
+                "time_sec": 2371.02,
+                "sample_temp_c": 84.9,
+                "bath_temperature_c": 85.057,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 37.893,
+                "viscosity_cp": 378.433,
+                "pressure_bar": 8.3801
+            },
+            {
+                "time_sec": 2401.02,
+                "sample_temp_c": 84.84,
+                "bath_temperature_c": 84.954,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 37.825,
+                "viscosity_cp": 377.751,
+                "pressure_bar": 8.3838
+            },
+            {
+                "time_sec": 2431.02,
+                "sample_temp_c": 84.8,
+                "bath_temperature_c": 85.057,
+                "shear_rate_1s": 100,
+                "shear_stress_pa": 37.722,
+                "viscosity_cp": 376.728,
+                "pressure_bar": 8.3911
+            }
+        ]
+    }
+}

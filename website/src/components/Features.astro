@@ -1,0 +1,161 @@
+---
+// Feature section reframed around actual product capabilities.
+---
+
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-header">
+      <span class="eyebrow">Что умеет продукт</span>
+      <h2>Не отдельные фишки, а цельная рабочая система для реологии</h2>
+      <p>RheoLab покрывает полный цикл: импорт, анализ, сравнение, библиотеку, отчётность и эксплуатацию в реальной корпоративной среде.</p>
+    </div>
+
+    <div class="features-grid">
+      <article class="feature-card">
+        <span class="feature-tag mono">Локально</span>
+        <h3>Работает без постоянного интернета</h3>
+        <p>Все вычисления, хранение и основные сценарии лицензирования выполняются локально на рабочем месте.</p>
+        <ul class="feature-list">
+          <li>Без зависимости от облачной платформы</li>
+          <li>Подходит для закрытых и удалённых контуров</li>
+          <li>Данные экспериментов остаются у пользователя</li>
+        </ul>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-tag mono">Файлы</span>
+        <h3>Загрузка и разбор файлов</h3>
+        <p>Программа поддерживает основные приборы и помогает разбирать нестандартные файлы, которые иначе пришлось бы чистить вручную.</p>
+        <ul class="feature-list">
+          <li>Grace, Chandler, Fann, Ofite, Brookfield, BSL R1</li>
+          <li>Таблицы Excel, CSV и приборные выгрузки</li>
+          <li>Разбор сложных файлов с помощью ИИ</li>
+        </ul>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-tag mono">Расчёт</span>
+        <h3>Реологические модели и методика анализа</h3>
+        <p>Приложение не просто строит график, а помогает корректно провести расчёт и объяснить, почему результат получился именно таким.</p>
+        <ul class="feature-list">
+          <li>Степенная модель, модель Бингама и связанные расчёты</li>
+          <li>Автоматическое определение циклов</li>
+          <li>Расширенные настройки для сложных случаев</li>
+        </ul>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-tag mono">Сравнение</span>
+        <h3>Сравнение экспериментов</h3>
+        <p>Быстрое наложение нескольких опытов на общие оси помогает принимать решения по рецептуре и качеству испытаний без ручной сборки графиков.</p>
+        <ul class="feature-list">
+          <li>Сравнение на общих осях</li>
+          <li>Настройка метрик и легенды</li>
+          <li>Дополнительные возможности в расширенной лицензии</li>
+        </ul>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-tag mono">Архив</span>
+        <h3>Библиотека, реагенты и поиск</h3>
+        <p>Эксперименты, метаданные, реагенты, лаборатории и операторы хранятся в одной локальной базе, а не в разрозненных папках.</p>
+        <ul class="feature-list">
+          <li>Фильтрация и поиск по истории экспериментов</li>
+          <li>Каталог реагентов и повторяемые рецептуры</li>
+          <li>Удобно для контроля качества, методистов и инженерных служб</li>
+        </ul>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-tag mono">Отчёты</span>
+        <h3>PDF и Excel отчётность</h3>
+        <p>Финальный результат подходит не только для внутренней проверки, но и для передачи коллегам, руководителю, заказчику или в отчётный контур.</p>
+        <ul class="feature-list">
+          <li>Отчёты в PDF и Excel</li>
+          <li>Брендинг и настройки шаблонов</li>
+          <li>Пробный доступ с водяными знаками</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<style>
+  .features {
+    padding: var(--section-padding) 0;
+  }
+
+  .section-header {
+    max-width: 760px;
+    margin: 0 auto 3rem;
+    text-align: center;
+  }
+
+  .section-header h2 {
+    margin: 1rem 0;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+
+  .feature-card {
+    padding: 1.6rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    transition: transform var(--transition-base), border-color var(--transition-base);
+  }
+
+  .feature-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(103, 232, 249, 0.26);
+  }
+
+  .feature-tag {
+    display: inline-flex;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-cta-400);
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .feature-card h3 {
+    margin: 0.95rem 0 0.75rem;
+    font-size: 1.3rem;
+  }
+
+  .feature-list {
+    list-style: none;
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 1rem;
+  }
+
+  .feature-list li {
+    position: relative;
+    padding-left: 1rem;
+    color: var(--text-secondary);
+  }
+
+  .feature-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.52rem;
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: var(--color-primary-400);
+  }
+
+  @media (max-width: 900px) {
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

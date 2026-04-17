@@ -1,0 +1,52 @@
+# RheoLab License Server
+
+# Включить mod_rewrite
+RewriteEngine On
+
+# Защита конфигурации
+<FilesMatch "^(config\.php|\.env)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Защита includes
+<IfModule mod_alias.c>
+    RedirectMatch 403 ^/includes/
+</IfModule>
+
+# Защита от листинга директорий
+Options -Indexes
+
+# Сжатие
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+# Auto-updater endpoint routing
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Channel-aware endpoint (current, v0.1.510+):
+    #   GET /releases/v1/update/{target}/update  +  X-Update-Channel: beta
+    #   → /releases/v1/update/{target}/beta.json   (only if file exists)
+    #   Otherwise falls through to stable.json.
+    RewriteCond %{HTTP:X-Update-Channel} beta [NC]
+    RewriteCond %{DOCUMENT_ROOT}/releases/v1/update/windows-x86_64/beta.json -f
+    RewriteRule ^releases/v1/update/([^/]+)/update$ /releases/v1/update/$1/beta.json [L]
+
+    # Default: all other clients get stable.json
+    RewriteRule ^releases/v1/update/([^/]+)/update$ /releases/v1/update/$1/stable.json [L]
+
+    # Legacy endpoint (≤0.1.509): {{target}}/stable.json — served as a static file (no rewrite needed).
+
+    # Very old endpoint (≤0.1.497): {{target}}/{{arch}}/{{version}}?channel=...
+    # Strip the /{arch}/{version} tail and serve stable.json for backwards compatibility.
+    RewriteRule ^releases/v1/update/([^/]+)/[^/]+/[^/?]*(\?.*)?$ /releases/v1/update/$1/stable.json [L,QSD]
+</IfModule>
+
+# Кэширование отключено для API
+<IfModule mod_headers.c>
+    <FilesMatch "\.(php)$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>

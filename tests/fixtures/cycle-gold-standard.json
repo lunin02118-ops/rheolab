@@ -1,0 +1,217 @@
+{
+    "_meta": {
+        "description": "Gold standard for cycle detection - USER VERIFIED",
+        "version": "2.5",
+        "updated": "2025-12-15",
+        "mode": "Beginner (with parasitic filtering)"
+    },
+    "Brookfeild 4.xlsx": {
+        "expectedCycles": 6,
+        "cycles": [
+            {
+                "index": 1,
+                "type": "API",
+                "expectedPattern": [
+                    75,
+                    50,
+                    25,
+                    50,
+                    75
+                ],
+                "minSteps": 5,
+                "maxSteps": 7,
+                "minR2": 0.80,
+                "notes": "API cycle 1: 75→50→25→50→75 at 321°C"
+            },
+            {
+                "index": 2,
+                "type": "API",
+                "expectedPattern": [
+                    75,
+                    50,
+                    25,
+                    50,
+                    75
+                ],
+                "minSteps": 5,
+                "maxSteps": 7,
+                "minR2": 0.80,
+                "notes": "API cycle 2"
+            }
+        ],
+        "notes": "Brookfield PVS file with 6 API cycles at high temp (321°C)"
+    },
+    "Отчёт Chandler.xls": {
+        "expectedCycles": 3,
+        "cycles": [
+            {
+                "index": 1,
+                "type": "ISO",
+                "expectedPattern": [
+                    100,
+                    75,
+                    50,
+                    25
+                ],
+                "minSteps": 4,
+                "maxSteps": 6,
+                "minR2": 0.90,
+                "notes": "ISO cycle 1: 100→75→50→25"
+            },
+            {
+                "index": 2,
+                "type": "ISO",
+                "expectedPattern": [
+                    100,
+                    75,
+                    50,
+                    25
+                ],
+                "minSteps": 4,
+                "maxSteps": 6,
+                "minR2": 0.90,
+                "notes": "ISO cycle 2"
+            },
+            {
+                "index": 3,
+                "type": "ISO",
+                "expectedPattern": [
+                    100,
+                    75,
+                    50,
+                    25
+                ],
+                "minSteps": 4,
+                "maxSteps": 6,
+                "minR2": 0.90,
+                "notes": "ISO cycle 3"
+            }
+        ]
+    },
+    "Отчёт Grace.xlsx": {
+        "expectedCycles": 17,
+        "cycles": [
+            {
+                "index": 1,
+                "type": "API",
+                "expectedPattern": [
+                    100,
+                    100,
+                    75,
+                    50,
+                    25,
+                    50,
+                    75
+                ],
+                "minSteps": 5,
+                "maxSteps": 9,
+                "minR2": 0.89,
+                "notes": "API symmetric 75→50→25→50→75 (100 s-1 mixing excluded)"
+            },
+            {
+                "index": 2,
+                "type": "API",
+                "expectedPattern": [
+                    100,
+                    100,
+                    75,
+                    50,
+                    25,
+                    50,
+                    75
+                ],
+                "minSteps": 5,
+                "maxSteps": 9,
+                "minR2": 0.85,
+                "notes": "API cycle 2 - may have lower R² due to temperature transition"
+            }
+        ],
+        "notes": "Grace file contains 17 consecutive API cycles"
+    },
+    "8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv": {
+        "expectedCycles": 3,
+        "cycles": [
+            {
+                "index": 1,
+                "type": "SST",
+                "expectedPattern": [
+                    511,
+                    511,
+                    100,
+                    100
+                ],
+                "minR2": 0.0,
+                "notes": "SST cycle 1: 511→100 high-low speed"
+            },
+            {
+                "index": 2,
+                "type": "SST",
+                "expectedPattern": [
+                    511,
+                    511,
+                    100,
+                    100
+                ],
+                "minR2": 0.0,
+                "notes": "SST cycle 2"
+            },
+            {
+                "index": 3,
+                "type": "SST",
+                "expectedPattern": [
+                    511,
+                    511,
+                    100,
+                    100
+                ],
+                "minR2": 0.0,
+                "notes": "SST cycle 3"
+            }
+        ]
+    },
+    "8958 SWB Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@96C 30.10.25.csv": {
+        "expectedCycles": 9,
+        "cycles": [
+            {
+                "index": 1,
+                "type": "Custom",
+                "expectedPattern": [
+                    150,
+                    125,
+                    100
+                ],
+                "minSteps": 3,
+                "maxSteps": 3,
+                "minR2": 0.20,
+                "notes": "SWB Custom cycle 1"
+            },
+            {
+                "index": 2,
+                "type": "Custom",
+                "expectedPattern": [
+                    150,
+                    125,
+                    100
+                ],
+                "minSteps": 3,
+                "maxSteps": 3,
+                "minR2": 0.20,
+                "notes": "SWB Custom cycle 2"
+            },
+            {
+                "index": 3,
+                "type": "Custom",
+                "expectedPattern": [
+                    150,
+                    125,
+                    100
+                ],
+                "minSteps": 3,
+                "maxSteps": 3,
+                "minR2": 0.20,
+                "notes": "SWB Custom cycle 3"
+            }
+        ],
+        "notes": "SWB test: 150→125→100 pattern (Action + Transition). 100 s-1 baseline filtered."
+    }
+}

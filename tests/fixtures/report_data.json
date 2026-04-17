@@ -1,0 +1,138 @@
+{
+    "raw_data": [
+        {"time_sec": 0, "viscosity_cp": 500, "temperature_c": 25.0, "shear_rate": 100, "shear_stress_pa": 50.0, "speed_rpm": 300, "pressure_bar": 1.0},
+        {"time_sec": 30, "viscosity_cp": 520, "temperature_c": 30.0, "shear_rate": 100, "shear_stress_pa": 52.0, "speed_rpm": 300, "pressure_bar": 1.0},
+        {"time_sec": 60, "viscosity_cp": 550, "temperature_c": 35.0, "shear_rate": 100, "shear_stress_pa": 55.0, "speed_rpm": 300, "pressure_bar": 1.1}
+    ],
+    "metadata": {
+        "filename": "Test_Report.csv",
+        "test_id": "TEST-12345",
+        "test_date": "2023-10-27T10:00:00Z",
+        "operator_name": "Ivanov I.I.",
+        "laboratory_name": "Main Lab",
+        "field_name": "Mamontovskoe",
+        "well_number": "1234",
+        "instrument_type": "RheoMeter 5000",
+        "geometry": "Bob 1",
+        "company_name": "OilCo",
+        "company_logo_base64": null,
+        "calibration": {
+            "device_type": "Viscometer V1",
+            "calibration_date": "2023-09-01",
+            "r_squared": 0.9999,
+            "slope": 1.001,
+            "intercept": 0.05,
+            "hysteresis": 0.1,
+            "stdev": 0.02,
+            "status": "PASS"
+        }
+    },
+    "cycle_results": [
+        {
+            "cycle_no": 1,
+            "time_min": 10.5,
+            "temp_c": 60.0,
+            "pressure_bar": 1.0,
+            "n_prime": 0.55,
+            "K_prime_PaSn": 0.85,
+            "r2": 0.995,
+            "visc_at_40": 120.0,
+            "visc_at_100": 80.0,
+            "visc_at_170": 50.0,
+            "viscosities": {
+                "40": 120.0,
+                "100": 80.0,
+                "170": 50.0
+            },
+            "bingham_PV_PaS": 0.02,
+            "bingham_YP_Pa": 5.0,
+            "bingham_r2": 0.98
+        },
+        {
+            "cycle_no": 2,
+            "time_min": 20.5,
+            "temp_c": 60.0,
+            "pressure_bar": 1.0,
+            "n_prime": 0.54,
+            "K_prime_PaSn": 0.86,
+            "r2": 0.994,
+            "visc_at_40": 122.0,
+            "visc_at_100": 81.0,
+            "visc_at_170": 51.0,
+            "viscosities": {
+                "40": 122.0,
+                "100": 81.0,
+                "170": 51.0
+            },
+            "bingham_PV_PaS": 0.021,
+            "bingham_YP_Pa": 5.1,
+            "bingham_r2": 0.98
+        }
+    ],
+    "recipe": [
+        {
+            "name": "Water",
+            "concentration": 950.0,
+            "unit": "L/m3",
+            "category": "Base Fluid",
+            "batch_number": "LOT-001"
+        },
+        {
+            "name": "Xanthan Gum",
+            "concentration": 2.5,
+            "unit": "kg/m3",
+            "category": "Polymer",
+            "batch_number": "LOT-X-22"
+        },
+        {
+            "name": "KCl",
+            "concentration": 30.0,
+            "unit": "kg/m3",
+            "category": "Salt",
+            "batch_number": "LOT-K-99"
+        }
+    ],
+    "water_params": {
+        "source": "Tap Water",
+        "salinity": 1500.0,
+        "ph": 7.5,
+        "hardness": 120.0,
+        "ca": 40.0,
+        "mg": 15.0,
+        "fe": 0.5,
+        "cl": 800.0,
+        "so4": 100.0,
+        "hco3": 200.0
+    },
+    "cycles": [],
+    "settings": {
+        "language": "ru",
+        "unit_system": "SI",
+        "show_temperature": true,
+        "show_shear_rate": true,
+        "show_pressure": false,
+        "show_bath_temperature": false,
+        "show_calibration": true,
+        "show_raw_data": true,
+        "show_touch_points": false,
+        "viscosity_threshold": 500.0,
+        "show_target_time": false,
+        "target_time": 10.0,
+        "shear_rate_axis": "left",
+        "pressure_axis": "right",
+        "axis_mode": "individual",
+        "viscosity_shear_rates": [
+            40,
+            100,
+            170
+        ],
+        "show_advanced_stats": true,
+        "line_settings": {
+            "viscosity":       { "color": "#1e40af", "width": 2, "style": "solid" },
+            "temperature":     { "color": "#c2410c", "width": 2, "style": "solid" },
+            "shear_rate":      { "color": "#7e22ce", "width": 2, "style": "dashed" },
+            "pressure":        { "color": "#15803d", "width": 2, "style": "dotted" },
+            "rpm":             { "color": "#a16207", "width": 2, "style": "dashed" }
+        }
+    }
+}

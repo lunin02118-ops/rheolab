@@ -1,0 +1,201 @@
+{
+  "region": "China",
+  "generatedAt": "2026-02-24",
+  "reagents": [
+    {
+      "name": "VESMET APA-T",
+      "category": "Viscosifier",
+      "manufacturer": "UNP International Co., Ltd.",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Tallow amidoamine oxide (viscoelastic surfactant)",
+      "description": "Вязкоупругий ПАВ-загуститель для завершательных и буровых жидкостей ГРП. Формирует мицеллярную структуру, обеспечивающую несущую способность для проппанта. Снижает повреждение пласта по сравнению с гуаровыми системами."
+    },
+    {
+      "name": "VESMET-EHS",
+      "category": "Viscosifier",
+      "manufacturer": "UNP International Co., Ltd.",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Zwitterionic viscoelastic surfactant",
+      "description": "Цвиттерионный ПАВ-загуститель для безполимерных жидкостей ГРП. Формирует гель без гуара, обеспечивает снижение трения и упрощённый обратный приток. Работает в широком диапазоне минерализации воды."
+    },
+    {
+      "name": "BIMET 1227",
+      "category": "Biocide",
+      "manufacturer": "UNP International Co., Ltd.",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Benzalkonium chloride (BKC)",
+      "description": "Катионный биоцид на основе бензалкония хлорида для технологических вод и жидкостей ГРП. Подавляет рост бактерий и биоплёнок, совместим с типичными полимерными компонентами жидкостей ГРП. Дозировка 50–200 ppm."
+    },
+    {
+      "name": "BIMET 210",
+      "category": "Biocide",
+      "manufacturer": "UNP International Co., Ltd.",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Didecyldimethyl ammonium chloride (DDAC)",
+      "description": "Четвертичный аммонийный биоцид широкого спектра действия для водных буровых и ГРП-систем. Обеспечивает подавление микробиологической активности, включая СРБ. Дозировка 50–200 ppm."
+    },
+    {
+      "name": "High Efficiency Cleanup Additive for Fracturing Fluids",
+      "category": "Surfactant",
+      "manufacturer": "Dongying Dayong Petroleum Additives Co., Ltd.",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Нефтесервисный ПАВ-комплекс",
+      "description": "Многофункциональная добавка для жидкостей ГРП и кислотных обработок. Снижает поверхностное и межфазное натяжение, уменьшает остаточный полимер после разрушения геля, повышает коэффициент возврата жидкости из пласта."
+    },
+    {
+      "name": "SINOFLOC PAM-FR",
+      "category": "Friction Reducer",
+      "manufacturer": "Beijing Sinofloc Chemical Co., Ltd.",
+      "country": "Китай",
+      "form": "Powder",
+      "activeSubstance": "Anionic polyacrylamide (APAM), high molecular weight",
+      "description": "Полиакриламидный понизитель трения для слик-вотер ГРП. Снижает фрикционные потери при высокодебитной закачке. Может применяться как альтернатива гуару в линейных жидкостях. Совместим с широким диапазоном pH и минерализации."
+    },
+    {
+      "name": "VES2-12",
+      "category": "Viscosifier",
+      "manufacturer": "Sichuan Energy New Material Technology Co., Ltd.",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Viscoelastic surfactant (VES), mid-temperature grade",
+      "description": "Вязкоупругий ПАВ-гелеобразователь для безполимерных жидкостей ГРП. Работает при температурах пласта 75–120 °C, не требует сшивателя. Совместим со стабилизаторами глин и деструкторами."
+    },
+    {
+      "name": "TNPZ (Tetrapropyl Zirconate)",
+      "category": "Crosslinker",
+      "manufacturer": "TC Chemicals Co., Ltd. (Taichang)",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Tetrapropyl zirconate / Zirconium(IV) n-propoxide",
+      "description": "Органоцирконатный сшиватель для гуаровых и HPG-жидкостей ГРП. Обеспечивает термостойкость геля при высоких температурах и давлениях, работает в минерализованных водах. Устойчив к сдвиговой нагрузке."
+    },
+    {
+      "name": "TNBZ (Tetra-n-Butyl Zirconate)",
+      "category": "Crosslinker",
+      "manufacturer": "TC Chemicals Co., Ltd. (Taichang)",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Tetra-n-butyl zirconate",
+      "description": "Органоцирконатный сшиватель на бутокси-основе для гуаровых жидкостей ГРП при высоких температурах пласта. Обеспечивает стабильный сшитый гель при T > 120 °C."
+    },
+    {
+      "name": "TIPT (Tetraisopropyl Titanate)",
+      "category": "Crosslinker",
+      "manufacturer": "TC Chemicals Co., Ltd. (Taichang)",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Tetraisopropyl titanate (Ti(OiPr)4)",
+      "description": "Органотитанатный сшиватель для гуаровых жидкостей ГРП при умеренных и высоких температурах. Обеспечивает быстрое сшивание при pH 9–11. Альтернатива боратным системам при высоких пластовых температурах."
+    },
+    {
+      "name": "IRO Poly-DADMAC",
+      "category": "Clay Control",
+      "manufacturer": "Shandong IRO Polymer Chemical Co., Ltd.",
+      "country": "Китай",
+      "form": "Liquid",
+      "activeSubstance": "Poly(diallyldimethylammonium chloride)",
+      "description": "Катионный полимер-стабилизатор глинистых пород для жидкостей ГРП и буровых растворов. Предотвращает разбухание и диспергирование глинистых частиц, совместим с катионными ПАВ и другими добавками."
+    },
+    {
+      "name": "IRO APAM (Anionic PAM)",
+      "category": "Friction Reducer",
+      "manufacturer": "Shandong IRO Polymer Chemical Co., Ltd.",
+      "country": "Китай",
+      "form": "Powder",
+      "activeSubstance": "Anionic polyacrylamide (APAM)",
+      "description": "Анионный полиакриламид высокой молекулярной массы для снижения трения при закачке жидкостей ГРП (слик-вотер). Также применяется как флокулянт при водоподготовке для ГРП."
+    }
+  ],
+  "manufacturers": [
+    {
+      "name": "UNP International Co., Ltd.",
+      "country": "Китай",
+      "website": "https://www.unpchemicals.com",
+      "categories": [
+        "Viscosifier",
+        "Biocide",
+        "Surfactant"
+      ],
+      "notes": "ПАВ-загустители VESMET для безполимерных жидкостей ГРП; биоциды BIMET (BKC, DDAC) для технологических вод и ГРП-систем."
+    },
+    {
+      "name": "Dongying Dayong Petroleum Additives Co., Ltd.",
+      "country": "Китай",
+      "website": "https://dayongchemical.en.made-in-china.com",
+      "categories": [
+        "Surfactant",
+        "Breaker",
+        "Friction Reducer"
+      ],
+      "notes": "Комплексные химреагенты для бурения, стимулирования и добычи; очистные и смачивающие добавки для жидкостей ГРП и кислотных обработок."
+    },
+    {
+      "name": "Beijing Sinofloc Chemical Co., Ltd.",
+      "country": "Китай",
+      "website": "https://www.sinofloc.com",
+      "categories": [
+        "Friction Reducer",
+        "Viscosifier"
+      ],
+      "notes": "Полиакриламидные понизители трения для слик-вотер ГРП; PAM позиционируется как альтернатива гуару в линейных системах."
+    },
+    {
+      "name": "Sichuan Energy New Material Technology Co., Ltd.",
+      "country": "Китай",
+      "website": "https://scenergy.en.made-in-china.com",
+      "categories": [
+        "Viscosifier"
+      ],
+      "notes": "Производитель VES-загустителей (VES2-12) для безполимерных жидкостей ГРП системы ClearFrac; температурный диапазон 75–120 °C."
+    },
+    {
+      "name": "TC Chemicals Co., Ltd. (Taichang)",
+      "country": "Китай",
+      "website": "https://www.tcchem.com.cn",
+      "categories": [
+        "Crosslinker"
+      ],
+      "notes": "20+ лет производства органотитанатов и органоцирконатов (TIPT, TBT, TNPZ, TNBZ) — цирконатные и титанатные сшиватели для жидкостей ГРП при высоких температурах."
+    },
+    {
+      "name": "Shandong IRO Polymer Chemical Co., Ltd.",
+      "country": "Китай",
+      "website": "https://www.iropolymer.com",
+      "categories": [
+        "Clay Control",
+        "Friction Reducer"
+      ],
+      "notes": "Производитель DADMAC-полимеров (ингибиторы глин) и анионного PAM (APAM) для буровых и ГРП-жидкостей; в производстве с 2004 г."
+    },
+    {
+      "name": "Weifang Tianfu Chemical Technology Co., Ltd.",
+      "country": "Китай",
+      "website": "http://www.wftfchem.com/en/",
+      "categories": [
+        "Viscosifier",
+        "Crosslinker",
+        "Surfactant",
+        "Buffer"
+      ],
+      "notes": "Специализированный производитель нефтепромысловой химии с разделами Fracturing Fluids Materials и Acidizing Additives; конкретные торговые наименования требуют добора по каталогу."
+    },
+    {
+      "name": "CenerTech (CNOOC Energy Technology & Services)",
+      "country": "Китай",
+      "website": "https://www.cenertech.com",
+      "categories": [
+        "Viscosifier",
+        "Crosslinker",
+        "Friction Reducer",
+        "Biocide",
+        "Surfactant"
+      ],
+      "notes": "Технологическое подразделение CNOOC с направлением Oilfield Chemicals; экспортный каталог марок в открытом доступе не представлен — требуется прямой запрос в компанию."
+    }
+  ]
+}

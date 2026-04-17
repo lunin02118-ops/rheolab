@@ -1,0 +1,215 @@
+---
+import GraphBackdrop from '../GraphBackdrop.astro';
+---
+
+<section class="contact" id="contact">
+  <GraphBackdrop variant="contact" />
+  <div class="container">
+    <div class="contact-wrapper">
+      <div class="contact-info">
+        <div class="section-header text-left">
+          <h2>Остались вопросы?</h2>
+          <p>Напишите — ответим в течение рабочего дня. Если нужна помощь с конкретными файлами или приборами, опишите ситуацию.</p>
+        </div>
+
+        <div class="contact-methods">
+          <div class="contact-method">
+            <div class="icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </div>
+            <div class="details">
+              <h3>Общие вопросы</h3>
+              <a href="mailto:info@rheolab.site">info@rheolab.site</a>
+            </div>
+          </div>
+
+          <div class="contact-method">
+            <div class="icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <div class="details">
+              <h3>Техническая поддержка</h3>
+              <a href="mailto:support@rheolab.site">support@rheolab.site</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-form-card">
+        <form class="contact-form" action="https://formspree.io/f/mrgwzjqv" method="POST">
+          <div class="form-group">
+            <label for="name-v2">Ваше имя</label>
+            <input type="text" id="name-v2" name="name" autocomplete="name" placeholder="Иван Петров" required>
+          </div>
+
+          <div class="form-group">
+            <label for="email-v2">Адрес эл. почты</label>
+            <input type="email" id="email-v2" name="email" autocomplete="email" inputmode="email" spellcheck="false" placeholder="ivan@company.ru" required>
+          </div>
+
+          <div class="form-group">
+            <label for="message-v2">Сообщение</label>
+            <textarea id="message-v2" name="message" rows="4" autocomplete="off" placeholder="Коротко опишите вопрос или ситуацию." required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full">
+            Отправить сообщение
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+
+          <p class="privacy-note">
+            Нажимая кнопку, вы соглашаетесь на отправку данных через внешний сервис для обработки заявки.
+            Подробнее: <a href="/privacy">политика конфиденциальности</a>.
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .contact {
+    position: relative;
+    padding: var(--section-padding) 0;
+    background: linear-gradient(to bottom, var(--bg-dark), var(--bg-dark-secondary));
+    overflow: hidden;
+  }
+
+  .contact .container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .contact-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+
+  .section-header.text-left {
+    text-align: left;
+    margin-bottom: 2.5rem;
+  }
+
+  .section-header h2 { margin-bottom: 0.85rem; }
+  .section-header p {
+    font-size: 1.08rem;
+    color: var(--text-secondary);
+  }
+
+  .contact-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .contact-method {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+  }
+
+  .icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid var(--glass-border);
+    color: var(--color-primary-400);
+    flex-shrink: 0;
+  }
+
+  .details h3 {
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+  }
+
+  .details a {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  /* Form */
+  .contact-form-card {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-2xl);
+    padding: 2rem;
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(18px);
+  }
+
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .form-group input,
+  .form-group textarea {
+    padding: 0.85rem 1rem;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    resize: vertical;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    border-color: rgba(96, 165, 250, 0.42);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+    outline: none;
+  }
+
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .btn-full {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .privacy-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 860px) {
+    .contact-wrapper {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+  }
+</style>

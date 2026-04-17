@@ -1,0 +1,250 @@
+---
+// Supported instruments and format coverage section.
+---
+
+<section class="instruments" id="instruments">
+  <div class="container">
+    <div class="instruments-header">
+      <span class="eyebrow">Поддержка приборов</span>
+      <h2>Сразу видно, с какими приборами и файлами работает программа</h2>
+      <p>
+        Для технического покупателя это один из самых важных блоков: какие приборы уже поддержаны,
+        какие форматы программа читает сразу и где помогает разбор с помощью ИИ.
+      </p>
+    </div>
+
+    <div class="coverage-shell panel">
+      <div class="coverage-summary">
+        <article>
+          <strong>6</strong>
+          <span>семейств приборов в базовом контуре</span>
+        </article>
+        <article>
+          <strong>Есть поддержка</strong>
+          <span>для типовых Excel, CSV и приборных файлов</span>
+        </article>
+        <article>
+          <strong>Разбор с помощью ИИ</strong>
+          <span>для нестандартных и неоднородных выгрузок</span>
+        </article>
+        <article>
+          <strong>Готовый результат</strong>
+          <span>итог можно довести до PDF или Excel без отдельного сервиса</span>
+        </article>
+      </div>
+
+      <div class="instruments-layout">
+        <div class="instrument-table">
+          <div class="table-row table-head">
+            <span>Прибор / семейство</span>
+            <span>Форматы</span>
+            <span>Режим</span>
+            <span>Комментарий</span>
+          </div>
+          <div class="table-row">
+            <strong>Grace</strong>
+            <span class="mono">.xls .xlsx</span>
+            <b class="status-ready">Есть</b>
+            <span>Типовой лабораторный импорт</span>
+          </div>
+          <div class="table-row">
+            <strong>Chandler</strong>
+            <span class="mono">.csv .xlsx</span>
+            <b class="status-ready">Есть</b>
+            <span>Подходит для сравнения серий</span>
+          </div>
+          <div class="table-row">
+            <strong>Fann</strong>
+            <span class="mono">.xlsx</span>
+            <b class="status-ready">Есть</b>
+            <span>Поддержка типовых сценариев испытаний</span>
+          </div>
+          <div class="table-row">
+            <strong>Ofite 1100</strong>
+            <span class="mono">.dat</span>
+            <b class="status-ready">Есть</b>
+            <span>Нативная обработка приборного формата</span>
+          </div>
+          <div class="table-row">
+            <strong>Brookfield / BSL R1</strong>
+            <span class="mono">.xlsx</span>
+            <b class="status-ready">Есть</b>
+            <span>Подходит для лабораторной повседневной работы</span>
+          </div>
+          <div class="table-row">
+            <strong>Нестандартные файлы</strong>
+            <span class="mono">разные</span>
+            <b class="status-assisted">ИИ</b>
+            <span>Разбор для сложных и неидеальных выгрузок</span>
+          </div>
+        </div>
+
+        <div class="instrument-aside">
+          <article class="aside-card">
+            <span class="section-kicker">Несколько приборов</span>
+            <h3>Один контур вместо ручного сведения файлов</h3>
+            <p>
+              Когда в компании несколько моделей приборов, RheoLab снимает проблему разрозненных
+              источников и сводит их в общий рабочий контур анализа.
+            </p>
+          </article>
+
+          <article class="aside-card">
+            <span class="section-kicker">Разбор сложных файлов</span>
+            <h3>Неидеальные выгрузки не ломают процесс</h3>
+            <p>
+              Если структура файла нестандартна, программа всё равно даёт путь к анализу: сначала разбор с помощью ИИ,
+              затем ручная проверка методики, после чего серия попадает в библиотеку и отчёты.
+            </p>
+          </article>
+
+          <article class="aside-card">
+            <span class="section-kicker">Итог работы</span>
+            <h3>Поддержка приборов связана с итоговым рабочим процессом</h3>
+            <p>
+              Важен не только сам импорт, но и то, что после него доступны сравнение серий, локальная библиотека
+              и отчёты без необходимости выносить данные во внешний сервис.
+            </p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .instruments {
+    padding: var(--section-padding) 0;
+  }
+
+  .instruments-header {
+    max-width: 760px;
+    margin: 0 auto 3rem;
+    text-align: center;
+  }
+
+  .instruments-header h2 {
+    margin: 1rem 0;
+  }
+
+  .coverage-shell {
+    padding: 1.25rem;
+  }
+
+  .coverage-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .coverage-summary article {
+    padding: 1rem 1.05rem;
+    border-radius: var(--radius-xl);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  .coverage-summary strong {
+    display: block;
+    margin-bottom: 0.28rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+  }
+
+  .coverage-summary span {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .instruments-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .instrument-table {
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border);
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 1fr 0.75fr 0.55fr 1.2fr;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .table-row:last-child {
+    border-bottom: none;
+  }
+
+  .table-head {
+    color: var(--text-primary);
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .table-row strong {
+    color: var(--text-primary);
+  }
+
+  .table-row b {
+    align-self: start;
+    justify-self: start;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .status-ready {
+    color: var(--color-success);
+    background: rgba(52, 211, 153, 0.12);
+  }
+
+  .status-assisted {
+    color: var(--color-cta-400);
+    background: rgba(245, 158, 11, 0.12);
+  }
+
+  .instrument-aside {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .aside-card {
+    padding: 1.2rem 1.25rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+  }
+
+  .aside-card h3 {
+    margin: 1rem 0 0.7rem;
+    font-size: 1.15rem;
+  }
+
+  @media (max-width: 1040px) {
+    .coverage-summary,
+    .instruments-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .table-row {
+      grid-template-columns: 1fr;
+      gap: 0.35rem;
+    }
+  }
+</style>

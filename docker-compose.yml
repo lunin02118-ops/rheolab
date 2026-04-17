@@ -1,0 +1,11 @@
+services:
+  # Static SPA served by nginx (preview / CI validation only).
+  # The primary distribution is the Tauri desktop installer.
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rheolab-app
+    restart: unless-stopped
+    ports:
+      - "8080:80"

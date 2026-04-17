@@ -1,0 +1,129 @@
+---
+import Layout from './Layout.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  schema?: Record<string, unknown> | Array<Record<string, unknown>>;
+  includeSoftwareSchema?: boolean;
+}
+
+const { title, description, schema, includeSoftwareSchema } = Astro.props;
+---
+
+<Layout
+  title={title}
+  description={description}
+  schema={schema}
+  includeSoftwareSchema={includeSoftwareSchema}
+>
+  <div class="site-theme">
+    <slot />
+  </div>
+</Layout>
+
+<style is:global>
+  .site-theme {
+    --site-bg: #0b0f19;
+    --site-surface: #131b2c;
+    --site-surface-hover: #1e293b;
+    --site-border: rgba(148, 163, 184, 0.15);
+    --site-text-main: #f8fafc;
+    --site-text-muted: #94a3b8;
+    --site-accent: #2563eb;
+    --site-accent-hover: #1d4ed8;
+    --font-display: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+    --font-mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+    --site-shell-max-width: 1440px;
+    --site-shell-padding: 2.5rem;
+    --site-btn-font-size: 1.1rem;
+    --site-btn-padding-y: 1rem;
+    --site-btn-padding-x: 1.85rem;
+
+    min-height: 100vh;
+    background-color: var(--site-bg);
+    color: var(--site-text-main);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    line-height: 1.5;
+  }
+
+  .site-theme ::selection {
+    background: rgba(37, 99, 235, 0.3);
+    color: #fff;
+  }
+
+  .site-container {
+    max-width: var(--site-shell-max-width);
+    margin: 0 auto;
+    padding: 0 var(--site-shell-padding);
+  }
+
+  .site-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    background: var(--site-accent);
+    color: #fff;
+    padding: var(--site-btn-padding-y) var(--site-btn-padding-x);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: var(--site-btn-font-size);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .site-btn-primary:hover {
+    background: var(--site-accent-hover);
+    color: #fff;
+  }
+
+  .site-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    background: transparent;
+    color: var(--site-text-main);
+    padding: var(--site-btn-padding-y) var(--site-btn-padding-x);
+    border: 1px solid var(--site-border);
+    border-radius: 6px;
+    font-size: var(--site-btn-font-size);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .site-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(148, 163, 184, 0.3);
+    color: var(--site-text-main);
+  }
+
+  .site-bg-grid {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.55;
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  @media (max-width: 768px) {
+    .site-theme {
+      --site-shell-padding: 1.25rem;
+      --site-btn-font-size: 1rem;
+      --site-btn-padding-y: 0.85rem;
+      --site-btn-padding-x: 1.4rem;
+    }
+
+    .site-container {
+      padding: 0 var(--site-shell-padding);
+    }
+  }
+</style>
+

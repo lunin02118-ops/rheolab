@@ -1,0 +1,80 @@
+---
+// Homepage FAQ block to reduce friction before download/contact.
+---
+
+<section class="faq-preview" id="faq-preview">
+  <div class="container">
+    <div class="faq-shell panel">
+      <div class="faq-header">
+        <span class="eyebrow">Частые вопросы до скачивания</span>
+        <h2>Ответы на вопросы, которые обычно возникают до пробной версии</h2>
+        <p>Ключевая информация по работе без интернета, пробному доступу и следующему шагу после установки доступна сразу на главной.</p>
+      </div>
+
+      <div class="faq-grid">
+        <article class="faq-item">
+          <h3>Работает ли RheoLab без интернета?</h3>
+          <p>Да. Основной анализ, библиотека, локальное хранение и отчётность работают без постоянного доступа к сети. Интернет нужен только для обновлений и отдельных сетевых действий.</p>
+        </article>
+
+        <article class="faq-item">
+          <h3>Можно ли проверить продукт на своих файлах?</h3>
+          <p>Да. Для этого и нужен 30-дневный пробный доступ: скачать, установить и сразу проверить свои лабораторные выгрузки в реальной работе.</p>
+        </article>
+
+        <article class="faq-item">
+          <h3>Кому нужна расширенная лицензия?</h3>
+          <p>Тем, кто решает сложные инженерные и исследовательские задачи: сравнивает большие серии опытов, глубоко настраивает расчёты и ведёт методическую работу.</p>
+        </article>
+
+        <article class="faq-item">
+          <h3>Где посмотреть следующий шаг после установки?</h3>
+          <p>Откройте <a href="/docs/quick-start">быстрый старт</a> или раздел <a href="/docs/faq">частых вопросов</a>. Документация встроена в сценарий внедрения, а не вынесена в отдельный “архив”.</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq-preview {
+    padding: var(--section-padding) 0;
+  }
+
+  .faq-shell {
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+  }
+
+  .faq-header {
+    max-width: 760px;
+    margin-bottom: 2rem;
+  }
+
+  .faq-header h2 {
+    margin: 1rem 0;
+  }
+
+  .faq-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .faq-item {
+    padding: 1.15rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .faq-item h3 {
+    margin-bottom: 0.7rem;
+    font-size: 1.15rem;
+  }
+
+  @media (max-width: 900px) {
+    .faq-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

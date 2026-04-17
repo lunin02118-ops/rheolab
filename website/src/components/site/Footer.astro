@@ -1,0 +1,114 @@
+---
+---
+<footer class="site-footer">
+  <div class="site-container site-footer-grid">
+    <div class="site-footer-brand">
+      <div class="site-logo-text">
+        <strong>RheoLab</strong>
+        <span>Enterprise</span>
+      </div>
+      <p class="site-footer-desc">
+        Профессиональный инструмент для анализа реологических данных. Разработано командой создателей первого российского лабораторного реометра BSL-R1.
+      </p>
+    </div>
+    <div class="site-footer-links">
+      <div>
+        <h4>Продукт</h4>
+        <a href="/#features">Возможности</a>
+        <a href="/faq">Вопросы и ответы</a>
+        <a href="/download/latest">Скачать Windows</a>
+      </div>
+      <div>
+        <h4>О компании</h4>
+        <a href="/about">О RheoLab</a>
+        <a href="/team">Команда</a>
+        <a href="/docs">Документация</a>
+      </div>
+      <div>
+        <h4>Связь</h4>
+        <a href="/#contact">Форма и контакты</a>
+        <a href="mailto:info@rheolab.site">info@rheolab.site</a>
+        <a href="mailto:support@rheolab.site">support@rheolab.site</a>
+      </div>
+      <div>
+        <h4>Правовая информация</h4>
+        <a href="/privacy">Конфиденциальность</a>
+        <a href="/terms">Пользовательское соглашение</a>
+      </div>
+    </div>
+  </div>
+  <div class="site-container site-footer-bottom">
+    <p>&copy; 2026 RheoLab. Все права защищены.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--site-border);
+    padding: 6rem 0 2.5rem;
+    background: #060a13;
+  }
+
+  .site-footer-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 2fr;
+    gap: 5rem;
+    margin-bottom: 4.5rem;
+  }
+
+  .site-logo-text {
+    color: var(--site-text-main);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.7rem;
+  }
+  .site-logo-text strong { font-size: 1.45rem; font-weight: 700; }
+  .site-logo-text span { font-size: 0.85rem; color: var(--site-text-muted); font-family: var(--font-mono); }
+
+  .site-footer-desc {
+    color: var(--site-text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 360px;
+  }
+
+  .site-footer-links {
+    display: flex;
+    justify-content: space-between;
+    gap: 2.5rem;
+  }
+
+  .site-footer-links h4 {
+    color: var(--site-text-main);
+    font-size: 1rem;
+    margin-bottom: 1.35rem;
+  }
+
+  .site-footer-links a {
+    display: block;
+    color: var(--site-text-muted);
+    text-decoration: none;
+    font-size: 0.98rem;
+    margin-bottom: 0.9rem;
+    transition: color 0.2s;
+  }
+  .site-footer-links a:hover { color: var(--site-accent); }
+
+  .site-footer-bottom {
+    border-top: 1px solid var(--site-border);
+    padding-top: 2.25rem;
+    text-align: center;
+    color: rgba(148, 163, 184, 0.4);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 768px) {
+    .site-footer-grid {
+      grid-template-columns: 1fr;
+    }
+    .site-footer-links {
+      flex-direction: column;
+    }
+  }
+</style>
+

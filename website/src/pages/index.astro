@@ -1,0 +1,40 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import Navbar from '../components/site/Navbar.astro';
+import Hero from '../components/site/Hero.astro';
+import Pains from '../components/site/Pains.astro';
+import Features from '../components/site/Features.astro';
+import Videos from '../components/site/Videos.astro';
+import Audience from '../components/site/Audience.astro';
+import Contact from '../components/site/Contact.astro';
+import Footer from '../components/site/Footer.astro';
+
+const description =
+  'RheoLab Enterprise — Windows-приложение для импорта, хранения, сравнения и подготовки отчётов по результатам реологических экспериментов из файлов разных реометров.';
+const homePageSchema = {
+  '@type': 'WebPage',
+  name: 'RheoLab Enterprise',
+  description,
+  url: new URL('/', Astro.site).toString(),
+  inLanguage: 'ru-RU',
+  dateModified: '2026-04-12',
+};
+---
+
+<SiteLayout
+  title="RheoLab Enterprise — Инструмент для работы с реологическими данными"
+  description={description}
+  schema={homePageSchema}
+>
+  <Navbar />
+  <main id="main-content">
+    <Hero />
+    <Pains />
+    <Features />
+    <Videos />
+    <Audience />
+    <Contact />
+  </main>
+  <Footer />
+</SiteLayout>
+

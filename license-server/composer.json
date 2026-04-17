@@ -1,0 +1,17 @@
+{
+    "name": "rheolab/license-server",
+    "description": "RheoLab Enterprise license server",
+    "type": "project",
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload": {
+        "psr-4": {}
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

@@ -1,0 +1,157 @@
+---
+import GraphBackdrop from '../GraphBackdrop.astro';
+---
+
+<section class="download" id="download">
+  <GraphBackdrop variant="download" />
+  <div class="container">
+    <div class="download-shell panel">
+      <div class="download-main">
+        <span class="section-kicker">Попробуйте на своих файлах</span>
+        <h2>Скачайте. Бросьте свои файлы. Посмотрите результат.</h2>
+        <p>
+          30 дней — полный функционал, без ограничений, без регистрации.
+          Установка за 2 минуты. Возьмите несколько реальных выгрузок и сразу
+          увидите, как опыты собираются в одну библиотеку.
+        </p>
+
+        <div class="download-actions">
+          <a href="/download/latest" class="btn btn-cta btn-lg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Скачать для Windows
+          </a>
+        </div>
+
+        <div class="download-points">
+          <span>30 дней бесплатно</span>
+          <span>Без регистрации</span>
+          <span>Windows 10 / 11</span>
+          <span>Работает офлайн</span>
+        </div>
+      </div>
+
+      <div class="download-side">
+        <article class="download-card">
+          <span class="eyebrow">После скачивания</span>
+          <h3>Установил, открыл файл, получил результат</h3>
+          <p>Если что-то непонятно — есть короткий старт, видео и быстрый выход на поддержку.</p>
+          <div class="download-links">
+            <a href="/docs/quick-start">Быстрый старт</a>
+            <a href="/docs/faq">Частые вопросы</a>
+            <a href="/v2#videos">Видеоинструкции</a>
+            <a href="mailto:support@rheolab.site">Написать в поддержку</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .download {
+    position: relative;
+    padding: 0 0 var(--section-padding);
+    overflow: hidden;
+  }
+
+  .download .container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .download-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: 1rem;
+    padding: 1.25rem;
+    background: linear-gradient(180deg, rgba(8, 17, 32, 0.98), rgba(15, 23, 42, 0.9));
+  }
+
+  .download-main,
+  .download-side {
+    min-width: 0;
+  }
+
+  .download-main {
+    padding: 1.2rem;
+  }
+
+  .download-main h2 {
+    margin: 1rem 0 1rem;
+  }
+
+  .download-main p {
+    max-width: 44rem;
+  }
+
+  .download-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1.8rem;
+  }
+
+  .download-points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.2rem;
+  }
+
+  .download-points span {
+    padding: 0.5rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.74);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+  }
+
+  .download-side {
+    display: grid;
+    align-items: start;
+  }
+
+  .download-card {
+    padding: 1.4rem;
+    border-radius: var(--radius-xl);
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    height: 100%;
+  }
+
+  .download-card h3 {
+    margin: 0.9rem 0 0.6rem;
+    font-size: 1.18rem;
+  }
+
+  .download-links {
+    display: grid;
+    gap: 0.6rem;
+    margin-top: 1.2rem;
+  }
+
+  .download-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .download-links a::before {
+    content: '→';
+    color: var(--color-primary-400);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 960px) {
+    .download-shell {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

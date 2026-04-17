@@ -1,0 +1,74 @@
+{
+  "home": {
+    "status": 200,
+    "url": "https://rheolab.site/",
+    "metrics": {
+      "navHeight": "76px",
+      "h1": "69.6px",
+      "painTitle": "48px",
+      "featureTitle": "50.4px",
+      "contactTitle": "48px",
+      "bodyText": "21.12px"
+    }
+  },
+  "faq": {
+    "status": 200,
+    "url": "https://rheolab.site/faq",
+    "metrics": {
+      "navHeight": "76px",
+      "h1": "56px",
+      "bodyText": "18.88px",
+      "cardPadding": "23.2px 24.8px"
+    }
+  },
+  "about": {
+    "status": 200,
+    "url": "https://rheolab.site/about",
+    "metrics": {
+      "navHeight": "76px",
+      "h1": "57.6px",
+      "bodyText": "18.88px",
+      "cardPadding": "29.6px"
+    }
+  },
+  "team": {
+    "status": 200,
+    "url": "https://rheolab.site/team",
+    "metrics": {
+      "navHeight": "76px",
+      "h1": "57.6px",
+      "bodyText": "18.88px",
+      "cardPadding": "29.6px"
+    }
+  },
+  "docs": {
+    "status": 200,
+    "url": "https://rheolab.site/docs",
+    "metrics": {
+      "navHeight": "85.7812px",
+      "h1": "64px",
+      "bodyText": "17.92px",
+      "cardPadding": "35.2px"
+    }
+  },
+  "privacy": {
+    "status": 200,
+    "url": "https://rheolab.site/privacy",
+    "metrics": {
+      "navHeight": "85.7812px",
+      "h1": "48px",
+      "bodyText": "16px",
+      "cardPadding": "56px"
+    }
+  },
+  "terms": {
+    "status": 200,
+    "url": "https://rheolab.site/terms",
+    "metrics": {
+      "navHeight": "85.7812px",
+      "h1": "48px",
+      "bodyText": "16px",
+      "cardPadding": "56px"
+    }
+  }
+}

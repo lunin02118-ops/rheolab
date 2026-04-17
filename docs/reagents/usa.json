@@ -1,0 +1,377 @@
+{
+  "region": "USA",
+  "generatedAt": "2026-02-25",
+  "reagents": [
+    {
+      "name": "FightR",
+      "category": "Friction Reducer",
+      "manufacturer": "Halliburton",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "High-viscosity polyacrylamide copolymer emulsion",
+      "description": "Высоковязкий понизитель трения для безгуаровых жидкостей ГРП нетрадиционных залежей. Снижает фрикционные потери при высоком расходе закачки и одновременно создаёт несущую вязкость для транспорта проппанта."
+    },
+    {
+      "name": "OptiKleen-WF",
+      "category": "Surfactant",
+      "manufacturer": "Halliburton",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Fracture cleaning surfactant blend",
+      "description": "ПАВ-добавка для очистки трещин после ГРП. Ускоряет деструкцию остаточного полимера, снижает адсорбцию и повышает проницаемость пропантной пачки. Применяется в комплексе с FightR."
+    },
+    {
+      "name": "Legend Crosslinker",
+      "category": "Crosslinker",
+      "manufacturer": "Halliburton (Multi-Chem)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Borate / organometallic crosslinker",
+      "description": "Боратный или металлокомплексный сшиватель для гуаровых жидкостей ГРП из каталога Legend™ Stimulation Chemicals (Multi-Chem). Параметры подбираются под температурный режим и pH."
+    },
+    {
+      "name": "Legend Breaker",
+      "category": "Breaker",
+      "manufacturer": "Halliburton (Multi-Chem)",
+      "country": "США",
+      "form": "Powder",
+      "activeSubstance": "Ammonium / sodium persulfate",
+      "description": "Окислительный деструктор геля из каталога Legend™. Обеспечивает контролируемое разрушение сшитого геля и восстановление проницаемости трещины."
+    },
+    {
+      "name": "Legend Biocide",
+      "category": "Biocide",
+      "manufacturer": "Halliburton (Multi-Chem)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "DBNPA / glutaraldehyde",
+      "description": "Широкоспектральный биоцид для защиты технологических жидкостей ГРП от микробиологического заражения. Входит в каталог Legend™ Stimulation Chemicals."
+    },
+    {
+      "name": "Legend Clay Control",
+      "category": "Clay Control",
+      "manufacturer": "Halliburton (Multi-Chem)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Cationic polymer / KCl substitute",
+      "description": "Катионный полимерный стабилизатор глин из каталога Legend™. Предотвращает разбухание и миграцию глинистых частиц без добавки KCl."
+    },
+    {
+      "name": "Legend Scale Inhibitor",
+      "category": "Scale Inhibitor",
+      "manufacturer": "Halliburton (Multi-Chem)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Phosphonate-based scale inhibitor",
+      "description": "Ингибитор отложений карбоната и сульфата кальция из каталога Legend™ для систем ГРП и ППД."
+    },
+    {
+      "name": "GW-3 Guar Polymer",
+      "category": "Viscosifier",
+      "manufacturer": "Baker Hughes",
+      "country": "США",
+      "form": "Powder",
+      "activeSubstance": "High-yield guar gum",
+      "description": "Высокоурожайный гуаровый загуститель системы Lightning™. Обеспечивает производительность геля при сниженных загрузках полимера до 149 °C."
+    },
+    {
+      "name": "Lightning Borate Crosslinker",
+      "category": "Crosslinker",
+      "manufacturer": "Baker Hughes",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Borate crosslinker for guar-based systems",
+      "description": "Боратный сшиватель системы Lightning™. Работает в паре с загустителем GW-3, обеспечивает стабильный сшитый гель до 149 °C. Опциональная задержка сшивки."
+    },
+    {
+      "name": "FSC100",
+      "category": "Scale Inhibitor",
+      "manufacturer": "ChampionX",
+      "country": "США",
+      "form": "Solid",
+      "activeSubstance": "Phosphonate-based solid scale inhibitor",
+      "description": "Твёрдый ингибитор солеотложений для сквиз-обработок при ГРП. Медленно растворяется в пластовых условиях, обеспечивая продолжительную защиту от карбонатных и сульфатных отложений."
+    },
+    {
+      "name": "SICI10074A",
+      "category": "Scale Inhibitor",
+      "manufacturer": "ChampionX",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Oil-dispersible scale and corrosion inhibitor",
+      "description": "Маслодиспергируемый ингибитор солеотложений и коррозии. Предотвращает карбонат железа и карбонат кальция в добывающих скважинах и наземном оборудовании."
+    },
+    {
+      "name": "RenewIQ Frac Water Solution",
+      "category": "Surfactant",
+      "manufacturer": "ChampionX",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Multifunctional frac water surfactant package",
+      "description": "Многофункциональный реагент для подготовки воды ГРП. Снижает поверхностное натяжение, улучшает совместимость с пластом и повышает возврат жидкости после ГРП."
+    },
+    {
+      "name": "FLOJET FR",
+      "category": "Friction Reducer",
+      "manufacturer": "SNF Group",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Anionic polyacrylamide emulsion, high MW",
+      "description": "Полиакриламидный понизитель трения из линейки FLOJET™ для слик-вотер ГРП. Совместим с пластовыми водами высокой минерализации."
+    },
+    {
+      "name": "FLOJET XL",
+      "category": "Viscosifier",
+      "manufacturer": "SNF Group",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Crosslinked polyacrylamide gel system",
+      "description": "Сшитый полиакриламидный гель FLOJET™ — синтетическая альтернатива гуаровым жидкостям ГРП при высоких температурах и минерализации."
+    },
+    {
+      "name": "FLOJET Scale Inhibitor",
+      "category": "Scale Inhibitor",
+      "manufacturer": "SNF Group",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Polymer-based scale inhibitor",
+      "description": "Полимерный ингибитор солеотложений из линейки FLOJET™ для комплексных программ водоподготовки ГРП."
+    },
+    {
+      "name": "KemFlow A-4251",
+      "category": "Friction Reducer",
+      "manufacturer": "Kemira",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Anionic polyacrylamide copolymer emulsion",
+      "description": "Понизитель трения для слик-вотер ГРП при высокой минерализации. Превосходит конкурентные FR при повышенном содержании двухвалентных катионов; снижает давление на устье."
+    },
+    {
+      "name": "AMA-324",
+      "category": "Biocide",
+      "manufacturer": "Kemira",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Non-oxidizing biocide (amine-based)",
+      "description": "Широкоспектральный биоцид для систем водоподготовки ГРП. Синергетически улучшает инверсию полимера KemFlow A-4251 и сохранение газового дебита."
+    },
+    {
+      "name": "Tiguar HPG",
+      "category": "Viscosifier",
+      "manufacturer": "Syensqo (Solvay Novecare)",
+      "country": "США",
+      "form": "Powder",
+      "activeSubstance": "Hydroxypropyl guar (HPG)",
+      "description": "Производное гуара марки Tiguar® для жидкостей ГРП. Быстрая гидратация, низкий нерастворимый остаток, стабильная вязкость при высоких температурах и несовместимых водах."
+    },
+    {
+      "name": "Natrosol 250 HEC",
+      "category": "Viscosifier",
+      "manufacturer": "Ashland",
+      "country": "США",
+      "form": "Powder",
+      "activeSubstance": "Hydroxyethylcellulose (HEC)",
+      "description": "Неионогенный загуститель на основе гидроксиэтилцеллюлозы для буровых, завершательных и ГРП-жидкостей. Даёт чистые псевдопластичные растворы, устойчивые к высоким концентрациям солей и широкому спектру ПАВ."
+    },
+    {
+      "name": "OpenFRAC SW",
+      "category": "Friction Reducer",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Acrylamide copolymer (PAM), amphoteric alkyl amine, calcium-magnesium-sodium phosphate",
+      "description": "Полностью раскрытая слик-вотер жидкость ГРП. Состав: >99,8% воды + PAM <0,015%, ингибитор pH, ПАВ. Совместима с возвратной водой. Необязательные добавки: ингибитор солеотложений, стабилизатор глин."
+    },
+    {
+      "name": "OpenFRAC WF",
+      "category": "Viscosifier",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Guar gum <0,16%, amphoteric alkyl amine, hemicellulase enzyme breaker",
+      "description": "Полностью раскрытая линейная гелевая жидкость ГРП. Гуар <0,16% масс., гемицеллюлаза выступает деструктором. Совместима с возвратной и минерализованной водой, подходит для рециркуляции."
+    },
+    {
+      "name": "OpenFRAC XL",
+      "category": "Crosslinker",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Boric acid <0,08%, guar gum <0,16%, NaOH pH buffer",
+      "description": "Полностью раскрытая боратная сшитая жидкость ГРП. Сшивающий агент — борная кислота <0,08% масс., NaOH управляет pH активации. Создаёт широкие трещины для высоких концентраций проппанта."
+    },
+    {
+      "name": "J120 (SLB Friction Reducer)",
+      "category": "Friction Reducer",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Polyacrylamide copolymer emulsion",
+      "description": "Понизитель трения Schlumberger (код J120, уровень достоверности 3 по реестру SLB). Фигурирует в регуляторных раскрытиях FracFocus как friction reducer в операциях ГРП в США."
+    },
+    {
+      "name": "J285 (SLB Clay Control)",
+      "category": "Clay Control",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Cationic clay stabilizer",
+      "description": "Стабилизатор глин Schlumberger (код J285, уровень достоверности 3). Предотвращает разбухание и диспергирование водочувствительных глинистых минералов при закачке жидкостей ГРП."
+    },
+    {
+      "name": "J449 (SLB Crosslinker)",
+      "category": "Crosslinker",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Borate/metal-complex crosslinker",
+      "description": "Сшиватель Schlumberger (код J449, уровень достоверности 3) для гуаровых и HPG-жидкостей ГРП. Обеспечивает формирование вязкого сшитого геля."
+    },
+    {
+      "name": "J480 / YF100HTD (SLB Crosslink Delay)",
+      "category": "Buffer",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Crosslink delay and pH buffer agent",
+      "description": "Агент задержки сшивания и буфер pH (код J480, торговое имя YF100HTD Crosslinker Delay Agent). Биоразлагаем, не накапливается в организме. Управляет временем сшивки в зависимости от глубины и температуры скважины."
+    },
+    {
+      "name": "J601 (SLB HT Crosslinker)",
+      "category": "Crosslinker",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Organometallic crosslinker (zirconate/titanate)",
+      "description": "Высокотемпературный металлоорганический сшиватель Schlumberger (код J601, уровень достоверности 3). Активен при T > 93 °C, где боратные системы теряют стабильность. Используется в глубоких скважинах."
+    },
+    {
+      "name": "J603 (SLB Breaker)",
+      "category": "Breaker",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Powder",
+      "activeSubstance": "Oxidizing or enzymatic breaker",
+      "description": "Деструктор геля Schlumberger (код J603, уровень достоверности 3). Разрушает гуаровые жидкости ГРП после закачки, восстанавливая проницаемость трещины."
+    },
+    {
+      "name": "L047 (SLB Scale Inhibitor)",
+      "category": "Scale Inhibitor",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Phosphonate or polymer scale inhibitor",
+      "description": "Ингибитор солеотложений Schlumberger (код L047, уровень достоверности 3) для жидкостей ГРП и кислотных обработок. Предотвращает карбонатные и сульфатные отложения при смешении несовместимых вод."
+    },
+    {
+      "name": "M091 (SLB Biocide)",
+      "category": "Biocide",
+      "manufacturer": "SLB (Schlumberger)",
+      "country": "США",
+      "form": "Liquid",
+      "activeSubstance": "Broad-spectrum bactericide",
+      "description": "Бактерицид Schlumberger (код M091, уровень достоверности 3) для систем водоподготовки и жидкостей ГРП. Подавляет СРБ и другие микроорганизмы, предотвращая биообрастание и H2S."
+    }
+  ],
+  "manufacturers": [
+    {
+      "name": "Halliburton",
+      "country": "США",
+      "website": "https://www.halliburton.com/en/completions/stimulation/stimulation-chemicals",
+      "categories": [
+        "Friction Reducer",
+        "Crosslinker",
+        "Breaker",
+        "Biocide",
+        "Clay Control",
+        "Surfactant",
+        "Scale Inhibitor",
+        "Viscosifier",
+        "Buffer"
+      ],
+      "notes": "Крупнейший нефтесервис. FightR® (FR), OptiKleen-WF (surfactant) и полный каталог Legend™ через Multi-Chem."
+    },
+    {
+      "name": "Baker Hughes",
+      "country": "США",
+      "website": "https://www.bakerhughes.com/completions/stimulation-and-fracturing",
+      "categories": [
+        "Viscosifier",
+        "Crosslinker",
+        "Breaker",
+        "Friction Reducer",
+        "Surfactant"
+      ],
+      "notes": "Система Lightning™ (GW-3 + боратный XL), реагенты BJ Services в составе BHI; каталог на shopbakerhughes.com."
+    },
+    {
+      "name": "ChampionX",
+      "country": "США",
+      "website": "https://www.championx.com/products-and-solutions/chemical-technologies/well-completion/fracturing/",
+      "categories": [
+        "Scale Inhibitor",
+        "Surfactant",
+        "Biocide",
+        "Clay Control"
+      ],
+      "notes": "Твёрдые ингибиторы FSC100, жидкие SICI-серии, RenewIQ (обработка воды ГРП)."
+    },
+    {
+      "name": "SNF Group",
+      "country": "США",
+      "website": "https://www.snf.com/industry/oil-gas/stimulation/",
+      "categories": [
+        "Friction Reducer",
+        "Viscosifier",
+        "Scale Inhibitor",
+        "Clay Control"
+      ],
+      "notes": "Крупнейший мировой производитель PAM. Линейка FLOJET™: FR, сшитые гели, ингибиторы солеотложений."
+    },
+    {
+      "name": "Kemira",
+      "country": "США",
+      "website": "https://www.kemira.com",
+      "categories": [
+        "Friction Reducer",
+        "Biocide"
+      ],
+      "notes": "KemFlow A-4251 (FR для высокоминерализованных вод), AMA-324 (биоцид). Синергетический эффект при совместном применении."
+    },
+    {
+      "name": "Syensqo (Solvay Novecare)",
+      "country": "США",
+      "website": "https://www.syensqo.com",
+      "categories": [
+        "Viscosifier"
+      ],
+      "notes": "Tiguar® HPG для жидкостей ГРП; выделилась из Solvay в 2023 г., производство HPG расширено глобально."
+    },
+    {
+      "name": "Ashland",
+      "country": "США",
+      "website": "https://www.ashland.com",
+      "categories": [
+        "Viscosifier"
+      ],
+      "notes": "Natrosol™ HEC — неионогенный загуститель для буровых, завершательных и ГРП-жидкостей."
+    },
+    {
+      "name": "SLB (Schlumberger)",
+      "country": "США",
+      "website": "https://www.slb.com/products-and-services/innovating-in-oil-and-gas/completions/stimulation/fracturing-services",
+      "categories": [
+        "Friction Reducer",
+        "Viscosifier",
+        "Crosslinker",
+        "Breaker",
+        "Buffer",
+        "Clay Control",
+        "Scale Inhibitor",
+        "Biocide",
+        "Surfactant"
+      ],
+      "notes": "Полностью раскрытые системы OpenFRAC SW/WF/XL + обширная J/L/M-серия кодовых реагентов (>200 позиций в реестре). J480 = YF100HTD подтверждён SDS от Shell. Коды фигурируют в регуляторных раскрытиях FracFocus."
+    }
+  ]
+}

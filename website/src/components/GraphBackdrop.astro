@@ -1,0 +1,288 @@
+---
+import { fixtureProfiles, type FixturePoint, type FixtureProfileKey } from '../data/fixtureProfiles';
+
+interface Props {
+  profile?: FixtureProfileKey;
+  variant?: 'hero' | 'capabilities' | 'download' | 'contact';
+}
+
+const {
+  profile = 'grace',
+  variant = 'hero',
+} = Astro.props;
+
+const chart = fixtureProfiles[profile];
+const sampleEvery = variant === 'hero' ? 10 : 14;
+const sampledPoints = chart.points.filter((_, index, points) => (
+  index === 0 || index === points.length - 1 || index % sampleEvery === 0
+));
+
+const width = 1600;
+const height = variant === 'hero' ? 520 : 420;
+const padding = { top: 36, right: 38, bottom: 36, left: 38 };
+const plotWidth = width - padding.left - padding.right;
+const plotHeight = height - padding.top - padding.bottom;
+const xMax = sampledPoints[sampledPoints.length - 1]?.time ?? 1;
+const viscosityMax = Math.max(...sampledPoints.map((point) => point.viscosity));
+const temperatureMax = Math.max(...sampledPoints.map((point) => point.temperature));
+const shearMax = Math.max(...sampledPoints.map((point) => point.shear));
+
+function xScale(time: number) {
+  return padding.left + (time / xMax) * plotWidth;
+}
+
+function yScale(value: number, max: number, stretch = 1.08) {
+  return padding.top + plotHeight - (value / (max * stretch)) * plotHeight;
+}
+
+function linePath(points: FixturePoint[], key: 'viscosity' | 'temperature' | 'shear', max: number, stretch = 1.08) {
+  return points
+    .map((point, index) => {
+      const x = xScale(point.time).toFixed(2);
+      const y = yScale(point[key], max, stretch).toFixed(2);
+      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+    })
+    .join(' ');
+}
+
+const viscosityPath = linePath(sampledPoints, 'viscosity', viscosityMax, 1.04);
+const temperaturePath = linePath(sampledPoints, 'temperature', temperatureMax, 1.03);
+const shearPath = linePath(sampledPoints, 'shear', shearMax, 1.16);
+
+const horizontalLines = Array.from({ length: 5 }, (_, index) => (
+  padding.top + (plotHeight / 4) * index
+));
+
+const verticalLines = Array.from({ length: 8 }, (_, index) => (
+  padding.left + (plotWidth / 7) * index
+));
+---
+
+<div class={`graph-backdrop graph-backdrop-${variant}`} aria-hidden="true">
+  <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+    {horizontalLines.map((line) => (
+      <line x1="0" y1={line} x2={width} y2={line} class="graph-grid-line" />
+    ))}
+
+    {verticalLines.map((line) => (
+      <line x1={line} y1="0" x2={line} y2={height} class="graph-grid-line" />
+    ))}
+
+    <g class="graph-layer graph-layer-base">
+      <path d={viscosityPath} class="graph-line graph-line-full graph-line-viscosity" />
+      <path d={temperaturePath} class="graph-line graph-line-full graph-line-temperature" />
+      <path d={shearPath} class="graph-line graph-line-full graph-line-shear" />
+    </g>
+
+    <g class="graph-layer graph-layer-trace">
+      <path d={viscosityPath} class="graph-line graph-line-trace graph-line-viscosity" pathLength="1000" />
+      <path d={temperaturePath} class="graph-line graph-line-trace graph-line-temperature" pathLength="1000" />
+      <path d={shearPath} class="graph-line graph-line-trace graph-line-shear" pathLength="1000" />
+    </g>
+
+    <g class="graph-layer graph-layer-ghost">
+      <path d={viscosityPath} class="graph-line graph-line-ghost graph-line-viscosity" pathLength="1000" />
+      <path d={temperaturePath} class="graph-line graph-line-ghost graph-line-temperature" pathLength="1000" />
+      <path d={shearPath} class="graph-line graph-line-ghost graph-line-shear" pathLength="1000" />
+    </g>
+  </svg>
+</div>
+
+<style>
+  .graph-backdrop {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+    contain: paint;
+  }
+
+  .graph-backdrop::before,
+  .graph-backdrop::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+  }
+
+  .graph-backdrop::before {
+    background:
+      linear-gradient(180deg, rgba(2, 8, 23, 0.98), rgba(2, 8, 23, 0.52) 22%, rgba(2, 8, 23, 0.48) 78%, rgba(2, 8, 23, 0.98)),
+      radial-gradient(circle at 16% 22%, rgba(15, 23, 42, 0), rgba(2, 8, 23, 0.7) 62%);
+  }
+
+  .graph-backdrop::after {
+    background:
+      radial-gradient(circle at var(--glow-x, 76%) var(--glow-y, 18%), rgba(8, 17, 32, 0.08), rgba(2, 8, 23, 0.72) 60%),
+      linear-gradient(90deg, rgba(2, 8, 23, 0.8), rgba(2, 8, 23, 0.06) 18%, rgba(2, 8, 23, 0.06) 82%, rgba(2, 8, 23, 0.8));
+  }
+
+  .graph-backdrop svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    transform: scale(var(--graph-scale, 1.15)) translate3d(var(--graph-shift-x, 0), var(--graph-shift-y, 0), 0);
+    opacity: var(--graph-opacity, 0.9);
+    will-change: transform;
+  }
+
+  .graph-backdrop-hero {
+    --graph-scale: 1.18;
+    --graph-shift-x: 3%;
+    --graph-shift-y: -2%;
+    --graph-opacity: 1;
+    --glow-x: 82%;
+    --glow-y: 20%;
+  }
+
+  .graph-backdrop-capabilities {
+    --graph-scale: 1.16;
+    --graph-shift-x: -2%;
+    --graph-shift-y: 0%;
+    --graph-opacity: 0.88;
+    --glow-x: 78%;
+    --glow-y: 16%;
+  }
+
+  .graph-backdrop-download {
+    --graph-scale: 1.12;
+    --graph-shift-x: 4%;
+    --graph-shift-y: 0%;
+    --graph-opacity: 0.8;
+    --glow-x: 18%;
+    --glow-y: 24%;
+  }
+
+  .graph-backdrop-contact {
+    --graph-scale: 1.14;
+    --graph-shift-x: -4%;
+    --graph-shift-y: -1%;
+    --graph-opacity: 0.78;
+    --glow-x: 82%;
+    --glow-y: 26%;
+  }
+
+  .graph-grid-line {
+    stroke: rgba(78, 98, 128, 0.18);
+    stroke-width: 1;
+    stroke-dasharray: 6 16;
+  }
+
+  .graph-layer {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .graph-layer-base {
+    animation: graphLayerDrift 24s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+
+  .graph-layer-trace {
+    animation: graphLayerDrift 20s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+
+  .graph-layer-ghost {
+    animation: graphLayerGhostDrift 26s ease-in-out infinite alternate;
+    opacity: 0.42;
+    will-change: transform;
+  }
+
+  .graph-line {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .graph-line-full {
+    opacity: 0.16;
+    stroke-width: 2.4;
+  }
+
+  .graph-line-trace,
+  .graph-line-ghost {
+    stroke-width: 2.8;
+    stroke-dasharray: 220 780;
+    stroke-dashoffset: 1000;
+  }
+
+  .graph-line-trace {
+    opacity: 0.5;
+    animation: graphTrace 18s linear infinite;
+  }
+
+  .graph-line-ghost {
+    opacity: 0.18;
+    animation: graphTrace 24s linear infinite;
+  }
+
+  .graph-line-viscosity {
+    stroke: #4f86ff;
+  }
+
+  .graph-line-temperature {
+    stroke: #f78b1f;
+  }
+
+  .graph-line-shear {
+    stroke: #9255ff;
+  }
+
+  .graph-line-temperature.graph-line-trace,
+  .graph-line-temperature.graph-line-ghost {
+    animation-duration: 22s;
+    animation-delay: -4s;
+  }
+
+  .graph-line-shear.graph-line-trace,
+  .graph-line-shear.graph-line-ghost {
+    animation-duration: 20s;
+    animation-delay: -10s;
+  }
+
+  @keyframes graphTrace {
+    from {
+      stroke-dashoffset: 1000;
+    }
+
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes graphLayerDrift {
+    from {
+      transform: translate3d(-1.5%, -0.8%, 0) scale(1);
+    }
+
+    to {
+      transform: translate3d(1.8%, 0.9%, 0) scale(1.03);
+    }
+  }
+
+  @keyframes graphLayerGhostDrift {
+    from {
+      transform: translate3d(1.5%, -0.9%, 0) scale(1.02);
+    }
+
+    to {
+      transform: translate3d(-1.6%, 0.7%, 0) scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .graph-layer-base,
+    .graph-layer-trace,
+    .graph-layer-ghost,
+    .graph-line-trace,
+    .graph-line-ghost {
+      animation: none;
+    }
+
+    .graph-backdrop svg {
+      transform: scale(var(--graph-scale, 1.12));
+    }
+  }
+</style>

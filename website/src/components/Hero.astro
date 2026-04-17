@@ -1,0 +1,184 @@
+---
+import FixtureChart from './FixtureChart.astro';
+import GraphBackdrop from './GraphBackdrop.astro';
+---
+
+<section class="hero">
+  <GraphBackdrop variant="hero" />
+  <div class="hero-noise" aria-hidden="true"></div>
+
+  <div class="container hero-container">
+    <div class="hero-copy">
+      <span class="section-kicker animate-fade-in-up">Единая библиотека результатов экспериментов</span>
+
+      <h1 class="animate-fade-in-up animate-delay-1">
+        Одна библиотека для
+        <span class="text-gradient">хранения, сравнения и анализа</span>
+        результатов экспериментов
+      </h1>
+
+      <p class="hero-description animate-fade-in-up animate-delay-2">
+        RheoLab собирает файлы с разных приборов в одной библиотеке и показывает одинаковые
+        показатели одинаково, даже если исходные выгрузки отличаются. График, ключевые значения
+        и отчёт остаются рядом с результатом эксперимента, поэтому нужную серию можно потом
+        быстро найти, открыть снова, сравнить и использовать в работе без старых папок и ручной перекладки.
+      </p>
+
+      <div class="hero-actions animate-fade-in-up animate-delay-3">
+        <a href="/download/latest" class="btn btn-cta btn-lg">Скачать программу</a>
+        <a href="/#contact" class="btn btn-secondary btn-lg">Запросить показ</a>
+      </div>
+
+      <div class="hero-proof animate-fade-in-up animate-delay-4">
+        <article>
+          <strong>Одна библиотека</strong>
+          <p>Файлы, графики и отчёты не теряются в папках и переписках, а лежат рядом с результатом эксперимента.</p>
+        </article>
+        <article>
+          <strong>Понятное сравнение</strong>
+          <p>После загрузки не нужно каждый раз разбираться, как другой прибор назвал те же самые показатели.</p>
+        </article>
+        <article>
+          <strong>Повторное открытие и отчёт</strong>
+          <p>Нужную серию можно поднять позже, сравнить с другой и сразу использовать при подготовке отчёта.</p>
+        </article>
+      </div>
+    </div>
+
+    <div class="hero-visual animate-fade-in-up animate-delay-2">
+      <FixtureChart profile="grace" variant="hero" />
+
+      <div class="hero-caption">
+        <div>
+          <strong>Экран результата</strong>
+          <span>На одном экране видны кривые, ключевые значения и ход эксперимента.</span>
+        </div>
+        <div>
+          <strong>Часть общей библиотеки</strong>
+          <span>График не живёт сам по себе: рядом остаются серия, значения и подготовка к отчёту.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    padding: 8.5rem 0 5rem;
+    overflow: hidden;
+  }
+
+  .hero-noise {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(circle at center, black 42%, transparent 90%);
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  .hero-container {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .hero-copy,
+  .hero-visual {
+    min-width: 0;
+  }
+
+  .hero-description {
+    max-width: 42rem;
+    margin-top: 1.4rem;
+    font-size: 1.08rem;
+    line-height: 1.8;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .hero-proof {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2.2rem;
+  }
+
+  .hero-proof article {
+    padding: 1rem 1rem 1.1rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(15, 23, 42, 0.48);
+  }
+
+  .hero-proof strong {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-size: 1rem;
+  }
+
+  .hero-proof p {
+    color: var(--text-secondary);
+    font-size: 0.94rem;
+  }
+
+  .hero-visual {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .hero-caption {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 0.9rem;
+  }
+
+  .hero-caption div {
+    padding: 0.95rem 1rem;
+    border-radius: var(--radius-xl);
+    background: rgba(15, 23, 42, 0.62);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .hero-caption strong {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.98rem;
+  }
+
+  .hero-caption span {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 1120px) {
+    .hero-container {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .hero {
+      padding-top: 7.4rem;
+    }
+
+    .hero-proof,
+    .hero-caption {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

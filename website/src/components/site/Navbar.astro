@@ -1,0 +1,104 @@
+---
+---
+<header class="site-header">
+  <div class="site-container site-nav-wrapper">
+    <a href="/" class="site-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="site-logo-icon">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="site-logo-text">
+        <strong>RheoLab</strong>
+        <span>Enterprise</span>
+      </div>
+    </a>
+
+    <nav class="site-nav-links">
+      <a href="/#features">Возможности</a>
+      <a href="/faq">FAQ</a>
+      <a href="/about">О компании</a>
+      <a href="/#contact">Контакты</a>
+    </nav>
+
+    <div class="site-nav-actions">
+      <a href="/download/latest" class="site-btn-primary">
+        Скачать
+      </a>
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(11, 15, 25, 0.96);
+    border-bottom: 1px solid var(--site-border);
+  }
+
+  .site-nav-wrapper {
+    height: 4.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .site-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.95rem;
+    text-decoration: none;
+    color: var(--site-text-main);
+  }
+
+  .site-logo-icon {
+    color: var(--site-accent);
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .site-logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+
+  .site-logo-text strong {
+    font-size: 1.45rem;
+    font-weight: 700;
+  }
+
+  .site-logo-text span {
+    font-size: 0.82rem;
+    font-family: var(--font-mono);
+    color: var(--site-text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .site-nav-links {
+    display: flex;
+    gap: 3rem;
+  }
+
+  .site-nav-links a {
+    color: var(--site-text-muted);
+    text-decoration: none;
+    font-size: 1.05rem;
+    font-weight: 600;
+    transition: color 0.2s;
+  }
+
+  .site-nav-links a:hover {
+    color: var(--site-text-main);
+  }
+
+  @media (max-width: 768px) {
+    .site-nav-links {
+      display: none;
+    }
+  }
+</style>
+

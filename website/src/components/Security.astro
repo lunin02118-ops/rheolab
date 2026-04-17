@@ -1,0 +1,125 @@
+---
+// Trust, security and deployment-fit section for serious buyers.
+---
+
+<section class="security" id="security">
+  <div class="container">
+    <div class="security-layout">
+      <div class="security-copy">
+        <span class="eyebrow">Доверие и контроль</span>
+        <h2>Надёжность эксплуатации важна не меньше, чем сами расчёты</h2>
+        <p>
+          Для лабораторий и инженерных команд важно не просто “что умеет программа”, а как она ведёт себя
+          в реальной инфраструктуре: без зависимости от облачных сервисов, с локальными данными, понятным пробным доступом и
+          предсказуемым рабочим сценарием на Windows.
+        </p>
+
+        <div class="security-notes panel">
+          <div>
+            <strong>Локальное хранение</strong>
+            <span>Эксперименты и рабочая база находятся на компьютере пользователя.</span>
+          </div>
+          <div>
+            <strong>Подписанный дистрибутив</strong>
+            <span>Сайт ведёт на одну ссылку с актуальным установщиком для Windows.</span>
+          </div>
+          <div>
+            <strong>Пробный доступ и лицензии</strong>
+            <span>30-дневный пробный доступ и отдельные варианты для базовой, расширенной и корпоративной лицензии.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="security-grid">
+        <article class="security-card">
+          <span class="security-code mono">Данные</span>
+          <h3>Данные не уезжают в облако по умолчанию</h3>
+          <p>Это критично для инженерных и лабораторных процессов, где важны локальное владение данными и воспроизводимость.</p>
+        </article>
+
+        <article class="security-card">
+          <span class="security-code mono">Связь</span>
+          <h3>Подходит для нестабильного интернета</h3>
+          <p>Ключевые сценарии анализа и хранения не завязаны на постоянную сеть, что особенно важно для удалённых объектов и закрытых контуров.</p>
+        </article>
+
+        <article class="security-card">
+          <span class="security-code mono">Путь</span>
+          <h3>Есть путь от скачивания к внедрению</h3>
+          <p>Сначала пробный доступ на реальных файлах, затем выбор базовой, расширенной или корпоративной лицензии в зависимости от задач команды.</p>
+        </article>
+
+        <article class="security-card">
+          <span class="security-code mono">Справка</span>
+          <h3>Документация встроена в воронку</h3>
+          <p>Быстрый старт, частые вопросы и разделы по импорту, моделям и отчётам помогают сократить путь от первого запуска до реальной работы.</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .security {
+    padding: var(--section-padding) 0;
+  }
+
+  .security-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .security-copy h2 {
+    margin: 1rem 0;
+  }
+
+  .security-notes {
+    display: grid;
+    gap: 1rem;
+    padding: 1.2rem 1.3rem;
+    margin-top: 1.5rem;
+  }
+
+  .security-notes strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+  }
+
+  .security-notes span {
+    color: var(--text-secondary);
+  }
+
+  .security-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .security-card {
+    min-height: 12rem;
+    padding: 1.35rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .security-code {
+    color: var(--color-cta-400);
+    font-size: 0.82rem;
+  }
+
+  .security-card h3 {
+    margin: 0.9rem 0 0.7rem;
+    font-size: 1.2rem;
+  }
+
+  @media (max-width: 960px) {
+    .security-layout,
+    .security-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

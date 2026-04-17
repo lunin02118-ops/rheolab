@@ -1,0 +1,11 @@
+Sweep Data
+Time	Temp	Viscosity	Speed	Shear Rate	Shear Stress
+min	C	cP	RPM	1/s	Pa
+0.1	25.0	100.0	100	170.3	17.03
+0.2	25.0	100.0	100	170.3	17.03
+
+Log Data
+Time	Temp	Viscosity	Speed	Shear Rate	Shear Stress
+min	C	cP	RPM	1/s	Pa
+1.0	25.0	100.0	100	170.3	17.03
+2.0	25.0	100.0	100	170.3	17.03

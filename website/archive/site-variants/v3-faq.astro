@@ -1,0 +1,60 @@
+---
+import V3Layout from '../../src/layouts/V3Layout.astro';
+import Navbar from '../../src/components/v3/Navbar.astro';
+import Footer from '../../src/components/v3/Footer.astro';
+---
+
+<V3Layout title="FAQ — RheoLab Enterprise">
+  <Navbar />
+
+  <main class="v3-faq-page">
+    <div class="v3-container">
+      <header class="v3-faq-header">
+        <h1>Вопросы и ответы</h1>
+        <p>Архивный FAQ старой v3-ветки сайта.</p>
+      </header>
+
+      <div class="v3-faq-grid">
+        <section class="v3-faq-section">
+          <h2>Лицензия и развёртывание</h2>
+
+          <div class="v3-faq-item">
+            <h3>Какова стоимость лицензии?</h3>
+            <p>Она зависит от масштаба: количества рабочих мест и приборов. Мы не продаём «кота в мешке» — <a href="/#contact">напишите нам</a>, мы обсудим ваши процессы и соберём прозрачное предложение.</p>
+          </div>
+
+          <div class="v3-faq-item">
+            <h3>Есть ли пробный период?</h3>
+            <p>Да. Без регистрации. Вы скачиваете программу, активируете <strong>30 дней триала прямо в окне запуска</strong> и получаете полный доступ ко всем функциям.</p>
+          </div>
+
+          <div class="v3-faq-item">
+            <h3>Требуется ли постоянный интернет?</h3>
+            <p>Нет. Интернет нужен единоразово при вводе ключа. Всё остальное: импорт, хранение, экспорт — работает локально.</p>
+          </div>
+        </section>
+
+        <section class="v3-faq-section">
+          <h2>Технические детали</h2>
+
+          <div class="v3-faq-item">
+            <h3>С какими приборами вы умеете работать?</h3>
+            <p>Grace M5600/M3600, Chandler 3500/7500, Fann, OFITE, BSL-R1, Brookfield. Если вашего формата пока нет — мы добавляем его парсер по вашему примеру файла.</p>
+          </div>
+
+          <div class="v3-faq-item">
+            <h3>Какие ОС поддерживаются?</h3>
+            <p>Программа создавалась как нативная рабочая станция для <strong>Windows 10 и Windows 11 (64-bit)</strong>.</p>
+          </div>
+
+          <div class="v3-faq-item">
+            <h3>Где физически лежит база данных опытов?</h3>
+            <p>На локальном диске (SQLite). В настройках есть кнопка резервного копирования со всеми опытами в одном архиве.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</V3Layout>

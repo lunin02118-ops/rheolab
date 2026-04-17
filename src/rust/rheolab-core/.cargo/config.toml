@@ -1,0 +1,5 @@
+# Redirect build artefacts to the shared Tauri target directory.
+# This prevents a duplicate ~12 GB target/ from accumulating whenever
+# `cargo test --manifest-path` is run directly on this crate.
+[build]
+target-dir = "../../../src-tauri/target"

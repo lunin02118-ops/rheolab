@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RheoLab Enterprise</title>
+    <meta name="description" content="Реологический анализ и визуализация данных" />
+    <style>
+      /* Inline Geist font loading to avoid FOUT */
+      @font-face {
+        font-family: 'Geist';
+        src: url('/fonts/GeistVF.woff2') format('woff2');
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Geist Mono';
+        src: url('/fonts/GeistMonoVF.woff2') format('woff2');
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      :root {
+        --font-geist-sans: 'Geist', system-ui, -apple-system, sans-serif;
+        --font-geist-mono: 'Geist Mono', ui-monospace, monospace;
+      }
+    </style>
+    <!-- Anti-FOUC: apply theme class synchronously before React hydrates -->
+    <script>
+      (function(){
+        var t=localStorage.getItem('rheolab-theme');
+        var dark=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);
+        if(dark)document.documentElement.classList.add('dark');
+      })();
+    </script>
+  </head>
+  <body class="antialiased" data-testid="MainWindow">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

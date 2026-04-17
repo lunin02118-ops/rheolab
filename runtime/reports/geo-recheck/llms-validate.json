@@ -1,0 +1,20 @@
+{
+  "url": "https://rheolab.site/llms.txt",
+  "exists": true,
+  "format_valid": true,
+  "has_title": true,
+  "has_description": true,
+  "has_sections": true,
+  "has_links": true,
+  "section_count": 4,
+  "link_count": 16,
+  "content": "# RheoLab Enterprise\n> RheoLab Enterprise is a Windows desktop application for storing, comparing, and reporting rheology experiment results from multiple laboratory instruments. Primary website language: Russian.\n\n## Primary Pages\n- [Home](https://rheolab.site/): Product overview, workflows, supported use cases, and contact entry points.\n- [FAQ](https://rheolab.site/faq/): Licensing, trial, storage, supported instruments, and deployment questions.\n- [Download](https://rheolab.site/download/latest/): Redirector to the latest Windows installer.\n- [Privacy](https://rheolab.site/privacy/): Privacy and data-handling policy.\n- [Terms](https://rheolab.site/terms/): Terms of use and licensing conditions.\n\n## Documentation\n- [Documentation Index](https://rheolab.site/docs/): Main entry point to the product documentation.\n- [Quick Start](https://rheolab.site/docs/quick-start/): Install the software, start the trial, open the first file, and save the first result.\n- [Data Import](https://rheolab.site/docs/parsing/): Supported file formats and instrument families.\n- [Interface](https://rheolab.site/docs/interface/): Main application areas and navigation.\n- [Calculation Models](https://rheolab.site/docs/models/): Rheology models and calculated parameters.\n- [Reports](https://rheolab.site/docs/reports/): PDF and Excel reporting workflow.\n- [Troubleshooting](https://rheolab.site/docs/troubleshooting/): Installation, launch, and import troubleshooting.\n- [Documentation FAQ](https://rheolab.site/docs/faq/): Short answers for common evaluation and usage questions.\n\n## Contact\n- [Commercial Contact](mailto:info@rheolab.site): Product demos, licensing, and rollout questions.\n- [Technical Support](mailto:support@rheolab.site): Installation, import, backup, and troubleshooting questions.\n\n## Optional\n- [llms-full.txt](https://rheolab.site/llms-full.txt): Expanded machine-readable summary of the site, product facts, and documentation map.\n",
+  "issues": [],
+  "suggestions": [
+    "Add key facts about your business/service"
+  ],
+  "full_version": {
+    "url": "https://rheolab.site/llms-full.txt",
+    "exists": true
+  }
+}

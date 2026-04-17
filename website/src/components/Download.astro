@@ -1,0 +1,152 @@
+---
+import GraphBackdrop from './GraphBackdrop.astro';
+
+// Simplified download section with direct CTA and light support handoff.
+---
+
+<section class="download" id="download">
+  <GraphBackdrop variant="download" />
+  <div class="container">
+    <div class="download-shell panel">
+      <div class="download-main">
+        <span class="section-kicker">Попробовать на своих данных</span>
+        <h2>Скачать программу и проверить её на своих файлах</h2>
+        <p>
+          Возьмите несколько реальных выгрузок и посмотрите, как результаты собираются в одну библиотеку:
+          файлы, график, ключевые значения и отчёт остаются рядом и не расползаются по разным местам.
+        </p>
+
+        <div class="download-actions">
+          <a href="/download/latest" class="btn btn-cta btn-lg">Скачать для Windows</a>
+          <a href="/#contact" class="btn btn-secondary btn-lg">Связаться с нами</a>
+        </div>
+
+        <div class="download-points">
+          <span>30 дней пробной версии</span>
+          <span>Локальная библиотека результатов</span>
+          <span>Сравнение серий и экспорт отчётов</span>
+        </div>
+      </div>
+
+      <div class="download-side">
+        <article class="download-card">
+          <span class="eyebrow">Короткий путь после скачивания</span>
+          <h3>Установили, открыли файл, посмотрели результат</h3>
+          <p>Если понадобится подсказка, есть короткий стартовый маршрут и быстрый выход на связь без длинного чтения.</p>
+          <div class="download-links">
+            <a href="/docs/quick-start">Открыть быстрый старт</a>
+            <a href="/docs/faq">Частые вопросы</a>
+            <a href="mailto:support@rheolab.site">Написать в поддержку</a>
+          </div>
+        </article>
+
+        <article class="download-card muted">
+          <span class="mono">Что вы увидите сразу</span>
+          <h3>Не отдельный график, а рабочую библиотеку</h3>
+          <p>После первого файла видно не только кривые, но и то, как результат остаётся в библиотеке и готов к повторному открытию, сравнению и отчёту.</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .download {
+    position: relative;
+    padding: 0 0 var(--section-padding);
+    overflow: hidden;
+  }
+
+  .download .container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .download-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 1rem;
+    padding: 1.25rem;
+    background: linear-gradient(180deg, rgba(8, 17, 32, 0.98), rgba(15, 23, 42, 0.9));
+  }
+
+  .download-main,
+  .download-side {
+    min-width: 0;
+  }
+
+  .download-main {
+    padding: 1.2rem;
+  }
+
+  .download-main h2 {
+    margin: 1rem 0;
+  }
+
+  .download-main p {
+    max-width: 44rem;
+  }
+
+  .download-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1.8rem;
+  }
+
+  .download-points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.2rem;
+  }
+
+  .download-points span {
+    padding: 0.55rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.74);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .download-side {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .download-card {
+    padding: 1.2rem;
+    border-radius: var(--radius-xl);
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .download-card h3 {
+    margin: 1rem 0 0.6rem;
+    font-size: 1.22rem;
+  }
+
+  .download-card.muted {
+    background: rgba(8, 17, 32, 0.68);
+  }
+
+  .download-links {
+    display: grid;
+    gap: 0.7rem;
+    margin-top: 1rem;
+  }
+
+  .download-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 600;
+  }
+
+  @media (max-width: 960px) {
+    .download-shell {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

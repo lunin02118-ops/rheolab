@@ -1,0 +1,161 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const description =
+  'Условия использования RheoLab Enterprise: лицензии, ограничения, ответственность и юридические контакты.';
+
+const termsSchema = {
+  '@type': 'TermsOfService',
+  name: 'Условия использования — RheoLab Enterprise',
+  description,
+  url: new URL('/terms/', Astro.site).toString(),
+  inLanguage: 'ru-RU',
+  dateModified: '2026-03-08',
+  isPartOf: {
+    '@id': new URL('/#website', Astro.site).toString(),
+  },
+  publisher: {
+    '@id': new URL('/#organization', Astro.site).toString(),
+  },
+};
+---
+
+<Layout
+  title="Условия использования — RheoLab Enterprise"
+  description={description}
+  ogType="article"
+  schema={[termsSchema]}
+>
+  <Navbar />
+  <main class="legal-page">
+    <div class="container">
+      <h1>Условия использования</h1>
+      <p class="last-updated">Последнее обновление: 8 марта 2026 г.</p>
+      
+      <div class="legal-content">
+        <h2>1. Принятие условий</h2>
+        <p>Загружая, устанавливая или используя программное обеспечение RheoLab Enterprise ("ПО"), вы соглашаетесь соблюдать настоящие Условия использования ("Условия"). Если вы не согласны с этими условиями, не используйте ПО.</p>
+        
+        <h2>2. Лицензия</h2>
+        <p>Мы предоставляем вам ограниченную, неэксклюзивную и непередаваемую лицензию на использование ПО в соответствии с выбранным типом лицензии:</p>
+        <ul>
+          <li><strong>Пробная версия:</strong> ограниченный по времени доступ для проверки программы на собственных данных.</li>
+          <li><strong>Standard:</strong> рабочая лицензия для основного пользовательского сценария.</li>
+          <li><strong>Developer:</strong> лицензия с расширенными возможностями для более глубоких профессиональных сценариев.</li>
+          <li><strong>Enterprise:</strong> индивидуальные условия для организаций и команд.</li>
+        </ul>
+        <p>Конкретный срок действия, набор функций, число рабочих мест и иные ограничения определяются типом лицензии, отображаются в приложении и при необходимости фиксируются в коммерческом предложении или отдельном соглашении.</p>
+        
+        <h2>3. Ограничения</h2>
+        <p>Вам запрещается:</p>
+        <ul>
+          <li>Декомпилировать, дизасемблировать или пытаться извлечь исходный код ПО.</li>
+          <li>Использовать ПО для создания конкурирующего продукта.</li>
+          <li>Передавать, продавать или сдавать в аренду ваш лицензионный ключ третьим лицам.</li>
+          <li>Обходить технические средства защиты авторских прав.</li>
+        </ul>
+
+        <h2>4. Данные пользователя</h2>
+        <p>Результаты экспериментов, графики, отчёты и рабочая библиотека по общему правилу хранятся локально на устройстве пользователя. Пользователь самостоятельно отвечает за резервное копирование, перенос данных и соблюдение внутренних требований своей организации к хранению информации.</p>
+        
+        <h2>5. Отказ от гарантий</h2>
+        <p>ПО предоставляется "как есть", без каких-либо явных или подразумеваемых гарантий. Мы не гарантируем, что ПО будет работать безошибочно или бесперебойно, или что оно будет соответствовать всем вашим требованиям.</p>
+        
+        <h2>6. Ограничение ответственности</h2>
+        <p>Ни при каких обстоятельствах RheoLab не несет ответственности за любые косвенные, случайные, специальные или штрафные убытки (включая упущенную выгоду, потерю данных или перерыв в производстве), возникшие в результате использования или невозможности использования ПО.</p>
+        
+        <h2>7. Прекращение действия</h2>
+        <p>Мы оставляем за собой право аннулировать вашу лицензию в случае нарушения вами настоящих Условий. После прекращения действия вы должны прекратить использование ПО и удалить его со своих устройств.</p>
+        
+        <h2>8. Контакты</h2>
+        <p>По юридическим вопросам обращайтесь по адресу: <a href="mailto:legal@rheolab.site">legal@rheolab.site</a>.</p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .legal-page {
+    padding-top: 8.5rem;
+    padding-bottom: 5rem;
+    min-height: 100vh;
+    background: var(--bg-dark);
+  }
+
+  .legal-page h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+  }
+
+  .last-updated {
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+    font-size: 1rem;
+  }
+
+  .legal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    padding: 3.5rem;
+    max-width: 960px;
+  }
+
+  .legal-content h2 {
+    font-size: 1.7rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+
+  .legal-content h2:first-child {
+    margin-top: 0;
+  }
+
+  .legal-content h3 {
+    font-size: 1.2rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+  }
+
+  .legal-content p {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  .legal-content ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+  }
+
+  .legal-content li {
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+
+  .legal-content a {
+    color: var(--color-accent-400);
+    text-decoration: none;
+  }
+
+  .legal-content a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .legal-content {
+      padding: 1.5rem;
+    }
+  }
+</style>
+

@@ -1,0 +1,48 @@
+# ============================================
+# Редиректы для файлов на Beget S3
+# ============================================
+
+# PDF документы
+Redirect 301 /files/rukovodstvo-BSL-R1.pdf https://67dfb2b63527-present-alya.s3.ru1.storage.beget.cloud/files/rukovodstvo-BSL-R1.pdf
+Redirect 301 /files/metody-proverki-2024-mp91280-24.pdf https://67dfb2b63527-present-alya.s3.ru1.storage.beget.cloud/files/metody-proverki-2024-mp91280-24.pdf
+Redirect 301 /files/opisanie-tipa-2024-91280-24.pdf https://67dfb2b63527-present-alya.s3.ru1.storage.beget.cloud/files/opisanie-tipa-2024-91280-24.pdf
+
+# Изображения
+Redirect 301 /images/banner/reometr.png https://67dfb2b63527-present-alya.s3.ru1.storage.beget.cloud/images/banner/reometr.png
+
+# ============================================
+# Стандартные настройки
+# ============================================
+
+# Сжатие
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json
+</IfModule>
+
+# Кеширование
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/html "access plus 1 hour"
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+# Cache-Control
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|woff2|png|webp|svg)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <FilesMatch "\.html$">
+        Header set Cache-Control "public, max-age=3600"
+    </FilesMatch>
+</IfModule>
+
+# Безопасность
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-XSS-Protection "1; mode=block"
+

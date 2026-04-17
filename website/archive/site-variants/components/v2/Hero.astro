@@ -1,0 +1,179 @@
+---
+import FixtureChart from '../FixtureChart.astro';
+import GraphBackdrop from '../GraphBackdrop.astro';
+---
+
+<section class="hero">
+  <GraphBackdrop variant="hero" />
+  <div class="hero-noise" aria-hidden="true"></div>
+
+  <div class="container hero-container">
+    <div class="hero-copy">
+      <span class="hero-offer animate-fade-in-up">
+        Бесплатно — 30 дней, весь функционал
+      </span>
+
+      <h1 class="animate-fade-in-up animate-delay-1">
+        Унификация, хранение<br>
+        <span class="text-gradient">и анализ опытов</span>
+      </h1>
+
+      <p class="hero-description animate-fade-in-up animate-delay-2">
+        Разные приборы — разные форматы. RheoLab принимает файлы
+        Grace, Chandler, Fann, Ofite, BSL-R1 и Brookfield,
+        приводит их к <strong>единому формату</strong>,
+        рассчитывает <strong>реологические модели</strong>
+        и сохраняет каждый опыт в <strong>общей библиотеке</strong>.
+        Все данные в одном месте — корректно сравнимые,
+        с <strong>готовым отчётом</strong>.
+      </p>
+
+      <div class="hero-actions animate-fade-in-up animate-delay-3">
+        <a href="/download/latest" class="btn btn-cta btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Скачать бесплатно для Windows
+        </a>
+        <a href="/v2#contact" class="btn btn-secondary btn-lg">Написать нам</a>
+      </div>
+
+      <p class="hero-trust animate-fade-in-up animate-delay-4">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        От инженеров, создавших <strong>BSL-R1</strong> — первый российский лабораторный реометр
+      </p>
+    </div>
+
+    <div class="hero-visual animate-fade-in-up animate-delay-2">
+      <FixtureChart profile="grace" variant="hero" compact={true} />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    padding: 8.5rem 0 5rem;
+    overflow: hidden;
+  }
+
+  .hero-noise {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(circle at center, black 42%, transparent 90%);
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  .hero-container {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .hero-copy,
+  .hero-visual {
+    min-width: 0;
+  }
+
+  .hero-offer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.28);
+    color: #6ee7b7;
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 1.4rem;
+  }
+
+  .hero-offer::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    flex-shrink: 0;
+  }
+
+  h1 {
+    margin-top: 0;
+    line-height: 1.15;
+  }
+
+  .hero-description {
+    max-width: 38rem;
+    margin-top: 1.4rem;
+    font-size: 1.08rem;
+    line-height: 1.8;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .hero-trust {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.4rem;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    flex-wrap: wrap;
+  }
+
+  .hero-trust strong {
+    white-space: nowrap;
+  }
+
+  .hero-trust svg {
+    color: var(--color-accent-400);
+    flex-shrink: 0;
+  }
+
+  .hero-trust strong {
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .hero-visual {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  @media (max-width: 1120px) {
+    .hero-container {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-visual {
+      order: -1;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .hero {
+      padding-top: 7.4rem;
+    }
+  }
+</style>

@@ -1,0 +1,27 @@
+# Gitleaks configuration — suppress known false positives.
+# The default ruleset is used for all other detections.
+# See https://github.com/gitleaks/gitleaks#configuration
+
+title = "RheoLab Enterprise gitleaks config"
+
+[allowlist]
+  description = "Known safe patterns"
+
+  # Embedded development constants (not real secrets — documented in ARCHITECTURE.md)
+  regexTarget = "match"
+  regexes = [
+    '''rheolab-dev-integrity-key-32chars!''',
+    '''development-server-only-key-32!''',
+    '''rheolab-storage-salt''',
+    '''rheolab-hw-''',
+  ]
+
+  # Test fixture files and auto-generated keys for dev testing
+  # Note: paths are intentionally narrow to avoid suppressing real secrets in test dirs.
+  paths = [
+    '''src-tauri/keys/dev_private\.pem''',
+    '''src-tauri/tests/fixtures/.*''',
+    '''tests/fixtures/.*''',
+    '''e2e/fixtures/.*''',
+    '''license-server/config\.example\.php''',
+  ]

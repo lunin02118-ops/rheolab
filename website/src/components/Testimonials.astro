@@ -1,0 +1,156 @@
+---
+// Trust and use-case section. Replaces generic testimonials with concrete product fit.
+---
+
+<section class="proof" id="proof">
+  <div class="container">
+    <div class="proof-intro">
+      <span class="eyebrow">Кому подходит</span>
+      <h2>RheoLab полезен там, где важны повторяемость, скорость и локальный контроль данных</h2>
+      <p>Ниже собраны типовые сценарии, в которых продукт даёт измеримый эффект и понятную практическую пользу.</p>
+    </div>
+
+    <div class="proof-grid">
+      <article class="proof-card">
+        <span class="proof-label">Лаборатории буровых растворов</span>
+        <h3>Единый стандарт анализа и отчётности</h3>
+        <p>Когда в работе несколько приборов, операторов и смен, приложение помогает стандартизировать расчёты и ускорить выдачу результата.</p>
+        <ul>
+          <li>История экспериментов и фильтры</li>
+          <li>Параметры рецептуры, воды и геометрии</li>
+          <li>Отчёты в PDF и Excel для внутренней и внешней коммуникации</li>
+        </ul>
+      </article>
+
+      <article class="proof-card">
+        <span class="proof-label">Исследователи и технические специалисты</span>
+        <h3>Сравнение серий и сложных сценариев</h3>
+        <p>Подходит для анализа рецептур, проверки трендов, повторяемости и поиска причин аномалий по нескольким экспериментам одновременно.</p>
+        <ul>
+          <li>Сравнение опытов на общих осях</li>
+          <li>Расширенный режим и переопределение циклов</li>
+          <li>Дополнительные возможности для продвинутого анализа</li>
+        </ul>
+      </article>
+
+      <article class="proof-card">
+        <span class="proof-label">Удалённые площадки и закрытые контуры</span>
+        <h3>Работа без облачной зависимости</h3>
+        <p>Если подключение нестабильно или данные нельзя уводить в внешний сервис, RheoLab сохраняет ключевое преимущество: продукт остаётся рабочим офлайн.</p>
+        <ul>
+          <li>Локальное хранение базы</li>
+          <li>Рабочий процесс внутри одной программы</li>
+          <li>Подходит для сред с повышенными требованиями к контролю данных</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="proof-strip panel">
+      <div>
+        <strong>Поддерживаемые приборы</strong>
+        <span>Grace, Chandler, Fann, Ofite, Brookfield, BSL R1</span>
+      </div>
+      <div>
+        <strong>Режимы работы</strong>
+        <span>Обычный режим для быстрых задач и расширенный режим для точной настройки</span>
+      </div>
+      <div>
+        <strong>Контур результата</strong>
+        <span>Импорт → анализ → сравнение → отчёт → библиотека</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .proof {
+    padding: var(--section-padding) 0;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.02));
+  }
+
+  .proof-intro {
+    max-width: 760px;
+    margin: 0 auto 3rem;
+    text-align: center;
+  }
+
+  .proof-intro h2 {
+    margin: 1rem 0;
+  }
+
+  .proof-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+
+  .proof-card {
+    padding: 1.6rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .proof-label {
+    display: inline-flex;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-primary-300);
+    font-size: 0.82rem;
+  }
+
+  .proof-card h3 {
+    margin: 1rem 0 0.75rem;
+    font-size: 1.25rem;
+  }
+
+  .proof-card ul {
+    list-style: none;
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 1rem;
+  }
+
+  .proof-card li {
+    position: relative;
+    padding-left: 1rem;
+    color: var(--text-secondary);
+  }
+
+  .proof-card li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: var(--color-accent-400);
+  }
+
+  .proof-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1.25rem;
+    margin-top: 1.25rem;
+  }
+
+  .proof-strip strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--text-primary);
+  }
+
+  .proof-strip span {
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 900px) {
+    .proof-grid,
+    .proof-strip {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

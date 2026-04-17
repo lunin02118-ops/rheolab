@@ -1,0 +1,86 @@
+import { getBridge } from '@/lib/tauri/bridge';
+import {
+  convertReportInputToWasm,
+  type ExcelReportInput,
+  type PdfReportInput,
+} from '@/lib/analysis/report-types/converters';
+
+const TAURI_REPORT_RETRY_DELAY_MS = 150;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  // Copy only the relevant slice of the underlying buffer, avoiding the
+  // full-array allocation that Uint8Array.from() caused previously.
+  // We cast to ArrayBuffer because TypedArray.buffer is always a plain
+  // ArrayBuffer in browser/Tauri WebView2 (SharedArrayBuffer requires
+  // cross-origin isolation headers which are not present here).
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function isTauriRuntimeUnavailable(error: unknown): boolean {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return (
+    message.includes('not running in tauri') ||
+    message.includes('tauri_internals') ||
+    message.includes('__tauri_internals__') ||
+    message.includes('window is not defined') ||
+    (message.includes('cannot read') && message.includes('invoke'))
+  );
+}
+
+async function tryGeneratePdfNative(input: PdfReportInput): Promise<Blob> {
+  const bridge = getBridge();
+  if (!bridge.reports) {
+    throw new Error('Unknown IPC command reports_generate_pdf');
+  }
+  // Pass the structured object directly — Tauri serialises it via serde on the
+  // Rust side, eliminating the JS JSON.stringify heap allocation.
+  const payload = convertReportInputToWasm(input);
+  const bytes = await bridge.reports.generatePdf(payload);
+  return new Blob([toArrayBuffer(bytes)], { type: 'application/pdf' });
+}
+
+async function tryGenerateExcelNative(input: ExcelReportInput): Promise<Blob> {
+  const bridge = getBridge();
+  if (!bridge.reports) {
+    throw new Error('Unknown IPC command reports_generate_excel');
+  }
+  const payload = convertReportInputToWasm(input);
+  const bytes = await bridge.reports.generateExcel(payload);
+  return new Blob([toArrayBuffer(bytes)], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+}
+
+/**
+ * Generate PDF report blob via native Tauri IPC.
+ */
+export async function generatePdfReportBlob(input: PdfReportInput): Promise<Blob> {
+  try {
+    return await tryGeneratePdfNative(input);
+  } catch (error) {
+    if (isTauriRuntimeUnavailable(error)) {
+      await delay(TAURI_REPORT_RETRY_DELAY_MS);
+      return await tryGeneratePdfNative(input);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Generate Excel report blob via native Tauri IPC.
+ */
+export async function generateExcelReportBlob(input: ExcelReportInput): Promise<Blob> {
+  try {
+    return await tryGenerateExcelNative(input);
+  } catch (error) {
+    if (isTauriRuntimeUnavailable(error)) {
+      await delay(TAURI_REPORT_RETRY_DELAY_MS);
+      return await tryGenerateExcelNative(input);
+    }
+    throw error;
+  }
+}

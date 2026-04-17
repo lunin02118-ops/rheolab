@@ -1,0 +1,374 @@
+name: V2 Desktop CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+concurrency:
+  group: v2-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: linux-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: linux-cargo-
+
+      - name: Install Linux native dependencies (Tauri/Rust)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: TypeScript type-check
+        run: npx tsc --noEmit
+
+      - name: Check TypeScript bindings are up-to-date
+        working-directory: src-tauri
+        run: |
+          cargo test export_ts_bindings -- --nocapture
+          git diff --exit-code ../src/types/generated.d.ts || \
+            (echo "ERROR: src/types/generated.d.ts is stale — run 'cargo test export_ts_bindings' and commit the regenerated file." && exit 1)
+
+      - name: ESLint
+        run: npx eslint .
+
+      - name: Validate Linux prerequisites
+        run: npm run doctor:linux
+
+      - name: Run desktop-core parity checks
+        run: npm run -s test:desktop-core
+
+      - name: Build web standalone (CI mode)
+        run: npm run build:ci
+
+      - name: npm audit (security)
+        run: npm audit --audit-level=high
+
+      - name: cargo audit (Rust deps)
+        working-directory: src-tauri
+        run: |
+          cargo install cargo-audit --quiet
+          cargo audit
+
+  windows-desktop:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    needs: linux-quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.cargo\registry
+            ~\.cargo\git
+            src-tauri\target
+          key: windows-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: windows-cargo-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run desktop-core parity checks
+        run: npm run -s test:desktop-core
+
+      - name: Build web standalone (CI mode)
+        run: npm run build:ci
+
+      - name: E2E smoke (Playwright)
+        run: npm run -s test:e2e:smoke
+
+      - name: E2E full (Playwright)
+        env:
+          RHEOLAB_RUN_E2E_TESTS: "1"
+        run: npm run -s test:e2e:full
+
+      - name: E2E slow (Playwright)
+        env:
+          RHEOLAB_RUN_E2E_TESTS: "1"
+          RHEOLAB_RUN_E2E_SLOW_TESTS: "1"
+        run: npm run -s test:e2e:slow
+
+      - name: TypeScript type-check
+        run: npx tsc --noEmit
+
+      - name: ESLint
+        run: npx eslint .
+
+      - name: Cargo check (Tauri backend)
+        working-directory: src-tauri
+        run: cargo check --target x86_64-pc-windows-msvc
+
+      - name: cargo audit (Rust deps)
+        working-directory: src-tauri
+        run: |
+          cargo install cargo-audit --quiet
+          cargo audit
+
+      - name: npm audit (security)
+        run: npm audit --audit-level=high
+
+      - name: Cargo test (Tauri backend)
+        working-directory: src-tauri
+        run: cargo test --target x86_64-pc-windows-msvc
+
+      - name: Rust performance budgets
+        working-directory: src-tauri
+        run: cargo test --release --target x86_64-pc-windows-msvc -- perf_budget
+
+      - name: Cargo build (Tauri backend)
+        working-directory: src-tauri
+        run: cargo build --target x86_64-pc-windows-msvc
+
+      - name: Frontend IPC deep audit (non-blocking)
+        continue-on-error: true
+        run: npm run -s audit:frontend-ipc -- --windows-runner --non-blocking
+
+      - name: Write audit summary to GitHub Step Summary
+        if: always()
+        shell: pwsh
+        run: |
+          $latest = "docs\performance\FRONTEND-IPC-DEEP-AUDIT-LATEST.md"
+          if (Test-Path $latest) {
+            Get-Content $latest | Out-File -Append $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          } else {
+            "## Frontend IPC Deep Audit`n`n_No audit report generated._" | Out-File -Append $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          }
+
+      - name: Upload perf artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-artifacts
+          path: outputs/e2e/perf/
+          if-no-files-found: ignore
+
+      - name: Upload frontend IPC audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-ipc-audit
+          path: |
+            runtime/audit/*frontend-ipc-deep-audit*
+            runtime/audit/*/frontend-ipc-audit-summary.json
+            docs/performance/FRONTEND-IPC-DEEP-AUDIT-*.md
+          if-no-files-found: warn
+
+  audit-preflight:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Install PHP runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y php-cli
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install website dependencies
+        run: npm --prefix website ci
+
+      - name: Enterprise audit preflight
+        run: npm run -s audit:enterprise:preflight -- --run-id=preflight-${{ github.run_id }}
+
+      - name: Upload preflight audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-audit-preflight
+          path: runtime/audit/preflight-${{ github.run_id }}/
+          if-no-files-found: warn
+
+  audit-enterprise-weekly:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Install Linux native dependencies (Tauri/Rust + PHP)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            php-cli
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install website dependencies
+        run: npm --prefix website ci
+
+      - name: Full enterprise audit
+        run: npm run -s audit:enterprise -- --run-id=weekly-${{ github.run_id }}
+
+      - name: Write release gate summary
+        if: always()
+        run: |
+          decision_file="runtime/audit/weekly-${{ github.run_id }}/release-gate-decision.md"
+          if [ -f "$decision_file" ]; then
+            cat "$decision_file" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Release Gate Decision" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "_No release gate report generated._" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload enterprise audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-audit-weekly
+          path: runtime/audit/weekly-${{ github.run_id }}/
+          if-no-files-found: warn
+
+  # ── Release build ─────────────────────────────────────────────
+  # Triggered only on version tags; produces NSIS installer artifact.
+  release-build:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-2022
+    timeout-minutes: 90
+    needs: windows-desktop
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.cargo\registry
+            ~\.cargo\git
+            src-tauri\target
+          key: windows-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: windows-cargo-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build Vite frontend
+        run: npm run build
+
+      - name: Build Tauri release installer
+        working-directory: src-tauri
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: cargo tauri build --target x86_64-pc-windows-msvc
+
+      - name: Upload NSIS installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rheolab-enterprise-installer
+          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
+      - name: Upload updater signature
+        uses: actions/upload-artifact@v4
+        with:
+          name: rheolab-enterprise-updater-sig
+          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
+          if-no-files-found: ignore

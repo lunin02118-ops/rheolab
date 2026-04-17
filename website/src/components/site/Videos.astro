@@ -1,0 +1,221 @@
+---
+// Video placeholder section — ready for real iframe embeds later
+const videos = [
+  {
+    id: 'setup',
+    title: 'Настройка программы',
+    description: 'Первый запуск, основные параметры и короткий маршрут до первого результата.',
+  },
+  {
+    id: 'library',
+    title: 'Работа с базой данных',
+    description: 'Как устроена библиотека опытов, поиск и повторное открытие результатов.',
+  },
+  {
+    id: 'compare',
+    title: 'Вкладка «Сравнение»',
+    description: 'Сравнение нескольких опытов на единых осях для наглядного анализа рецептур.',
+  },
+  {
+    id: 'reports',
+    title: 'Выгрузка отчетов',
+    description: 'Как получить PDF или Excel с графиком и ключевыми значениями в один клик.',
+  },
+];
+---
+
+<section class="site-videos" id="videos">
+  <div class="site-container">
+    <div class="site-section-header">
+      <h2>Посмотрите, как это работает</h2>
+      <p>Короткие ролики по основным сценариям — без лишних слов, только нужные шаги.</p>
+    </div>
+
+    <div class="site-videos-grid">
+      {videos.map((video) => (
+        <article class="site-video-card" data-video-id={video.id}>
+          <div class="site-video-thumb" aria-hidden="true">
+            <div class="site-video-play-icon">
+              <svg viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="23" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <path d="M19 16l14 8-14 8V16z" fill="currentColor" opacity="0.8"/>
+              </svg>
+            </div>
+            <span class="site-video-soon">Скоро</span>
+          </div>
+          <div class="site-video-meta">
+            <strong>{video.title}</strong>
+            <p>{video.description}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .site-videos {
+    position: relative;
+    padding: 7.25rem 0;
+    z-index: 1;
+    background: var(--site-bg);
+  }
+
+  .site-section-header {
+    text-align: center;
+    margin-bottom: 4.5rem;
+  }
+
+  .site-section-header h2 {
+    font-size: clamp(2.45rem, 4vw, 3rem);
+    color: var(--site-text-main);
+    margin-bottom: 1rem;
+    font-weight: 700;
+  }
+
+  .site-section-header p {
+    font-size: 1.18rem;
+    color: var(--site-text-muted);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .site-videos-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.75rem;
+  }
+
+  .site-video-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    background: var(--site-surface);
+    border: 1px solid var(--site-border);
+    border-radius: 10px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    cursor: default;
+    contain: paint;
+  }
+
+  .site-video-card:hover {
+    border-color: var(--site-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(37, 99, 235, 0.1);
+  }
+
+  .site-video-thumb {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8)),
+      repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.02) 0px,
+        rgba(255, 255, 255, 0.02) 1px,
+        transparent 1px,
+        transparent 12px
+      );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--site-border);
+    border-radius: 10px 10px 0 0;
+  }
+
+  .site-video-play-icon {
+    width: 4.25rem;
+    height: 4.25rem;
+    color: var(--site-accent);
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  .site-video-card:hover .site-video-play-icon {
+    transform: scale(1.1);
+    color: #60a5fa;
+  }
+
+  .site-video-play-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .site-video-soon {
+    position: absolute;
+    top: 0.95rem;
+    right: 0.95rem;
+    padding: 0.26rem 0.72rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--site-text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  .site-video-meta {
+    padding: 1.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .site-video-meta strong {
+    font-size: 1.18rem;
+    color: var(--site-text-main);
+    line-height: 1.3;
+    font-weight: 600;
+  }
+
+  .site-video-meta p {
+    font-size: 0.98rem;
+    color: var(--site-text-muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  @media (min-width: 1280px) {
+    .site-videos-grid {
+      gap: 2rem;
+    }
+
+    .site-video-card {
+      min-height: 21rem;
+    }
+
+    .site-video-play-icon {
+      width: 4.7rem;
+      height: 4.7rem;
+    }
+
+    .site-video-meta {
+      padding: 1.65rem;
+    }
+
+    .site-video-meta strong {
+      font-size: 1.24rem;
+    }
+
+    .site-video-meta p {
+      font-size: 1.03rem;
+      line-height: 1.58;
+    }
+  }
+
+  @media (max-width: 1080px) {
+    .site-videos-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .site-videos-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .site-section-header h2 {
+      font-size: 2rem;
+    }
+  }
+</style>

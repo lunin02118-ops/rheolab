@@ -1,0 +1,23 @@
+# SSH-ключ сервера для рабочих операций деплоя.
+#
+# Этот файл используется скриптами публикации и Python-утилитами доступа.
+# Пока здесь нет актуальной записи, автоматизация вынуждена переходить в
+# режим доверия при первом подключении, что допустимо только на этапе
+# первоначальной настройки.
+#
+# Предпочтительный способ обновления:
+#   npm run server:hostkey
+# или
+#   python scripts/deploy/server_access.py refresh-known-hosts
+#
+# Допустимый ручной способ:
+#   ssh-keyscan license.vizbuka.ru >> scripts/deploy/known_hosts
+#
+# После смены ключа сервера:
+#   1. Сверьте отпечаток через консоль провайдера или другой доверенный канал.
+#   2. Обновите этот файл.
+#   3. Закоммитьте изменение, чтобы все машины использовали один и тот же ключ.
+
+license.vizbuka.ru ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC9ZZ3FUa0sPNcchZ2CFXudYRy/Tp7tJfVh9jUipYtgr
+185.112.102.122 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC9ZZ3FUa0sPNcchZ2CFXudYRy/Tp7tJfVh9jUipYtgr
+185.112.102.122 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC9ZZ3FUa0sPNcchZ2CFXudYRy/Tp7tJfVh9jUipYtgr

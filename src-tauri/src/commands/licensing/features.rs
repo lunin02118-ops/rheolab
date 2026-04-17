@@ -1,0 +1,215 @@
+//! License feature presets.
+//!
+//! Pure functions that return [`LicenseFeatures`] for each license type / status.
+//! No I/O, no side-effects.
+
+use super::types::{LicenseFeatures, LicenseType, DEMO_MAX_EXPERIMENTS};
+#[cfg(test)]
+use super::types::{LicenseCheckResult, LicenseStatus};
+
+// ── Feature presets ────────────────────────────────────────────────────
+
+/// Standard (paid) license: full features except calibration.
+pub(super) fn full_features() -> LicenseFeatures {
+    LicenseFeatures {
+        max_experiments: -1,
+        max_comparison_experiments: 8,
+        export_pdf: true,
+        export_excel: true,
+        ai_parsing: true,
+        comparison: true,
+        watermark: false,
+        calibration_analysis: false,
+        calibration_parsing: false,
+        chandler5550_support: true,
+        bsl_r1_support: true,
+    }
+}
+
+/// Trial license: most features but with watermark and lower limits.
+pub(super) fn trial_features() -> LicenseFeatures {
+    LicenseFeatures {
+        max_experiments: 50,
+        max_comparison_experiments: 3,
+        export_pdf: true,
+        export_excel: true,
+        ai_parsing: true,
+        comparison: true,
+        watermark: true,
+        calibration_analysis: false,
+        calibration_parsing: false,
+        chandler5550_support: true,
+        bsl_r1_support: true,
+    }
+}
+
+/// Developer license: everything unlocked including calibration.
+pub(super) fn developer_features() -> LicenseFeatures {
+    LicenseFeatures {
+        max_experiments: -1,
+        max_comparison_experiments: 8,
+        export_pdf: true,
+        export_excel: true,
+        ai_parsing: true,
+        comparison: true,
+        watermark: false,
+        calibration_analysis: true,
+        calibration_parsing: true,
+        chandler5550_support: true,
+        bsl_r1_support: true,
+    }
+}
+
+/// Demo (unregistered / trial period): limited experiments, watermark.
+pub(super) fn demo_features() -> LicenseFeatures {
+    LicenseFeatures {
+        max_experiments: DEMO_MAX_EXPERIMENTS,
+        max_comparison_experiments: 3,
+        export_pdf: true,
+        export_excel: true,
+        ai_parsing: true,
+        comparison: true,
+        watermark: true,
+        calibration_analysis: false,
+        calibration_parsing: false,
+        chandler5550_support: true,
+        bsl_r1_support: true,
+    }
+}
+
+/// Expired / invalid / revoked: nothing allowed.
+pub(super) fn expired_features() -> LicenseFeatures {
+    LicenseFeatures {
+        max_experiments: 0,
+        max_comparison_experiments: 0,
+        export_pdf: false,
+        export_excel: false,
+        ai_parsing: false,
+        comparison: false,
+        watermark: true,
+        calibration_analysis: false,
+        calibration_parsing: false,
+        chandler5550_support: false,
+        bsl_r1_support: false,
+    }
+}
+
+// ── Lookup helpers ─────────────────────────────────────────────────────
+
+/// Get features for a given license type (used during activation).
+pub(super) fn features_for_type(license_type: LicenseType) -> LicenseFeatures {
+    match license_type {
+        LicenseType::Developer => developer_features(),
+        LicenseType::Trial => trial_features(),
+        LicenseType::Demo => demo_features(),
+        _ => full_features(),
+    }
+}
+
+/// Get features for a computed [`LicenseCheckResult`].
+/// This is the primary accessor the engine uses after determining status.
+#[cfg(test)]
+pub(super) fn features_for_status(result: &LicenseCheckResult) -> LicenseFeatures {
+    match result.status {
+        LicenseStatus::Active | LicenseStatus::Grace => {
+            // If the result already carries a license_type, use it
+            if let Some(ref lt) = result.license_type {
+                let lt = LicenseType::from_str_loose(lt);
+                features_for_type(lt)
+            } else {
+                full_features()
+            }
+        }
+        LicenseStatus::Demo => demo_features(),
+        LicenseStatus::Expired
+        | LicenseStatus::DemoExpired
+        | LicenseStatus::Invalid
+        | LicenseStatus::Revoked => expired_features(),
+    }
+}
+
+// ── Tests ──────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::commands::licensing::types::LicenseSource;
+
+    #[test]
+    fn full_features_no_watermark() {
+        let f = full_features();
+        assert!(!f.watermark);
+        assert_eq!(f.max_experiments, -1);
+        assert!(!f.calibration_analysis);
+    }
+
+    #[test]
+    fn developer_has_calibration() {
+        let f = developer_features();
+        assert!(f.calibration_analysis);
+        assert!(f.calibration_parsing);
+        assert!(!f.watermark);
+    }
+
+    #[test]
+    fn demo_has_limited_experiments() {
+        let f = demo_features();
+        assert_eq!(f.max_experiments, DEMO_MAX_EXPERIMENTS);
+        assert!(f.watermark);
+    }
+
+    #[test]
+    fn expired_features_all_locked() {
+        let f = expired_features();
+        assert_eq!(f.max_experiments, 0);
+        assert!(!f.export_pdf);
+        assert!(!f.export_excel);
+        assert!(!f.ai_parsing);
+        assert!(f.watermark);
+    }
+
+    #[test]
+    fn features_for_type_trial() {
+        let f = features_for_type(LicenseType::Trial);
+        assert_eq!(f.max_experiments, 50);
+        assert!(f.watermark);
+    }
+
+    #[test]
+    fn features_for_status_active_developer() {
+        let result = LicenseCheckResult {
+            status: LicenseStatus::Active,
+            source: LicenseSource::Key,
+            features: developer_features(),
+            key: None,
+            license_type: Some("developer".to_string()),
+            customer_name: None,
+            expires_at: None,
+            days_remaining: None,
+            experiments_remaining: None,
+            message: None,
+            show_warning: false,
+        };
+        let f = features_for_status(&result);
+        assert!(f.calibration_analysis);
+    }
+
+    #[test]
+    fn features_for_status_revoked() {
+        let result = LicenseCheckResult {
+            status: LicenseStatus::Revoked,
+            source: LicenseSource::Key,
+            features: expired_features(),
+            key: None,
+            license_type: None,
+            customer_name: None,
+            expires_at: None,
+            days_remaining: None,
+            experiments_remaining: None,
+            message: None,
+            show_warning: false,
+        };
+        let f = features_for_status(&result);
+        assert_eq!(f.max_experiments, 0);
+    }
+}
