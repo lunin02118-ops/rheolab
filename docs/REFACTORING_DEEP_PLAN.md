@@ -223,7 +223,7 @@
 
 ## 6. Фаза 3 — Производительность
 
-### WP-3.1 Release-профиль Rust ⏳ TODO
+### WP-3.1 Release-профиль Rust ✅ DONE
 - **`src-tauri/Cargo.toml`** добавить:
   ```toml
   [profile.release]

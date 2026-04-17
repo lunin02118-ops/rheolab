@@ -74,9 +74,9 @@ debug = 2
 [profile.release]
 panic = "abort"
 codegen-units = 1
-lto = false
+lto = "thin"
 opt-level = "s"
-strip = true
+strip = "symbols"
 
 # ── Per-package debug optimisations ──────────────────────────────────────────
 # Typst and its font/layout sub-crates are compute-heavy; at opt-level=0

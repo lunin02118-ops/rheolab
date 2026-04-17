@@ -53,6 +53,3 @@ insta = "1"
 name = "rheology_core"
 harness = false
 
-[profile.release]
-opt-level = "s"
-lto = true
