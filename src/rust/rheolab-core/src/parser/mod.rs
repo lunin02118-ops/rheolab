@@ -1,3 +1,4 @@
+#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 pub mod header_detector;
 pub mod row_mapper;
 pub mod date_detector;

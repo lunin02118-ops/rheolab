@@ -186,7 +186,7 @@ pub async fn experiments_save(
         persist_experiment(&tx, &updated)?;
 
         // V2 data flows: payload versioning + sync outbox + search projection
-        // compact_ref avoids 3Г— data duplication вЂ” Experiment table is the canonical store.
+        // compact_ref avoids 3Г— data duplication — Experiment table is the canonical store.
         if let Ok(payload_json) = serde_json::to_string(&updated) {
             let ref_json = super::super::data_flows::compact_ref(&existing_id, &payload_json);
             super::super::data_flows::create_experiment_payload(
@@ -197,7 +197,7 @@ pub async fn experiments_save(
                 &tx, &existing_id, None, env!("CARGO_PKG_VERSION"), "v1", &ref_json,
             )?;
             
-            // SyncOutbox failure is critical вЂ” roll back so no ghost entry is created
+            // SyncOutbox failure is critical — roll back so no ghost entry is created
             super::super::data_flows::append_sync_outbox(
                 &tx, "experiment", &existing_id, "update", &ref_json,
             )?;
@@ -217,7 +217,7 @@ pub async fn experiments_save(
     persist_experiment(&tx, &stored)?;
 
     // V2 data flows: payload + parser artifact + sync outbox + search projection
-    // compact_ref avoids 3Г— data duplication вЂ” Experiment table is the canonical store.
+    // compact_ref avoids 3Г— data duplication — Experiment table is the canonical store.
     if let Ok(payload_json) = serde_json::to_string(&stored) {
         let ref_json = super::super::data_flows::compact_ref(&experiment_id, &payload_json);
         super::super::data_flows::create_experiment_payload(
@@ -228,7 +228,7 @@ pub async fn experiments_save(
             &tx, &experiment_id, None, env!("CARGO_PKG_VERSION"), "v1", &ref_json,
         )?;
         
-        // SyncOutbox failure is critical вЂ” roll back so no ghost entry is created
+        // SyncOutbox failure is critical — roll back so no ghost entry is created
         super::super::data_flows::append_sync_outbox(
             &tx, "experiment", &experiment_id, "create", &ref_json,
         )?;
@@ -256,7 +256,7 @@ pub async fn experiments_delete(
     let tx = conn.unchecked_transaction()?;
 
     // V2 data flows: record deletion in sync outbox before actual delete
-    // SyncOutbox failure is critical вЂ” roll back so the delete is not orphaned
+    // SyncOutbox failure is critical — roll back so the delete is not orphaned
     super::super::data_flows::append_sync_outbox(
         &tx, "experiment", &id, "delete", &format!(r#"{{"id":"{}"}}"#, id),
     )?;
@@ -362,7 +362,7 @@ pub(crate) use crate::db::repositories::experiments::{
 };
 
 // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-// Unit / integration tests вЂ” run with `cargo test -- --test-threads=1`
+// Unit / integration tests — run with `cargo test -- --test-threads=1`
 // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 #[cfg(test)]

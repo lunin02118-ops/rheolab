@@ -1,4 +1,5 @@
-﻿//! Columnar binary encoding + zstd compression for raw experiment points.
+﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+//! Columnar binary encoding + zstd compression for raw experiment points.
 //!
 //! ## Format v2 (uncompressed)
 //!

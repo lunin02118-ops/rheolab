@@ -4,7 +4,7 @@
  * Wraps api_keys_* Tauri commands and the logger commands.
  */
 
-import { invoke } from './core';
+import { safeInvoke as invoke } from './core';
 import type {
   ApiKeyRecord,
   ApiKeyCreatePayload,

@@ -1,4 +1,4 @@
-﻿//! Licensing commands вЂ” native Rust implementation (V2).
+﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]//! Licensing commands — native Rust implementation (V2).
 //!
 //! All licensing logic runs exclusively in Rust via [`LicenseEngine`].
 //! Tauri commands: machine-id, was-ever-licensed, DB checkpoint,
@@ -78,7 +78,7 @@ fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
     }
     match get_system_state(conn, DB_KEY_LICENSE) {
         Ok(None) => {
-            // No stored license вЂ” fall through to demo check
+            // No stored license — fall through to demo check
             let demo_result = demo::check_demo(conn, None);
             if matches!(demo_result.status, LicenseStatus::Demo) {
                 Ok(())
@@ -136,7 +136,7 @@ fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
             let grace_days = data["gracePeriodDays"].as_i64().unwrap_or(30);
 
             if expires_at_str.is_empty() {
-                return Ok(()); // No expiry stored вЂ” will be caught on next online check
+                return Ok(()); // No expiry stored — will be caught on next online check
             }
 
             // Parse ISO 8601 (Date.toISOString format) or SQL datetime (from PHP)
@@ -273,7 +273,7 @@ pub async fn licensing_reset_all_experiments(
     use rusqlite::params;
     let conn = state.pool_conn()?;
 
-    // Auth check вЂ” caller must be an active admin
+    // Auth check — caller must be an active admin
     let role: String = conn
         .query_row(
             "SELECT role FROM User WHERE id = ?1 AND isActive = 1",
@@ -307,7 +307,7 @@ pub async fn licensing_reset_all_experiments(
 
 // в”Ђв”Ђ V2 Engine-based Tauri commands в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
-/// Authoritative license check вЂ” the single source of truth for license status.
+/// Authoritative license check — the single source of truth for license status.
 ///
 /// Returns a single [`LicenseCheckResult`] with status, features, and metadata.
 /// The frontend should call this once on startup and then react to the result.

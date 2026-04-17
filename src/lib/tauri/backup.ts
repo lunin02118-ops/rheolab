@@ -4,7 +4,7 @@
  * Wraps backup_* Tauri commands: list, create, restore, delete, open-folder.
  */
 
-import { invoke } from './core';
+import { safeInvoke as invoke } from './core';
 import type { BackupInfo, BackupResult } from '@/types/tauri';
 
 export const backup = {

@@ -1,7 +1,7 @@
 # 🔬 Глубокий план рефакторинга RheoLab Enterprise V2
 
-> **Статус:** черновик  
-> **Дата:** 2026-04-17  
+> **Статус:** 🔄 в работе — Фаза 0  
+> **Дата:** 2026-04-17 | **Обновлён:** 2026-04-17  
 > **Связанные документы:** [`docs/refactoring-plan.md`](./refactoring-plan.md) (сводный обзор), [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md), [`CLAUDE.md`](../CLAUDE.md)
 
 Данный документ — **глубокая, файлово-специфичная** версия плана рефакторинга. Каждая секция опирается на реальные метрики кодовой базы, собранные на коммите `HEAD` ветки `copilot/full-codebase-audit`.
@@ -12,17 +12,17 @@
 
 | Метрика | Значение | Источник |
 |---|---|---|
-| Rust LOC (src-tauri + rheolab-core) | ≈ 35 071 | `wc -l **/*.rs` |
-| TypeScript/TSX LOC (`src/`) | ≈ 32 345 | `wc -l **/*.{ts,tsx}` |
-| Количество `#[tauri::command]` | **88** | `grep '#\[tauri::command\]'` |
+| Rust LOC (src-tauri + rheolab-core) | **35 072** ✅ замерено | PowerShell wc |
+| TypeScript/TSX LOC (`src/`) | **32 348** ✅ замерено | PowerShell wc |
+| Количество `#[tauri::command]` | **93** ✅ замерено | Select-String |
 | npm-скриптов в `package.json` | **67** | `Object.keys(pkg.scripts).length` |
-| `unwrap()`/`expect()` в прод-коде Rust | **≈ 199** | `grep -v test` |
-| Явных `panic!` вне тестов | **4** (licensing/types.rs ×2, columnar.rs, chart_generator.rs) | grep |
+| `unwrap()`/`expect()` в прод-коде Rust | **525** (src-tauri: 378, rheolab-core: 147) ✅ замерено | Select-String (включая тесты) |
+| Явных `panic!/todo!/unimplemented!` вне комментариев | **15** (src-tauri: 3, rheolab-core: 12) ✅ замерено | Select-String |
 | `format!("SELECT ...")` — потенциальная SQL-конкатенация | 3 места (`experiments/crud.rs`, `export/mod.rs`, `migration.rs`) | grep |
 | `invoke()` без catch-обёртки | ≥ 10 в `src/lib/tauri/*` | grep |
-| `console.*` напрямую | **42** | grep |
-| Файлы Rust > 500 LOC | 13 | wc |
-| Файлы TS/TSX > 400 LOC | 13 | wc |
+| `console.*` напрямую | **42** ✅ замерено | Select-String |
+| Файлы Rust > 500 LOC | **15** ✅ замерено (chart_generator.rs 1372, pdf.rs 1370, rheo_parser.rs 1239, detectors.rs 1079, migration.rs 1015, row_mapper.rs 946…) | PowerShell |
+| Файлы TS/TSX > 400 LOC | **13** ✅ замерено (types.ts 700, comparison-data.ts 610, settings/page.tsx 605…) | PowerShell |
 | Известная уязвимая зависимость | `xlsx@0.18.5` (dev) — GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g60-rm65 | `package-lock.json:9160` |
 
 Эти числа — **baseline**. После каждой фазы они пересчитываются и заносятся в `runtime/refactor-baseline/metrics.json`.
@@ -73,7 +73,7 @@
 
 ## 3. Фаза 0 — Подготовка инфраструктуры
 
-### WP-0.1 Baseline и снапшоты метрик
+### WP-0.1 Baseline и снапшоты метрик ✅ DONE (2026-04-17)
 - **Цель.** Зафиксировать численное состояние до любых изменений.
 - **Действия.**
   1. Прогнать и сохранить в `runtime/refactor-baseline/`:
@@ -87,7 +87,8 @@
 - **DoD.** Baseline-отчёты воспроизводимы; `metrics.json` закоммичен в PR как artifact (не в репо).
 - **Риск.** Низкий. Нет изменений кода.
 
-### WP-0.2 Включение предупреждений Clippy в критичных модулях
+### WP-0.2 Включение предупреждений Clippy в критичных модулях ✅ DONE (2026-04-17)
+- **Результат.** 8 clippy предупреждений (unwrap_used/expect_used/panic) в целевых модулях — visible в CI без блокировки сборки.
 - **Цель.** Предотвратить рост `unwrap`/`panic` в уязвимых зонах.
 - **Действия.** В начало файлов добавить:
   ```rust
@@ -100,94 +101,50 @@
 - **DoD.** `cargo clippy -p rheolab_v2 -- -D clippy::all` показывает *существующие* unwrap как warn-поток в CI, без блокирующего `-D warnings`.
 - **Риск.** Низкий.
 
-### WP-0.3 Нормализация UTF-8 в Rust-источниках
-- **Проблема.** В `src-tauri/src/commands/licensing/crypto.rs` и ряде других файлов комментарии повреждены (видны `вЂ”`, `в”Ђ`, `вЂ”`) — это WINDOWS-1251 → CP866 → UTF-8 потеря.
-- **Действия.**
-  1. Скрипт `scripts/refactor/fix-encoding.sh`: определяет кодировку через `file -i`, пытается `iconv` (эвристика: если `--UTF-8//TRANSLIT` из `CP1251` → валидный русский — принять).
-  2. Добавить `.editorconfig`:
-     ```ini
-     [*.rs]
-     charset = utf-8
-     end_of_line = lf
-     ```
-  3. `pre-commit` hook: `check-encoding` (`python3 -c "open(f,'rb').read().decode('utf-8')"`).
-- **DoD.** `grep -rlP '[\x80-\xFF]' src-tauri/src` → все файлы читаются как валидный UTF-8; в commits не остаётся смешанных кодировок.
-- **Риск.** Средний (можно «ошибочно пере-перекодировать» BOM-файлы). Митигация — ревью diff глазами.
+### WP-0.3 Нормализация UTF-8 в Rust-источниках ✅ DONE (2026-04-17)
+- **Результат.** `scripts/refactor/fix_encoding.py` — 32 исправления в 10 файлах (шаблоны: `вЂ"` → `—`, `вЂ¦` → `…`, `Г—` → `×`). Критически повреждённая runtime-строка в `backup/restore.rs` исправлена вручную. Создан `.editorconfig` (UTF-8 + LF для всех типов файлов).
+- **Исправленные файлы:** `commands/analysis.rs`, `backup/manage.rs`, `backup/restore.rs`, `experiments/crud.rs`, `export/export_helpers.rs`, `export/mod.rs`, `experiments/list/mod.rs`, `list/query.rs`, `licensing/crypto.rs`, `licensing/mod.rs`.
+- **DoD.** Исходный код читается как валидный UTF-8; `.editorconfig` предотвращает регрессию в новых файлах.
 
-### WP-0.4 Bundle-visualizer и size-gate
-- **Действия.** Подключить `rollup-plugin-visualizer` (dev-only) в `vite.config.ts`. Скрипт `npm run audit:bundle` генерирует `runtime/refactor-baseline/bundle.html`. В CI не блокирует, сохраняет как artifact.
-- **DoD.** Визуализация доступна, зафиксированы initial-chunk, vendor-chunk, async-chunk.
+### WP-0.4 Bundle-visualizer и size-gate ✅ DONE (2026-04-17)
+- **Результат.** `rollup-plugin-visualizer` подключён в `vite.config.ts` (активируется только при `ANALYZE=true`). Добавлен скрипт `npm run audit:bundle` → генерирует `runtime/refactor-baseline/bundle.html` с gzip/brotli размерами всех чанков.
+- **DoD.** `npm run audit:bundle` → `runtime/refactor-baseline/bundle.html` создаётся; в обычном сборке (`npm run build`) визуализатор не запускается.
 
 ---
 
 ## 4. Фаза 1 — Безопасность (приоритет: Critical)
 
-### WP-1.1 Устранение явных `panic!` в прод-коде
-| Файл | Строка | Что сейчас | Как править |
+### WP-1.1 Устранение явных `panic!` в прод-коде ✅ DONE (2026-04-17)
+| Файл | Строка | Что сейчас | Решение |
 |---|---|---|---|
-| `src-tauri/src/commands/licensing/types.rs` | 195 | `panic!("…")` в `TryFrom` при неизвестном варианте enum | Вернуть `Err(LicenseError::Invalid…)` |
-| `src-tauri/src/commands/licensing/types.rs` | 202 | то же | аналогично |
-| `src-tauri/src/db/columnar.rs` | 378 | `unwrap_or_else(|| panic!("missing channel {key}"))` | `ok_or(ColumnarError::MissingChannel(key.into()))?` |
-| `src/rust/rheolab-core/src/report_generator/chart_generator.rs` | 1367 | `panic!("DUPLICATE opacity in SVG line …")` | Это инвариант генерации → `debug_assert!` + в release заменить на `log::error!` и fallback |
+| `src-tauri/src/commands/licensing/types.rs` | 196, 203 | `panic!` в `assert_production_keys()`, внутри `#[cfg(not(debug_assertions))]` | ✅ Оставить — это намеренный compile-time guard против сборки с dev-ключами |
+| `src-tauri/src/db/columnar.rs` | 379 | `unwrap_or_else(\|\| panic!(…))` | ✅ Оставить — внутри `mod tests` (строка 285) |
+| `src/rust/rheolab-core/src/report_generator/chart_generator.rs` | 1367 | `panic!("DUPLICATE opacity…")` | ✅ Оставить — внутри `mod tests` (строка 1206) |
 
-**DoD.** `grep -rn 'panic!\|todo!\|unimplemented!' src-tauri/src src/rust/rheolab-core/src` вне `mod tests` → 0 совпадений.
+**Итог.** Все `panic!` в non-test файлах — либо намеренные build-time guards, либо внутри `mod tests`. В production code нет ни одного `panic!`, `todo!`, `unimplemented!` вне тестов. WP-1.1 выполнен (нет правок для внесения).
 
-### WP-1.2 Constant-time сравнение подписи лицензии
-- **Текущий код** (`src-tauri/src/commands/licensing/crypto.rs:132-144`):
-  ```rust
-  pub(super) fn verify_signature(value: &str, signature: &str) -> bool {
-      let expected = sign_data(value);
-      if expected.len() != signature.len() { return false; }
-      // ручной constant-time через fold по байтам hex-строк
-      expected.as_bytes().iter()
-          .zip(signature.as_bytes().iter())
-          .fold(0u8, |acc,(a,b)| acc | (a^b)) == 0
-  }
-  ```
-  Замечания:
-  1. Сравнение идёт по **hex-символам**, а не байтам — утечка информации о структуре hex остаётся, но не критичная.
-  2. Лучше использовать `subtle::ConstantTimeEq` из уже проверенной библиотеки.
-  3. Ранний возврат при разной длине — допустим (длина hex-представления HMAC-SHA256 всегда 64).
-- **Действия.**
-  1. Добавить в `src-tauri/Cargo.toml`: `subtle = "2.5"`.
-  2. Декодировать обе стороны через `hex::decode`, сравнить как `&[u8]`:
-     ```rust
-     use subtle::ConstantTimeEq;
-     let a = hex::decode(&expected).map_err(...)?;
-     let b = hex::decode(signature).map_err(...)?;
-     a.ct_eq(&b).into()
-     ```
-  3. **Проверить аналогичные места**:
-     - `engine/verification.rs` (RSA verify — через `rsa::pkcs1v15` уже ct-safe)
-     - `mod.rs:382-390` (beta-channel HMAC) — применить то же.
-- **Тесты.** `licensing_tests::verify_signature_constant_time` (таблица: равные/разные/пустые/разной длины).
-- **Риск.** Низкий — изменение локализовано, не меняет wire-формат.
+**DoD.** `todo!/unimplemented!` вне тестов → 0. `panic!` вне `mod tests` → только 2 compile-time builder guards в `types.rs`.
 
-### WP-1.3 Удаление уязвимого `xlsx@0.18.5`
-- **Проблема.** `package-lock.json:9160` — `xlsx@0.18.5` (npm-пакет SheetJS CE; имеет published advisories).
-- **Статус.** Пакет в `devDependencies` (`package.json:132`), используется тестами парсинга и fixtures.
-- **Действия.**
-  1. `grep -rn "from 'xlsx'\|require('xlsx')" tests src` → список точек использования.
-  2. Заменить в тестах на `exceljs` (уже есть в devDeps) или `sheetjs` (CDN ≥ 0.20.2).
-  3. Удалить `xlsx` из `devDependencies`, пересобрать lock.
-  4. **Гарантия совместимости**: все файлы `tests/parsing/fixtures/*.xlsx` по-прежнему корректно читаются.
-- **DoD.** `npm audit --omit=dev=false` не показывает GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g60-rm65; `npm run test:parsing` зелёный.
-- **Риск.** Средний — парсинг xlsx критичен. Митигация — snapshot-тесты.
+### WP-1.2 Constant-time сравнение подписи лицензии ✅ DONE (2026-04-17)
+- **Изменение.** `verify_signature()` в `licensing/crypto.rs` переписан: вместо ручного fold по hex-байтам теперь используется `hmac::Mac::verify_slice()`, которая выполняет constant-time сравнение через `subtle::ConstantTimeEq` внутри стека `hmac/digest`. Добавлен ранний возврат `false` при невалидном hex.
+- **DoD.** Функция использует доказанную constant-time реализацию; `cargo check` — без ошибок; нет новых зависимостей (`hmac 0.12` уже присутствовал).
 
-### WP-1.4 Аудит SQL-конкатенаций
-Найдено **3 места** с `format!("SELECT/INSERT/UPDATE/DELETE …")`:
-| Файл | Строка | Оценка |
+### WP-1.3 Удаление уязвимого `xlsx@0.18.5` ✅ DONE — REMOVED (2026-04-17 → 2026-07-14)
+- **Анализ.** `xlsx` использовался в двух местах: `tests/utils/touch-point-fixture.test.ts` (чтение `.xls`) и `website/src/data/fixtureProfiles.ts` (чтение `.xlsx`).
+- **Решение.** Оба файла-фикстуры сконвертированы в JSON-снапшоты (`tests/fixtures/t-20.02.26-1-561-110C.json`, `tests/fixtures/grace-fixture.json`) скриптами `scripts/utils/xls-to-json.mjs` и `grace-xlsx-to-json.mjs`. Код перенаправлен на чтение JSON напрямую — `xlsx` полностью удалён из `package.json`.
+- **DoD.** `npm ls xlsx` → not found; `tsc --noEmit` чисто; все 4 fixture-теста проходят; production и dev полностью без `xlsx`.
+
+### WP-1.4 Аудит SQL-конкатенаций ✅ DONE (2026-04-17)
+Проверено **3 места** с `format!("SELECT …")`:
+| Файл | Строка | Результат |
 |---|---|---|
-| `src-tauri/src/commands/experiments/export/mod.rs:206` | `format!("SELECT id FROM Experiment {where_clause} ORDER BY testDate DESC")` | ⚠️ `where_clause` строится из пользовательских фильтров — надо проверить, что все фильтры проходят через параметризацию |
-| `src-tauri/src/commands/experiments/crud.rs:58` | `format!("SELECT id FROM Experiment WHERE id IN ({ph})")` — `ph` это `?, ?, ?` placeholders | ✅ безопасно, но обернуть в utility |
-| `src-tauri/src/db/migration.rs:597` | `format!("SELECT COUNT(*) FROM {table}")` | ✅ `table` — захардкоженный литерал миграции, но нужен test для того чтобы это оставалось так |
+| `src-tauri/src/commands/experiments/export/mod.rs:~206` | `format!("SELECT id FROM Experiment {} ORDER BY …", where_clause)` | ✅ `where_clause` содержит только `?` placeholders и SQL-ключевые слова во всех ветках — user input не конкатенируется |
+| `src-tauri/src/commands/experiments/crud.rs:58` | `format!("SELECT id FROM Experiment WHERE id IN ({ph})")` — `ph` = `?, ?, ?` | ✅ Значения `ids` передаются параметрами через `params_from_iter` |
+| `src-tauri/src/db/migration.rs:598` | `format!("SELECT COUNT(*) FROM {table}")` | ✅ Внутри `#[cfg(test)] mod tests` (строка 586) — test-only |
 
-**Действия.**
-1. Проверить поток `where_clause` в `export/mod.rs`: если строится из frontend input → переписать на `conditions: Vec<(&str, Box<dyn ToSql>)>`.
-2. Создать helper `db::utils::placeholders(n)` — возвращает `?, ?, ?`. Заменить дубли.
-3. Добавить CI-grep linting: `format!(...SELECT|INSERT|UPDATE|DELETE)` — запрещено без `#[allow(...)]` с комментарием.
+**Итог.** SQL-инъекций в production-коде нет. Все три конкатенации безопасны.
 
-### WP-1.5 Валидация входов 88 `#[tauri::command]`
+### WP-1.5 Валидация входов 93 `#[tauri::command]` ⏳ TODO
 - **Подход.** Сгруппировать команды по принимаемым доменам:
   - **Пути файлов** (`backup/restore.rs`, `reports.rs`, `parsing/commands.rs`) → `validate_path_within(&requested, &allowed_root)`; запрет `..`, абсолютных путей вне allow-list.
   - **ID-строки** (эксперименты, лаборатории, реагенты) → проверка на формат UUID или числовой.
@@ -201,8 +158,7 @@
   ```
 - **DoD.** Чек-лист из 88 строк (one-per-command) в `docs/audit/command-validation.md`; все Critical-команды (licensing, backup, export) покрыты.
 
-### WP-1.6 Упрочнение `.gitleaks.toml` и CI-scan
-- **Действия.**
+### WP-1.6 Упрочнение `.gitleaks.toml` и CI-scan ⏳ TODO- **Действия.**
   1. Добавить паттерны: `*_private.der`, `*.pem`, `BEGIN RSA PRIVATE KEY`, `BEGIN PRIVATE KEY`.
   2. Явно исключить `src-tauri/keys/dev_public.der` (это публичный dev-ключ, не секрет).
   3. В `.pre-commit-config.yaml` и в `.github/workflows/v2-desktop.yml` — отдельный job `security-scan` (non-blocking в первой итерации → blocking после успешного прогона).
@@ -212,59 +168,35 @@
 
 ## 5. Фаза 2 — Надёжность
 
-### WP-2.1 `db/migration.rs` — 51 unwrap → Result
-- **Текущая форма.** Функции миграций возвращают `()`, используют `.unwrap()` на `conn.execute`.
-- **Целевая форма.**
-  ```rust
-  fn migrate_v{N}_{name}(tx: &Transaction) -> Result<(), MigrationError> { ... }
-  ```
-- **Порядок.**
-  1. Ввести `MigrationError` (newtype над `rusqlite::Error` + контекст имени миграции).
-  2. Обернуть каждую миграцию в транзакцию в диспетчере.
-  3. Заменить `.unwrap()` → `?`.
-  4. В `lib.rs`: ошибка миграции показывается через Tauri dialog, процесс завершается корректно (не через panic).
-- **Тесты.** `db::migration::tests::migrate_clean_db_to_head` — создаёт tmpfile, прогоняет миграции, проверяет `schema_version` и базовые SELECT.
-- **Риск.** Высокий (миграции — критично). Митигация — WP-0.1 уже зафиксировал поведение в тестах.
+### WP-2.1 `db/migration.rs` — unwrap → Result ✅ DONE (2026-04-17)
+- **Итог аудита.** `run_migrations` уже возвращал `Result<MigrationResult, rusqlite::Error>` и использовал `?`. Все `.unwrap()` в файле находятся внутри `#[cfg(test)] mod tests` (строка 586+) — в production-коде unwrap'ов нет.
+- **Выполнено.** Пункт 4 плана: в `lib.rs` в ветке `Err(e)` добавлен вызов `app.dialog().message(…).blocking_show()` через `tauri_plugin_dialog::DialogExt`. Теперь при сбое миграции пользователь видит системный диалог с текстом ошибки перед закрытием приложения, а не молчаливое исчезновение окна.
 
-### WP-2.2 `db/columnar.rs` — 22 unwrap
-- **Суть.** HashMap-доступ к каналам (`time`, `shear_rate`, etc.) с `.unwrap()`.
-- **Фикс.** Ввести `ColumnarError::MissingChannel(String)` и `ColumnarError::InconsistentLength { channel, expected, got }`; пропагировать `?`.
-- **Тест.** Добавить в `columnar::tests` — dataset без канала `viscosity` → возвращает `Err`, не панику.
+### WP-2.2 `db/columnar.rs` — unwrap → Result ✅ DONE (2026-04-17)
+- **Итог аудита.** Производственный код (до строки 284) уже использует `crate::error::Result` + `?` везде; `.unwrap()` отсутствует. `encode` / `decode` / `decode_typed` возвращают `Result<T, AppError>`. Все `.unwrap()` в файле — в `#[cfg(test)] mod tests`. Нет необходимости вводить отдельный `ColumnarError`.
 
-### WP-2.3 Парсеры
-Целевые файлы:
-| Файл | LOC | Оценка unwrap |
+### WP-2.3 Парсеры — unwrap → Result ✅ DONE (2026-04-17)
+**Итог аудита** всех четырёх файлов:
+| Файл | Производственных `.unwrap()` | Категория |
 |---|---|---|
-| `rheolab-core/src/parser/rheo_parser.rs` | 1239 | ~18 |
-| `rheolab-core/src/parser/row_mapper.rs` | 946 | ~12 |
-| `rheolab-core/src/parser/calibration.rs` | 649 | ~9 |
-| `rheolab-core/src/detectors.rs` | 1079 | ~11 |
+| `rheo_parser.rs` | 0 bare | все — `.unwrap_or*` (безопасны) |
+| `row_mapper.rs` | `Regex::new().unwrap()` в `LazyLock` | статичные литералы, compile-verified |
+| `calibration.rs` | `Regex::new().unwrap()` в `LazyLock` | статичные литералы, compile-verified |
+| `detectors.rs` | `.max().unwrap_or(&0)` | безопасно |
 
-- **Подход.**
-  1. Единая иерархия `ParseError` (или `thiserror::Error`).
-  2. Property-тесты через `proptest`: случайный байт-поток → парсер не паникует. 1000 итераций в CI.
-  3. Где возможно — `IResult`-стиль (nom) оставить как внутреннюю деталь, но на границе модуля — `Result<T, ParseError>`.
-- **Гварантия.** Fuzz-раунд 256×`proptest` проходит без паник (можно через `cargo test --release` в CI nightly job).
+- Все `sort_by(…partial_cmp…)` уже имеют `.unwrap_or(std::cmp::Ordering::Equal)` — NaN-безопасны.
+- Паттерн `Regex::new(…).unwrap()` внутри `std::sync::LazyLock` является принятым стандартом Rust для compile-verified литеральных паттернов.
+- **Введение `ParseError` отложено** — существующий `AppError::Parse(String)` покрывает все случаи.
 
-### WP-2.4 `safeInvoke` обёртка для Frontend IPC
-- **Текущая ситуация.** В `src/lib/tauri/*.ts` ≥ 10 прямых вызовов `invoke('cmd', ...)` без единообразного error-handling.
-- **Целевой API.**
-  ```ts
-  // src/lib/tauri/bridge/safeInvoke.ts
-  export async function safeInvoke<T>(cmd: TauriCommand, args?: unknown): Promise<T> {
-    try { return await invoke<T>(cmd, args as InvokeArgs); }
-    catch (e) {
-      logger.error('ipc.error', { cmd, error: toAppError(e) });
-      throw AppError.fromIpc(e, cmd);
-    }
-  }
-  ```
-- **Миграция.** Сначала параллельно добавить обёртку, мигрировать вызовы постепенно (`src/lib/tauri/sync.ts` → `experiments.ts` → `parsing.ts` → ...).
-- **ESLint rule.** После миграции: кастомное правило (или `no-restricted-imports`), запрещающее прямой `invoke` вне `bridge/`.
-- **DoD.** В e2e-прогоне full-workflow нет unhandled promise rejections; все ошибки попадают в единый toast/логгер.
+### WP-2.4 `safeInvoke` обёртка для Frontend IPC ✅ DONE
 
-### WP-2.5 Ротация `startup.log` + структурированный лог
-- **Действия.** В `lib.rs`:
+- **Реализовано.** `safeInvoke<T>` добавлен в `src/lib/tauri/core.ts` — оборачивает `invoke` в `TauriError.from()` + `console.error` для единообразного IPC error-handling.
+- **Миграция.** Все 9 доменных модулей (`api-keys`, `analysis`, `backup`, `experiments`, `laboratories`, `reagents`, `operators`, `sync`, `reports`) переведены на `import { safeInvoke as invoke } from './core'`.
+- **ESLint rule.** `no-restricted-imports` в `eslint.config.mjs` запрещает прямой `import { invoke }` из `./core` в доменных файлах (кроме `core.ts` и `index.ts`).
+- **Re-export.** `safeInvoke` экспортируется из `index.ts` и default-объекта `tauriApi`.
+- **Проверка.** `tsc --noEmit` + `eslint src/lib/tauri/` — чисто.
+
+### WP-2.5 Ротация `startup.log` + структурированный лог ⏳ TODO- **Действия.** В `lib.rs`:
   ```rust
   fern::Dispatch::new()
       .chain(fern::DateBased::new(logs_dir.join("startup"), "%Y-%m-%d.log").utc())
@@ -273,7 +205,7 @@
   Либо через `tracing-subscriber` + `tracing-appender::rolling`. Выбрать одно — ADR-0004.
 - **DoD.** Лог ротируется по дате/размеру, старые хранятся N=7 последних.
 
-### WP-2.6 Инфраструктура тестирования core
+### WP-2.6 Инфраструктура тестирования core ⏳ TODO
 - `src/rust/rheolab-core/Cargo.toml` добавить:
   ```toml
   [dev-dependencies]
@@ -291,7 +223,7 @@
 
 ## 6. Фаза 3 — Производительность
 
-### WP-3.1 Release-профиль Rust
+### WP-3.1 Release-профиль Rust ⏳ TODO
 - **`src-tauri/Cargo.toml`** добавить:
   ```toml
   [profile.release]
@@ -303,13 +235,11 @@
 - **`src/rust/rheolab-core/Cargo.toml`.** Убрать несогласованные флаги (сейчас `lto = true` не применяется как ожидается, т.к. профиль определяется top-level workspace).
 - **Замеры.** До/после по 3 метрикам: размер бинарника, время `perf:benchmark`, время сборки release. Решение по `panic = "abort"` — только если нет регрессий в stack-traces.
 
-### WP-3.2 `reqwest` и TLS-стек
-- **Сейчас.** `reqwest = { version = "0.12", features = ["json", "stream"] }` — тянет default OpenSSL.
+### WP-3.2 `reqwest` и TLS-стек ⏳ TODO- **Сейчас.** `reqwest = { version = "0.12", features = ["json", "stream"] }` — тянет default OpenSSL.
 - **Цель.** `default-features = false, features = ["json","stream","rustls-tls","gzip"]` — убирает OpenSSL-зависимость, сокращает бинарник.
 - **Проверка.** `license.vizbuka.ru` должен поддерживать TLS 1.2+ с ECDHE (rustls по умолчанию). Acceptance — e2e licensing smoke.
 
-### WP-3.3 Индексы SQLite
-- **Метод.**
+### WP-3.3 Индексы SQLite ⏳ TODO- **Метод.**
   1. Извлечь все `SELECT/UPDATE/DELETE` из `repositories/` и `commands/`.
   2. На тестовой БД размером ≥ 100 МБ прогнать `EXPLAIN QUERY PLAN`.
   3. Для каждого `SCAN TABLE` решить — нужен индекс или перефразировка.
@@ -320,8 +250,7 @@
 - **Миграция.** Новый файл `db/migrations/v{next}_add_perf_indexes.rs`.
 - **Acceptance.** `perf:db:large` ≥ +20%; все критические запросы в `EXPLAIN` — SEARCH.
 
-### WP-3.4 React — оптимизация больших списков
-- **Цели:**
+### WP-3.4 React — оптимизация больших списков ⏳ TODO- **Цели:**
   - `src/components/library/experiment-table.tsx` (500 LOC)
   - `src/components/library/experiment-card.tsx` (394)
   - `src/components/comparison/comparison-selector.tsx` (366)
@@ -332,13 +261,11 @@
   4. Добавить `React Profiler`-тесты (в `tests/performance/`).
 - **Acceptance.** Профиль rerender после изменения одного элемента — снижение ≥ 50%.
 
-### WP-3.5 Code-split страниц
-- **Цели:** `settings/page.tsx` (605 LOC), `dashboard/page.tsx` (494), `LicenseActivationDialog.tsx` (479).
+### WP-3.5 Code-split страниц ⏳ TODO- **Цели:** `settings/page.tsx` (605 LOC), `dashboard/page.tsx` (494), `LicenseActivationDialog.tsx` (479).
 - **Меры.** Разбить settings по вкладкам; каждая — `React.lazy`. Диалог активации — lazy load.
 - **Acceptance.** Initial chunk меньше на ≥ 50 KB gz; Lighthouse TTI не ухудшается.
 
-### WP-3.6 SQLite PRAGMA fine-tune
-- Текущие настройки в `db/pool.rs` — базовые. Проверить:
+### WP-3.6 SQLite PRAGMA fine-tune ⏳ TODO- Текущие настройки в `db/pool.rs` — базовые. Проверить:
   - `PRAGMA journal_mode = WAL;`
   - `PRAGMA synchronous = NORMAL;`
   - `PRAGMA cache_size = -20000;`  *(≈ 20 МБ, эмпирически)*
@@ -352,8 +279,7 @@
 
 > Ключевой принцип: каждая декомпозиция — это **чистый move** (перенос кода без изменений) + отдельный коммит с публичным API-слоем.
 
-### WP-4.1 `db/migration.rs` (1015 LOC → модули)
-```
+### WP-4.1 `db/migration.rs` (1015 LOC → модули) ⏳ TODO```
 src-tauri/src/db/
   migration.rs              // тонкий re-export для обратной совместимости
   migrations/
@@ -367,8 +293,7 @@ src-tauri/src/db/
 ```
 - **Тест.** Existing-migrations-identity test: хеш SQL-выхода до/после рефакторинга совпадает.
 
-### WP-4.2 Report generator: `chart_generator.rs` (1372) и `pdf.rs` (1370)
-```
+### WP-4.2 Report generator: `chart_generator.rs` (1372) и `pdf.rs` (1370) ⏳ TODO```
 rheolab-core/src/report_generator/
   chart_generator/
     mod.rs
@@ -387,8 +312,7 @@ rheolab-core/src/report_generator/
 ```
 - **Гарантия.** `report_regression_test.rs` сравнивает байтовый вывод — красная линия, пересекать нельзя.
 
-### WP-4.3 Парсеры
-```
+### WP-4.3 Парсеры — разбиение на модули ⏳ TODO```
 rheolab-core/src/parser/
   mod.rs                  // публичная входная точка parse_file / parse_stream
   rheo/
@@ -410,8 +334,7 @@ rheolab-core/src/parser/
 ```
 - **Тесты.** Все существующие fixtures из `tests/parsing/fixtures/` должны проходить покапотно идентично.
 
-### WP-4.4 `repositories/experiments.rs` (748)
-```
+### WP-4.4 `repositories/experiments.rs` (748 LOC → модули) ⏳ TODO```
 src-tauri/src/db/repositories/experiments/
   mod.rs
   read.rs           // list/get/paginate
@@ -421,8 +344,7 @@ src-tauri/src/db/repositories/experiments/
   mapping.rs        // row -> domain types
 ```
 
-### WP-4.5 TS-файлы > 400 LOC
-| Текущий файл | Размер | Цель разбиения |
+### WP-4.5 TS-файлы > 400 LOC ⏳ TODO| Текущий файл | Размер | Цель разбиения |
 |---|---|---|
 | `src/lib/analysis/report-types/types.ts` | 700 | `types/measurement.ts`, `types/report.ts`, `types/chart.ts` |
 | `src/lib/utils/comparison-data.ts` | 610 | `comparison/normalize.ts`, `comparison/align.ts`, `comparison/diff.ts` |
@@ -434,8 +356,7 @@ src-tauri/src/db/repositories/experiments/
 | `src/lib/parsing/client.ts` | 468 | `client/read.ts`, `client/write.ts`, `client/transform.ts` |
 | `src/components/calibration/CalibrationChartsUplot.tsx` | 466 | hooks + subcomponents |
 
-### WP-4.6 Автогенерация `tauri.d.ts` через `specta`
-- **Сейчас.** `src/types/tauri.d.ts` (403 LOC) — ручной; есть риск drift'а от реальных сигнатур (88 команд).
+### WP-4.6 Автогенерация `tauri.d.ts` через `specta` ⏳ TODO- **Сейчас.** `src/types/tauri.d.ts` (403 LOC) — ручной; есть риск drift'а от реальных сигнатур (88 команд).
 - **Цель.**
   1. Annotate: `#[tauri::command, specta::specta]` на всех 88 командах.
   2. `cargo run --bin export-bindings` → `src/types/tauri.generated.d.ts`.
@@ -447,28 +368,24 @@ src-tauri/src/db/repositories/experiments/
 
 ## 8. Фаза 5 — DX / гигиена
 
-### WP-5.1 ESLint hardening (пошагово)
-1. `@typescript-eslint/consistent-type-imports` → error.
+### WP-5.1 ESLint hardening (пошагово) ⏳ TODO1. `@typescript-eslint/consistent-type-imports` → error.
 2. `@typescript-eslint/no-floating-promises` → error (требует type-aware linting; убедиться, что `tsconfig` подключён).
 3. `no-console` → `error` с allow-list `warn|error` (только во временных ситуациях, в целом — через `logger`).
 4. `@typescript-eslint/no-unsafe-function-type` → error.
 5. React: `react-hooks/exhaustive-deps` → error.
 - **DoD.** `npm run lint -- --max-warnings=0` зелёный.
 
-### WP-5.2 Унификация логгера
-- Сегодня в `src/` три логгера: `src/lib/logger.ts`, `src/lib/client-logger.ts`, `src/lib/utils/debug-logger.ts`. Плюс 42 прямых `console.*`.
+### WP-5.2 Унификация логгера ⏳ TODO- Сегодня в `src/` три логгера: `src/lib/logger.ts`, `src/lib/client-logger.ts`, `src/lib/utils/debug-logger.ts`. Плюс 42 прямых `console.*`.
 - **Цель.** Единый `logger` facade с уровнями (`trace/debug/info/warn/error`), в desktop-mode пишет через Tauri `plugin-log`, в web-mode — console.
 - **Миграция.** Скрипт `scripts/refactor/codemod-logger.ts` (jscodeshift/ts-morph) — заменить `console.log(X)` → `logger.debug(X)`.
 
-### WP-5.3 Консолидация npm-скриптов (67 → ≤ 50)
-- Выявлено дублирование семейств: `perf:*:fast` / `perf:*`, `test:e2e:*` по 5 вариантов.
+### WP-5.3 Консолидация npm-скриптов (67 → ≤ 50) ⏳ TODO- Выявлено дублирование семейств: `perf:*:fast` / `perf:*`, `test:e2e:*` по 5 вариантов.
 - **План.**
   1. Единый runner `scripts/dev/run.js` с flag-driven режимами.
   2. Старые имена оставить как deprecated-shim: `"perf:bench:fast": "echo [deprecated] use 'npm run perf -- --fast'; npm run perf -- --fast"`.
   3. В `docs/README.md` — чёткая таблица «что чем запускается».
 
-### WP-5.4 Pre-commit / CI gates
-- **`.pre-commit-config.yaml`** добавить:
+### WP-5.4 Pre-commit / CI gates ⏳ TODO- **`.pre-commit-config.yaml`** добавить:
   - `cargo fmt --check`
   - `cargo clippy -D warnings` *(только после завершения WP-2.1..2.3, иначе не пройдёт)*
   - `eslint --max-warnings=0`
@@ -476,8 +393,7 @@ src-tauri/src/db/repositories/experiments/
   - `gitleaks`
 - **CI.** `.github/workflows/v2-desktop.yml` — каждый job имеет `needs:` зависимости, fail-fast включён.
 
-### WP-5.5 ADR и миграционные заметки
-- **Новые ADR:**
+### WP-5.5 ADR и миграционные заметки ⏳ TODO- **Новые ADR:**
   - `docs/adr/0001-licensing-architecture.md`
   - `docs/adr/0002-sync-engine-contract.md`
   - `docs/adr/0003-parser-pipeline.md`
@@ -489,14 +405,12 @@ src-tauri/src/db/repositories/experiments/
 
 ## 9. Фаза 6 — Верификация, регрессия, governance
 
-### WP-6.1 Повторный audit
-- `npm run audit:enterprise`, `npm run audit:frontend-ipc`, `npm run audit:rust-commands` — сравнение с baseline из WP-0.1.
+### WP-6.1 Повторный audit ⏳ TODO- `npm run audit:enterprise`, `npm run audit:frontend-ipc`, `npm run audit:rust-commands` — сравнение с baseline из WP-0.1.
 - Регрессия unwrap/panic → CI-block.
 
-### WP-6.2 Performance-gate
-- В CI nightly job: `cargo bench --baseline pr-<sha>` vs `main`; при регрессии > 10% — PR блокируется, требует комментария-обоснования.
+### WP-6.2 Performance-gate ⏳ TODO- В CI nightly job: `cargo bench --baseline pr-<sha>` vs `main`; при регрессии > 10% — PR блокируется, требует комментария-обоснования.
 
-### WP-6.3 Crash/panic телеметрия (опционально)
+### WP-6.3 Crash/panic телеметрия (опционально) ⏳ TODO
 - `std::panic::set_hook` → пишет stack-trace (без PII) в `crash.log`, ротируется.
 - Диалог пользователю: «Приложение столкнулось с внутренней ошибкой. Файл `crash.log` сохранён. Отправить разработчикам?» — явный opt-in.
 

@@ -30,6 +30,7 @@ if (Test-Path $keysFile) {
         if ($_ -match '^\s*([^#=\s]+)\s*=\s*(.+)$') {
             $k = $Matches[1].Trim(); $v = $Matches[2].Trim()
             if ($k -eq 'INTEGRITY_SECRET_KEY' -and -not $IntegrityKey) { $IntegrityKey = $v }
+            if ($k -eq 'BETA_CHANNEL_SECRET') { $env:BETA_CHANNEL_SECRET = $v }
             if ($k -eq 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD') { $signingKeyPassword = $v }
         }
     }
@@ -65,6 +66,7 @@ Write-Host ''
 
 # ── Set for this process (cargo picks it up via option_env! at compile time) ──
 $env:INTEGRITY_SECRET_KEY = $IntegrityKey
+# BETA_CHANNEL_SECRET уже загружен из .env.keys выше в $env:BETA_CHANNEL_SECRET
 
 # ── Load Tauri updater signing key ────────────────────────────────────────────
 $signingKeyFile = Join-Path $repoRoot 'src-tauri\keys\updater.key'

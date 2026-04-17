@@ -5,7 +5,7 @@
  * conflict resolution, and the P3 delta-sync engine.
  */
 
-import { invoke } from './core';
+import { safeInvoke as invoke } from './core';
 import type {
   SyncExportDeltaResult,
   SyncImportDeltaResult,

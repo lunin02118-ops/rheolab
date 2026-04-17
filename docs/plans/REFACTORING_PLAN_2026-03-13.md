@@ -111,3 +111,4 @@ master
 ```
 
 **Следующая ветка:** `refactor/phase-2-audit-fixes` от `refactor/phase-1-security-blockers`
+

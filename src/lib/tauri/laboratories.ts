@@ -2,7 +2,7 @@
  * Tauri Laboratories Commands
  */
 
-import { invoke } from './core';
+import { safeInvoke as invoke } from './core';
 import type {
     LaboratoryRecord,
     LaboratoryDeleteResponse,

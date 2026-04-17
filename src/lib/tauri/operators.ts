@@ -2,7 +2,7 @@
  * Tauri Operators Commands
  */
 
-import { invoke } from './core';
+import { safeInvoke as invoke } from './core';
 import type {
     OperatorRecord,
     OperatorDeleteResponse,

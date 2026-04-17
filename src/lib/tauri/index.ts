@@ -15,7 +15,7 @@
  * Add new Tauri API surface in the appropriate domain module, not here.
  */
 
-export { isTauri, invoke } from './core';
+export { isTauri, invoke, safeInvoke } from './core';
 export { backup } from './backup';
 export { apiKeys, logger } from './api-keys';
 export {
@@ -41,7 +41,7 @@ export { TauriError, isTauriError } from './errors';
 export type { TauriErrorKind } from './errors';
 
 // ── Default re-export (mirrors original default export shape) ────────────────
-import { isTauri, invoke } from './core';
+import { isTauri, invoke, safeInvoke } from './core';
 import { backup } from './backup';
 import { apiKeys, logger } from './api-keys';
 import {
@@ -60,6 +60,7 @@ import { sync, conflicts, syncEngine } from './sync';
 const tauriApi = {
   isTauri,
   invoke,
+  safeInvoke,
   backup,
   apiKeys,
   logger,

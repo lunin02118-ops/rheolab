@@ -68,7 +68,7 @@ pub async fn backup_create(state: State<'_, AppState>) -> Result<BackupResult> {
     let backup_name = format!("backup-{}.db", timestamp);
     let backup_path = backups_dir.join(&backup_name);
 
-    // Use VACUUM INTO for a safe hot backup вЂ” SQLite checkpoints WAL and writes a
+    // Use VACUUM INTO for a safe hot backup — SQLite checkpoints WAL and writes a
     // consistent snapshot to the destination without closing the live connection.
     // (Previously fs::copy was used, which could produce a corrupt DB copy
     //  whenever WAL frames had not been checkpointed.)

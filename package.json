@@ -1,6 +1,6 @@
 {
   "name": "rheolab-enterprise",
-  "version": "0.2.0-beta.5",
+  "version": "0.2.0-beta.6",
   "private": true,
   "type": "module",
   "scripts": {
@@ -42,6 +42,7 @@
     "perf:db:compare": "node scripts/test/compare-db-scale.js",
     "perf:website:scroll": "node scripts/test/profile-website-scroll-perf.mjs",
     "audit:enterprise": "node scripts/audit/run-enterprise-deep-audit.js",
+    "audit:bundle": "cross-env ANALYZE=true vite build --mode production",
     "audit:enterprise:quick": "node scripts/audit/run-enterprise-deep-audit.js --quick",
     "audit:enterprise:preflight": "node scripts/audit/run-enterprise-deep-audit.js --preflight-only",
     "audit:enterprise:full": "node scripts/audit/run-enterprise-deep-audit.js",
@@ -123,12 +124,12 @@
     "jsdom": "^27.4.0",
     "jszip": "^3.10.1",
     "pdf-parse": "^2.4.5",
+    "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
     "typescript-eslint": "^8.56.0",
     "vite": "^6.3.5",
-    "vitest": "^4.0.16",
-    "xlsx": "^0.18.5"
+    "vitest": "^4.0.16"
   }
 }

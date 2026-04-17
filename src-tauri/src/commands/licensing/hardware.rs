@@ -1,3 +1,4 @@
+#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Hardware identification — CPU / motherboard / BIOS fingerprinting.
 //!
 //! ## v2 algorithm (current)

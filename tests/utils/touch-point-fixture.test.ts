@@ -16,12 +16,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, it, expect } from 'vitest';
-// xlsx is a devDependency only — NOT in the production bundle.
-// `npm audit --omit=dev` reports 0 vulnerabilities for production.
-// ExcelJS (also a devDep) does not support legacy .xls format; the fixture
-// files here are Grace 3600 .xls exports, so xlsx must be kept for this
-// specific test.  AUD-008 is therefore fully mitigated at the bundle boundary.
-import * as XLSX from 'xlsx';
 import {
     type TouchPointInput,
     calculateSmartTouchPoints,
@@ -30,56 +24,16 @@ import {
 // ─── Fixture parser ───────────────────────────────────────────────────────────
 
 /**
- * Parse the Grace 3600 XLS fixture into TouchPointInput[].
+ * Load pre-parsed Grace 3600 fixture from a JSON snapshot.
  *
- * Sheet: "Raw Data"
- * Column layout (row 0 = header):
- *   0  Viscosity (cP)
- *   4  Shear Rate (s⁻¹)
- *   10 Test Time (HH:MM:SS)
+ * The JSON was generated from the legacy .xls file by
+ * `scripts/utils/xls-to-json.mjs` (one-time conversion).
+ * This avoids a runtime dependency on the vulnerable `xlsx` package.
  */
-function parseGraceFixture(fixtureName: string): TouchPointInput[] {
-    const fixturePath = join(process.cwd(), 'tests', 'fixtures', fixtureName);
-    const rawBuffer = readFileSync(fixturePath);
-    const wb = XLSX.read(rawBuffer, { type: 'buffer', raw: true });
-
-    const ws = wb.Sheets['Raw Data'];
-    if (!ws) throw new Error('Sheet "Raw Data" not found');
-
-    const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(ws, {
-        header: 1,
-        defval: null,
-    });
-
-    const points: TouchPointInput[] = [];
-    for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        if (!r || r[0] == null) continue;
-
-        const timeStr = r[10] as string | null;
-        if (!timeStr || typeof timeStr !== 'string') continue;
-
-        const parts = timeStr.split(':');
-        if (parts.length !== 3) continue;
-
-        const timeSec =
-            parseInt(parts[0], 10) * 3600 +
-            parseInt(parts[1], 10) * 60 +
-            parseInt(parts[2], 10);
-
-        const viscosity = parseFloat(String(r[0]));
-        const shearRate = parseFloat(String(r[4]));
-
-        if (!isFinite(timeSec) || !isFinite(viscosity)) continue;
-
-        points.push({
-            time_min: timeSec / 60,
-            viscosity_cp: viscosity,
-            shear_rate: isFinite(shearRate) ? shearRate : 0,
-        });
-    }
-
-    return points;
+function parseGraceFixture(_fixtureName: string): TouchPointInput[] {
+    const jsonPath = join(process.cwd(), 'tests', 'fixtures', 't-20.02.26-1-561-110C.json');
+    const raw = readFileSync(jsonPath, 'utf-8');
+    return JSON.parse(raw) as TouchPointInput[];
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
