@@ -26,16 +26,17 @@ pub fn create_pool(db_path: &Path) -> Result<DbPool, Box<dyn std::error::Error>>
                  PRAGMA foreign_keys = ON;
                  PRAGMA busy_timeout = 5000;
                  PRAGMA synchronous = NORMAL;
-                 PRAGMA cache_size = -2000;
+                 PRAGMA cache_size = -20000;
                  PRAGMA temp_store = MEMORY;
-                 PRAGMA mmap_size = 67108864;",
+                 PRAGMA mmap_size = 268435456;",
             )?;
             Ok(())
         });
 
     // Single-user desktop app: 4 connections are sufficient.
-    // Each connection reserves up to mmap_size (64 MB) of address space,
-    // so 4 × 64 MB = 256 MB max (vs. previous 8 × 256 MB = 2 GB).
+    // Each connection reserves up to mmap_size (256 MB) of address space and
+    // up to cache_size (20 MB) of page cache, so total resident footprint is
+    // bounded well under 1 GB in practice.
     let pool = Pool::builder()
         .max_size(4)
         .min_idle(Some(1))
