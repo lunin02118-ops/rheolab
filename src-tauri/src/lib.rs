@@ -197,6 +197,16 @@ pub fn run() {
                 }
                 Err(e) => {
                     log_to_file(&format!("Failed to create AppState: {}", e));
+                    // Show a native blocking dialog so the user knows why the app
+                    // failed to start — otherwise the window silently disappears.
+                    use tauri_plugin_dialog::DialogExt;
+                    app.dialog()
+                        .message(format!(
+                            "Failed to initialize the database:\n\n{}\n\nThe application will now close.",
+                            e
+                        ))
+                        .title("Startup Error")
+                        .blocking_show();
                     return Err(e);
                 }
             }

@@ -168,19 +168,9 @@
 
 ## 5. Фаза 2 — Надёжность
 
-### WP-2.1 `db/migration.rs` — unwrap → Result ⏳ TODO
-- **Текущая форма.** Функции миграций возвращают `()`, используют `.unwrap()` на `conn.execute`.
-- **Целевая форма.**
-  ```rust
-  fn migrate_v{N}_{name}(tx: &Transaction) -> Result<(), MigrationError> { ... }
-  ```
-- **Порядок.**
-  1. Ввести `MigrationError` (newtype над `rusqlite::Error` + контекст имени миграции).
-  2. Обернуть каждую миграцию в транзакцию в диспетчере.
-  3. Заменить `.unwrap()` → `?`.
-  4. В `lib.rs`: ошибка миграции показывается через Tauri dialog, процесс завершается корректно (не через panic).
-- **Тесты.** `db::migration::tests::migrate_clean_db_to_head` — создаёт tmpfile, прогоняет миграции, проверяет `schema_version` и базовые SELECT.
-- **Риск.** Высокий (миграции — критично). Митигация — WP-0.1 уже зафиксировал поведение в тестах.
+### WP-2.1 `db/migration.rs` — unwrap → Result ✅ DONE (2026-04-17)
+- **Итог аудита.** `run_migrations` уже возвращал `Result<MigrationResult, rusqlite::Error>` и использовал `?`. Все `.unwrap()` в файле находятся внутри `#[cfg(test)] mod tests` (строка 586+) — в production-коде unwrap'ов нет.
+- **Выполнено.** Пункт 4 плана: в `lib.rs` в ветке `Err(e)` добавлен вызов `app.dialog().message(…).blocking_show()` через `tauri_plugin_dialog::DialogExt`. Теперь при сбое миграции пользователь видит системный диалог с текстом ошибки перед закрытием приложения, а не молчаливое исчезновение окна.
 
 ### WP-2.2 `db/columnar.rs` — unwrap → Result ⏳ TODO
 - **Суть.** HashMap-доступ к каналам (`time`, `shear_rate`, etc.) с `.unwrap()`.
