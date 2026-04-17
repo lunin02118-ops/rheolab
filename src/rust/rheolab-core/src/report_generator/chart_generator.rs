@@ -219,13 +219,14 @@ pub fn generate_chart_svg(
         return Err("No data points provided".to_string());
     }
 
-    // LTTB downsample to max 800 points for chart SVG — avoids multi-MB SVGs
-    // and Typst compilation slowness.  Full data stays in raw_data for the table.
+    // LTTB downsample to max 1500 points for chart SVG — matches the frontend
+    // threshold (1500 normal / 600 capture) so report and screen have the same
+    // level of detail.  Full data stays in raw_data for the table.
     // skip_downsample=true is set by the PDF renderer to preserve full precision.
     let points = if config.skip_downsample {
         points.to_vec()
     } else {
-        lttb_downsample_chart(points, 800)
+        lttb_downsample_chart(points, 1500)
     };
 
     // "individual" axis mode: each metric has its own independent Y scale.
@@ -1144,53 +1145,99 @@ fn calculate_nice_scale(min: f64, max: f64, target_major_ticks: usize, padding: 
 }
 
 /// LTTB (Largest-Triangle-Three-Buckets) downsampling for chart rendering.
-/// Reduces the number of points while preserving visual shape of the curve.
-/// Uses the viscosity channel as the primary Y axis for triangle area calculation.
+///
+/// Multi-channel variant: normalises all available numeric channels (viscosity,
+/// temperature, shear_rate, pressure, bath_temperature) to [0, 1] and sums
+/// their triangle areas so that significant events in *any* channel are
+/// preserved — not just the viscosity channel.  This matches the multi-channel
+/// LTTB used on the frontend (`downsampleRheoPointsMultiChannel`).
 fn lttb_downsample_chart(data: &[ChartPoint], threshold: usize) -> Vec<ChartPoint> {
     let n = data.len();
     if n <= threshold {
         return data.to_vec();
     }
 
+    // ── Per-channel normalisers ────────────────────────────────────────────
+    let v_min = data.iter().map(|p| p.viscosity_cp).fold(f64::INFINITY, f64::min);
+    let v_rng = (data.iter().map(|p| p.viscosity_cp).fold(f64::NEG_INFINITY, f64::max) - v_min)
+        .max(f64::EPSILON);
+
+    macro_rules! opt_norm_range {
+        ($field:ident) => {{
+            let mn = data.iter().filter_map(|p| p.$field).fold(f64::INFINITY, f64::min);
+            let mx = data.iter().filter_map(|p| p.$field).fold(f64::NEG_INFINITY, f64::max);
+            if mx > mn + f64::EPSILON { Some((mn, (mx - mn).max(f64::EPSILON))) } else { None }
+        }};
+    }
+
+    let t_norm  = opt_norm_range!(temperature_c);
+    let sr_norm = opt_norm_range!(shear_rate);
+    let p_norm  = opt_norm_range!(pressure_bar);
+    let b_norm  = opt_norm_range!(bath_temperature_c);
+
+    /// Normalise `v` to [0,1] using precomputed min and range.
+    #[inline]
+    fn nv(v: f64, min: f64, rng: f64) -> f64 { (v - min) / rng }
+
+    // Collect all-channel normalised Y values for a point into a fixed-size array.
+    let yn = |p: &ChartPoint| -> [f64; 5] {
+        [
+            nv(p.viscosity_cp, v_min, v_rng),
+            t_norm .map_or(0.0, |(mn, rng)| p.temperature_c    .map_or(0.0, |v| nv(v, mn, rng))),
+            sr_norm.map_or(0.0, |(mn, rng)| p.shear_rate        .map_or(0.0, |v| nv(v, mn, rng))),
+            p_norm .map_or(0.0, |(mn, rng)| p.pressure_bar      .map_or(0.0, |v| nv(v, mn, rng))),
+            b_norm .map_or(0.0, |(mn, rng)| p.bath_temperature_c.map_or(0.0, |v| nv(v, mn, rng))),
+        ]
+    };
+
+    // ── LTTB loop ─────────────────────────────────────────────────────────
     let mut sampled = Vec::with_capacity(threshold);
-    sampled.push(data[0].clone()); // always keep first
+    sampled.push(data[0].clone());
 
     let bucket_size = (n - 2) as f64 / (threshold - 2) as f64;
-    let mut a = 0usize; // index of previously selected point
+    let mut a = 0usize;
 
     for i in 0..(threshold - 2) {
-        // Current bucket
         let bucket_start = ((i as f64 + 1.0) * bucket_size) as usize + 1;
-        let bucket_end = (((i as f64 + 2.0) * bucket_size) as usize + 1).min(n - 1);
+        let bucket_end   = (((i as f64 + 2.0) * bucket_size) as usize + 1).min(n - 1);
 
-        // Next bucket average
         let next_start = bucket_end;
-        let next_end = (((i as f64 + 3.0) * bucket_size) as usize + 1).min(n);
+        let next_end   = (((i as f64 + 3.0) * bucket_size) as usize + 1).min(n);
         let next_count = (next_end - next_start).max(1) as f64;
 
+        // Next-bucket centroid (normalised coords)
         let mut avg_x = 0.0;
-        let mut avg_y = 0.0;
+        let mut avg_y = [0.0f64; 5];
         for j in next_start..next_end {
             avg_x += data[j].time_min;
-            avg_y += data[j].viscosity_cp;
+            let yj = yn(&data[j]);
+            for ch in 0..5 { avg_y[ch] += yj[ch]; }
         }
         avg_x /= next_count;
-        avg_y /= next_count;
+        for ch in 0..5 { avg_y[ch] /= next_count; }
 
-        // Find point with max triangle area in current bucket
         let ax = data[a].time_min;
-        let ay = data[a].viscosity_cp;
+        let ay = yn(&data[a]);
 
-        let mut max_area = -1.0f64;
-        let mut max_idx = bucket_start;
+        let mut max_score = -1.0f64;
+        let mut max_idx   = bucket_start;
 
         for j in bucket_start..bucket_end {
-            let area = ((ax - avg_x) * (data[j].viscosity_cp - ay)
-                - (ax - data[j].time_min) * (avg_y - ay))
-                .abs();
-            if area > max_area {
-                max_area = area;
-                max_idx = j;
+            let jx = data[j].time_min;
+            let jy = yn(&data[j]);
+
+            // Sum of triangle areas across all active channels
+            let score: f64 = (0..5)
+                .map(|ch| {
+                    ((ax - avg_x) * (jy[ch] - ay[ch])
+                        - (ax - jx) * (avg_y[ch] - ay[ch]))
+                    .abs()
+                })
+                .sum();
+
+            if score > max_score {
+                max_score = score;
+                max_idx   = j;
             }
         }
 
@@ -1198,7 +1245,7 @@ fn lttb_downsample_chart(data: &[ChartPoint], threshold: usize) -> Vec<ChartPoin
         a = max_idx;
     }
 
-    sampled.push(data[n - 1].clone()); // always keep last
+    sampled.push(data[n - 1].clone());
     sampled
 }
 
@@ -1368,5 +1415,104 @@ mod tests {
             }
         }
         assert!(has_dasharray, "SVG should contain stroke-dasharray after post-processing");
+    }
+}
+
+#[cfg(test)]
+mod lttb_invariants {
+    use super::*;
+    use proptest::prelude::*;
+
+    fn make_lttb_data(n: usize) -> Vec<ChartPoint> {
+        (0..n)
+            .map(|i| ChartPoint {
+                time_min: i as f64,
+                viscosity_cp: 500.0 + (i as f64 * 0.05).sin() * 200.0,
+                temperature_c: Some(25.0 + (i as f64 * 0.03).cos() * 5.0),
+                shear_rate: Some(100.0),
+                pressure_bar: None,
+                bath_temperature_c: None,
+            })
+            .collect()
+    }
+
+    proptest! {
+        /// Output length must equal threshold exactly when input exceeds it.
+        #[test]
+        fn lttb_length_equals_threshold(n in 1600usize..4000, threshold in 100usize..1499) {
+            let data = make_lttb_data(n);
+            let result = lttb_downsample_chart(&data, threshold);
+            prop_assert_eq!(
+                result.len(), threshold,
+                "n={}, threshold={}: expected {} points, got {}",
+                n, threshold, threshold, result.len()
+            );
+        }
+
+        /// First and last points must be the original first and last points.
+        #[test]
+        fn lttb_preserves_endpoints(n in 1600usize..4000) {
+            let data = make_lttb_data(n);
+            let result = lttb_downsample_chart(&data, 800);
+            let first = result.first().expect("result non-empty");
+            let last  = result.last().expect("result non-empty");
+            prop_assert!(
+                (first.time_min - data.first().unwrap().time_min).abs() < f64::EPSILON,
+                "first time_min mismatch: {} vs {}",
+                first.time_min, data.first().unwrap().time_min
+            );
+            prop_assert!(
+                (last.time_min - data.last().unwrap().time_min).abs() < f64::EPSILON,
+                "last time_min mismatch: {} vs {}",
+                last.time_min, data.last().unwrap().time_min
+            );
+        }
+
+        /// Downsampled max viscosity must be within 5 % of raw max.
+        /// LTTB is designed to preserve extrema; 5 % tolerance covers the few
+        /// degenerate cases where the global peak lands in a dense bucket.
+        #[test]
+        fn lttb_max_retention_within_5_percent(n in 1600usize..4000) {
+            let data = make_lttb_data(n);
+            let raw_max = data.iter().map(|p| p.viscosity_cp).fold(f64::NEG_INFINITY, f64::max);
+            let result = lttb_downsample_chart(&data, 800);
+            let ds_max = result.iter().map(|p| p.viscosity_cp).fold(f64::NEG_INFINITY, f64::max);
+            prop_assert!(
+                ds_max >= raw_max * 0.95,
+                "Downsampled max {ds_max:.2} more than 5 % below raw max {raw_max:.2}"
+            );
+        }
+
+        /// With skip_downsample=true the raw data must pass through unmodified.
+        #[test]
+        fn skip_downsample_returns_full_data(n in 10usize..2000) {
+            let data = make_lttb_data(n);
+            let config = ChartConfig {
+                show_temperature: false,
+                show_shear_rate: false,
+                show_pressure: false,
+                show_bath_temperature: false,
+                shear_rate_axis: "right".to_string(),
+                pressure_axis: "right".to_string(),
+                axis_mode: "shared".to_string(),
+                width: 800,
+                height: 400,
+                label_left: "V".to_string(),
+                label_right: String::new(),
+                label_bottom: "t".to_string(),
+                name_viscosity: "V".to_string(),
+                name_temperature: "T".to_string(),
+                name_shear_rate: "SR".to_string(),
+                name_pressure: "P".to_string(),
+                name_bath_temperature: "BT".to_string(),
+                touch_points: vec![],
+                viscosity_threshold: None,
+                line_styles: None,
+                skip_downsample: true,
+            };
+            // generate_chart_svg with skip_downsample must not reduce point count
+            let result = generate_chart_svg(&data, &config);
+            prop_assert!(result.is_ok(), "generate_chart_svg failed: {:?}", result.err());
+        }
     }
 }

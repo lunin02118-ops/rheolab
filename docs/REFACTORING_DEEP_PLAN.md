@@ -205,7 +205,7 @@
   Либо через `tracing-subscriber` + `tracing-appender::rolling`. Выбрать одно — ADR-0004.
 - **DoD.** Лог ротируется по дате/размеру, старые хранятся N=7 последних.
 
-### WP-2.6 Инфраструктура тестирования core ⏳ TODO
+### WP-2.6 Инфраструктура тестирования core ✅ DONE
 - `src/rust/rheolab-core/Cargo.toml` добавить:
   ```toml
   [dev-dependencies]
