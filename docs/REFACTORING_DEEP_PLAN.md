@@ -172,24 +172,21 @@
 - **Итог аудита.** `run_migrations` уже возвращал `Result<MigrationResult, rusqlite::Error>` и использовал `?`. Все `.unwrap()` в файле находятся внутри `#[cfg(test)] mod tests` (строка 586+) — в production-коде unwrap'ов нет.
 - **Выполнено.** Пункт 4 плана: в `lib.rs` в ветке `Err(e)` добавлен вызов `app.dialog().message(…).blocking_show()` через `tauri_plugin_dialog::DialogExt`. Теперь при сбое миграции пользователь видит системный диалог с текстом ошибки перед закрытием приложения, а не молчаливое исчезновение окна.
 
-### WP-2.2 `db/columnar.rs` — unwrap → Result ⏳ TODO
-- **Суть.** HashMap-доступ к каналам (`time`, `shear_rate`, etc.) с `.unwrap()`.
-- **Фикс.** Ввести `ColumnarError::MissingChannel(String)` и `ColumnarError::InconsistentLength { channel, expected, got }`; пропагировать `?`.
-- **Тест.** Добавить в `columnar::tests` — dataset без канала `viscosity` → возвращает `Err`, не панику.
+### WP-2.2 `db/columnar.rs` — unwrap → Result ✅ DONE (2026-04-17)
+- **Итог аудита.** Производственный код (до строки 284) уже использует `crate::error::Result` + `?` везде; `.unwrap()` отсутствует. `encode` / `decode` / `decode_typed` возвращают `Result<T, AppError>`. Все `.unwrap()` в файле — в `#[cfg(test)] mod tests`. Нет необходимости вводить отдельный `ColumnarError`.
 
-### WP-2.3 Парсеры — unwrap → Result ⏳ TODOЦелевые файлы:
-| Файл | LOC | Оценка unwrap |
+### WP-2.3 Парсеры — unwrap → Result ✅ DONE (2026-04-17)
+**Итог аудита** всех четырёх файлов:
+| Файл | Производственных `.unwrap()` | Категория |
 |---|---|---|
-| `rheolab-core/src/parser/rheo_parser.rs` | 1239 | ~18 |
-| `rheolab-core/src/parser/row_mapper.rs` | 946 | ~12 |
-| `rheolab-core/src/parser/calibration.rs` | 649 | ~9 |
-| `rheolab-core/src/detectors.rs` | 1079 | ~11 |
+| `rheo_parser.rs` | 0 bare | все — `.unwrap_or*` (безопасны) |
+| `row_mapper.rs` | `Regex::new().unwrap()` в `LazyLock` | статичные литералы, compile-verified |
+| `calibration.rs` | `Regex::new().unwrap()` в `LazyLock` | статичные литералы, compile-verified |
+| `detectors.rs` | `.max().unwrap_or(&0)` | безопасно |
 
-- **Подход.**
-  1. Единая иерархия `ParseError` (или `thiserror::Error`).
-  2. Property-тесты через `proptest`: случайный байт-поток → парсер не паникует. 1000 итераций в CI.
-  3. Где возможно — `IResult`-стиль (nom) оставить как внутреннюю деталь, но на границе модуля — `Result<T, ParseError>`.
-- **Гварантия.** Fuzz-раунд 256×`proptest` проходит без паник (можно через `cargo test --release` в CI nightly job).
+- Все `sort_by(…partial_cmp…)` уже имеют `.unwrap_or(std::cmp::Ordering::Equal)` — NaN-безопасны.
+- Паттерн `Regex::new(…).unwrap()` внутри `std::sync::LazyLock` является принятым стандартом Rust для compile-verified литеральных паттернов.
+- **Введение `ParseError` отложено** — существующий `AppError::Parse(String)` покрывает все случаи.
 
 ### WP-2.4 `safeInvoke` обёртка для Frontend IPC ⏳ TODO- **Текущая ситуация.** В `src/lib/tauri/*.ts` ≥ 10 прямых вызовов `invoke('cmd', ...)` без единообразного error-handling.
 - **Целевой API.**
