@@ -235,7 +235,7 @@
 - **`src/rust/rheolab-core/Cargo.toml`.** Убрать несогласованные флаги (сейчас `lto = true` не применяется как ожидается, т.к. профиль определяется top-level workspace).
 - **Замеры.** До/после по 3 метрикам: размер бинарника, время `perf:benchmark`, время сборки release. Решение по `panic = "abort"` — только если нет регрессий в stack-traces.
 
-### WP-3.2 `reqwest` и TLS-стек ⏳ TODO- **Сейчас.** `reqwest = { version = "0.12", features = ["json", "stream"] }` — тянет default OpenSSL.
+### WP-3.2 `reqwest` и TLS-стек ✅ DONE- **Сейчас.** `reqwest = { version = "0.12", features = ["json", "stream"] }` — тянет default OpenSSL.
 - **Цель.** `default-features = false, features = ["json","stream","rustls-tls","gzip"]` — убирает OpenSSL-зависимость, сокращает бинарник.
 - **Проверка.** `license.vizbuka.ru` должен поддерживать TLS 1.2+ с ECDHE (rustls по умолчанию). Acceptance — e2e licensing smoke.
 
