@@ -106,9 +106,9 @@
 - **Исправленные файлы:** `commands/analysis.rs`, `backup/manage.rs`, `backup/restore.rs`, `experiments/crud.rs`, `export/export_helpers.rs`, `export/mod.rs`, `experiments/list/mod.rs`, `list/query.rs`, `licensing/crypto.rs`, `licensing/mod.rs`.
 - **DoD.** Исходный код читается как валидный UTF-8; `.editorconfig` предотвращает регрессию в новых файлах.
 
-### WP-0.4 Bundle-visualizer и size-gate ⏳ TODO
-- **Действия.** Подключить `rollup-plugin-visualizer` (dev-only) в `vite.config.ts`. Скрипт `npm run audit:bundle` генерирует `runtime/refactor-baseline/bundle.html`. В CI не блокирует, сохраняет как artifact.
-- **DoD.** Визуализация доступна, зафиксированы initial-chunk, vendor-chunk, async-chunk.
+### WP-0.4 Bundle-visualizer и size-gate ✅ DONE (2026-04-17)
+- **Результат.** `rollup-plugin-visualizer` подключён в `vite.config.ts` (активируется только при `ANALYZE=true`). Добавлен скрипт `npm run audit:bundle` → генерирует `runtime/refactor-baseline/bundle.html` с gzip/brotli размерами всех чанков.
+- **DoD.** `npm run audit:bundle` → `runtime/refactor-baseline/bundle.html` создаётся; в обычном сборке (`npm run build`) визуализатор не запускается.
 
 ---
 
