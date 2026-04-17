@@ -1,4 +1,4 @@
-import { Suspense, Component, useState, useEffect, useRef, type ReactNode } from 'react';
+import { Suspense, lazy, Component, useState, useEffect, useRef, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Monitor, Moon, Sun, Languages, Database,
@@ -10,16 +10,34 @@ import {
 import { Logo } from '@/components/ui/logo';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useTheme } from '@/contexts/theme-context';
-import { ExpertSettingsPanel } from '@/components/analysis/expert-settings-panel';
-import { APIKeyManager } from '@/components/settings/APIKeyManager';
-import { BackupManager } from '@/components/settings/BackupManager';
-import { ExperimentExportImport } from '@/components/settings/ExperimentExportImport';
-import { BrandingManager } from '@/components/settings/BrandingManager';
-import { ChartSettingsManager } from '@/components/settings/ChartSettingsManager';
-import { ReportSettingsManager } from '@/components/settings/ReportSettingsManager';
-import { AppSettingsExporter } from '@/components/settings/AppSettingsExporter';
-import { OperatorManager } from '@/components/settings/OperatorManager';
-import { LaboratoryManager } from '@/components/settings/LaboratoryManager';
+const ExpertSettingsPanel = lazy(() =>
+    import('@/components/analysis/expert-settings-panel').then(m => ({ default: m.ExpertSettingsPanel })));
+const APIKeyManager = lazy(() =>
+    import('@/components/settings/APIKeyManager').then(m => ({ default: m.APIKeyManager })));
+const BackupManager = lazy(() =>
+    import('@/components/settings/BackupManager').then(m => ({ default: m.BackupManager })));
+const ExperimentExportImport = lazy(() =>
+    import('@/components/settings/ExperimentExportImport').then(m => ({ default: m.ExperimentExportImport })));
+const BrandingManager = lazy(() =>
+    import('@/components/settings/BrandingManager').then(m => ({ default: m.BrandingManager })));
+const ChartSettingsManager = lazy(() =>
+    import('@/components/settings/ChartSettingsManager').then(m => ({ default: m.ChartSettingsManager })));
+const ReportSettingsManager = lazy(() =>
+    import('@/components/settings/ReportSettingsManager').then(m => ({ default: m.ReportSettingsManager })));
+const AppSettingsExporter = lazy(() =>
+    import('@/components/settings/AppSettingsExporter').then(m => ({ default: m.AppSettingsExporter })));
+const OperatorManager = lazy(() =>
+    import('@/components/settings/OperatorManager').then(m => ({ default: m.OperatorManager })));
+const LaboratoryManager = lazy(() =>
+    import('@/components/settings/LaboratoryManager').then(m => ({ default: m.LaboratoryManager })));
+
+function TabLoader() {
+    return (
+        <div className="flex items-center justify-center h-48">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+    );
+}
 import { APP_VERSION, BUILD_DATE, COMMIT_HASH } from '@/lib/version';
 import { useUpdateStore } from '@/lib/store/update-store';
 import { checkUpdateNow } from '@/components/shared/UpdateChecker';
@@ -222,16 +240,21 @@ function SettingsContent() {
                             </CardContent>
                         </Card>
                         <SettingsErrorBoundary name="\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u044b">
-                            <OperatorManager />
+                            <Suspense fallback={<TabLoader />}>
+                                <OperatorManager />
+                            </Suspense>
                         </SettingsErrorBoundary>
 
                         <SettingsErrorBoundary name="\u041b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438">
-                            <LaboratoryManager />
+                            <Suspense fallback={<TabLoader />}>
+                                <LaboratoryManager />
+                            </Suspense>
                         </SettingsErrorBoundary>                    </TabsContent>
 
                     {/* === DATA TAB === */}
                     <TabsContent value="data" className="space-y-6">
                         <SettingsErrorBoundary name="Локальное хранилище">
+                        <Suspense fallback={<TabLoader />}>
                         <Card className="bg-card/50 border-border">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-foreground">
@@ -244,9 +267,11 @@ function SettingsContent() {
                                 <BackupManager />
                             </CardContent>
                         </Card>
+                        </Suspense>
                         </SettingsErrorBoundary>
 
                         <SettingsErrorBoundary name="Экспорт/Импорт">
+                        <Suspense fallback={<TabLoader />}>
                         <Card className="bg-card/50 border-border">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-foreground">
@@ -259,6 +284,7 @@ function SettingsContent() {
                                 <ExperimentExportImport />
                             </CardContent>
                         </Card>
+                        </Suspense>
                         </SettingsErrorBoundary>
                     </TabsContent>
 
@@ -266,7 +292,9 @@ function SettingsContent() {
                     {isExpertMode && (
                     <TabsContent value="analysis" className="space-y-6">
                         <SettingsErrorBoundary name="Анализ">
-                            <ExpertSettingsPanel />
+                            <Suspense fallback={<TabLoader />}>
+                                <ExpertSettingsPanel />
+                            </Suspense>
                         </SettingsErrorBoundary>
                     </TabsContent>
                     )}
@@ -274,17 +302,23 @@ function SettingsContent() {
                     {/* === CHARTS TAB === */}
                     <TabsContent value="charts" className="space-y-6">
                         <SettingsErrorBoundary name="Графики">
-                            <ChartSettingsManager />
+                            <Suspense fallback={<TabLoader />}>
+                                <ChartSettingsManager />
+                            </Suspense>
                         </SettingsErrorBoundary>
                     </TabsContent>
 
                     {/* === REPORTS TAB === */}
                     <TabsContent value="reports" className="space-y-6">
                         <SettingsErrorBoundary name="Отчёты">
-                            <ReportSettingsManager />
+                            <Suspense fallback={<TabLoader />}>
+                                <ReportSettingsManager />
+                            </Suspense>
                         </SettingsErrorBoundary>
                         <SettingsErrorBoundary name="Брендинг">
-                            <BrandingManager />
+                            <Suspense fallback={<TabLoader />}>
+                                <BrandingManager />
+                            </Suspense>
                         </SettingsErrorBoundary>
                     </TabsContent>
 
@@ -292,7 +326,9 @@ function SettingsContent() {
                     <TabsContent value="system" className="space-y-6">
                         {/* Settings Export/Import */}
                         <SettingsErrorBoundary name="Система">
-                        <AppSettingsExporter />
+                        <Suspense fallback={<TabLoader />}>
+                            <AppSettingsExporter />
+                        </Suspense>
 
                         <Card className="bg-card/50 border-border">
                             <CardHeader>
@@ -304,7 +340,9 @@ function SettingsContent() {
                             </CardHeader>
                             <CardContent className="px-0">
                                 <div className="px-6">
-                                    <APIKeyManager />
+                                    <Suspense fallback={<TabLoader />}>
+                                        <APIKeyManager />
+                                    </Suspense>
                                 </div>
                             </CardContent>
                         </Card>

@@ -1,6 +1,6 @@
 import { logger as clientLogger } from '@/lib/client-logger';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { FileUpload } from '@/components/dashboard/file-upload';
 import { SaveExperimentDialog } from '@/components/dashboard/save-experiment-dialog';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -9,7 +9,8 @@ import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 import { useExperimentDataStore, ParseResult } from '@/lib/store/experiment-data-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useAnalysisPipeline } from '@/hooks/useAnalysisPipeline';
-import { DashboardContent } from '@/components/dashboard/DashboardContent';
+const DashboardContent = lazy(() =>
+    import('@/components/dashboard/DashboardContent').then(m => ({ default: m.DashboardContent })));
 import { Upload, Beaker, ChevronDown, AlertTriangle, Save } from 'lucide-react';
 import { useLicense } from '@/hooks/useLicense';
 import { getExperimentById } from '@/lib/experiments/client';
@@ -455,6 +456,7 @@ export default function Dashboard() {
 
                     {/* Dashboard Content */}
                     <div ref={chartSectionRef}>
+                    <Suspense fallback={<div className="flex h-48 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /></div>}>
                     <DashboardContent
                         parseResult={parseResult}
                         cycles={cycles}
@@ -476,6 +478,7 @@ export default function Dashboard() {
                         patternOverride={patternOverride}
                         setPatternOverride={setPatternOverride}
                     />
+                    </Suspense>
                     </div>
                 </div>
             </main>
