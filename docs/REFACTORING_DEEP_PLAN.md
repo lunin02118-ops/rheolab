@@ -415,13 +415,15 @@ Specta интеграция уже работает:
 - **CI**: ESLint enforces `--max-warnings=0`, `audit-preflight` depends on `linux-quality`, fixed removed script reference.
 - **`_typos.toml`**: excludes generated/vendor/fixture directories.
 
-### WP-5.5 ADR и миграционные заметки ⏳ TODO- **Новые ADR:**
-  - `docs/adr/0001-licensing-architecture.md`
-  - `docs/adr/0002-sync-engine-contract.md`
-  - `docs/adr/0003-parser-pipeline.md`
-  - `docs/adr/0004-logging-and-telemetry.md`
-- **Миграции.** Для каждой DB-миграции — `docs/migrations/v{NNNN}.md` с описанием ручных действий (если нужны).
-- **Шаблон ADR.** `docs/adr/_template.md` (MADR 4).
+### WP-5.5 ADR и миграционные заметки ✅ DONE
+- **Шаблон ADR:** `docs/adr/_template.md` (MADR 4, русский).
+- **Новые ADR (ретроспективные):**
+  - `ADR-0005-licensing-architecture.md` — двухуровневая HMAC+RSA защита
+  - `ADR-0006-sync-engine-contract.md` — delta-sync для офлайн обмена
+  - `ADR-0007-parser-pipeline.md` — мультиформатный парсинг реометров
+  - `ADR-0008-logging-and-telemetry.md` — единый фасад логирования
+- **README обновлён:** таблица ADR-0001..0008 (ранее отсутствовал ADR-0004).
+- **Миграции:** отложены — схема v1, деструктивных миграций пока нет.
 
 ---
 
