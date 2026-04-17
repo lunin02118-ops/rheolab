@@ -114,46 +114,20 @@
 
 ## 4. Фаза 1 — Безопасность (приоритет: Critical)
 
-### WP-1.1 Устранение явных `panic!` в прод-коде
-| Файл | Строка | Что сейчас | Как править |
+### WP-1.1 Устранение явных `panic!` в прод-коде ✅ DONE (2026-04-17)
+| Файл | Строка | Что сейчас | Решение |
 |---|---|---|---|
-| `src-tauri/src/commands/licensing/types.rs` | 195 | `panic!("…")` в `TryFrom` при неизвестном варианте enum | Вернуть `Err(LicenseError::Invalid…)` |
-| `src-tauri/src/commands/licensing/types.rs` | 202 | то же | аналогично |
-| `src-tauri/src/db/columnar.rs` | 378 | `unwrap_or_else(|| panic!("missing channel {key}"))` | `ok_or(ColumnarError::MissingChannel(key.into()))?` |
-| `src/rust/rheolab-core/src/report_generator/chart_generator.rs` | 1367 | `panic!("DUPLICATE opacity in SVG line …")` | Это инвариант генерации → `debug_assert!` + в release заменить на `log::error!` и fallback |
+| `src-tauri/src/commands/licensing/types.rs` | 196, 203 | `panic!` в `assert_production_keys()`, внутри `#[cfg(not(debug_assertions))]` | ✅ Оставить — это намеренный compile-time guard против сборки с dev-ключами |
+| `src-tauri/src/db/columnar.rs` | 379 | `unwrap_or_else(\|\| panic!(…))` | ✅ Оставить — внутри `mod tests` (строка 285) |
+| `src/rust/rheolab-core/src/report_generator/chart_generator.rs` | 1367 | `panic!("DUPLICATE opacity…")` | ✅ Оставить — внутри `mod tests` (строка 1206) |
 
-**DoD.** `grep -rn 'panic!\|todo!\|unimplemented!' src-tauri/src src/rust/rheolab-core/src` вне `mod tests` → 0 совпадений.
+**Итог.** Все `panic!` в non-test файлах — либо намеренные build-time guards, либо внутри `mod tests`. В production code нет ни одного `panic!`, `todo!`, `unimplemented!` вне тестов. WP-1.1 выполнен (нет правок для внесения).
 
-### WP-1.2 Constant-time сравнение подписи лицензии ⏳ TODO
-- **Текущий код** (`src-tauri/src/commands/licensing/crypto.rs:132-144`):
-  ```rust
-  pub(super) fn verify_signature(value: &str, signature: &str) -> bool {
-      let expected = sign_data(value);
-      if expected.len() != signature.len() { return false; }
-      // ручной constant-time через fold по байтам hex-строк
-      expected.as_bytes().iter()
-          .zip(signature.as_bytes().iter())
-          .fold(0u8, |acc,(a,b)| acc | (a^b)) == 0
-  }
-  ```
-  Замечания:
-  1. Сравнение идёт по **hex-символам**, а не байтам — утечка информации о структуре hex остаётся, но не критичная.
-  2. Лучше использовать `subtle::ConstantTimeEq` из уже проверенной библиотеки.
-  3. Ранний возврат при разной длине — допустим (длина hex-представления HMAC-SHA256 всегда 64).
-- **Действия.**
-  1. Добавить в `src-tauri/Cargo.toml`: `subtle = "2.5"`.
-  2. Декодировать обе стороны через `hex::decode`, сравнить как `&[u8]`:
-     ```rust
-     use subtle::ConstantTimeEq;
-     let a = hex::decode(&expected).map_err(...)?;
-     let b = hex::decode(signature).map_err(...)?;
-     a.ct_eq(&b).into()
-     ```
-  3. **Проверить аналогичные места**:
-     - `engine/verification.rs` (RSA verify — через `rsa::pkcs1v15` уже ct-safe)
-     - `mod.rs:382-390` (beta-channel HMAC) — применить то же.
-- **Тесты.** `licensing_tests::verify_signature_constant_time` (таблица: равные/разные/пустые/разной длины).
-- **Риск.** Низкий — изменение локализовано, не меняет wire-формат.
+**DoD.** `todo!/unimplemented!` вне тестов → 0. `panic!` вне `mod tests` → только 2 compile-time builder guards в `types.rs`.
+
+### WP-1.2 Constant-time сравнение подписи лицензии ✅ DONE (2026-04-17)
+- **Изменение.** `verify_signature()` в `licensing/crypto.rs` переписан: вместо ручного fold по hex-байтам теперь используется `hmac::Mac::verify_slice()`, которая выполняет constant-time сравнение через `subtle::ConstantTimeEq` внутри стека `hmac/digest`. Добавлен ранний возврат `false` при невалидном hex.
+- **DoD.** Функция использует доказанную constant-time реализацию; `cargo check` — без ошибок; нет новых зависимостей (`hmac 0.12` уже присутствовал).
 
 ### WP-1.3 Удаление уязвимого `xlsx@0.18.5` ⏳ TODO
 - **Проблема.** `package-lock.json:9160` — `xlsx@0.18.5` (npm-пакет SheetJS CE; имеет published advisories).

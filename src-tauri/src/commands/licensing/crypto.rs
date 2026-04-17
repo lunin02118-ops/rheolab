@@ -131,17 +131,19 @@ pub(super) fn sign_data(value: &str) -> String {
 }
 
 pub(super) fn verify_signature(value: &str, signature: &str) -> bool {
-    let expected = sign_data(value);
-    if expected.len() != signature.len() {
+    // Decode the provided hex signature; invalid hex → false immediately.
+    let Ok(sig_bytes) = hex::decode(signature) else {
         return false;
-    }
-    // Constant-time comparison
-    expected
-        .as_bytes()
-        .iter()
-        .zip(signature.as_bytes().iter())
-        .fold(0u8, |acc, (a, b)| acc | (a ^ b))
-        == 0
+    };
+    let key = get_integrity_key();
+    // create_from_slice never fails for HMAC (accepts any key length)
+    let Ok(mut mac) = <HmacSha256 as Mac>::new_from_slice(key.as_bytes()) else {
+        return false;
+    };
+    mac.update(value.as_bytes());
+    // verify_slice performs constant-time comparison internally (via subtle crate
+    // inside the hmac/digest stack) — avoids timing side-channels.
+    mac.verify_slice(&sig_bytes).is_ok()
 }
 
 // в”Ђв”Ђ Secure storage (encrypted file) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
