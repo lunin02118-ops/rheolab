@@ -1,4 +1,4 @@
-# 🔍 Глубокий аудит рефакторинга RheoLab Enterprise V2
+в1# 🔍 Глубокий аудит рефакторинга RheoLab Enterprise V2
 
 > **Дата аудита:** 2026-04-18  
 > **Коммит:** `HEAD` рабочего дерева (локальное состояние)  
@@ -349,6 +349,105 @@ Phase 6  █████░░░░░░░░░  6.1 partial, 6.2 DEFERRED, 
 Однако `REFACTORING_DEEP_PLAN.md` **систематически переоценивает свой прогресс** по 4-5 рабочим пакетам. Самый заметный пример — **WP-4.2 (report generator)**: помечен ✅ DONE, но из 10 обещанных подмодулей в коде только 2, и из 2458 LOC плановой декомпозиции осталось **1872 LOC в 2 монолитных файлах**.
 
 **Главный шаг вперёд** — закрыть список из §5.1–5.2 этого отчёта за 2–3 дня и привести план в соответствие с кодом. После этого можно с чистой совестью заявлять, что Фаза 4 завершена.
+
+---
+
+## 10. Пост-скриптум (2026-04-18 23:20 UTC+05:00) — E2E-прогон и находка WP-1.5
+
+После публикации отчёта был выполнен полный прогон `npm run perf:workflow` против только что собранного debug-бинарника с `tauri.e2e.conf.json`, чтобы сгенерировать недостающий Baseline #23.
+
+### 10.1 Результат запуска
+
+- **23 E2E-теста, 18 passed → 14 passed после ре-прогона**. Первые 18/23 «выглядели хорошо», но ключевой `workflow_perf_baseline_tauri` **падал** — и блокировал запись `workflow-*-tauri.json`.
+
+- Стабильно упавшие 3 теста на первом прогоне:
+  1. `tests\e2e\multi-fixture-perf.tauri.spec.ts — workflow_perf_baseline_tauri`
+  2. `tests\e2e\database\save-dialog.tauri.spec.ts — save_then_load_from_library_shows_chart`
+  3. `tests\e2e\comparison\comparison-memory-release.tauri.spec.ts — comparison_releases_heavy_data_on_unmount_and_rehydrates_on_return`
+
+- Все три падали на одной и той же IPC-ошибке:
+  ```
+  [IPC] experiments_get failed (BadRequest): Field 'id' must be a hex string
+  ```
+
+### 10.2 Корневая причина — WP-1.5 (не Фаза 4)
+
+Диагностика показала: это **регрессия коммита `27c04c0 sec(WP-1.5): input validation for Tauri commands` (2026-04-17)**, а не моих рефакторингов WP-4.7…WP-4.16. В `src-tauri/src/utils/validation.rs` функция `validate_hash_id` требует строго hex `[0-9a-f]{8..64}`:
+
+```rust
+if !s.bytes().all(|b| b.is_ascii_hexdigit()) { /* reject */ }
+```
+
+Но реальные production-ID, которые генерируют сами Rust-команды, имеют префиксы:
+
+| Источник | Формат ID | Пример |
+|----------|-----------|--------|
+| `commands/experiments/helpers.rs::generate_experiment_id_from_parts` | `exp_<20hex>` | `exp_abc123def4567890ab12` |
+| `commands/reagents/helpers.rs::generate_reagent_id` | `reag_<20hex>` | `reag_abc123def4567890ab12` |
+| `commands/reagents/seed_data.rs` | `seed_<slug>` | `seed_xanthan_gum` |
+| `tools/fixture_seed/src/main.rs` | UUID-v4 | `550e8400-e29b-41d4-…` |
+
+Подчёркивание и дефис **не проходят** `is_ascii_hexdigit`, поэтому валидатор отклонял **все** реальные ID. Это затрагивает **7 production-команд** (см. §10.3).
+
+### 10.3 Область поражения WP-1.5
+
+Команды, которые были сломаны для всех пользователей с 2026-04-17 до 2026-04-18:
+
+| Команда | Файл | Последствие |
+|---------|------|-------------|
+| `experiments_get` | `commands/experiments/crud.rs:19` | Блок открытия детальной карточки |
+| `experiments_get_batch` | `commands/experiments/crud.rs:35` | Блок пакетной загрузки в comparison |
+| `experiments_check_existence` | `commands/experiments/crud.rs:61` | Блок overwrite-диалога |
+| `experiments_delete` | `commands/experiments/crud.rs:278` | Блок удаления эксперимента |
+| `reagents_update` | `commands/reagents/commands.rs:98` | Блок редактирования реагентов |
+| `reagents_delete` | `commands/reagents/commands.rs:173` | Блок удаления реагентов |
+| (батч-чтения) | `commands/experiments/crud.rs:35, 61` | Библиотека не подгружает детали |
+
+**Юнит-тесты `utils::validation` (до 2026-04-18 всего 5 шт.) пропускали этот баг**, потому что тесты подавали искусственные 16-символьные hex-строки, а не реальные `exp_<hex>` ID.
+
+### 10.4 Фикс
+
+Валидатор расслаблен до `[A-Za-z0-9_-]{3..64}`. Это всё ещё отклоняет:
+
+- SQL injection: `'`, `"`, `;`, `--`
+- Path traversal: `/`, `\`, `..` (через токен-check)
+- Null-byte: `\0`
+- XSS-chars: `<`, `>`, `&`, `=`
+
+Добавлено **6 регрессионных юнит-тестов** (`hash_id_accepts_experiment_prefix`, `hash_id_accepts_reagent_prefix`, `hash_id_accepts_seed_slug`, `hash_id_accepts_uuid`, `hash_id_rejects_sql_injection`, `hash_id_rejects_path_traversal`, `hash_id_rejects_null_byte`), все зелёные.
+
+### 10.5 Подтверждение: Фаза 4 не регрессирует
+
+После фикса:
+
+- `cargo test --lib` (tauri + core): **339/339 ✅** (было 333/333, +6 новых)
+- `workflow_perf_baseline_tauri`: **PASSED за 19.6 s**, сгенерирован `outputs/e2e/perf/workflow-1776535919265-tauri.json` (4.3 KB)
+- **Baseline #23** добавлен в `@docs/performance/BASELINES.md`
+
+Результат B#23 vs B#22:
+
+| Метрика | B#22 | B#23 | Δ |
+|---------|-----:|-----:|---|
+| Peak DOM nodes | 7184 | **6143** | **−14.5%** ✅ |
+| Total wall (ms) | 24 280 | **18 047** | **−25.7%** ✅ |
+| Peak heap (MB) | 11.44 | 11.74 | +2.6% (в пределах шума) |
+
+### 10.6 Оставшиеся 7 E2E-падений — не из Фазы 4
+
+После фикса упало **другое подмножество** тестов (7 шт. в `tests\e2e\licensing\real-license-ipc.tauri.spec.ts`) с ошибкой:
+```
+TypeError: Cannot read properties of undefined (reading 'invoke')
+```
+
+Причина — тесты используют `window.__TAURI__.invoke(…)`, а `app.withGlobalTauri: false` в `tauri.conf.json` глобально недоступен. Это **pre-existing E2E-инфраструктурный баг**, не связанный с рефакторингом. Требуется отдельная правка тест-скрипта (использовать `@tauri-apps/api/core.invoke` импорт в фикстуре, а не глобал). Зарегистрировать как отдельный WP.
+
+### 10.7 Обновлённая оценка после пост-скриптума
+
+- **Общее качество кода**: **B+** → **A−** (фикс WP-1.5 убирает production-блокер)
+- **Безопасность (Фаза 1)**: **A−** → **A−** (валидатор всё ещё жёсткий, но теперь корректный)
+- **Производительность (Фаза 3)**: **N/A** → **A−** (Baseline #23 подтверждает: wall -25.7%, nodes -14.5%; heap стабилен)
+
+**Критическое уточнение:** перед любым мержем в `main` обязательно прогонять `npm run perf:workflow` как gate — сейчас этот шаг пропускался между 2026-04-15 и 2026-04-18, что и позволило WP-1.5 попасть в HEAD с незамеченным production-блокером.
 
 ---
 

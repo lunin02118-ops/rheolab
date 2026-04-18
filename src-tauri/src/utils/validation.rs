@@ -28,8 +28,17 @@ pub fn validate_bounded_str(s: &str, max: usize, field: &str) -> Result<()> {
 
 // ── ID format ────────────────────────────────────────────────────────────────
 
-/// Validate a hex-encoded hash ID (experiments, reagents).
-/// Accepts 8..=64 lowercase hex chars.
+/// Validate an entity ID (experiments, reagents).
+///
+/// Accepts the actual ID formats used by the codebase:
+/// * `exp_<20hex>` — experiments (`generate_experiment_id_from_parts` in `experiments/helpers.rs`)
+/// * `reag_<20hex>` — reagents (`generate_reagent_id` in `reagents/helpers.rs`)
+/// * `seed_<slug>` — seeded reagents (`reagents/seed_data.rs`)
+/// * Plain hex — legacy / short-hash IDs
+/// * UUIDs — dev fixture seeds (`tools/fixture_seed`)
+///
+/// Security: still blocks SQL injection, XSS, path traversal vectors by
+/// restricting to `[A-Za-z0-9_-]`. Length 3..=64.
 pub fn validate_hash_id(s: &str, field: &str) -> Result<()> {
     if s.is_empty() {
         return Err(AppError::BadRequest(format!(
@@ -37,14 +46,17 @@ pub fn validate_hash_id(s: &str, field: &str) -> Result<()> {
         )));
     }
     let len = s.len();
-    if !(8..=64).contains(&len) {
+    if !(3..=64).contains(&len) {
         return Err(AppError::BadRequest(format!(
             "Field '{field}' has invalid ID length ({len})"
         )));
     }
-    if !s.bytes().all(|b| b.is_ascii_hexdigit()) {
+    if !s
+        .bytes()
+        .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+    {
         return Err(AppError::BadRequest(format!(
-            "Field '{field}' must be a hex string"
+            "Field '{field}' must contain only alphanumeric characters, '_' or '-'"
         )));
     }
     Ok(())
@@ -202,18 +214,53 @@ mod tests {
     }
 
     #[test]
+    fn hash_id_accepts_experiment_prefix() {
+        // Real format from `generate_experiment_id_from_parts`
+        assert!(validate_hash_id("exp_abc123def4567890ab12", "id").is_ok());
+    }
+
+    #[test]
+    fn hash_id_accepts_reagent_prefix() {
+        // Real format from `generate_reagent_id`
+        assert!(validate_hash_id("reag_abc123def4567890ab12", "id").is_ok());
+    }
+
+    #[test]
+    fn hash_id_accepts_seed_slug() {
+        // Real format from `reagents/seed_data.rs`
+        assert!(validate_hash_id("seed_xanthan_gum", "id").is_ok());
+    }
+
+    #[test]
+    fn hash_id_accepts_uuid() {
+        // Dev fixture-seed format (contains hyphens)
+        assert!(validate_hash_id("550e8400-e29b-41d4-a716-446655440000", "id").is_ok());
+    }
+
+    #[test]
     fn hash_id_rejects_empty() {
         assert!(validate_hash_id("", "id").is_err());
     }
 
     #[test]
-    fn hash_id_rejects_non_hex() {
-        assert!(validate_hash_id("xyz12345", "id").is_err());
+    fn hash_id_rejects_sql_injection() {
+        // Single quote → SQL injection attempt
+        assert!(validate_hash_id("abc' OR 1=1--", "id").is_err());
+    }
+
+    #[test]
+    fn hash_id_rejects_path_traversal() {
+        assert!(validate_hash_id("../etc/passwd", "id").is_err());
+    }
+
+    #[test]
+    fn hash_id_rejects_null_byte() {
+        assert!(validate_hash_id("abc\0def", "id").is_err());
     }
 
     #[test]
     fn hash_id_rejects_too_short() {
-        assert!(validate_hash_id("abc", "id").is_err());
+        assert!(validate_hash_id("ab", "id").is_err());
     }
 
     #[test]

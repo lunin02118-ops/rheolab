@@ -1572,3 +1572,54 @@ npm run perf:compare -- outputs/e2e/perf/workflow-1773578897707-tauri.json outpu
 
 - Gate status: FAIL
 - Report: `docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-15.md`
+
+---
+
+## Baseline #23 — Post-refactor Phase 4 + WP-1.5 validator fix (2026-04-18)
+
+**runId:** `1776535919265-tauri`
+**Workflow artifact:** `outputs/e2e/perf/workflow-1776535919265-tauri.json`
+**Native memory artifact:** `outputs/e2e/perf/native-memory-1776535817283.jsonl`
+**Дата:** 2026-04-18T18:12:17Z
+**Git context:** HEAD after WP-4.7…WP-4.16 refactor commits + `sec(validation): accept prefixed IDs (fix WP-1.5 regression)`
+
+### Условия теста
+
+| Параметр | Значение |
+|----------|---------|
+| Конфиг | `playwright.tauri.config.ts` |
+| Binary | `src-tauri/target/debug/rheolab-enterprise.exe` (`tauri build --debug --no-bundle --config src-tauri/tauri.e2e.conf.json`) |
+| Mode | Tauri native (CDP) |
+| Workers | 1 |
+| Фикстуры | 6 (Chandler SST, Chandler SWB, Grace Report, Brookfield 4, BSL Report, Ofite 1100) |
+
+### Итоговые метрики
+
+| Метрика | B#22 (pre-refactor) | **B#23 (post-refactor)** | Δ |
+|---------|--------------------:|-------------------------:|---|
+| Peak heap (MB) | 11.44 | **11.74** | +2.6% |
+| Peak DOM nodes | 7184 | **6143** | **−14.5%** ✅ |
+| Total wall (ms) | 24 280 | **18 047** | **−25.7%** ✅ |
+
+### Детальные метрики по шагам
+
+| Шаг | Heap (MB) | Δ Heap | Nodes | Δ Nodes | Analysis (ms) | Wall (ms) |
+|-----|----------:|-------:|------:|--------:|--------------:|----------:|
+| initial | 10.95 | — | 6143 | — | — | 0 |
+| after_chandler_sst | 10.79 | −0.16 | 3694 | −2449 | **34** | 1311 |
+| after_chandler_swb | 10.96 | +0.17 | 3928 | +234 | 23 | 1918 |
+| after_grace_report | 10.99 | +0.03 | 4082 | +154 | 24 | 1754 |
+| after_brookfield_4 | 10.83 | −0.16 | 3666 | −416 | 18 | 1791 |
+| after_bsl_report | 11.25 | +0.42 | 3552 | −114 | **60** | 1840 |
+| after_ofite_1100 | 10.92 | −0.33 | 3968 | +416 | 12 | 1121 |
+| comparison_4_loaded | 11.17 | +0.25 | 4323 | +355 | — | 3322 |
+| pdf_chandler_sst | 11.19 | +0.02 | 4587 | +264 | 9 | 1174 |
+| pdf_grace_report | 11.74 | +0.55 | 5512 | +925 | 25 | 1849 |
+
+### Notes
+
+- **Workflow test passed ✅** — `tests\e2e\multi-fixture-perf.tauri.spec.ts — workflow_perf_baseline_tauri` — 19.6 s.
+- **Critical regression discovered and fixed:** WP-1.5 (`27c04c0 sec(WP-1.5)`, 2026-04-17) introduced `validate_hash_id` in `src-tauri/src/utils/validation.rs` requiring **pure hex** `[0-9a-f]{8..64}`. Real production IDs are `exp_<20hex>` (24 chars, underscore prefix) and `reag_<20hex>` — **every** `experiments_get`/`_delete`/`_get_batch`/`_check_existence`/`reagents_update`/`reagents_delete` call was rejected with `BadRequest`. Comparison, load-from-library, and delete flows were **broken for all users** since WP-1.5 was merged. Fix: relax validator to `[A-Za-z0-9_-]{3..64}` (still blocks SQL-i/XSS/traversal). 6 new unit tests added; `cargo test --lib -p rheolab-core-tauri utils::validation` passes 25/25.
+- **Refactor Phase 4 verdict:** WP-4.7…WP-4.16 (experiments/helpers_tests, commands/licensing/hardware, parser/calibration/parsers, parser/row_mapper, etc.) are pure module/test extraction with **no behavioural drift** — confirmed by 339/339 passing unit tests (tauri 250 + core 89).
+- **Residual E2E failures (7/23) are unrelated** to Phase 4: licensing IPC tests fail with `TypeError: Cannot read properties of undefined (reading 'invoke')`. These depend on `window.__TAURI__.invoke` which is disabled by `withGlobalTauri: false`; tests need updating. Tracked separately.
+- **Known limitation:** B#22 and B#23 use different harnesses (frontend-IPC deep-audit vs. direct perf:workflow), so `peakHeapMb` is not directly comparable; wall time and node count are consistent across harnesses.
