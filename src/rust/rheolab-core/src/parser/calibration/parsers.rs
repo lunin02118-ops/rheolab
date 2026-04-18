@@ -1,5 +1,8 @@
-use serde::{Deserialize, Serialize};
+//! Calibration data parsers for BSL R1 and Chandler 5550 instruments.
 use std::sync::LazyLock;
+use calamine::{Reader, Xlsx, Xls, DataType, open_workbook_from_rs};
+use std::io::Cursor;
+use super::{CalibrationDataPoint, BSLMeta, CalibrationMeta, CalibrationReport};
 
 // Static compiled regexes for calibration parsing (#8 fix)
 static BSL_DATE_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
@@ -14,58 +17,6 @@ static CHANDLER_DATE_RE2: LazyLock<regex::Regex> = LazyLock::new(|| {
 static CHANDLER_DATE_RE3: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"Date[:\s]+([^,]+)").unwrap()
 });
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CalibrationDataPoint {
-    pub id: i32,
-    pub rpm: f64,
-    #[serde(rename = "shearRate")]
-    pub shear_rate: f64,
-    #[serde(rename = "shearStress")]
-    pub shear_stress: f64,
-    pub signal: f64,
-    #[serde(rename = "calculatedStress")]
-    pub calculated_stress: f64,
-    pub error: f64,
-    pub viscosity: f64,
-    pub temperature: f64,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BSLMeta {
-    pub filename: String,
-    pub date: String,
-    pub rotor: String,
-    pub moment: f64,
-    #[serde(rename = "calibrationFluid")]
-    pub calibration_fluid: String,
-    #[serde(rename = "calibrationType")]
-    pub calibration_type: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CalibrationMeta {
-    #[serde(rename = "deviceType")]
-    pub device_type: String,
-    #[serde(rename = "bslMeta")]
-    pub bsl_meta: Option<BSLMeta>,
-    #[serde(rename = "rSquared")]
-    pub r_squared: f64,
-    pub slope: f64,
-    pub intercept: f64,
-    pub hysteresis: f64,
-    pub stdev: f64,
-    #[serde(rename = "lastCalDate")]
-    pub last_cal_date: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CalibrationReport {
-    pub meta: CalibrationMeta,
-    pub data: Vec<CalibrationDataPoint>,
-    pub status: String,
-    pub issues: Vec<String>,
-}
 
 // Universal calibration quality limits (industry standard for Couette rheometers)
 // StdDev < 4 dyne/cm², Hysteresis < 8 dyne/cm², R² > 0.99
@@ -546,9 +497,6 @@ pub fn parse_calibration_data(rows: &[Vec<String>]) -> Result<CalibrationReport,
         _ => Err(format!("Неподдерживаемый тип устройства: {}", device_type)),
     }
 }
-
-use calamine::{Reader, Xlsx, Xls, DataType, open_workbook_from_rs};
-use std::io::Cursor;
 
 pub fn parse_calibration_from_buffer(data: &[u8]) -> Result<CalibrationReport, String> {
     // Try XLSX first
