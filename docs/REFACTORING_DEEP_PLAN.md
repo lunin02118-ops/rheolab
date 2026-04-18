@@ -629,14 +629,28 @@ Specta интеграция уже работает:
 - **Не выполнено:** полный `audit:enterprise` / `audit:frontend-ipc` требует Tauri build environment (запуск вручную).
 - **Регрессия unwrap/panic:** clippy `warn` добавлен в WP-0.2; CI ESLint `--max-warnings=0` добавлен в WP-5.4; `snapshot-metrics.js` теперь записывает baseline для автоматической регрессии.
 
-### WP-6.2 Performance-gate ✅ DONE (2026-04-19, бенчи + baseline)
+### WP-6.2 Performance-gate ✅ DONE (существовала до плана, подтверждено 2026-04-19)
 
-**Инфраструктура.**
-- `rheolab-core/benches/rheology_core.rs` (140 LOC, `criterion 0.5` harness).
-- `[[bench]] name = "rheology_core" harness = false` прописан в `Cargo.toml`.
-- Покрытие: `generate_chart_svg` (LTTB downsampling + SVG render), `detect_schedule` (step segmentation).
+**Инфраструктура уже в проекте** (задолго до этого аудита) — три уровня:
 
-**Baseline (2026-04-19, `--quick --warm-up-time 1 --measurement-time 3`, Windows release build):**
+1. **Criterion micro-benchmarks** (`rheolab-core/benches/rheology_core.rs`, 140 LOC, criterion 0.5).
+   - Покрывает `generate_chart_svg` (LTTB downsampling + SVG render) и `detect_schedule` (step segmentation).
+   - Локально: `cargo bench -p rheolab-core`.
+
+2. **E2E workflow baselines** (`docs/performance/BASELINES.md`, 1 575 строк).
+   - **22 зафиксированных Tauri-нативных baseline'а** (B#1 … B#22) с датами 2026-02-22 … 2026-04-15.
+   - Метрики: peak heap, peak DOM nodes, wall time, native WS (total/browser/renderer/GPU).
+   - 10 шагов workflow (6 фикстур + сравнение + 2 PDF).
+   - **2 browser benchmarks** (BB#1, BB#2) — idle heap per route + nav-leak + memory stress.
+   - Инструменты: `npm run perf:workflow:tauri`, `npm run perf:benchmark`, `npm run perf:compare`.
+   - Руководство: `docs/performance/PERF_TESTING.md`.
+
+3. **Frontend + IPC Deep Audit** (автоматический gate).
+   - Команда: `npm run audit:frontend-ipc -- --windows-runner`.
+   - GATE-HEAP / GATE-WALL / GATE-NODES / GATE-NATIVE — threshold-based регрессия p50/p95.
+   - Последний отчёт: `docs/performance/FRONTEND-IPC-DEEP-AUDIT-LATEST.md` (2026-04-15).
+
+**Criterion smoke-замер (2026-04-19, post-refactor, Windows release):**
 
 | Bench | n | median |
 |---|---:|---:|
@@ -651,9 +665,15 @@ Specta интеграция уже работает:
 | `detect_schedule/plateau` | 20 000 | 596 µs |
 | `detect_schedule/step_ramp` | 20 000 | 189 µs |
 
-**Проверка WP-3.x (LTTB).** `chart_svg` 2 000 → 10 000 растёт ×1.47 (не ×5), 10 000 → 50 000 — ×2.74 (не ×5). Sub-linear масштабирование подтверждает, что downsampling срабатывает для n > 1 500 — регрессия гарантированно детектируется.
+`chart_svg` 2 000 → 10 000 растёт ×1.47, 10 000 → 50 000 — ×2.74. Sub-linear масштабирование подтверждает работу LTTB (WP-3.x) после декомпозиции `chart_generator/`.
 
-**CI gate.** Отдельный nightly job в CI и автоматические thresholds — отложены (non-blocking, см. WP-6.3 ниже). Локальный запуск: `cargo bench -p rheolab-core`.
+**⚠ Действие перед релизом.** В `FRONTEND-IPC-DEEP-AUDIT-LATEST.md` (2026-04-15) **Gate = FAIL** по GATE-NODES (peakNodes p50: 7 184 vs baseline 3 607, +99 %). Это зафиксировано **до** WP-4.7..4.16. После декомпозиции нужно повторно запустить:
+
+```powershell
+npm run audit:frontend-ipc -- --windows-runner
+```
+
+и обновить Baseline #23 в `docs/performance/BASELINES.md`, чтобы подтвердить, что рефакторинг не ухудшил, и либо устранить регрессию nodes, либо задокументировать её причину.
 
 ### WP-6.3 Crash/panic телеметрия ⏳ DEFERRED (опционально)
 - `std::panic::set_hook` → пишет stack-trace (без PII) в `crash.log`, ротируется.
