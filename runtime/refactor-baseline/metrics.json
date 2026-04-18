@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-04-18T10:50:04.339Z",
+  "generatedAt": "2026-04-18T10:58:08.300Z",
   "tool": "scripts/audit/snapshot-metrics.js",
   "totals": {
-    "rustLoc": 36258,
+    "rustLoc": 36296,
     "tsLoc": 31834,
-    "rustFiles": 158,
+    "rustFiles": 162,
     "tsFiles": 208
   },
   "loc": {
@@ -13,8 +13,8 @@
       "loc": 20792
     },
     "rheolabCore": {
-      "files": 68,
-      "loc": 15466
+      "files": 72,
+      "loc": 15504
     },
     "srcTs": {
       "files": 208,
@@ -39,10 +39,6 @@
       {
         "path": "src/rust/rheolab-core/src/parser/calibration/parsers.rs",
         "loc": 603
-      },
-      {
-        "path": "src/rust/rheolab-core/src/report_generator/touch_point.rs",
-        "loc": 601
       },
       {
         "path": "src-tauri/src/commands/licensing/hardware.rs",
