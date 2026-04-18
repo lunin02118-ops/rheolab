@@ -25,11 +25,11 @@ export interface SaveBlobOptions {
 export async function saveBlob({ blob, filename, filters }: SaveBlobOptions): Promise<void> {
     // sessionStorage (not localStorage) so the flag is automatically cleared
     // when the app restarts — only the E2E test harness sets it per-session
-    // via addInitScript. The import.meta.env.DEV guard is a second barrier:
-    // production builds (import.meta.env.DEV === false) ALWAYS show the dialog,
-    // even if sessionStorage somehow has the flag.
-    const e2eSkipDialogs = import.meta.env.DEV
-        && sessionStorage.getItem('__e2e_skip_dialogs') === '1';
+    // via addInitScript. No DEV guard here: web-mode e2e tests run against a
+    // production Vite build (import.meta.env.DEV === false), so gating on DEV
+    // breaks the download assertions. The sessionStorage key itself is the
+    // barrier — nothing in production code ever sets it.
+    const e2eSkipDialogs = sessionStorage.getItem('__e2e_skip_dialogs') === '1';
 
     if (isTauri() && !e2eSkipDialogs) {
         const filePath = await save({ defaultPath: filename, filters });
