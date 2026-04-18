@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-04-19T08:43:06.141Z",
+  "generatedAt": "2026-04-18T11:28:59.068Z",
   "tool": "scripts/audit/snapshot-metrics.js",
   "totals": {
-    "rustLoc": 36399,
+    "rustLoc": 36457,
     "tsLoc": 31834,
-    "rustFiles": 169,
+    "rustFiles": 174,
     "tsFiles": 208
   },
   "loc": {
@@ -13,8 +13,8 @@
       "loc": 20850
     },
     "rheolabCore": {
-      "files": 74,
-      "loc": 15549
+      "files": 79,
+      "loc": 15607
     },
     "srcTs": {
       "files": 208,
@@ -27,10 +27,6 @@
       {
         "path": "src-tauri/src/commands/backup/restore_tests.rs",
         "loc": 674
-      },
-      {
-        "path": "src/rust/rheolab-core/src/parser/calibration/parsers.rs",
-        "loc": 603
       },
       {
         "path": "src-tauri/src/commands/licensing/hardware.rs",
@@ -103,14 +99,6 @@
         "unimplemented": 0
       },
       {
-        "path": "src/rust/rheolab-core/src/parser/calibration/parsers.rs",
-        "unwrap": 0,
-        "expect": 4,
-        "panic": 0,
-        "todo": 0,
-        "unimplemented": 0
-      },
-      {
         "path": "src-tauri/src/commands/licensing/crypto.rs",
         "unwrap": 0,
         "expect": 3,
@@ -120,6 +108,14 @@
       },
       {
         "path": "src/rust/rheolab-core/src/parser/date_detector.rs",
+        "unwrap": 0,
+        "expect": 3,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/calibration/parsers/chandler.rs",
         "unwrap": 0,
         "expect": 3,
         "panic": 0,
@@ -192,6 +188,14 @@
       },
       {
         "path": "src-tauri/src/commands/licensing/hardware.rs",
+        "unwrap": 0,
+        "expect": 1,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/calibration/parsers/bsl.rs",
         "unwrap": 0,
         "expect": 1,
         "panic": 0,
