@@ -1,4 +1,4 @@
-# Pre-commit hooks for secret scanning (F-01 prevention).
+# Pre-commit hooks for code quality and secret scanning.
 #
 # Install:
 #   pip install pre-commit        # or  brew install pre-commit
@@ -18,3 +18,26 @@ repos:
         description: Scan staged files for hardcoded secrets, credentials, and API keys.
         # Only scan staged changes (not all history) on each commit.
         # For full-history scans, run:  gitleaks detect --source=. --verbose
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.32.0
+    hooks:
+      - id: typos
+        name: typos — catch common spelling mistakes
+        # Respects _typos.toml / typos.toml for project-specific config.
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt — check Rust formatting
+        entry: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: eslint
+        name: eslint — lint TypeScript/JavaScript
+        entry: npx eslint --max-warnings=0
+        language: system
+        types_or: [ts, tsx, javascript, jsx]
+        pass_filenames: true

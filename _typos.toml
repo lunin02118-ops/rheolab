@@ -1,0 +1,27 @@
+# typos configuration — https://github.com/crate-ci/typos
+# Used by pre-commit hook and CI.
+
+[files]
+extend-exclude = [
+  "*.lock",
+  "*.min.js",
+  "src-tauri/target/",
+  "src-tauri/gen/",
+  "src/types/generated.d.ts",
+  "node_modules/",
+  "runtime/",
+  "outputs/",
+  "license-server/vendor/",
+  "Regents/tds_files/",
+  "Regents/tds_txt/",
+  "public/fonts/",
+  "tests/fixtures/",
+  "website/node_modules/",
+  "website/.astro/",
+]
+
+[default.extend-words]
+# Project-specific false positives:
+# "tds" = technical data sheets (reagent system)
+tds = "tds"
+# Russian text produces many false positives — allow common fragments

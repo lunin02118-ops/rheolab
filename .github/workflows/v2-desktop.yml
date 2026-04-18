@@ -87,7 +87,7 @@ jobs:
             (echo "ERROR: src/types/generated.d.ts is stale — run 'cargo test export_ts_bindings' and commit the regenerated file." && exit 1)
 
       - name: ESLint
-        run: npx eslint .
+        run: npx eslint . --max-warnings=0
 
       - name: Validate Linux prerequisites
         run: npm run doctor:linux
@@ -164,7 +164,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: ESLint
-        run: npx eslint .
+        run: npx eslint . --max-warnings=0
 
       - name: Cargo check (Tauri backend)
         working-directory: src-tauri
@@ -229,6 +229,7 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    needs: linux-quality
 
     steps:
       - name: Checkout
@@ -257,7 +258,7 @@ jobs:
         run: npm --prefix website ci
 
       - name: Enterprise audit preflight
-        run: npm run -s audit:enterprise:preflight -- --run-id=preflight-${{ github.run_id }}
+        run: npm run -s audit:enterprise -- --preflight-only --run-id=preflight-${{ github.run_id }}
 
       - name: Upload preflight audit artifacts
         if: always()
