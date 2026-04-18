@@ -1,6 +1,6 @@
 # 🔬 Глубокий план рефакторинга RheoLab Enterprise V2
 
-> **Статус:** 🔄 в работе — Фаза 4 (WP-4.4 следующий)  
+> **Статус:** 🔄 в работе — Фаза 4 (WP-4.5 следующий)  
 > **Дата:** 2026-04-17 | **Обновлён:** 2026-04-18  
 > **Связанные документы:** [`docs/refactoring-plan.md`](./refactoring-plan.md) (сводный обзор), [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md), [`CLAUDE.md`](../CLAUDE.md)
 
@@ -350,15 +350,21 @@ rheolab-core/src/parser/
 - **152 теста, 0 провалов** (`cargo test`)
 - Запушен в `https://github.com/70lunin021189-ux/rheolab.git` ветка `main`
 
-### WP-4.4 `repositories/experiments.rs` (748 LOC → модули) ⏳ TODO```
-src-tauri/src/db/repositories/experiments/
-  mod.rs
-  read.rs           // list/get/paginate
-  write.rs          // insert/update/upsert
-  delete.rs
-  aggregate.rs      // statistics, counts, report-support
-  mapping.rs        // row -> domain types
+### WP-4.4 `repositories/experiments.rs` (748 LOC → модули) ✅ DONE (2026-04-18, коммит 930226d)
+
+Реальная структура после разбиения:
 ```
+src-tauri/src/db/repositories/experiments/
+  mod.rs        // ExperimentRepository trait + SqliteExperimentRepository + pub(crate) re-exports
+  read.rs       // load_experiment_by_id, load_experiments_batch, find_duplicate
+  write.rs      // persist_experiment (upsert + columnar blob + reagents)
+  delete.rs     // delete_experiment (с явной очисткой ExperimentData для pre-V10 DBs)
+```
+
+Отклонения от плана:
+- `aggregate.rs` и `mapping.rs` **пропущены** — row→domain mapping вложен в замыкания (извлечение изменило бы логику, не структуру); aggregate stats в файле отсутствовали
+- Visibility: `pub(super)` → `pub(crate)` в подмодулях (Rust не позволяет `pub(crate) use` `pub(super)` item-ов)
+- `cargo check`: чисто; `cargo test`: 23 passed, 1 pre-existing AI-mapping failure
 
 ### WP-4.5 TS-файлы > 400 LOC ⏳ TODO| Текущий файл | Размер | Цель разбиения |
 |---|---|---|
