@@ -390,6 +390,67 @@ src-tauri/src/db/repositories/experiments/
 | `src/lib/parsing/client.ts` | 468 | `client/read.ts`, `client/write.ts`, `client/transform.ts` |
 | `src/components/calibration/CalibrationChartsUplot.tsx` | 466 | hooks + subcomponents |
 
+### WP-4.12 `parser/rheo_parser/mod.rs` (558 LOC → 4 модуля) ✅ DONE (2026-04-19)
+
+**Фактическая структура:**
+```
+rheolab-core/src/parser/rheo_parser/
+├── mod.rs            (208 LOC)  // public API + parse_rheo_data + AI-hint + shared helpers
+├── heuristics.rs     (115 LOC)  // cell/row classifiers + delimited-row splitting
+├── ai_candidates.rs  (277 LOC)  // AI-context candidate extraction + ranking
+├── workbook.rs       (existing) // Calamine worksheet parsing
+└── csv_parser.rs     (existing) // CSV/TSV/DAT parsing
+```
+
+- **Результат.** Root `mod.rs` сократился с 558 → 208 LOC; `ai_candidates.rs` — 277 LOC.
+- **Публичный API сохранён.** `parse_rheo_data`, `parse_rheo_data_with_ai_hint`, `extract_ai_context_candidates`, `extract_candidate_headers` re-exported as before.
+- **Гарантия.** Pure move:
+  - `cargo test --lib` (core):  **89/89** ✅
+  - `cargo test --lib` (tauri): **244/244** ✅
+- Closes WP-4.12.
+
+### WP-4.11 `db/migration.rs` (605 LOC → 131 + tests) ✅ DONE (2026-04-19)
+
+- **Результат.** Production `migration.rs` = 136 LOC; тесты вынесены в sibling `migration_tests.rs` (469 LOC), подключён через `#[path = "migration_tests.rs"] mod tests;` — тот же паттерн, что и `hardware.rs` / `licensing.rs`.
+- **Гарантия.** Нулевая логическая правка тестов:
+  - `cargo test --lib db::migration`: **16/16** pass
+  - `cargo test --lib` (tauri): **244/244** pass
+- Closes WP-4.11 — production file теперь глубоко ниже лимита.
+
+### WP-4.10 `commands/parsing/commands.rs` (664 LOC → 5 модулей) ✅ DONE (2026-04-19)
+
+**Фактическая структура:**
+```
+src-tauri/src/commands/parsing/commands/
+├── mod.rs           (167 LOC)  // entrypoints + cache dispatch + parse_file_native
+├── candidate.rs     (137 LOC)  // ParseCandidate + build + compare + finalize_response
+├── io.rs            ( 57 LOC)  // read_request_bytes + parse_heuristic + parse_ai
+├── ai.rs            (200 LOC)  // parse_with_optional_ai + parse_force_ai_only + fallback
+└── diagnostics.rs   ( 73 LOC)  // AiDiagnostics lifecycle builders + ai_failure_reason
+```
+
+- **Результат.** Все 5 файлов ≤ 200 LOC. Директория заменяет бывший monolithic файл.
+- **Публичный API сохранён.** `parsing_parse_file_inner{,_with_mapper}` + `parse_file_native` — идентичные сигнатуры.
+- **Гарантия.** Pure move — `cargo test --lib` (tauri): **244/244** pass.
+- Closes WP-4.10.
+
+### WP-4.9 `report_generator/touch_point.rs` (601 LOC → 5 модулей) ✅ DONE (2026-04-19)
+
+**Фактическая структура:**
+```
+rheolab-core/src/report_generator/touch_point/
+├── mod.rs          ( 35 LOC)  // pub re-exports + default constants
+├── types.rs        ( 44 LOC)  // TouchPointInput/Type/Result + SmartTouchPointOptions
+├── helpers.rs      (130 LOC)  // dominant shear rate + shear-rate filter + viscosity peak
+├── algorithm.rs    (196 LOC)  // calculate_smart_touch_points main entry
+└── tests.rs        (159 LOC)  // unit tests
+```
+
+- **Результат.** Все 5 файлов ≤ 200 LOC.
+- **Публичный API сохранён.** `TouchPointInput`, `TouchPointResult`, `TouchPointType`, `SmartTouchPointOptions`, `calculate_smart_touch_points`, `find_dominant_shear_rate`, `filter_by_shear_rate`, `find_viscosity_peak` re-exported from `touch_point`.
+- **Гарантия.** `cargo test --lib` (core): **89/89** pass.
+- Closes WP-4.9.
+
 ### WP-4.8 `excel.rs` (864 LOC → 7 модулей) ✅ DONE (2026-04-19)
 
 **Фактическая структура:**
@@ -494,7 +555,7 @@ Specta интеграция уже работает:
   - Rust LOC: **36 137** (152 файла) | TS LOC: **31 834** (208 файлов)
   - **Rust non-test production:** `unwrap()` = **0** | `expect()` = **45** | `panic!()` = **0** | `todo!()` = **0**
   - Все оставшиеся `expect()` — static-regex `LazyLock` инициализация с задокументированными SAFETY-инвариантами.
-  - Rust файлов > 500 LOC: **10** (включая 2 test-файла; производственных монолитов — 8) — после WP-4.7 (`detectors.rs`) + WP-4.8 (`excel.rs`)
+  - Rust файлов > 500 LOC: **6** (2 test-файла + 4 production) — после WP-4.7..WP-4.12. Production ↓ с 8 до 4: `parser/calibration/parsers.rs` (603), `commands/licensing/hardware.rs` (564), `commands/experiments/helpers.rs` (544), `parser/row_mapper/mod.rs` (519).
   - TS файлов > 400 LOC: **6** (все — компоненты page/settings, лимит превышен на 1–43 строки)
   - Tauri commands: **89 defined / 87 registered** (`experiments_export` orphan удалён)
   - Mojibake: **0 вхождений** (`runtime/refactor-baseline/metrics.json.mojibake.total = 0`)
