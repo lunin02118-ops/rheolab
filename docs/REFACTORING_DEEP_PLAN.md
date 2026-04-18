@@ -250,7 +250,7 @@
 - **Миграция.** Новый файл `db/migrations/v{next}_add_perf_indexes.rs`.
 - **Acceptance.** `perf:db:large` ≥ +20%; все критические запросы в `EXPLAIN` — SEARCH.
 
-### WP-3.4 React — оптимизация больших списков ⏳ TODO- **Цели:**
+### WP-3.4 React — оптимизация больших списков ✅ DONE- **Цели:**
   - `src/components/library/experiment-table.tsx` (500 LOC)
   - `src/components/library/experiment-card.tsx` (394)
   - `src/components/comparison/comparison-selector.tsx` (366)
@@ -261,11 +261,11 @@
   4. Добавить `React Profiler`-тесты (в `tests/performance/`).
 - **Acceptance.** Профиль rerender после изменения одного элемента — снижение ≥ 50%.
 
-### WP-3.5 Code-split страниц ⏳ TODO- **Цели:** `settings/page.tsx` (605 LOC), `dashboard/page.tsx` (494), `LicenseActivationDialog.tsx` (479).
+### WP-3.5 Code-split страниц ✅ DONE- **Цели:** `settings/page.tsx` (605 LOC), `dashboard/page.tsx` (494), `LicenseActivationDialog.tsx` (479).
 - **Меры.** Разбить settings по вкладкам; каждая — `React.lazy`. Диалог активации — lazy load.
 - **Acceptance.** Initial chunk меньше на ≥ 50 KB gz; Lighthouse TTI не ухудшается.
 
-### WP-3.6 SQLite PRAGMA fine-tune ⏳ TODO- Текущие настройки в `db/pool.rs` — базовые. Проверить:
+### WP-3.6 SQLite PRAGMA fine-tune ✅ DONE- Текущие настройки в `db/pool.rs` — базовые. Проверить:
   - `PRAGMA journal_mode = WAL;`
   - `PRAGMA synchronous = NORMAL;`
   - `PRAGMA cache_size = -20000;`  *(≈ 20 МБ, эмпирически)*
@@ -279,7 +279,7 @@
 
 > Ключевой принцип: каждая декомпозиция — это **чистый move** (перенос кода без изменений) + отдельный коммит с публичным API-слоем.
 
-### WP-4.1 `db/migration.rs` (1015 LOC → модули) ⏳ TODO```
+### WP-4.1 `db/migration.rs` (1015 LOC → модули) ✅ DONE```
 src-tauri/src/db/
   migration.rs              // тонкий re-export для обратной совместимости
   migrations/

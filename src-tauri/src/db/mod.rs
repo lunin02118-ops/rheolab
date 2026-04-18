@@ -5,6 +5,7 @@
 
 pub mod columnar;
 pub mod migration;
+pub mod migrations;
 pub mod pool;
 pub mod repositories;
 
