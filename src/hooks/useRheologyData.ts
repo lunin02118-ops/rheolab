@@ -6,7 +6,7 @@
  * Extracted from RheologyChart to keep the component readable.
  */
 import { useMemo } from 'react';
-import uPlot from 'uplot';
+import type uPlot from 'uplot';
 import { downsampleRheoPointsSmart, downsampleRheoPointsMultiChannel } from '@/lib/utils/downsample';
 import { calculateSmartTouchPoints, type TouchPointInput } from '@/lib/utils/touch-point';
 import { columnarToRawPoints } from '@/lib/utils/columnar';

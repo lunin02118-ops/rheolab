@@ -59,7 +59,7 @@ export function APIKeyManager() {
     };
 
     useEffect(() => {
-        fetchKeys();
+        void fetchKeys();
     }, []);
 
     const handleModelChange = (model: string) => {

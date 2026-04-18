@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { RheoStep, RheoCycle } from '@/lib/analysis/types';
+import type { RheoStep, RheoCycle } from '@/lib/analysis/types';
 import { createCycleFromSteps } from '@/lib/analysis/cycle-factory';
 
 // Mock helper to simulate the worker logic for testing (EXACT SEQUENCE matching)

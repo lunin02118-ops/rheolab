@@ -35,18 +35,29 @@ export default tseslint.config(
         varsIgnorePattern: "^_",
         caughtErrorsIgnorePattern: "^_",
       }],
-      "@typescript-eslint/no-unsafe-function-type": "warn",
+      "@typescript-eslint/no-unsafe-function-type": "error",
+      "@typescript-eslint/consistent-type-imports": ["error", {
+        disallowTypeAnnotations: false,
+      }],
     }
   },
   {
     // Apply react-hooks rules only to source files, not tests
     files: ["src/**/*.ts", "src/**/*.tsx"],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     plugins: {
       "react-hooks": reactHooks,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "react-hooks/exhaustive-deps": "error",
+      "no-console": ["error", { allow: ["warn", "error"] }],
+      "@typescript-eslint/no-floating-promises": "error",
     }
   },
   {

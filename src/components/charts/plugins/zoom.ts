@@ -1,4 +1,4 @@
-import uPlot from 'uplot';
+import type uPlot from 'uplot';
 import { useZoomSyncStore } from '@/lib/store/zoom-sync-store';
 import { createLogger } from '@/lib/logger';
 

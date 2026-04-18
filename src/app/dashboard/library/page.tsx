@@ -3,7 +3,8 @@ import { ExperimentFilters } from '@/components/library/experiment-filters';
 import { ExperimentList } from '@/components/library/experiment-list';
 import { ReagentsManager } from '@/components/library/reagents-manager';
 import { Database, Beaker, Loader2 } from 'lucide-react';
-import { ExperimentFilters as FilterState, EMPTY_FILTERS } from '@/types/experiment-filters';
+import type { ExperimentFilters as FilterState} from '@/types/experiment-filters';
+import { EMPTY_FILTERS } from '@/types/experiment-filters';
 import { useSearchParams } from 'react-router-dom';
 
 // Inner component that uses useSearchParams

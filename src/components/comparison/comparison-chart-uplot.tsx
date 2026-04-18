@@ -8,7 +8,7 @@ import { zoomPlugin } from '../charts/plugins/zoom';
 import { touchPointsPlugin } from '../charts/plugins/touchPoints';
 import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
 import { useChartResize } from '@/hooks/useChartResize';
-import uPlot from 'uplot';
+import type uPlot from 'uplot';
 import { ComparisonLegend } from './ComparisonLegend';
 import { type ComparisonChartProps } from './comparison-chart-constants';
 import { useComparisonChartData } from './useComparisonChartData';

@@ -6,7 +6,8 @@ import { SaveExperimentDialog } from '@/components/dashboard/save-experiment-dia
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
-import { useExperimentDataStore, ParseResult } from '@/lib/store/experiment-data-store';
+import type { ParseResult } from '@/lib/store/experiment-data-store';
+import { useExperimentDataStore } from '@/lib/store/experiment-data-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useAnalysisPipeline } from '@/hooks/useAnalysisPipeline';
 const DashboardContent = lazy(() =>

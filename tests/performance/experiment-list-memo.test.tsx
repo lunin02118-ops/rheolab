@@ -111,8 +111,8 @@ describe('ExperimentCard memoisation', () => {
         function Parent() {
             const [tick, setTick] = useState(0)
             // stable references across renders
-            const stableDelete = useCallback(onDelete, [])   // eslint-disable-line
-            const stableToggle = useCallback(onToggle, [])   // eslint-disable-line
+            const stableDelete = useCallback(onDelete, [])    
+            const stableToggle = useCallback(onToggle, [])    
 
             return (
                 <>
@@ -152,8 +152,8 @@ describe('ExperimentCard memoisation', () => {
         const initialExps = IDS.map(makeExp)
 
         function Parent({ exps }: { exps: ExperimentCardItem[] }) {
-            const stableDelete = useCallback(onDelete, [])   // eslint-disable-line
-            const stableToggle = useCallback(onToggle, [])   // eslint-disable-line
+            const stableDelete = useCallback(onDelete, [])    
+            const stableToggle = useCallback(onToggle, [])    
 
             return (
                 <>
@@ -196,8 +196,8 @@ describe('ExperimentCard memoisation', () => {
         const initialExps = IDS.map(makeExp)
 
         function Parent({ exps }: { exps: ExperimentCardItem[] }) {
-            const stableDelete = useCallback(onDelete, [])   // eslint-disable-line
-            const stableToggle = useCallback(onToggle, [])   // eslint-disable-line
+            const stableDelete = useCallback(onDelete, [])    
+            const stableToggle = useCallback(onToggle, [])    
 
             return (
                 <>

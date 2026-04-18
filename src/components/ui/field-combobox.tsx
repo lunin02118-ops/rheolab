@@ -5,7 +5,8 @@
  * suggestions (e.g. distinct values already stored in the DB).
  * User can always type a completely custom value — the list is advisory only.
  */
-import { useState, useEffect, useRef, useCallback, useMemo, KeyboardEvent } from 'react';
+import type { KeyboardEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChevronDown, X, MapPin } from 'lucide-react';
 import { OIL_GAS_FIELDS } from '@/lib/constants/oil-fields';
 

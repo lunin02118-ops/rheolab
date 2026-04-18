@@ -366,7 +366,7 @@ src-tauri/src/db/repositories/experiments/
 - Visibility: `pub(super)` → `pub(crate)` в подмодулях (Rust не позволяет `pub(crate) use` `pub(super)` item-ов)
 - `cargo check`: чисто; `cargo test`: 23 passed, 1 pre-existing AI-mapping failure
 
-### WP-4.5 TS-файлы > 400 LOC ⏳ TODO| Текущий файл | Размер | Цель разбиения |
+### WP-4.5 TS-файлы > 400 LOC ✅ DONE (2026-04-18)| Текущий файл | Размер | Цель разбиения |
 |---|---|---|
 | `src/lib/analysis/report-types/types.ts` | 700 | `types/measurement.ts`, `types/report.ts`, `types/chart.ts` |
 | `src/lib/utils/comparison-data.ts` | 610 | `comparison/normalize.ts`, `comparison/align.ts`, `comparison/diff.ts` |
@@ -378,13 +378,13 @@ src-tauri/src/db/repositories/experiments/
 | `src/lib/parsing/client.ts` | 468 | `client/read.ts`, `client/write.ts`, `client/transform.ts` |
 | `src/components/calibration/CalibrationChartsUplot.tsx` | 466 | hooks + subcomponents |
 
-### WP-4.6 Автогенерация `tauri.d.ts` через `specta` ⏳ TODO- **Сейчас.** `src/types/tauri.d.ts` (403 LOC) — ручной; есть риск drift'а от реальных сигнатур (88 команд).
-- **Цель.**
-  1. Annotate: `#[tauri::command, specta::specta]` на всех 88 командах.
-  2. `cargo run --bin export-bindings` → `src/types/tauri.generated.d.ts`.
-  3. npm script `typegen:tauri`; pre-commit — генерировать и проверять diff.
-  4. CI-gate: в PR файл-`generated` должен быть в sync с кодом.
-- **Риск.** Средний — некоторые команды возвращают `serde_json::Value`, `specta` требует явного `Type`. Для таких оставить ручной override с комментарием.
+### WP-4.6 Автогенерация `tauri.d.ts` через `specta` ✅ ALREADY DONE (pre-existing)
+
+Specta интеграция уже работает:
+- `specta` 2.0.0-rc.22 + `specta-typescript` 0.0.9 в зависимостях
+- Авто-генерация `src/types/generated.d.ts` (~290 LOC, 74 типа) при debug-запуске и через `cargo test export_ts_bindings`
+- `src/types/tauri.d.ts` (~625 LOC) — тонкий wrapper: re-exports из generated + backward-compat aliases + frontend-only типы + override для `serde_json::Value` команд
+- `tauri-specta` не нужен: используется прямой `specta::export()` по `#[derive(specta::Type)]`
 
 ---
 

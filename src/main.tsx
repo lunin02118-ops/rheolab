@@ -21,7 +21,7 @@ async function logCrashToTauri(message: string): Promise<void> {
 window.addEventListener('error', (event) => {
     const msg = `Uncaught error: ${event.message} @ ${event.filename}:${event.lineno}:${event.colno}\n${event.error?.stack ?? ''}`;
     console.error('[GlobalErrorHandler]', msg);
-    logCrashToTauri(msg);
+    void logCrashToTauri(msg);
 });
 
 window.addEventListener('unhandledrejection', (event) => {
@@ -30,7 +30,7 @@ window.addEventListener('unhandledrejection', (event) => {
         : String(event.reason);
     const msg = `Unhandled promise rejection: ${reason}`;
     console.error('[GlobalErrorHandler]', msg);
-    logCrashToTauri(msg);
+    void logCrashToTauri(msg);
 });
 // ─────────────────────────────────────────────────────────────────────────────
 

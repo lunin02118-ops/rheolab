@@ -129,7 +129,7 @@ export function useExperimentSave({
 
     const confirmOverwrite = useCallback(() => {
         if (pendingOverwritePayload) {
-            handleSave({ ...pendingOverwritePayload, overwrite: true });
+            void handleSave({ ...pendingOverwritePayload, overwrite: true });
         }
     }, [pendingOverwritePayload, handleSave]);
 
@@ -141,7 +141,7 @@ export function useExperimentSave({
     /** User chose to overwrite the name-conflicting experiment. */
     const confirmNameOverwrite = useCallback(() => {
         if (pendingNameConflictPayload) {
-            handleSave({ ...pendingNameConflictPayload, overwrite: true });
+            void handleSave({ ...pendingNameConflictPayload, overwrite: true });
         }
     }, [pendingNameConflictPayload, handleSave]);
 

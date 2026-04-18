@@ -51,7 +51,7 @@ function ReagentsManagerComponent() {
 
     const deleteFocusTrapRef = useFocusTrap<HTMLDivElement>(!!deleteConfirm);
 
-    useEffect(() => { fetchReagents(); }, [fetchReagents]);
+    useEffect(() => { void fetchReagents(); }, [fetchReagents]);
 
     // Filter reagents (deferredSearch avoids blocking the input keystroke)
     const filteredReagents = useMemo(() => reagents.filter(r => {

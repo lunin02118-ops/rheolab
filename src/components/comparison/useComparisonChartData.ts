@@ -12,7 +12,7 @@
  */
 
 import { useMemo } from 'react';
-import uPlot from 'uplot';
+import type uPlot from 'uplot';
 import { useTheme } from '@/contexts/theme-context';
 import { useChartSettingsStore, getStrokeDasharray } from '@/lib/store/chart-settings-store';
 import {

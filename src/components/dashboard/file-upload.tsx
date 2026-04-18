@@ -102,7 +102,7 @@ export function FileUpload({ onFileProcessed, onError, isLoading, loadedFileName
         setIsDragging(false);
 
         const file = e.dataTransfer.files[0];
-        if (file) handleFile(file);
+        if (file) void handleFile(file);
     }, [handleFile]);
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -117,7 +117,7 @@ export function FileUpload({ onFileProcessed, onError, isLoading, loadedFileName
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) handleFile(file);
+        if (file) void handleFile(file);
         // Reset input value so re-selecting the same file triggers onChange again
         e.target.value = '';
     }, [handleFile]);

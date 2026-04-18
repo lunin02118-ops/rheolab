@@ -55,7 +55,7 @@ export function BackupManager() {
 
     useEffect(() => {
         if (isDesktop) {
-            loadBackups();
+            void loadBackups();
         }
     }, [isDesktop, loadBackups]);
 

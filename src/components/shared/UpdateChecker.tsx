@@ -203,7 +203,7 @@ export function UpdateChecker(): null {
         }
 
         const initialTimer = setTimeout(() => {
-            runCheck();
+            void runCheck();
             intervalId = setInterval(runCheck, CHECK_INTERVAL_MS);
         }, INITIAL_DELAY_MS);
 

@@ -121,7 +121,7 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
             return;
         }
         const cancelled = { current: false };
-        fetchExperiments(cancelled);
+        void fetchExperiments(cancelled);
         return () => { cancelled.current = true; };
     }, [isOpen, fetchExperiments, debouncedSearch]);
 
@@ -170,7 +170,7 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) handleFileSelect(file);
+        if (file) void handleFileSelect(file);
         // Reset so the same file can be re-selected
         e.target.value = '';
     }, [handleFileSelect]);
@@ -179,7 +179,7 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
         e.preventDefault();
         setIsDragging(false);
         const file = e.dataTransfer.files?.[0];
-        if (file) handleFileSelect(file);
+        if (file) void handleFileSelect(file);
     }, [handleFileSelect]);
 
     // Close on Escape key

@@ -13,13 +13,13 @@ import { CycleEditorDialog } from '@/components/analysis/cycle-editor-dialog';
 import { ParsingLogs } from '@/components/dashboard/parsing-logs';
 import { InstrumentSelector } from '@/components/dashboard/instrument-selector';
 import { GeometrySelector } from '@/components/dashboard/geometry-selector';
-import { ParseResult } from '@/lib/store/experiment-data-store';
+import type { ParseResult } from '@/lib/store/experiment-data-store';
 import { rawPointsFromParseResult } from '@/lib/utils/columnar';
-import { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
+import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
 import { useLicense } from '@/hooks/useLicense';
-import { RheoStep } from '@/lib/analysis/types';
-import { RecipeComponent } from '@/components/analysis/recipe-panel';
-import { WaterParams } from '@/components/analysis/water-analysis-panel';
+import type { RheoStep } from '@/lib/analysis/types';
+import type { RecipeComponent } from '@/components/analysis/recipe-panel';
+import type { WaterParams } from '@/components/analysis/water-analysis-panel';
 
 // Define explicit types for props
 export interface DashboardContentProps {

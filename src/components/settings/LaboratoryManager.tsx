@@ -27,7 +27,7 @@ export function LaboratoryManager() {
 
     useEffect(() => {
         setLoading(true);
-        reload().finally(() => setLoading(false));
+        void reload().finally(() => setLoading(false));
     }, [reload]);
 
     const handleAdd = async () => {
@@ -122,7 +122,7 @@ export function LaboratoryManager() {
                     type="text"
                     value={addName}
                     onChange={e => setAddName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+                    onKeyDown={e => { if (e.key === 'Enter') void handleAdd(); }}
                     placeholder="Название лаборатории"
                     className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-slate-600 focus:border-blue-500 outline-none transition-colors"
                     data-testid="LaboratoryNameInput"
@@ -131,7 +131,7 @@ export function LaboratoryManager() {
                     type="text"
                     value={addLocation}
                     onChange={e => setAddLocation(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+                    onKeyDown={e => { if (e.key === 'Enter') void handleAdd(); }}
                     placeholder="Местоположение (необязательно)"
                     className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-slate-600 focus:border-blue-500 outline-none transition-colors"
                 />
@@ -163,7 +163,7 @@ export function LaboratoryManager() {
                                         type="text"
                                         value={editName}
                                         onChange={e => setEditName(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                                        onKeyDown={e => { if (e.key === 'Enter') void handleSaveEdit(); if (e.key === 'Escape') cancelEdit(); }}
                                         className="flex-1 bg-background border border-border rounded px-2 py-1 text-sm text-foreground focus:border-blue-500 outline-none"
                                         autoFocus
                                     />
@@ -171,7 +171,7 @@ export function LaboratoryManager() {
                                         type="text"
                                         value={editLocation}
                                         onChange={e => setEditLocation(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                                        onKeyDown={e => { if (e.key === 'Enter') void handleSaveEdit(); if (e.key === 'Escape') cancelEdit(); }}
                                         placeholder="Местоположение"
                                         className="flex-1 bg-background border border-border rounded px-2 py-1 text-sm text-foreground placeholder-slate-600 focus:border-blue-500 outline-none"
                                     />

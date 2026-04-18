@@ -8,7 +8,8 @@
  * Reduces the dialog component from 6 scattered useEffects to a single
  * declarative hook call, keeping the component focused on rendering.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { WaterParams } from '@/types';
 import { parseExperimentFilename } from '@/lib/utils/smart-fill-utils';
 import { getLastExperimentContext } from '@/lib/experiments/client';
@@ -150,7 +151,7 @@ export function useSaveDialogInit(
     useEffect(() => {
         if (!isOpen) return;
         const bridge = getBridge();
-        Promise.all([
+        void Promise.all([
             bridge.operators.list().catch(() => [] as OperatorRecord[]),
             bridge.laboratories.list().catch(() => [] as LaboratoryRecord[]),
         ]).then(([ops, labs]) => {
@@ -169,8 +170,8 @@ export function useSaveDialogInit(
 
     // ── Effect 2: Load catalog (shared store deduplicates) ────────────────────
     useEffect(() => {
-        fetchCatalogReagents();
-        fetchCatalogWaterSources();
+        void fetchCatalogReagents();
+        void fetchCatalogWaterSources();
     }, [fetchCatalogReagents, fetchCatalogWaterSources]);
 
     // ── Effect 3: Smart Fill from last context ────────────────────────────────
@@ -179,7 +180,7 @@ export function useSaveDialogInit(
     useEffect(() => {
         if (!isOpen || smartFillApplied) return;
         setIsLoading(true);
-        getLastExperimentContext()
+        void getLastExperimentContext()
             .then((context) => {
                 if (!context) return;
                 // Carry over general context (does not depend on specific experiment)

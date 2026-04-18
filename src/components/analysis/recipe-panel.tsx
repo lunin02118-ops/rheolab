@@ -55,7 +55,7 @@ export const RecipePanel = React.memo(function RecipePanel({ recipe: externalRec
 
     // Load reagent catalog (shared store deduplicates)
     useEffect(() => {
-        fetchReagentsCatalog();
+        void fetchReagentsCatalog();
     }, [fetchReagentsCatalog]);
 
     // Group reagents by category

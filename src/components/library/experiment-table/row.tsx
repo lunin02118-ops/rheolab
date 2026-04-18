@@ -7,7 +7,7 @@ import { Eye, Layers, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TEST_CATEGORY_LABELS, TEST_TYPE_LABELS, type TestCategory, type TestType } from '@/lib/constants/test-types';
 import { CYCLE_TYPE_STYLES, DOMINANT_PATTERN_LABELS, type CycleTypeName } from '@/lib/analysis/constants';
-import { ExperimentCardItem } from '@/types/experiment-list-item';
+import type { ExperimentCardItem } from '@/types/experiment-list-item';
 
 export const TEST_CATEGORY_BADGE: Record<TestCategory, string> = {
     Fracturing: 'bg-orange-100 dark:bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-400 dark:border-orange-500/30',

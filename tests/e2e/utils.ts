@@ -3,7 +3,7 @@
  * Common helpers for Playwright E2E tests
  */
 
-import { Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 // ==================== License Helpers ====================
 

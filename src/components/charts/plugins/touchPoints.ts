@@ -1,4 +1,4 @@
-import uPlot from 'uplot';
+import type uPlot from 'uplot';
 
 export interface TouchPoint {
     time: number;

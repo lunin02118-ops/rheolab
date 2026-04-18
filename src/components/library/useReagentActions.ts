@@ -76,7 +76,7 @@ export function useReagentActions({
             const result = await deleteReagent(id);
             if (result.success) {
                 invalidateReagents();
-                fetchReagents();
+                void fetchReagents();
                 setDeleteConfirm(null);
             } else {
                 setError(result.error || 'Ошибка удаления');

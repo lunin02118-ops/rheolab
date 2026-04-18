@@ -6,7 +6,7 @@
  * configuration is isolated and independently testable.
  */
 import { useMemo, useRef } from 'react';
-import uPlot from 'uplot';
+import type uPlot from 'uplot';
 import { tooltipPlugin } from '@/components/charts/plugins/tooltip';
 import { zoomPlugin } from '@/components/charts/plugins/zoom';
 import { touchPointsPlugin, type TouchPointsPluginOptions } from '@/components/charts/plugins/touchPoints';

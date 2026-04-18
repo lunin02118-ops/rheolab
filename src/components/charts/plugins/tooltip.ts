@@ -1,4 +1,4 @@
-import uPlot from 'uplot';
+import type uPlot from 'uplot';
 
 /** Auto-incrementing ID to uniquely tag each tooltip instance. */
 let nextTooltipId = 0;

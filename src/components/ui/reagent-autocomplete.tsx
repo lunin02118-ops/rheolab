@@ -67,7 +67,7 @@ export function ReagentAutocomplete({ value, onChange, placeholder = 'Выбер
 
     // Fetch reagents on mount (shared store deduplicates)
     useEffect(() => {
-        fetchReagents();
+        void fetchReagents();
     }, [fetchReagents]);
 
     // Close dropdown when clicking outside

@@ -5,7 +5,8 @@
 
 import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
 import { useBrandingStore } from '@/lib/store/branding-store';
-import { useAnalysisSettingsStore, ExpertSettings } from '@/lib/store/analysis-settings-store';
+import type { ExpertSettings } from '@/lib/store/analysis-settings-store';
+import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 import { APP_VERSION } from '@/lib/version';
 
 // === Types ===

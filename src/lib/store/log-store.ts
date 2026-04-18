@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { subscribeToLogs, LogEntry, LogLevel } from '@/lib/logger';
+import type { LogEntry, LogLevel } from '@/lib/logger';
+import { subscribeToLogs } from '@/lib/logger';
 
 interface LogStoreState {
     logs: LogEntry[];

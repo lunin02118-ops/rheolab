@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { isFluidType, FLUID_TYPE_LABELS } from '@/lib/constants/fluid-types';
 import { CYCLE_TYPE_STYLES, DOMINANT_PATTERN_LABELS, type CycleTypeName } from '@/lib/analysis/constants';
 import { TEST_TYPE_LABELS, type TestType } from '@/lib/constants/test-types';
-import { ExperimentCardItem, WaterParams } from '@/types/experiment-list-item';
+import type { ExperimentCardItem, WaterParams } from '@/types/experiment-list-item';
 
 const REAGENT_CATEGORY_LABELS: Record<string, string> = {
     'Gelling Agent': 'Гелеобразователь',

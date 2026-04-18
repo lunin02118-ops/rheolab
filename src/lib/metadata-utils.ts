@@ -1,4 +1,4 @@
-import { ParsingMetadata } from './parsing/types';
+import type { ParsingMetadata } from './parsing/types';
 
 /**
  * Legacy metadata fields that were moved to filenameMetadata.

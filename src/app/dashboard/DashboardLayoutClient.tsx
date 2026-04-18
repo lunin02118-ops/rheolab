@@ -28,7 +28,7 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
 
     // Trigger license store init once on mount.
     useEffect(() => {
-        useLicenseStore.getState().init();
+        void useLicenseStore.getState().init();
     }, []);
 
     // Re-validate when foregrounded after >1 hour (revoked license check).
@@ -44,7 +44,7 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
             } else if (document.visibilityState === 'visible' && hiddenSince !== null) {
                 const hiddenForMs = Date.now() - hiddenSince;
                 hiddenSince = null;
-                if (hiddenForMs >= RECHECK_AFTER_HIDDEN_MS) refresh();
+                if (hiddenForMs >= RECHECK_AFTER_HIDDEN_MS) void refresh();
             }
         };
 

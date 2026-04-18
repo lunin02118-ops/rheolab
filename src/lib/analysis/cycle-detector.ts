@@ -16,8 +16,9 @@ import {
     DURATION_END_STEP_MIN
 } from '@/lib/constants/rheology';
 
+import type {
+    CycleDetectionOptions} from './cycle-factory';
 import {
-    CycleDetectionOptions,
     createCycleFromSteps,
     detectCyclesLegacy,
     mergeSymmetricCycles,

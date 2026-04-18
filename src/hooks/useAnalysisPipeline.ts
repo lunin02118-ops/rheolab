@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { RheoCycle, RheoStep, GraceCycleResult } from '@/lib/analysis/types';
+import type { RheoCycle, RheoStep, GraceCycleResult } from '@/lib/analysis/types';
 import { analyzeData, detectSteps, regroupByPattern } from '@/lib/analysis/client';
 import type { RheoPointsColumnar } from '@/lib/tauri';
 import { toFiniteNumber, toOptionalFiniteNumber } from '@/lib/utils/numbers';
 import { PerfMon } from '@/lib/perf-monitor';
 
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
-import { ParseResult } from '@/lib/store/experiment-data-store';
+import type { ParseResult } from '@/lib/store/experiment-data-store';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 
 // ─── Module-level analysis cache ─────────────────────────────────────────────

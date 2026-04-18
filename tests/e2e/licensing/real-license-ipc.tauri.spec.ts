@@ -24,7 +24,7 @@ const CDP_PORT = parseInt(process.env.TAURI_CDP_PORT || '9222', 10);
 // Minimal fixture: connects to Tauri via CDP, injects only auth/dialog mocks.
 // Licensing IPC flows through to real Rust.
 const test = base.extend<{ page: Page }>({
-    // eslint-disable-next-line no-empty-pattern
+     
     page: async ({}, use) => {
         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
         const ctx = browser.contexts()[0];

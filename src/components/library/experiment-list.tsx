@@ -9,8 +9,8 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLicense } from '@/hooks/useLicense';
 import { listExperiments, deleteExperiment } from '@/lib/experiments/client';
-import { ExperimentFilters } from '@/types/experiment-filters';
-import { ExperimentCardItem } from '@/types/experiment-list-item';
+import type { ExperimentFilters } from '@/types/experiment-filters';
+import type { ExperimentCardItem } from '@/types/experiment-list-item';
 
 interface ExperimentListProps {
     filters: ExperimentFilters;
@@ -104,7 +104,7 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
             const result = await deleteExperiment(deleteTarget.id);
             if (result.success) {
                 setExperiments(prev => prev.filter(e => e.id !== deleteTarget.id));
-                if (isDemo) refreshExperimentsCount();
+                if (isDemo) void refreshExperimentsCount();
                 closeDeleteDialog();
             } else {
                 setDeleteError(result.error || 'Ошибка удаления');
@@ -171,7 +171,7 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
     const loadMore = () => {
         const nextPage = page + 1;
         setPage(nextPage);
-        fetchExperiments(nextPage);
+        void fetchExperiments(nextPage);
     };
 
     if (isLoading && page === 1) {
@@ -214,7 +214,7 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
                     experiments={experiments}
                     onDelete={(id) => {
                         setExperiments(prev => prev.filter(e => e.id !== id));
-                        if (isDemo) refreshExperimentsCount();
+                        if (isDemo) void refreshExperimentsCount();
                     }}
                     sortBy={sortBy}
                     sortDir={sortDir}

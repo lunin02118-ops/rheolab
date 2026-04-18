@@ -87,7 +87,7 @@ export function DevModeSection({
         removeLicenseSlot(slotId);
         refreshSlots();
         if (slotId === activeSlotId) {
-            useLicenseStore.getState().refresh().then(() => window.location.reload());
+            void useLicenseStore.getState().refresh().then(() => window.location.reload());
         }
     };
 

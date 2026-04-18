@@ -28,7 +28,7 @@ export const logger = {
     error: (message: string, ...args: unknown[]) => {
         const text = formatMessage(message, args);
         console.error(text);
-        forwardErrorToTauri(text);
+        void forwardErrorToTauri(text);
     },
 
     warn: (message: string, ...args: unknown[]) => {

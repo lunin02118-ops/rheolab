@@ -9,7 +9,7 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LogLevel } from '@/lib/logger';
+import type { LogLevel } from '@/lib/logger';
 
 export function LogViewer() {
     const {

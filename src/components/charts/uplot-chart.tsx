@@ -168,7 +168,7 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
         if (chartRef.current) {
             chartRef.current.redraw(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, [redrawTrigger]);
 
     return (

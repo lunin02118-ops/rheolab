@@ -5,7 +5,7 @@ import { useComparisonStore } from '@/lib/store/comparison-store';
 import { deleteExperiment, getExperimentById } from '@/lib/experiments/client';
 import { useToast } from '@/hooks/useToast';
 import { DeleteExperimentDialog } from './delete-experiment-dialog';
-import { ExperimentCardItem } from '@/types/experiment-list-item';
+import type { ExperimentCardItem } from '@/types/experiment-list-item';
 import { shortInstrumentLabel } from '@/lib/utils/instrument-labels';
 import { storedToComparisonExperiment } from '@/lib/store/comparison-helpers';
 import { ExperimentRow } from './experiment-table/row';

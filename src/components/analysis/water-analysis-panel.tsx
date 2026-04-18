@@ -53,7 +53,7 @@ export const WaterAnalysisPanel = React.memo(function WaterAnalysisPanel({
 
     // Load water source suggestions (shared store deduplicates)
     useEffect(() => {
-        fetchCatalogWaterSources();
+        void fetchCatalogWaterSources();
     }, [fetchCatalogWaterSources]);
 
     // Handle water source change

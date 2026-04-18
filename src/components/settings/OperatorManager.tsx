@@ -27,7 +27,7 @@ export function OperatorManager() {
 
     useEffect(() => {
         setLoading(true);
-        reload().finally(() => setLoading(false));
+        void reload().finally(() => setLoading(false));
     }, [reload]);
 
     const handleAdd = async () => {
@@ -121,7 +121,7 @@ export function OperatorManager() {
                     type="text"
                     value={addName}
                     onChange={e => setAddName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+                    onKeyDown={e => { if (e.key === 'Enter') void handleAdd(); }}
                     placeholder="Имя оператора"
                     className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-slate-600 focus:border-purple-500 outline-none transition-colors"
                     data-testid="OperatorNameInput"
@@ -130,7 +130,7 @@ export function OperatorManager() {
                     type="text"
                     value={addPosition}
                     onChange={e => setAddPosition(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+                    onKeyDown={e => { if (e.key === 'Enter') void handleAdd(); }}
                     placeholder="Должность (необязательно)"
                     className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-slate-600 focus:border-purple-500 outline-none transition-colors"
                 />
@@ -162,7 +162,7 @@ export function OperatorManager() {
                                         type="text"
                                         value={editName}
                                         onChange={e => setEditName(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                                        onKeyDown={e => { if (e.key === 'Enter') void handleSaveEdit(); if (e.key === 'Escape') cancelEdit(); }}
                                         className="flex-1 bg-background border border-border rounded px-2 py-1 text-sm text-foreground focus:border-purple-500 outline-none"
                                         autoFocus
                                     />
@@ -170,7 +170,7 @@ export function OperatorManager() {
                                         type="text"
                                         value={editPosition}
                                         onChange={e => setEditPosition(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                                        onKeyDown={e => { if (e.key === 'Enter') void handleSaveEdit(); if (e.key === 'Escape') cancelEdit(); }}
                                         placeholder="Должность"
                                         className="flex-1 bg-background border border-border rounded px-2 py-1 text-sm text-foreground placeholder-slate-600 focus:border-purple-500 outline-none"
                                     />
