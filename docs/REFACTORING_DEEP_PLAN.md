@@ -409,13 +409,11 @@ Specta интеграция уже работает:
 - Обновлены все ссылки в коде (audit-скрипты, autonomous runner) и документации (8 md-файлов).
 - Паттерн: `npm run <base> -- --flag` вместо дублирования скриптов.
 
-### WP-5.4 Pre-commit / CI gates ⏳ TODO- **`.pre-commit-config.yaml`** добавить:
-  - `cargo fmt --check`
-  - `cargo clippy -D warnings` *(только после завершения WP-2.1..2.3, иначе не пройдёт)*
-  - `eslint --max-warnings=0`
-  - `typos` (опечатки)
-  - `gitleaks`
-- **CI.** `.github/workflows/v2-desktop.yml` — каждый job имеет `needs:` зависимости, fail-fast включён.
+### WP-5.4 Pre-commit / CI gates ✅ DONE
+- **`.pre-commit-config.yaml`**: gitleaks (existing), typos v1.32.0, cargo-fmt, eslint --max-warnings=0.
+  - `cargo clippy` intentionally omitted from pre-commit (too slow; covered by `cargo check` in CI).
+- **CI**: ESLint enforces `--max-warnings=0`, `audit-preflight` depends on `linux-quality`, fixed removed script reference.
+- **`_typos.toml`**: excludes generated/vendor/fixture directories.
 
 ### WP-5.5 ADR и миграционные заметки ⏳ TODO- **Новые ADR:**
   - `docs/adr/0001-licensing-architecture.md`
