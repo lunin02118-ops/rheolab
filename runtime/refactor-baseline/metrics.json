@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-04-19T18:17:18.427Z",
+  "generatedAt": "2026-04-18T10:50:04.339Z",
   "tool": "scripts/audit/snapshot-metrics.js",
   "totals": {
-    "rustLoc": 36137,
+    "rustLoc": 36258,
     "tsLoc": 31834,
-    "rustFiles": 152,
+    "rustFiles": 158,
     "tsFiles": 208
   },
   "loc": {
@@ -13,8 +13,8 @@
       "loc": 20792
     },
     "rheolabCore": {
-      "files": 62,
-      "loc": 15345
+      "files": 68,
+      "loc": 15466
     },
     "srcTs": {
       "files": 208,
@@ -24,10 +24,6 @@
   "oversizedFiles": {
     "rustLimit": 500,
     "rustOversize": [
-      {
-        "path": "src/rust/rheolab-core/src/report_generator/excel.rs",
-        "loc": 864
-      },
       {
         "path": "src-tauri/src/commands/backup/restore_tests.rs",
         "loc": 674
