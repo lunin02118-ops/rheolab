@@ -36,7 +36,7 @@ pub(super) const BETA_CHANNEL_KEY: &str =
     };
 
 pub(super) const STORAGE_SALT: &str = "rheolab-storage-salt";
-pub(super) const HW_SALT: &str = "rheolab-hw-";
+pub(crate) const HW_SALT: &str = "rheolab-hw-";
 
 pub(super) const DB_KEY_DEMO: &str = "demo_state_v4";
 pub(super) const DB_KEY_LICENSE: &str = "license_data_v1";
