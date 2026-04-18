@@ -404,11 +404,10 @@ Specta интеграция уже работает:
 - Миграция: 16 файлов с client-logger, 4 файла с debug-logger, 3 файла удалены.
 - Codemod-скрипт не понадобился — прямых `console.*` осталось ≤5 (все с eslint-disable, dev-only).
 
-### WP-5.3 Консолидация npm-скриптов (67 → ≤ 50) ⏳ TODO- Выявлено дублирование семейств: `perf:*:fast` / `perf:*`, `test:e2e:*` по 5 вариантов.
-- **План.**
-  1. Единый runner `scripts/dev/run.js` с flag-driven режимами.
-  2. Старые имена оставить как deprecated-shim: `"perf:bench:fast": "echo [deprecated] use 'npm run perf -- --fast'; npm run perf -- --fast"`.
-  3. В `docs/README.md` — чёткая таблица «что чем запускается».
+### WP-5.3 Консолидация npm-скриптов (68 → 52) ✅ DONE (commit f19bc5c)
+- Удалено 16 скриптов-дублей: `:fast` варианты (cross-env TAURI_E2E_SKIP_BUILD=1 вместо отдельного скрипта), `:combined`/`:process`/`:aggregate` (флаги основного скрипта), `audit:*:quick/preflight/full`, `deploy:update:beta/stable`, `qa:autonomous:fast`, `release:prepare:skip-qa`.
+- Обновлены все ссылки в коде (audit-скрипты, autonomous runner) и документации (8 md-файлов).
+- Паттерн: `npm run <base> -- --flag` вместо дублирования скриптов.
 
 ### WP-5.4 Pre-commit / CI gates ⏳ TODO- **`.pre-commit-config.yaml`** добавить:
   - `cargo fmt --check`
