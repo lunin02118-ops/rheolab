@@ -1,7 +1,7 @@
 # 🔬 Глубокий план рефакторинга RheoLab Enterprise V2
 
-> **Статус:** 🔄 в работе — Фаза 0  
-> **Дата:** 2026-04-17 | **Обновлён:** 2026-04-17  
+> **Статус:** 🔄 в работе — Фаза 4 (WP-4.4 следующий)  
+> **Дата:** 2026-04-17 | **Обновлён:** 2026-04-18  
 > **Связанные документы:** [`docs/refactoring-plan.md`](./refactoring-plan.md) (сводный обзор), [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md), [`CLAUDE.md`](../CLAUDE.md)
 
 Данный документ — **глубокая, файлово-специфичная** версия плана рефакторинга. Каждая секция опирается на реальные метрики кодовой базы, собранные на коммите `HEAD` ветки `copilot/full-codebase-audit`.
@@ -293,17 +293,20 @@ src-tauri/src/db/
 ```
 - **Тест.** Existing-migrations-identity test: хеш SQL-выхода до/после рефакторинга совпадает.
 
-### WP-4.2 Report generator: `chart_generator.rs` (1372) и `pdf.rs` (1370) ⏳ TODO```
+### WP-4.2 Report generator: `chart_generator.rs` (1372) и `pdf.rs` (1370) ✅ DONE (2026-04-17, коммит `fe5b120`)
+
+**Фактическая структура:**
+```
 rheolab-core/src/report_generator/
   chart_generator/
-    mod.rs
+    mod.rs          // публичный API + re-export
     line.rs         // line chart
     flow_curve.rs
     viscosity.rs
     bar.rs
     common.rs       // axis scaling, palette, svg helpers
   pdf/
-    mod.rs
+    mod.rs          // публичный API + re-export
     header.rs
     charts_section.rs
     measurements_table.rs
@@ -311,28 +314,41 @@ rheolab-core/src/report_generator/
     footer.rs
 ```
 - **Гарантия.** `report_regression_test.rs` сравнивает байтовый вывод — красная линия, пересекать нельзя.
+- **Результат.** Все существующие тесты прошли; `cargo check` чисто.
 
-### WP-4.3 Парсеры — разбиение на модули ⏳ TODO```
-rheolab-core/src/parser/
-  mod.rs                  // публичная входная точка parse_file / parse_stream
-  rheo/
-    mod.rs
-    header.rs             // header_detector.rs (376 LOC)
-    rows.rs               // row_mapper.rs (946 LOC) → split on responsibility
-    classify.rs
-    assemble.rs
-  detectors/
-    mod.rs                // detectors.rs (1079 LOC) → по типу датасета
-    device_kinexus.rs
-    device_mcr.rs
-    device_ares.rs
-    device_fallback.rs
-  calibration/
-    mod.rs                // calibration.rs (649 LOC) → split
-    coefficients.rs
-    verification.rs
+### WP-4.3 Парсеры — разбиение на модули ✅ DONE (2026-04-18, коммит `8a54d71`, запушен)
+
+**Фактическая структура** (три файла → три директории-модуля):
 ```
-- **Тесты.** Все существующие fixtures из `tests/parsing/fixtures/` должны проходить покапотно идентично.
+rheolab-core/src/parser/
+  rheo_parser/
+    mod.rs          // pub API: parse_rheo_data, parse_rheo_data_with_ai_hint,
+                    //          extract_ai_context_candidates, extract_candidate_headers
+                    //          + все shared helpers (merge_mappings, build_row_mapper_config,
+                    //            parse_delimited_rows, is_chart_sheet, …)
+    workbook.rs     // parse_workbook, parse_workbook_with_override,
+                    //   process_sheet, process_sheet_with_override
+    csv_parser.rs   // parse_csv, parse_csv_with_override,
+                    //   parse_csv_rows, parse_csv_rows_with_override
+  row_mapper/
+    mod.rs          // TemperatureUnit, TimeParsingMode, RowMapperConfig,
+                    //   repair_broken_decimal, map_row; mod detection; pub use detection::*
+    detection.rs    // LazyLock<Regex> statics + все pub fn detect_*
+  calibration/
+    mod.rs          // 4 pub structs; mod parsers; pub use parsers::{…}
+    parsers.rs      // statics, helpers, parse_calibration_data, parse_calibration_from_buffer
+```
+
+**Примечание по изменениям относительно плана:**
+- `detectors.rs` (1079 LOC) оставлен монолитным — запланирован для отдельного WP в рамках следующей итерации Фазы 4.
+- Директория `rheo/` не создавалась: `rheo_parser/` сохраняет оригинальное имя модуля для обратной совместимости с `mod.rs` в `src/parser/`.
+- **Ключевой фикс**: `mod csv;` внутри `rheo_parser/mod.rs` затенял внешний крейт `csv` → файл переименован в `csv_parser.rs`, `mod csv_parser;`.
+- **Видимость**: функции-«мосты» используют `pub(super)` (доступны только из `mod.rs`); общие хелперы вызываются через `super::` из дочерних модулей.
+
+**Результат:**
+- `cargo check` — чисто (`Finished dev profile [unoptimized + debuginfo] target(s) in 1.43s`)
+- **152 теста, 0 провалов** (`cargo test`)
+- Запушен в `https://github.com/70lunin021189-ux/rheolab.git` ветка `main`
 
 ### WP-4.4 `repositories/experiments.rs` (748 LOC → модули) ⏳ TODO```
 src-tauri/src/db/repositories/experiments/
