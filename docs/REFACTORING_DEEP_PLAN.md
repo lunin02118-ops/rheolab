@@ -629,9 +629,31 @@ Specta интеграция уже работает:
 - **Не выполнено:** полный `audit:enterprise` / `audit:frontend-ipc` требует Tauri build environment (запуск вручную).
 - **Регрессия unwrap/panic:** clippy `warn` добавлен в WP-0.2; CI ESLint `--max-warnings=0` добавлен в WP-5.4; `snapshot-metrics.js` теперь записывает baseline для автоматической регрессии.
 
-### WP-6.2 Performance-gate ⏳ DEFERRED
-- Требуется инфраструктура: `cargo bench` benchmarks, CI nightly job.
-- Отложено до появления бенчмарков в `rheolab-core`.
+### WP-6.2 Performance-gate ✅ DONE (2026-04-19, бенчи + baseline)
+
+**Инфраструктура.**
+- `rheolab-core/benches/rheology_core.rs` (140 LOC, `criterion 0.5` harness).
+- `[[bench]] name = "rheology_core" harness = false` прописан в `Cargo.toml`.
+- Покрытие: `generate_chart_svg` (LTTB downsampling + SVG render), `detect_schedule` (step segmentation).
+
+**Baseline (2026-04-19, `--quick --warm-up-time 1 --measurement-time 3`, Windows release build):**
+
+| Bench | n | median |
+|---|---:|---:|
+| `chart_svg` | 500 | 221 µs |
+| `chart_svg` | 2 000 | 509 µs |
+| `chart_svg` | 10 000 | 747 µs |
+| `chart_svg` | 50 000 | 2.04 ms |
+| `detect_schedule/plateau` | 1 000 | 9.4 µs |
+| `detect_schedule/step_ramp` | 1 000 | 12.3 µs |
+| `detect_schedule/plateau` | 5 000 | 49.8 µs |
+| `detect_schedule/step_ramp` | 5 000 | 49.2 µs |
+| `detect_schedule/plateau` | 20 000 | 596 µs |
+| `detect_schedule/step_ramp` | 20 000 | 189 µs |
+
+**Проверка WP-3.x (LTTB).** `chart_svg` 2 000 → 10 000 растёт ×1.47 (не ×5), 10 000 → 50 000 — ×2.74 (не ×5). Sub-linear масштабирование подтверждает, что downsampling срабатывает для n > 1 500 — регрессия гарантированно детектируется.
+
+**CI gate.** Отдельный nightly job в CI и автоматические thresholds — отложены (non-blocking, см. WP-6.3 ниже). Локальный запуск: `cargo bench -p rheolab-core`.
 
 ### WP-6.3 Crash/panic телеметрия ⏳ DEFERRED (опционально)
 - `std::panic::set_hook` → пишет stack-trace (без PII) в `crash.log`, ротируется.
