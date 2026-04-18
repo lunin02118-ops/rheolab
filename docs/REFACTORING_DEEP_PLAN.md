@@ -390,6 +390,57 @@ src-tauri/src/db/repositories/experiments/
 | `src/lib/parsing/client.ts` | 468 | `client/read.ts`, `client/write.ts`, `client/transform.ts` |
 | `src/components/calibration/CalibrationChartsUplot.tsx` | 466 | hooks + subcomponents |
 
+### WP-4.16 `commands/experiments/helpers.rs` (544 LOC → 412 + tests) ✅ DONE (2026-04-19)
+
+- **Результат.** Production `helpers.rs` = 412 LOC; тесты вынесены в sibling `helpers_tests.rs` (131 LOC), подключён через `#[path = "helpers_tests.rs"] mod tests;` — тот же паттерн, что и `migration.rs` / `row_mapper`.
+- **Гарантия.** Нулевая логическая правка тестов:
+  - `cargo test --lib` (tauri): **244/244** pass
+- Closes WP-4.16 — последний production-файл опущен ниже лимита.
+
+### WP-4.15 `commands/licensing/hardware.rs` (564 LOC → 5 модулей) ✅ DONE (2026-04-19)
+
+**Фактическая структура:**
+```
+src-tauri/src/commands/licensing/hardware/
+├── mod.rs         ( 75 LOC)  // pub API re-exports + process-level OnceLock caches
+├── collectors.rs  (190 LOC)  // BOGUS filter + hidden_command + 6 PowerShell getters
+├── cache.rs       (111 LOC)  // AES-256-GCM encrypted .machine_id_v2 envelope
+├── machine_id.rs  (130 LOC)  // v2 salt + compute_v2_id + get_or_create_machine_id
+└── legacy.rs      (117 LOC)  // v1 algorithm support for activation migration
+```
+
+- **Результат.** Все 5 файлов ≤ 190 LOC.
+- **Публичный API сохранён.** `get_or_create_machine_id`, `all_legacy_ids`, `delete_legacy_cache` продолжают re-exportироваться.
+- **Внутренние helpers** `compute_legacy_machine_ids` / `read_legacy_cached_id` понижены с `pub` до `fn` — ни один внешний call-site их не использует.
+- **`types.rs::HW_SALT`** повышен с `pub(super)` до `pub(crate)` для re-export в тесты (`use super::*;` в `hardware_tests.rs`).
+- **Гарантия.** Pure move — `cargo test --lib` (tauri): **244/244** pass.
+- Closes WP-4.15.
+
+### WP-4.14 `parser/row_mapper/mod.rs` (519 LOC → 228 + tests) ✅ DONE (2026-04-19)
+
+- **Результат.** Production `mod.rs` = 227 LOC; тесты вынесены в sibling `tests.rs` (291 LOC), подключён через `#[cfg(test)] #[path = "tests.rs"] mod tests;`.
+- **Гарантия.** Нулевая логическая правка тестов:
+  - `cargo test --lib` (core): **89/89** pass
+- Closes WP-4.14.
+
+### WP-4.13 `parser/calibration/parsers.rs` (603 LOC → 5 модулей) ✅ DONE (2026-04-19)
+
+**Фактическая структура:**
+```
+rheolab-core/src/parser/calibration/parsers/
+├── mod.rs        ( 57 LOC)  // dispatcher + parse_calibration_data + pub re-exports
+├── math.rs       (127 LOC)  // linear_regression + hysteresis + stddev + interpolation
+├── meta.rs       ( 92 LOC)  // device detection + metadata/value scanners + table locators
+├── bsl.rs        (124 LOC)  // BSL R1 calibration parser (ISO dates + LazyLock regex)
+├── chandler.rs   (149 LOC)  // Chandler 5550 parser (US dates + LazyLock regex)
+└── buffer.rs     (112 LOC)  // XLSX / XLS / CSV / TXT buffer → rows → dispatch
+```
+
+- **Результат.** Все 6 файлов ≤ 150 LOC.
+- **Публичный API сохранён.** `parse_calibration_data`, `parse_calibration_from_buffer` re-exported с идентичными сигнатурами.
+- **Гарантия.** Pure move — `cargo test --lib` (core): **89/89** pass.
+- Closes WP-4.13.
+
 ### WP-4.12 `parser/rheo_parser/mod.rs` (558 LOC → 4 модуля) ✅ DONE (2026-04-19)
 
 **Фактическая структура:**
@@ -555,7 +606,7 @@ Specta интеграция уже работает:
   - Rust LOC: **36 137** (152 файла) | TS LOC: **31 834** (208 файлов)
   - **Rust non-test production:** `unwrap()` = **0** | `expect()` = **45** | `panic!()` = **0** | `todo!()` = **0**
   - Все оставшиеся `expect()` — static-regex `LazyLock` инициализация с задокументированными SAFETY-инвариантами.
-  - Rust файлов > 500 LOC: **6** (2 test-файла + 4 production) — после WP-4.7..WP-4.12. Production ↓ с 8 до 4: `parser/calibration/parsers.rs` (603), `commands/licensing/hardware.rs` (564), `commands/experiments/helpers.rs` (544), `parser/row_mapper/mod.rs` (519).
+  - Rust файлов > 500 LOC: **2** (оба test-файла) — после WP-4.7..WP-4.16. **Все production-файлы < 500 LOC** ✅. Оставшиеся: `commands/backup/restore_tests.rs` (674), `commands/licensing/engine/licensing_tests.rs` (532) — pure test suites.
   - TS файлов > 400 LOC: **6** (все — компоненты page/settings, лимит превышен на 1–43 строки)
   - Tauri commands: **89 defined / 87 registered** (`experiments_export` orphan удалён)
   - Mojibake: **0 вхождений** (`runtime/refactor-baseline/metrics.json.mojibake.total = 0`)
