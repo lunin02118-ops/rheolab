@@ -21,8 +21,8 @@
  *   node scripts/test/run-perf-benchmark.js --process --duration 120
  *   node scripts/test/run-perf-benchmark.js --combined --duration 300
  *   npm run perf:benchmark
- *   npm run perf:process
- *   npm run perf:process -- --duration 60
+ *   npm run perf:benchmark -- --process
+ *   npm run perf:benchmark -- --process --duration 60
  */
 
 const { spawn, spawnSync } = require('node:child_process');

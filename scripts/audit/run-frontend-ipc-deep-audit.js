@@ -619,7 +619,7 @@ function buildBacklog(staticFindings, gateEvaluation, kpiPack) {
     owner: 'Platform Team',
     effort: 'S',
     expectedGain: 'Deterministic audit outputs; no false-green empty reports.',
-    verificationCommand: 'npm run perf:memory:aggregate -- --source tauri-soak',
+    verificationCommand: 'npm run perf:memory -- --skip-playwright --source tauri-soak',
     status: gateEvaluation.violations.length > 0 ? 'open' : 'monitoring',
   });
 
@@ -815,7 +815,7 @@ function runDynamicPass() {
     return commands;
   }
 
-  const workflowFastCommand = 'npm run perf:workflow:fast';
+  const workflowFastCommand = 'npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow';
   commands.push(runCommand('D-WARMUP', workflowFastCommand));
 
   for (let i = 0; i < runConfig.workflow; i += 1) {
@@ -823,7 +823,7 @@ function runDynamicPass() {
   }
 
   for (let i = 0; i < runConfig.soak; i += 1) {
-    commands.push(runCommand(`D-SOAK-${i + 1}`, 'npm run perf:soak:tauri:fast'));
+    commands.push(runCommand(`D-SOAK-${i + 1}`, 'npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri'));
   }
 
   for (let i = 0; i < runConfig.benchmark; i += 1) {
@@ -833,7 +833,7 @@ function runDynamicPass() {
   commands.push(
     runCommand(
       'D-MEM-AGG',
-      'npm run perf:memory:aggregate -- --input-glob soak-*.json --last-runs 20',
+      'npm run perf:memory -- --skip-playwright --input-glob soak-*.json --last-runs 20',
     ),
   );
 

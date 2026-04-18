@@ -19,8 +19,8 @@
  * Запуск:
  *   npm run perf:db:small          — small DB
  *   npm run perf:db:large          — large DB
- *   npm run perf:db:small:fast     — small DB, без пересборки
- *   npm run perf:db:large:fast     — large DB, без пересборки
+ *   cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:db:small     — small DB, без пересборки
+ *   cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:db:large     — large DB, без пересборки
  *   npm run perf:db:compare        — сравнение результатов
  *
  * Выходной JSON: outputs/e2e/perf/db-scale-<runId>.json

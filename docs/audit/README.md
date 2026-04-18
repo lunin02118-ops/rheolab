@@ -5,8 +5,8 @@
 ## Запуск audit-контура
 
 - Быстрый прогон: `npm run audit:enterprise:quick`
-- Только preflight (для PR): `npm run audit:enterprise:preflight`
-- Полный прогон: `npm run audit:enterprise:full`
+- Только preflight (для PR): `npm run audit:enterprise -- --preflight-only`
+- Полный прогон: `npm run audit:enterprise`
 
 Артефакты каждого запуска сохраняются в `runtime/audit/<run-id>/`.
 Обязательные артефакты:

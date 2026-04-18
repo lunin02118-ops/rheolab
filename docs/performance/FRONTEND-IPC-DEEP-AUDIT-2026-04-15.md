@@ -46,17 +46,17 @@
 
 | Step | Command | Status | Exit | Duration ms | Log |
 |---|---|---|---:|---:|---|
-| D-WARMUP | `npm run perf:workflow:fast` | PASS | 0 | 134364 | `runtime/audit/20260415-193838841-frontend-ipc-deep-audit/logs/D-WARMUP_npm_run_perf_workflow_fast.log` |
-| D-WORKFLOW-1 | `npm run perf:workflow:fast` | PASS | 0 | 123868 | `runtime/audit/20260415-193838841-frontend-ipc-deep-audit/logs/D-WORKFLOW-1_npm_run_perf_workflow_fast.log` |
-| D-SOAK-1 | `npm run perf:soak:tauri:fast` | PASS | 0 | 25430 | `runtime/audit/20260415-193838841-frontend-ipc-deep-audit/logs/D-SOAK-1_npm_run_perf_soak_tauri_fast.log` |
+| D-WARMUP | `cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow` | PASS | 0 | 134364 | `runtime/audit/20260415-193838841-frontend-ipc-deep-audit/logs/D-WARMUP_npm_run_perf_workflow_fast.log` |
+| D-WORKFLOW-1 | `cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow` | PASS | 0 | 123868 | `runtime/audit/20260415-193838841-frontend-ipc-deep-audit/logs/D-WORKFLOW-1_npm_run_perf_workflow_fast.log` |
+| D-SOAK-1 | `cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri` | PASS | 0 | 25430 | `runtime/audit/20260415-193838841-frontend-ipc-deep-audit/logs/D-SOAK-1_npm_run_perf_soak_tauri_fast.log` |
 | D-BENCH-1 | `npm run perf:benchmark` | PASS | 0 | 171070 | `runtime/audit/20260415-193838841-frontend-ipc-deep-audit/logs/D-BENCH-1_npm_run_perf_benchmark.log` |
-| D-MEM-AGG | `npm run perf:memory:aggregate -- --input-glob soak-*.json --last-runs 20` | PASS | 0 | 2110 | `runtime/audit/20260415-193838841-frontend-ipc-deep-audit/logs/D-MEM-AGG_npm_run_perf_memory_aggregate_input_glob_soak_json_last_runs_20.log` |
+| D-MEM-AGG | `npm run perf:memory -- --skip-playwright --input-glob soak-*.json --last-runs 20` | PASS | 0 | 2110 | `runtime/audit/20260415-193838841-frontend-ipc-deep-audit/logs/D-MEM-AGG_npm_run_perf_memory_aggregate_input_glob_soak_json_last_runs_20.log` |
 
 ## Remediation Backlog
 
 | ID | Bucket | Severity | Owner | Effort | Expected Gain | Verification | Status |
 |---|---|---|---|---|---|---|---|
-| P0-001 | P0 | high | Platform Team | S | Deterministic audit outputs; no false-green empty reports. | `npm run perf:memory:aggregate -- --source tauri-soak` | open |
+| P0-001 | P0 | high | Platform Team | S | Deterministic audit outputs; no false-green empty reports. | `npm run perf:memory -- --skip-playwright --source tauri-soak` | open |
 | P1-001 | P1 | low | Frontend Team | M | Lower rerender churn and fewer stale async callbacks. | `rg -n "use[A-Za-z0-9_]*Store\(\)|setTimeout\(" src` | monitoring |
 | P2-001 | P2 | medium | Frontend + Platform | M | Reduce serialization/copy overhead for report and bridge payloads. | `rg -n "JSON\.stringify\(|input_json\s*:\s*String" src src-tauri/src/commands` | monitoring |
 | P3-001 | P3 | medium | Architecture Team | L | Move toward <=600MB p95 and improved desktop stability. | `npm run audit:frontend-ipc -- --windows-runner` | monitoring |

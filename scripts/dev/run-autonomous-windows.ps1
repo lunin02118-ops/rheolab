@@ -40,7 +40,7 @@ Write-Host "[rheolab] Project root: $root" -ForegroundColor DarkGray
 
 if ($WithQa) {
     Write-Host "[rheolab] Running autonomous QA preflight (fast mode)..." -ForegroundColor Cyan
-    & npm.cmd run qa:autonomous:fast
+    & npm.cmd run qa:autonomous -- --fast
     if ($LASTEXITCODE -ne 0) {
         throw "Autonomous QA preflight failed with exit code $LASTEXITCODE"
     }

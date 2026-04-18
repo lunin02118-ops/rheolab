@@ -280,9 +280,9 @@
 ## 7) Verification checklist после исправлений
 
 - `npm run perf:workflow:tauri:fast`
-- `npm run perf:soak:tauri:fast`
-- `npm run perf:memory:aggregate -- --input-glob soak-*.json --last-runs 20`
-- `npm run audit:frontend-ipc:quick`
+- `cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri`
+- `npm run perf:memory -- --skip-playwright --input-glob soak-*.json --last-runs 20`
+- `npm run audit:frontend-ipc -- --quick`
 - Сравнение до/после:
   - `peakHeapMb`, `peakNodes`, `totalWallMs`
   - `totalWsMb`, `rendererWsMb`

@@ -561,7 +561,7 @@ function buildChecks(e2eEnv) {
       preflight: false,
       quick: false,
       blocking: false,
-      command: 'npm run perf:memory:aggregate',
+      command: 'npm run perf:memory -- --skip-playwright',
     },
     {
       id: '17',

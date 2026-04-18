@@ -9,8 +9,8 @@
  *   npm run perf:db:large  — ~7000 экспериментов (нагрузочный)
  *
  * Быстрый повтор (без пересборки):
- *   npm run perf:db:small:fast
- *   npm run perf:db:large:fast
+ *   cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:db:small
+ *   cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:db:large
  *
  * Переменные окружения:
  *   RHEOLAB_DB_SCALE      — "small" | "large" (см. setup-скрипт)

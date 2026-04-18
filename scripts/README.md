@@ -96,7 +96,7 @@ Store the private key + password as CI secrets (`TAURI_SIGNING_PRIVATE_KEY`, `TA
 The release pipeline is invoked via npm scripts:
 ```bash
 npm run release:prepare              # Full: QA → build → manifest + checksums
-npm run release:prepare:skip-qa      # Skip QA preflight
+npm run release:prepare -- --skip-qa  # Skip QA preflight
 npm run release:prepare -- --dry-run # Policy check only (no build)
 ```
 
@@ -132,7 +132,7 @@ All commonly-used scripts are exposed as npm scripts in `package.json`:
 | `npm run test` | `vitest run` |
 | `npm run test:watch` | `vitest` |
 | `npm run test:coverage` | `vitest run --coverage` |
-| `npm run qa:autonomous:fast` | Vitest + build check |
+| `npm run qa:autonomous -- --fast` | Vitest + build check |
 | `npm run qa:autonomous` | Vitest + build + Tauri debug installer |
 | `npm run release:prepare` | Full release pipeline |
 | `npm run doctor:windows` | Prerequisite check (Windows) |

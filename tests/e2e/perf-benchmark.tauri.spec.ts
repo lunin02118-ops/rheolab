@@ -12,7 +12,7 @@
  *
  * Запуск:
  *   npm run perf:benchmark:tauri
- *   TAURI_E2E_SKIP_BUILD=1 npm run perf:benchmark:tauri:fast
+ *   cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:benchmark:tauri
  *
  * Prerequisite: cargo build (выполняется автоматически в globalSetup если нет бинарника).
  * Output: outputs/e2e/perf/benchmark-tauri-<timestamp>.json

@@ -22,7 +22,7 @@ npm run perf:workflow:tauri
 npm run perf:compare -- outputs/e2e/perf/workflow-СТАРЫЙ-tauri.json outputs/e2e/perf/workflow-НОВЫЙ-tauri.json
 
 # 4. Мониторинг нативного процесса (требует запущенного Tauri-билда)
-npm run perf:process -- --duration 120
+npm run perf:benchmark -- --process --duration 120
 
 # 5. Глубокий browser benchmark (heap + nav leak + chart timing, без реального анализа)
 npm run perf:benchmark
@@ -30,7 +30,7 @@ npm run perf:benchmark
 # 6. Frontend + IPC deep audit (Tauri-first)
 npm run audit:frontend-ipc
 # quick + non-blocking profile (useful for CI smoke)
-npm run audit:frontend-ipc:quick -- --windows-runner --non-blocking
+npm run audit:frontend-ipc -- --quick --windows-runner --non-blocking
 ```
 
 > ⚠️ **`perf:workflow` (браузер, без Tauri) устарел после ADR-0003.**
@@ -170,10 +170,10 @@ npx playwright test --config playwright.benchmark.config.ts
 
 ```powershell
 # Собирать 120 секунд, писать в CSV + JSON
-npm run perf:process -- --duration 120
+npm run perf:benchmark -- --process --duration 120
 
 # Параллельно с browser benchmark
-npm run perf:benchmark:combined -- --duration 300
+npm run perf:benchmark -- --combined --duration 300
 ```
 
 Результаты в `outputs/e2e/perf/process-resources-<runId>.csv` — колонки:

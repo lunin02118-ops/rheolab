@@ -33,7 +33,7 @@ npm run release:prepare
 
 ```bash
 npm run release:prepare -- --channel beta --dry-run --allow-unsigned --skip-qa
-npm run release:prepare:skip-qa
+npm run release:prepare -- --skip-qa
 ```
 
 ### Ручной Windows-путь
