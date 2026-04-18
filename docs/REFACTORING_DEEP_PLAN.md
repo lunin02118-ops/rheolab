@@ -397,9 +397,12 @@ Specta интеграция уже работает:
 5. React: `react-hooks/exhaustive-deps` → error.
 - **DoD.** `npm run lint -- --max-warnings=0` зелёный.
 
-### WP-5.2 Унификация логгера ⏳ TODO- Сегодня в `src/` три логгера: `src/lib/logger.ts`, `src/lib/client-logger.ts`, `src/lib/utils/debug-logger.ts`. Плюс 42 прямых `console.*`.
-- **Цель.** Единый `logger` facade с уровнями (`trace/debug/info/warn/error`), в desktop-mode пишет через Tauri `plugin-log`, в web-mode — console.
-- **Миграция.** Скрипт `scripts/refactor/codemod-logger.ts` (jscodeshift/ts-morph) — заменить `console.log(X)` → `logger.debug(X)`.
+### WP-5.2 Унификация логгера ✅ DONE (commit f47b4a4)
+- Три логгера (`logger.ts`, `client-logger.ts`, `debug-logger.ts`) объединены в единый `@/lib/logger` facade.
+- Уровни: TRACE / DEBUG / INFO / WARN / ERROR. В production фильтр INFO+, в dev — TRACE+.
+- Tauri error forwarding встроен в `logger.error()`. LogViewer обновлён (поддержка TRACE).
+- Миграция: 16 файлов с client-logger, 4 файла с debug-logger, 3 файла удалены.
+- Codemod-скрипт не понадобился — прямых `console.*` осталось ≤5 (все с eslint-disable, dev-only).
 
 ### WP-5.3 Консолидация npm-скриптов (67 → ≤ 50) ⏳ TODO- Выявлено дублирование семейств: `perf:*:fast` / `perf:*`, `test:e2e:*` по 5 вариантов.
 - **План.**
