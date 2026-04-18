@@ -1,4 +1,4 @@
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect, useCallback, useLayoutEffect, useRef, useMemo } from 'react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
@@ -132,7 +132,7 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
                 if (reset) setTotalCount(data.pagination.total);
             }
         } catch (err) {
-            clientLogger.error('Failed to fetch experiments:', err);
+            logger.error('Failed to fetch experiments:', err);
             setFetchError('Ошибка загрузки списка. Повторите позже.');
         } finally {
             setIsLoading(false);
@@ -158,7 +158,7 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
                 })
                 .catch((err) => {
                     if (aborted) return;
-                    clientLogger.error('Failed to fetch experiments:', err);
+                    logger.error('Failed to fetch experiments:', err);
                     setFetchError('Ошибка загрузки списка. Повторите позже.');
                 })
                 .finally(() => {

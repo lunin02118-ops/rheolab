@@ -7,7 +7,7 @@ import { ReagentAutocomplete } from '@/components/ui/reagent-autocomplete';
 import { FieldCombobox } from '@/components/ui/field-combobox';
 import { TextFilter, SelectFilter, RangeFilter } from './filter-components';
 import { getExperimentFilterMetadata } from '@/lib/experiments/client';
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 import { FLUID_TYPES, FLUID_TYPE_LABELS } from '@/lib/constants/fluid-types';
 import { TEST_CATEGORY_LABELS, TEST_TYPE_LABELS, TEST_TYPES_BY_CATEGORY, type TestCategory, type TestType } from '@/lib/constants/test-types';
 
@@ -78,7 +78,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                 });
             })
             .catch((error) => {
-                clientLogger.warn('Failed to load filter metadata, using fallback options', error);
+                logger.warn('Failed to load filter metadata, using fallback options', error);
                 if (mounted) setMetadataError('Не удалось загрузить параметры фильтрации');
             });
 

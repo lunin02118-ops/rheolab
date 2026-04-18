@@ -1,4 +1,4 @@
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 import React, { useState, useEffect } from 'react';
 import { Key, Plus, Trash2, CheckCircle2, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
@@ -52,7 +52,7 @@ export function APIKeyManager() {
             const data = await listApiKeys();
             setKeys(Array.isArray(data) ? data : []);
         } catch (err) {
-            clientLogger.error('Failed to fetch keys:', err);
+            logger.error('Failed to fetch keys:', err);
         } finally {
             setIsLoading(false);
         }
@@ -94,7 +94,7 @@ export function APIKeyManager() {
                 setOpError(`Ошибка сохранения ключа: ${result.error || 'Неизвестная ошибка'}`);
             }
         } catch (err) {
-            clientLogger.error('Failed to add key:', err);
+            logger.error('Failed to add key:', err);
             setOpError('Ошибка сети при добавлении ключа');
         } finally {
             setIsValidating(false);
@@ -110,7 +110,7 @@ export function APIKeyManager() {
                 setOpError(`Ошибка переключения ключа: ${result.error || 'Неизвестная ошибка'}`);
             }
         } catch (err) {
-            clientLogger.error('Failed to toggle key:', err);
+            logger.error('Failed to toggle key:', err);
         }
     };
 
@@ -141,7 +141,7 @@ export function APIKeyManager() {
                 setOpError(`Ошибка удаления: ${result.error || 'Неизвестная ошибка'}`);
             }
         } catch (err) {
-            clientLogger.error('Delete error:', err);
+            logger.error('Delete error:', err);
             setOpError('Ошибка сети при удалении');
         } finally {
             setDeletingId(null);

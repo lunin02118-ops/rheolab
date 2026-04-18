@@ -1,6 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 interface Props {
     children: ReactNode;
@@ -26,7 +26,7 @@ export class ChartErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, info: { componentStack: string }) {
-        clientLogger.error('[ChartErrorBoundary] Chart render error', error, info.componentStack);
+        logger.error('[ChartErrorBoundary] Chart render error', error, info.componentStack);
     }
 
     private handleRetry = () => this.setState({ error: null });

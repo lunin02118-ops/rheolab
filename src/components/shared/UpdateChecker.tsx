@@ -16,7 +16,7 @@ import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 import { isTauri } from '@/lib/tauri';
 import { useUpdateStore, type StartupCompletedPayload } from '@/lib/store/update-store';
 import { backup } from '@/lib/tauri/backup';
@@ -61,10 +61,10 @@ export async function startUpdateInstall(): Promise<void> {
     // the update — log a warning and continue.
     try {
         const backupResult = await backup.create();
-        clientLogger.info(`[UpdateChecker] Pre-update backup created: ${backupResult.name ?? '(no name)'}`);
+        logger.info(`[UpdateChecker] Pre-update backup created: ${backupResult.name ?? '(no name)'}`);
     } catch (backupErr) {
         const msg = backupErr instanceof Error ? backupErr.message : String(backupErr);
-        clientLogger.warn(`[UpdateChecker] Pre-update backup failed (non-fatal): ${msg}`);
+        logger.warn(`[UpdateChecker] Pre-update backup failed (non-fatal): ${msg}`);
     }
 
     let downloaded = 0;
@@ -89,7 +89,7 @@ export async function startUpdateInstall(): Promise<void> {
         store.setReady();
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        clientLogger.error(`[UpdateChecker] Install failed: ${msg}`);
+        logger.error(`[UpdateChecker] Install failed: ${msg}`);
         store.setError(`Ошибка установки: ${msg}`);
     }
 }
@@ -116,10 +116,10 @@ export async function checkUpdateNow(): Promise<void> {
             _pendingUpdate = update;
             const notes = update.body?.trim() ?? null;
             store.setAvailable(update.version, notes);
-            clientLogger.info(`[UpdateChecker] Manual check — update available: v${update.version}`);
+            logger.info(`[UpdateChecker] Manual check — update available: v${update.version}`);
         } else {
             store.reset();
-            clientLogger.info('[UpdateChecker] Manual check — up to date');
+            logger.info('[UpdateChecker] Manual check — up to date');
         }
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -127,7 +127,7 @@ export async function checkUpdateNow(): Promise<void> {
         // "up to date" message.  The background auto-check still resets
         // silently (offline is expected), but manual checks should be honest.
         store.setError(`Не удалось проверить: ${msg}`);
-        clientLogger.error(`[UpdateChecker] Manual check failed: ${msg}`);
+        logger.error(`[UpdateChecker] Manual check failed: ${msg}`);
     }
 }
 
@@ -139,7 +139,7 @@ export async function relaunchApp(): Promise<void> {
     try {
         await relaunch();
     } catch (err) {
-        clientLogger.error(`[UpdateChecker] Relaunch failed: ${String(err)}`);
+        logger.error(`[UpdateChecker] Relaunch failed: ${String(err)}`);
     }
 }
 
@@ -161,14 +161,14 @@ export function UpdateChecker(): null {
                     payload.previousAppVersion,
                     payload.appVersion,
                 );
-                clientLogger.info(
+                logger.info(
                     `[UpdateChecker] Post-update first run: ${payload.previousAppVersion} → ${payload.appVersion}`,
                 );
             }
         }).then((unlisten) => {
             unlistenStartup = unlisten;
         }).catch((err) => {
-            clientLogger.warn(`[UpdateChecker] Failed to register startup_completed listener: ${String(err)}`);
+            logger.warn(`[UpdateChecker] Failed to register startup_completed listener: ${String(err)}`);
         });
 
         let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -187,7 +187,7 @@ export function UpdateChecker(): null {
                     _pendingUpdate = update;
                     const notes = update.body?.trim() ?? null;
                     store.setAvailable(update.version, notes);
-                    clientLogger.info(
+                    logger.info(
                         `[UpdateChecker] Update available: v${update.version}`,
                     );
                 } else {
@@ -196,7 +196,7 @@ export function UpdateChecker(): null {
             } catch (err) {
                 // Network / server errors are expected when offline — reset quietly.
                 store.reset();
-                clientLogger.error(
+                logger.error(
                     `[UpdateChecker] Background check failed: ${String(err)}`,
                 );
             }

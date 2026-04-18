@@ -1,4 +1,4 @@
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { FileUpload } from '@/components/dashboard/file-upload';
@@ -204,7 +204,7 @@ export default function Dashboard() {
                 })
                 .catch(err => {
                     if (cancelled) return;
-                    clientLogger.error('Failed to load experiment:', err);
+                    logger.error('Failed to load experiment:', err);
                     setError('Failed to load experiment from library');
                 })
                 .finally(() => {

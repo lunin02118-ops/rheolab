@@ -6,7 +6,7 @@
  */
 
 import { encrypt, decrypt } from '@/lib/utils/encryption';
-import { debugLog } from '@/lib/utils/debug-logger';
+import { logger } from '@/lib/logger';
 import { isProduction } from '@/lib/env';
 import type { License } from './types';
 
@@ -78,7 +78,7 @@ export function saveMultiLicenseState(state: MultiLicenseState): void {
         const data = JSON.stringify(state);
         const encrypted = encrypt(data);
         localStorage.setItem(STORAGE_KEY, encrypted);
-        debugLog('MultiLicenseStore', 'State saved, slots:', state.slots.length);
+        logger.debug('[MultiLicenseStore] State saved, slots:', state.slots.length);
     } catch (error) {
         console.error('[MultiLicenseStore] Failed to save state:', error);
     }
@@ -181,7 +181,7 @@ export function setActiveSlot(slotId: string): boolean {
     state.activeSlotId = slotId;
     saveMultiLicenseState(state);
     
-    debugLog('MultiLicenseStore', 'Active slot changed to:', slot.label || slot.license.type);
+    logger.debug('[MultiLicenseStore] Active slot changed to:', slot.label || slot.license.type);
     return true;
 }
 
@@ -233,10 +233,10 @@ export function setDevMode(enabled: boolean): void {
     try {
         if (enabled) {
             localStorage.setItem(DEV_MODE_KEY, 'true');
-            debugLog('MultiLicenseStore', 'Dev mode ENABLED');
+            logger.debug('[MultiLicenseStore] Dev mode ENABLED');
         } else {
             localStorage.removeItem(DEV_MODE_KEY);
-            debugLog('MultiLicenseStore', 'Dev mode DISABLED');
+            logger.debug('[MultiLicenseStore] Dev mode DISABLED');
         }
     } catch (error) {
         console.error('[MultiLicenseStore] Failed to set dev mode:', error);
@@ -250,7 +250,7 @@ export function clearMultiLicenseData(): void {
     try {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(DEV_MODE_KEY);
-        debugLog('MultiLicenseStore', 'All multi-license data cleared');
+        logger.debug('[MultiLicenseStore] All multi-license data cleared');
     } catch (error) {
         console.error('[MultiLicenseStore] Failed to clear multi-license data:', error);
     }

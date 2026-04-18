@@ -1,6 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 interface Props {
     children: ReactNode;
@@ -34,7 +34,7 @@ export class RouteErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, info: { componentStack: string }) {
-        clientLogger.error(
+        logger.error(
             `[RouteErrorBoundary] Unhandled render error${this.props.name ? ` in ${this.props.name}` : ''}`,
             error,
             info.componentStack

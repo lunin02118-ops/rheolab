@@ -51,7 +51,7 @@ export function LogViewer() {
 
     const filteredLogs = logs.filter(log => {
         if (filterLevel !== 'ALL') {
-            const levels: LogLevel[] = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
+            const levels: LogLevel[] = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
             const filterIdx = levels.indexOf(filterLevel);
             const logIdx = levels.indexOf(log.level);
             if (logIdx < filterIdx) return false;
@@ -97,6 +97,7 @@ export function LogViewer() {
                         onChange={(e) => setFilterLevel(e.target.value as LogLevel | 'ALL')}
                     >
                         <option value="ALL">Все уровни</option>
+                        <option value="TRACE">Трассир.+</option>
                         <option value="DEBUG">Отладка+</option>
                         <option value="INFO">Инфо+</option>
                         <option value="WARN">Предупр.+</option>
@@ -134,6 +135,7 @@ export function LogViewer() {
                             </span>
                             <span className={cn(
                                 "font-bold min-w-[50px]",
+                                log.level === 'TRACE' && "text-muted-foreground/70",
                                 log.level === 'DEBUG' && "text-muted-foreground",
                                 log.level === 'INFO' && "text-blue-500",
                                 log.level === 'WARN' && "text-yellow-500",

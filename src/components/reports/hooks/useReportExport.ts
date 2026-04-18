@@ -21,8 +21,7 @@ import {
     type ReportBuildContext,
 } from '@/lib/reports/report-builders';
 import { extractExperimentMetadata } from '@/lib/metadata-utils';
-import { logger as clientLogger } from '@/lib/client-logger';
-import { debugLog } from '@/lib/utils/debug-logger';
+import { logger } from '@/lib/logger';
 
 export interface UseReportExportOptions {
     parseResult: ParseResult;
@@ -107,8 +106,8 @@ export function useReportExport(options: UseReportExportOptions) {
         const t0 = performance.now();
 
         try {
-            debugLog('ReportsPanel', 'Starting PDF generation...');
-            clientLogger.info('[ReportsPanel] Capturing chart as SVG...');
+            logger.debug('[ReportsPanel] Starting PDF generation...');
+            logger.info('[ReportsPanel] Capturing chart as SVG...');
             const _chartImage = null;
 
             const t2 = performance.now();
@@ -120,7 +119,7 @@ export function useReportExport(options: UseReportExportOptions) {
             const t3 = performance.now();
             timings.push(`PDF Gen: ${(t3 - t2).toFixed(0)}ms`);
             timings.push(`TOTAL: ${(t3 - t0).toFixed(0)}ms`);
-            clientLogger.info('[ReportsPanel] PDF generation timings:', timings.join(', '));
+            logger.info('[ReportsPanel] PDF generation timings:', timings.join(', '));
 
             const filename = `${parseResult.metadata.filename || 'report'}_${new Date().toISOString().split('T')[0]}.pdf`;
             await saveBlob({
@@ -129,7 +128,7 @@ export function useReportExport(options: UseReportExportOptions) {
                 filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
             });
         } catch (err) {
-            clientLogger.error('Report generation failed:', err);
+            logger.error('Report generation failed:', err);
             const errorMessage = err instanceof Error ? err.message : String(err);
             setExportError(`Ошибка генерации PDF: ${errorMessage}`);
         } finally {
@@ -143,7 +142,7 @@ export function useReportExport(options: UseReportExportOptions) {
         setExportError(null);
         try {
             const excelInput = buildExcelReportInput(buildContext());
-            clientLogger.info('[ReportsPanel] Generating Excel with settings:', excelInput.settings);
+            logger.info('[ReportsPanel] Generating Excel with settings:', excelInput.settings);
 
             const blob = await generateExcelReportBlob(excelInput);
             const filename = `${parseResult.metadata.filename || 'report'}_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -153,7 +152,7 @@ export function useReportExport(options: UseReportExportOptions) {
                 filters: [{ name: 'Excel Spreadsheet', extensions: ['xlsx'] }],
             });
         } catch (err) {
-            clientLogger.error('[ReportsPanel] Excel generation failed:', err);
+            logger.error('[ReportsPanel] Excel generation failed:', err);
             const errorMessage = err instanceof Error ? err.message : String(err);
             setExportError(`Ошибка генерации Excel: ${errorMessage}`);
         } finally {

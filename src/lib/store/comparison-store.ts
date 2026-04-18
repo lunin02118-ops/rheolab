@@ -6,7 +6,7 @@ import { useLicenseStore } from '@/lib/store/license-store';
 import { licenseEvents } from '@/lib/store/license-events';
 import { getExperimentsByIds } from '@/lib/experiments/client';
 import { tauriRawRecordsToColumnar } from '@/lib/utils/columnar';
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 /**
  * Convert a DB-loaded experiment's AoS rawPoints into SoA ColumnarData and
@@ -161,7 +161,7 @@ export const useComparisonStore = create<ComparisonState>()(
                         }
                     } catch (_e) {
                         // Transient error — keep experiments with stale metadata
-                        clientLogger.warn('comparison-store: rehydrate batch fetch failed', _e);
+                        logger.warn('comparison-store: rehydrate batch fetch failed', _e);
                         for (const { index } of needsDb) {
                             resolved[index] = baseExperiments[index];
                         }

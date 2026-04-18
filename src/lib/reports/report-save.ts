@@ -10,7 +10,7 @@
 import { isTauri } from '@/lib/tauri';
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 export interface SaveBlobOptions {
     blob: Blob;
@@ -40,10 +40,10 @@ export async function saveBlob({ blob, filename, filters }: SaveBlobOptions): Pr
         try {
             const buffer = await blob.arrayBuffer();
             await writeFile(filePath, new Uint8Array(buffer));
-            clientLogger.info(`[saveBlob] Saved to ${filePath}`);
+            logger.info(`[saveBlob] Saved to ${filePath}`);
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            clientLogger.error(`[saveBlob] writeFile failed for ${filePath}: ${msg}`);
+            logger.error(`[saveBlob] writeFile failed for ${filePath}: ${msg}`);
             // Re-throw so the caller can display the error to the user
             throw new Error(`Не удалось сохранить файл: ${msg}`);
         }

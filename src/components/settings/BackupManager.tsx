@@ -1,4 +1,4 @@
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Download, RotateCcw, Trash2, AlertTriangle, Check, FolderOpen } from 'lucide-react';
@@ -49,7 +49,7 @@ export function BackupManager() {
             const list = await bridge.backup.list();
             if (mountedRef.current) setBackups(list);
         } catch (e) {
-            clientLogger.error('Failed to load backups', e);
+            logger.error('Failed to load backups', e);
         }
     }, [bridge]);
 
@@ -68,7 +68,7 @@ export function BackupManager() {
             try {
                 await invoke('licensing_checkpoint_db');
             } catch (e) {
-                clientLogger.error('WAL checkpoint failed (non-fatal)', e);
+                logger.error('WAL checkpoint failed (non-fatal)', e);
             }
 
             // 2. Create backup via platform bridge
@@ -81,7 +81,7 @@ export function BackupManager() {
             }
         } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
-            clientLogger.error('Backup creation failed', e);
+            logger.error('Backup creation failed', e);
             setError(`Ошибка создания: ${msg}`);
         } finally {
             setIsLoading(false);
@@ -119,7 +119,7 @@ export function BackupManager() {
                 await bridge.backup.delete(action.filename);
                 await loadBackups();
             } catch (e) {
-                clientLogger.error('Failed to delete backup:', e);
+                logger.error('Failed to delete backup:', e);
             }
         }
     };
@@ -128,7 +128,7 @@ export function BackupManager() {
         try {
             await bridge.backup.openFolder();
         } catch (e) {
-            clientLogger.error('Failed to open backup folder', e);
+            logger.error('Failed to open backup folder', e);
         }
     };
 

@@ -1,4 +1,4 @@
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 import { UIModeProvider } from '@/contexts/ui-mode-context';
 import { ThemeProvider } from '@/contexts/theme-context';
@@ -15,14 +15,14 @@ const LogViewer = lazy(() =>
 export function Providers({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (isTauri()) {
-            clientLogger.info('[Providers] Desktop runtime detected');
+            logger.info('[Providers] Desktop runtime detected');
         }
 
         // WASM is loaded lazily on first use (e.g., when analysis or reports are needed).
         // This avoids ~40-80 MB of memory allocation on app startup for users
         // who may only be browsing the library or comparison page.
         // The worker loads its own WASM instance independently.
-        clientLogger.info('[Providers] WASM Engine loading deferred to first use');
+        logger.info('[Providers] WASM Engine loading deferred to first use');
     }, []);
 
     return (

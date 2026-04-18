@@ -1,4 +1,4 @@
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 import React, { useState } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
@@ -53,7 +53,7 @@ function formatCalibrationDate(dateStr?: string): string {
             return date.toLocaleDateString('ru-RU');
         }
     } catch (_e) {
-        clientLogger.info(`CalibrationPanel: failed to parse date string '${dateStr}'`);
+        logger.info(`CalibrationPanel: failed to parse date string '${dateStr}'`);
     }
 
     return dateStr;
@@ -89,7 +89,7 @@ export function CalibrationPanel({ calibration }: CalibrationPanelProps) {
     try {
         chartData = JSON.parse(rawData);
     } catch (e) {
-        clientLogger.warn('Failed to parse calibration chart data:', e);
+        logger.warn('Failed to parse calibration chart data:', e);
     }
 
     const deviceLabel = deviceType === 'bslR1' ? 'BSL R1' :

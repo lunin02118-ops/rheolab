@@ -22,7 +22,7 @@ import type {
     License,
 } from '@/lib/licensing';
 import { getExperimentsCount } from '@/lib/experiments/client';
-import { debugLog } from '@/lib/utils/debug-logger';
+import { logger } from '@/lib/logger';
 import { licenseEvents } from '@/lib/store/license-events';
 
 // ── Rust LicenseCheckResult (matches serde camelCase output) ─────────────────
@@ -129,7 +129,7 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
     refreshExperimentsCount: async () => {
         try {
             const count = await getExperimentsCount();
-            debugLog('LicenseStore', 'Updated experiments count from storage:', count);
+            logger.debug('[LicenseStore] Updated experiments count from storage:', count);
             set({ experimentsInDB: count });
         } catch (error) {
             console.error('[LicenseStore] Error fetching experiments count:', error);
@@ -146,7 +146,7 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
         // without requiring a polling loop or a second IPC call from the frontend.
         // Fire-and-forget: the listener lives for the app's lifetime.
         listen<RustLicenseCheckResult>('license_status_updated', ({ payload }) => {
-            debugLog('LicenseStore', 'Background check received:', payload.status, payload.source);
+            logger.debug('[LicenseStore] Background check received:', payload.status, payload.source);
             const result = adaptResult(payload);
             set({ result, ...deriveFromResult(result) });
         }).catch((err) => {
@@ -169,7 +169,7 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
                 ?? await invoke<RustLicenseCheckResult>('licensing_check');
 
             const result = adaptResult(rustResult);
-            debugLog('LicenseStore', `Initialized via Rust engine (${cachedResult ? 'cache' : 'full check'}):`, result.status, result.source);
+            logger.debug(`[LicenseStore] Initialized via Rust engine (${cachedResult ? 'cache' : 'full check'}):`, result.status, result.source);
 
             set({
                 result,

@@ -1,4 +1,4 @@
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, RotateCcw, AlertCircle, CheckCircle2, Copy } from 'lucide-react';
@@ -110,7 +110,7 @@ export function CycleEditorDialog({
     const handleApplyToAll = () => {
         if (onApplyPatternToAll && selectedIds.size > 0) {
             const pattern = getSelectedPattern();
-            clientLogger.info('[CycleEditor] Applying pattern:', pattern, 'from', selectedIds.size, 'selected steps');
+            logger.info('[CycleEditor] Applying pattern:', pattern, 'from', selectedIds.size, 'selected steps');
             onApplyPatternToAll(pattern);
             onClose();
         }

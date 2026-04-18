@@ -1,4 +1,4 @@
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 import React, { useState } from 'react';
 import { useSaveDialogInit } from '@/hooks/useSaveDialogInit';
@@ -135,7 +135,7 @@ export function SaveExperimentDialog({
         setIsSaving(true);
 
         // Debug: log geometry data being saved
-        clientLogger.info('[SaveDialog] Saving with geometry:', {
+        logger.info('[SaveDialog] Saving with geometry:', {
             geometry: analysisData.geometry,
             geometrySource: analysisData.geometrySource
         });
@@ -197,7 +197,7 @@ export function SaveExperimentDialog({
                 const path = issue?.path?.join('.') ?? '';
                 const base = issue?.message ?? 'Ошибка валидации';
                 const msg = path ? `${base} (поле: ${path})` : base;
-                clientLogger.warn('[SaveDialog] Payload failed Zod validation', validation.error.issues);
+                logger.warn('[SaveDialog] Payload failed Zod validation', validation.error.issues);
                 setError(msg);
                 setIsSaving(false);
                 return;

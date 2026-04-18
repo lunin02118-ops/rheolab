@@ -1,4 +1,4 @@
-import { logger as clientLogger } from '@/lib/client-logger';
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X, Loader2, FolderOpen, Upload } from 'lucide-react';
@@ -72,7 +72,7 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
                 _listCache = { search: debouncedSearch, ts: Date.now(), experiments: exps, total: tot };
             }
         } catch (err) {
-            if (!cancelled.current) clientLogger.error('Failed to fetch experiments:', err);
+            if (!cancelled.current) logger.error('Failed to fetch experiments:', err);
         } finally {
             if (!cancelled.current) setIsLoading(false);
         }
@@ -99,7 +99,7 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
                 setPage(nextPage);
             }
         } catch (err) {
-            clientLogger.error('Failed to load more experiments:', err);
+            logger.error('Failed to load more experiments:', err);
         } finally {
             setIsLoadingMore(false);
         }
@@ -133,10 +133,10 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
             if (response.success && response.experiment) {
                 onSelect(response.experiment as unknown as Experiment);
             } else {
-                clientLogger.error('Failed to load full experiment:', response.error);
+                logger.error('Failed to load full experiment:', response.error);
             }
         } catch (err) {
-            clientLogger.error('Failed to fetch experiment for comparison:', err);
+            logger.error('Failed to fetch experiment for comparison:', err);
         } finally {
             setLoadingId(null);
         }
@@ -161,7 +161,7 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
             } as unknown as Experiment;
             onSelect(syntheticExp);
         } catch (err) {
-            clientLogger.error('Failed to parse file for comparison:', err);
+            logger.error('Failed to parse file for comparison:', err);
             setParseError(err instanceof Error ? err.message : String(err));
         } finally {
             setIsParsing(false);

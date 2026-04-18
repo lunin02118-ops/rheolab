@@ -9,7 +9,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { debugLog } from '@/lib/utils/debug-logger';
+import { logger } from '@/lib/logger';
 
 // Re-export types and defaults for backward compatibility
 export type {
@@ -307,7 +307,7 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
 
                 // Migration from v1 (old format with colors/visibility) to v2 (lines)
                 if (version < 2) {
-                    debugLog('ChartSettings', 'Migrating from v1 to v2...');
+                    logger.debug('[ChartSettings] Migrating from v1 to v2...');
                     
                     // Check if old format exists
                     const oldSettings = state?.settings as Record<string, unknown> | undefined;
