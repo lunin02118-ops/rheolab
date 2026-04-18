@@ -390,6 +390,28 @@ src-tauri/src/db/repositories/experiments/
 | `src/lib/parsing/client.ts` | 468 | `client/read.ts`, `client/write.ts`, `client/transform.ts` |
 | `src/components/calibration/CalibrationChartsUplot.tsx` | 466 | hooks + subcomponents |
 
+### WP-4.8 `excel.rs` (864 LOC → 7 модулей) ✅ DONE (2026-04-19)
+
+**Фактическая структура:**
+```
+rheolab-core/src/report_generator/excel/
+├── mod.rs          (127 LOC)  // оркестратор: pub API + generate_excel_internal
+├── styles.rs       ( 80 LOC)  // Styles struct с Format definitions
+├── raw_data.rs     ( 63 LOC)  // скрытые raw-data колонки (U..AB)
+├── chart.rs        (230 LOC)  // scatter-smooth chart + 5 series + axes
+├── metadata.rs     (169 LOC)  // summary + calibration + recipe + water
+├── stats.rs        (137 LOC)  // touch-points table + rheology statistics
+└── touch_points.rs ( 65 LOC)  // Excel-specific touch-point wrapper
+```
+
+- **Результат.** Все 7 файлов ≤ 230 LOC (крупнейший — `chart.rs` с 5 series + axes).
+- **Публичный API сохранён.** `generate_excel_report` и `generate_excel_from_input` продолжают re-exportироваться из `report_generator::excel` с идентичными сигнатурами.
+- **Gain:** модуль `chart.rs` сжимает 5 `if input.settings.show_*` блоков из монолита в single call-site per series через `add_series` helper.
+- **Гарантия.** Pure move — никаких поведенческих изменений:
+  - `cargo test --lib`: 89/89 ✅
+  - `cargo test --tests` (все): **152/152** ✅
+- Closes WP-4.8 (excel.rs) из 2026-04-19 follow-up audit.
+
 ### WP-4.7 `detectors.rs` (1080 LOC → 7 модулей) ✅ DONE (2026-04-19)
 
 **Фактическая структура:**
@@ -426,7 +448,8 @@ Specta интеграция уже работает:
 
 ## 8. Фаза 5 — DX / гигиена
 
-### WP-5.1 ESLint hardening (пошагово) ⏳ TODO1. `@typescript-eslint/consistent-type-imports` → error.
+### WP-5.1 ESLint hardening (пошагово) ✅ DONE (pre-existing, confirmed 2026-04-19)
+1. `@typescript-eslint/consistent-type-imports` → error.
 2. `@typescript-eslint/no-floating-promises` → error (требует type-aware linting; убедиться, что `tsconfig` подключён).
 3. `no-console` → `error` с allow-list `warn|error` (только во временных ситуациях, в целом — через `logger`).
 4. `@typescript-eslint/no-unsafe-function-type` → error.
@@ -471,7 +494,7 @@ Specta интеграция уже работает:
   - Rust LOC: **36 137** (152 файла) | TS LOC: **31 834** (208 файлов)
   - **Rust non-test production:** `unwrap()` = **0** | `expect()` = **45** | `panic!()` = **0** | `todo!()` = **0**
   - Все оставшиеся `expect()` — static-regex `LazyLock` инициализация с задокументированными SAFETY-инвариантами.
-  - Rust файлов > 500 LOC: **11** (включая 2 test-файла; производственных монолитов — 9) — после WP-4.7 `detectors.rs` разбит
+  - Rust файлов > 500 LOC: **10** (включая 2 test-файла; производственных монолитов — 8) — после WP-4.7 (`detectors.rs`) + WP-4.8 (`excel.rs`)
   - TS файлов > 400 LOC: **6** (все — компоненты page/settings, лимит превышен на 1–43 строки)
   - Tauri commands: **89 defined / 87 registered** (`experiments_export` orphan удалён)
   - Mojibake: **0 вхождений** (`runtime/refactor-baseline/metrics.json.mojibake.total = 0`)
