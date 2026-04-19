@@ -12,21 +12,25 @@
  *   Beta publish — Developer license users only:
  *     node scripts/deploy/publish-update.js --channel beta
  *
+ *   Alpha publish — Superuser license users only (project owner's personal tier):
+ *     node scripts/deploy/publish-update.js --channel alpha
+ *
  *   Rollback / re-publish from existing release manifest:
  *     node scripts/deploy/publish-update.js --from-manifest outputs/release/stable.json
  *     node scripts/deploy/publish-update.js --from-manifest outputs/release/beta.json --channel beta
+ *     node scripts/deploy/publish-update.js --from-manifest outputs/release/alpha.json --channel alpha
  *     (The installer is already on the server; only {channel}.json is re-uploaded.)
  *
  * What this script does:
  *   1. Reads version + artifact info (from package.json / NSIS dir, or from --from-manifest)
  *   2. Extracts the latest CHANGELOG entry as release notes
- *   3. Builds a `{channel}.json` update manifest (stable.json or beta.json)
+ *   3. Builds a `{channel}.json` update manifest (stable.json, beta.json, or alpha.json)
  *   4. SCPs the .exe to /var/www/license-server/releases/artifacts/{version}/  (skipped with --from-manifest)
  *   5. SCPs {channel}.json as {channel}.json.tmp, validates it server-side, then atomically renames
  *      tmp → {channel}.json so clients never see a partial write.
  *
  * Options:
- *   --channel <stable|beta>      Update channel to publish (default: stable)
+ *   --channel <stable|beta|alpha>  Update channel to publish (default: stable)
  *   --host <user@host>           VPS host (default: root@license.vizbuka.ru)
  *   --key  <path>                SSH identity file
  *   --from-manifest <path>       Path to a local release manifest JSON (rollback / re-deploy)
@@ -57,11 +61,11 @@ const DRY_RUN      = hasFlag('--dry-run') || hasFlag('-n');
 const FROM_MANIFEST = flag('--from-manifest');
 
 const CHANNEL_RAW = (flag('--channel') ?? 'stable').toLowerCase();
-if (!['stable', 'beta'].includes(CHANNEL_RAW)) {
-    console.error(`\n❌  Invalid --channel value: "${CHANNEL_RAW}". Must be "stable" or "beta".`);
+if (!['stable', 'beta', 'alpha'].includes(CHANNEL_RAW)) {
+    console.error(`\n❌  Invalid --channel value: "${CHANNEL_RAW}". Must be "stable", "beta", or "alpha".`);
     process.exit(1);
 }
-const CHANNEL = CHANNEL_RAW; // 'stable' | 'beta'
+const CHANNEL = CHANNEL_RAW; // 'stable' | 'beta' | 'alpha'
 
 const KNOWN_HOSTS_FILE = join(REPO_ROOT, 'scripts', 'deploy', 'known_hosts');
 const knownHostsPopulated = existsSync(KNOWN_HOSTS_FILE) &&
