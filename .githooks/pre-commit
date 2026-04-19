@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# RheoLab pre-commit guard — blocks accidental commits of credentials.
+#
+# Install once (per clone):
+#   git config core.hooksPath .githooks
+#
+# The hook is deliberately conservative:
+#   1. Refuses to stage any path that looks like a credential file by name.
+#   2. Scans the staged *diff* (not the full file) for obvious secret
+#      patterns — API keys, private keys, HMAC-shaped hex literals.
+# Fails loud with a one-line bypass hint so real-world false positives
+# don't block you forever.
+
+set -euo pipefail
+
+# ── 1. Forbidden path patterns ───────────────────────────────────────
+# Matched against the full path of each staged file. If you truly need
+# to commit something like `foo.secret` add an explicit .gitignore
+# exception and document why in docs/LICENSING_CHANNELS.md.
+FORBIDDEN_PATH_REGEX='(^|/)(\.env(\.[^/]+)?|secrets\.env.*|.+\.secret(s)?|credentials\.[^/]+|.+\.pem|.+\.der|.+\.key|.+\.keystore)$'
+# Explicitly allow these templates (kept in repo for onboarding):
+ALLOWED_TEMPLATE_REGEX='\.(example|sample|tmpl|template)$|license_public\.(pem|der)$|dev_public\.(pem|der)$'
+
+offenders_path=()
+while IFS= read -r path; do
+    [[ -z "$path" ]] && continue
+    if [[ "$path" =~ $FORBIDDEN_PATH_REGEX ]] && ! [[ "$path" =~ $ALLOWED_TEMPLATE_REGEX ]]; then
+        offenders_path+=("$path")
+    fi
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+# ── 2. Content patterns inside the staged diff ───────────────────────
+# Intentionally narrow — high-signal markers only, to keep false-positive
+# rate low. Expand deliberately after the first time a real leak slips
+# through.
+CONTENT_PATTERNS=(
+    'BEGIN (RSA|OPENSSH|EC|DSA|PGP) PRIVATE KEY'
+    '(AKIA|ASIA)[0-9A-Z]{16}'                                  # AWS access keys
+    'AIza[0-9A-Za-z_\-]{35}'                                   # Google API keys
+    'sk-[A-Za-z0-9]{20,}'                                      # OpenAI / Anthropic-style
+    'ghp_[A-Za-z0-9]{36}'                                      # GitHub PAT classic
+    'github_pat_[A-Za-z0-9_]{82}'                              # GitHub PAT fine-grained
+    '(INTEGRITY|BETA_CHANNEL|ALPHA_CHANNEL|LICENSE_ENCRYPTION|LICENSE_SECRET|TAURI_SIGNING_PRIVATE_KEY_PASSWORD|DB_PASSWORD|VPS_ROOT_PASSWORD|DASHBOARD_ADMIN_PASSWORD)_SECRET?\s*=\s*[^\s#<"'\''=]'
+    'RHEOLAB_(BETA|ALPHA)_CHANNEL_SECRET\s*=\s*[^\s#<"'\''=]'
+)
+
+offenders_content=()
+staged_diff="$(git diff --cached -U0 --no-color -- ':!*.example' ':!*.sample' ':!*.md' 2>/dev/null || true)"
+if [[ -n "$staged_diff" ]]; then
+    for pattern in "${CONTENT_PATTERNS[@]}"; do
+        while IFS= read -r hit; do
+            [[ -z "$hit" ]] && continue
+            offenders_content+=("pattern=$pattern → $hit")
+        done < <(printf '%s\n' "$staged_diff" | grep -E "^\\+" | grep -E "$pattern" || true)
+    done
+fi
+
+# ── Report ───────────────────────────────────────────────────────────
+if (( ${#offenders_path[@]} > 0 )) || (( ${#offenders_content[@]} > 0 )); then
+    echo
+    echo "╔═══════════════════════════════════════════════════════════════╗"
+    echo "║  pre-commit: refusing to commit — possible credential leak    ║"
+    echo "╚═══════════════════════════════════════════════════════════════╝"
+
+    if (( ${#offenders_path[@]} > 0 )); then
+        echo
+        echo "Forbidden file paths staged:"
+        for p in "${offenders_path[@]}"; do
+            echo "  • $p"
+        done
+    fi
+
+    if (( ${#offenders_content[@]} > 0 )); then
+        echo
+        echo "Suspicious content in staged diff:"
+        for c in "${offenders_content[@]}"; do
+            echo "  • $c"
+        done
+    fi
+
+    echo
+    echo "If this is a false positive, bypass with:"
+    echo "   git commit --no-verify …"
+    echo
+    echo "…but please reconsider first."
+    exit 1
+fi
+
+exit 0

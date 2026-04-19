@@ -22,11 +22,26 @@
 /dist/
 /.cache/
 
-# env files
+# env files — anything that looks like a secret-carrying env file is ignored.
+# Explicit paths are kept above the glob so that git diff shows the right
+# file name if something slips through.
 .env
 .env.local
 scripts/dev/.env.keys
 scripts/deploy/.env.server
+# Glob guards: anything with an .env suffix AND anything matching common
+# credential file patterns. Use `!` re-include rules below for *.example /
+# *.sample templates that SHOULD be committed.
+.env.*
+*.env
+secrets.env*
+*.secret
+*.secrets
+credentials.*
+!*.env.example
+!*.env.sample
+!.env.example
+!.env.sample
 
 # misc
 .DS_Store

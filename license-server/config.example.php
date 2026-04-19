@@ -28,6 +28,16 @@ define('LICENSE_SECRET', '');  // ← ОБЯЗАТЕЛЬНО сгенериру�
 // Deploy:   export RHEOLAB_BETA_CHANNEL_SECRET="<value>"  (Apache: SetEnv, nginx: fastcgi_param)
 // If unset, beta channel requests are safely downgraded to stable (fails closed).
 
+// Shared secret for ALPHA update-channel HMAC token validation (update-channel.php).
+// Must match the ALPHA_CHANNEL_SECRET compile-time env var used when building the Tauri app.
+// Alpha is the top-tier channel reserved for Superuser licences — i.e. the project owner's
+// personal QA fleet. Builds go to alpha first; only after owner validation do they get
+// promoted to beta (dev team) and then stable (end users).
+// Set as a server environment variable — read via getenv('RHEOLAB_ALPHA_CHANNEL_SECRET').
+// Generate: openssl rand -hex 32
+// Deploy:   export RHEOLAB_ALPHA_CHANNEL_SECRET="<value>"  (Apache: SetEnv, nginx: fastcgi_param)
+// If unset, alpha channel requests are safely downgraded to stable (fails closed).
+
 // Настройки лицензирования
 define('GRACE_PERIOD_DAYS', 30);      // Оффлайн grace period
 define('LICENSE_CACHE_DAYS', 7);       // Как часто проверять онлайн

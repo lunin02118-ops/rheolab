@@ -23,10 +23,32 @@ Options -Indexes
 </IfModule>
 
 # Auto-updater endpoint routing
+#
+# ── Security TODO (pre-existing, not introduced here) ─────────────────
+# The channel rewrites below hand the privileged manifest (beta.json /
+# alpha.json) straight to mod_rewrite based on the X-Update-Channel
+# header alone — they bypass the HMAC-token verification implemented
+# in api/update-channel.php. In practice this means any client that
+# sets the header gets the pre-release manifest; the HMAC proof is
+# only enforced when alpha/beta.json is absent and PHP takes over.
+#
+# Follow-up: remove these per-channel rewrites and route every
+# `/releases/v1/update/{target}/update` request through
+# /api/update-channel.php, which already enforces the HMAC check.
+# Tracked in docs/LICENSING_CHANNELS.md as a hardening task.
+# ─────────────────────────────────────────────────────────────────────
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Channel-aware endpoint (current, v0.1.510+):
+    # Alpha channel (v0.2.0-beta.8+): Superuser licences only.
+    #   GET /releases/v1/update/{target}/update  +  X-Update-Channel: alpha
+    #   → /releases/v1/update/{target}/alpha.json   (only if file exists)
+    #   Otherwise falls through to beta → stable.
+    RewriteCond %{HTTP:X-Update-Channel} alpha [NC]
+    RewriteCond %{DOCUMENT_ROOT}/releases/v1/update/windows-x86_64/alpha.json -f
+    RewriteRule ^releases/v1/update/([^/]+)/update$ /releases/v1/update/$1/alpha.json [L]
+
+    # Beta channel (v0.1.510+): Developer licences.
     #   GET /releases/v1/update/{target}/update  +  X-Update-Channel: beta
     #   → /releases/v1/update/{target}/beta.json   (only if file exists)
     #   Otherwise falls through to stable.json.
