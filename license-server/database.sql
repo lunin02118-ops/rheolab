@@ -35,8 +35,9 @@ CREATE TABLE IF NOT EXISTS license_keys (
     organization VARCHAR(255),
     phone VARCHAR(50),
     
-    -- Тип лицензии
-    license_type ENUM('trial', 'standard', 'professional', 'enterprise', 'developer') DEFAULT 'standard',
+    -- Тип лицензии. See migrations/add_superuser_type.sql — kept in sync
+    -- with src-tauri/src/commands/licensing/types.rs::LicenseType.
+    license_type ENUM('trial', 'standard', 'professional', 'enterprise', 'developer', 'superuser') DEFAULT 'standard',
     
     -- Лимиты
     max_activations INT DEFAULT 1,

@@ -166,7 +166,18 @@ def exec_checked(
     *,
     stdin_data: str | None = None,
     print_command: bool = True,
+    print_output: bool = True,
 ) -> str:
+    """
+    Run `cmd` on the remote host, raising on non-zero exit status.
+
+    print_command : echo the command to stdout before running it.
+                    Disable for noisy loops or commands that contain secrets.
+    print_output  : mirror stdout/stderr of the remote command to local
+                    stdout. Disable when the output itself is sensitive
+                    (DB credentials, API secrets, etc.). Failures still
+                    raise with the full remote error attached.
+    """
     if print_command:
         print(f"\n$ {cmd}")
 
@@ -181,12 +192,17 @@ def exec_checked(
     out = stdout.read().decode()
     err = stderr.read().decode()
 
-    if out:
-        print(out, end="" if out.endswith("\n") else "\n")
-    if err:
-        print(err, end="" if err.endswith("\n") else "\n")
+    if print_output:
+        if out:
+            print(out, end="" if out.endswith("\n") else "\n")
+        if err:
+            print(err, end="" if err.endswith("\n") else "\n")
 
     if exit_status != 0:
-        raise RuntimeError(f"Command failed with exit status {exit_status}: {cmd}")
+        # Include stderr in the exception regardless of print_output so
+        # the error surfaces even when we intentionally silenced stdout.
+        detail = err.strip() if err.strip() else out.strip()
+        suffix = f"\n  stderr: {detail}" if detail else ""
+        raise RuntimeError(f"Command failed with exit status {exit_status}: {cmd}{suffix}")
 
     return out

@@ -215,8 +215,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_key'])) {
     $customerEmail = trim($_POST['customer_email'] ?? '');
     $organization = trim($_POST['organization'] ?? '');
     $licenseType = $_POST['license_type'] ?? 'standard';
-    // F-10B.4: allowlist validation — reject unexpected values
-    $allowedLicenseTypes = ['trial', 'standard', 'developer', 'enterprise'];
+    // F-10B.4: allowlist validation — reject unexpected values.
+    // 'superuser' is the top-tier personal licence used by the project owner
+    // (alpha update channel). Keep this list in sync with the DB ENUM in
+    // database.sql and migrations/add_superuser_type.sql.
+    $allowedLicenseTypes = ['trial', 'standard', 'developer', 'enterprise', 'superuser'];
     if (!in_array($licenseType, $allowedLicenseTypes, true)) {
         $licenseType = 'standard';
     }
@@ -552,7 +555,8 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
                             <option value="trial">Пробная (30 дней)</option>
                             <option value="standard" selected>Стандартная</option>
                             <option value="enterprise">Enterprise</option>
-                            <option value="developer">Разработчик</option>
+                            <option value="developer">Разработчик (beta)</option>
+                            <option value="superuser">Суперпользователь (alpha)</option>
                         </select>
                     </div>
                     <div class="form-group expires-group" id="expires_group">
@@ -632,7 +636,8 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
                             'standard' => 'Стандартная',
                             'developer' => 'Разработчик',
                             'professional' => 'Professional',
-                            'enterprise' => 'Enterprise'
+                            'enterprise' => 'Enterprise',
+                            'superuser' => 'Суперпользователь'
                         ];
                         $typeLabel = $typeLabels[$lic['license_type']] ?? $lic['license_type'];
                         ?>
