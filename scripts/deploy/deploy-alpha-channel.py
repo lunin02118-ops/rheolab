@@ -55,10 +55,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import hmac
+import json
 import os
 import shlex
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -182,63 +184,107 @@ def upload_files(ssh) -> None:
         sftp.close()
 
 
-def install_alpha_secret(ssh, info: dict[str, str], alpha_secret: str) -> None:
+CHANNEL_CONF_REMOTE = "/etc/apache2/conf-available/rheolab-channels.conf"
+
+
+def _secret_line(location: str, var: str, value: str) -> str:
+    """Return the correct directive syntax for the given config file."""
+    if location.endswith("envvars"):
+        return f'export {var}="{value}"'
+    # Everything else (conf-available/*.conf, sites-enabled/*.conf,
+    # .htaccess) uses Apache's SetEnv directive.
+    return f"SetEnv {var} {value}"
+
+
+def _upsert_var(ssh, location: str, var: str, value: str) -> None:
     """
-    Add RHEOLAB_ALPHA_CHANNEL_SECRET to the same configuration file
-    that currently carries RHEOLAB_BETA_CHANNEL_SECRET. If that's
-    /etc/apache2/envvars we use `export VAR="…"`. Otherwise we use
-    Apache's SetEnv directive.
+    Write `VAR=value` (or SetEnv) into `location`, replacing any existing
+    line for the same var. Safe on a non-existent file (will be created).
     """
-    print("\n── Install alpha secret ─────────────────────────────────")
+    line = _secret_line(location, var, value)
+    # Create the file if it doesn't exist, wiping any pre-existing line
+    # for this variable first. sed is used with a simple pattern so hex
+    # secrets in the value never clash with sed delimiters.
+    exec_checked(
+        ssh,
+        f"touch {shlex.quote(location)} && "
+        f"sed -i '/{var}/d' {shlex.quote(location)} && "
+        f"printf '%s\\n' {shlex.quote(line)} >> {shlex.quote(location)}",
+        print_command=False,
+    )
+
+
+def install_alpha_secret(
+    ssh,
+    info: dict[str, str],
+    alpha_secret: str,
+    beta_secret: str | None = None,
+) -> None:
+    """
+    Make sure RHEOLAB_ALPHA_CHANNEL_SECRET is readable by the Apache
+    process that serves update-channel.php.
+
+    Strategy:
+
+    1. If RHEOLAB_BETA_CHANNEL_SECRET is already present in some config
+       file, append/replace the alpha secret in the *same* file — keep
+       the two together so future audits see them side by side.
+
+    2. Otherwise (greenfield host: recon returned "not found"), create
+       /etc/apache2/conf-available/rheolab-channels.conf and write BOTH
+       SetEnv directives there. Enable the conf via a2enconf and ensure
+       mod_env is loaded. This also back-fills the server with a
+       working beta secret — which the recon revealed was missing
+       (the beta channel was relying on mod_rewrite alone, bypassing
+       the HMAC check in update-channel.php).
+
+    Idempotent on both paths.
+    """
+    print("\n── Install channel secrets ──────────────────────────────")
     location = info["beta_secret_location"]
+
     if location == "(not found)":
-        raise RuntimeError(
-            "Cannot find where RHEOLAB_BETA_CHANNEL_SECRET is configured on the server. "
-            "Add RHEOLAB_ALPHA_CHANNEL_SECRET manually to your Apache env source, then "
-            "re-run with --skip-secret."
-        )
+        # Greenfield path — create a dedicated conf file for both secrets.
+        if not beta_secret:
+            raise RuntimeError(
+                "RHEOLAB_BETA_CHANNEL_SECRET is not configured on the server and it "
+                "is also missing from the ops secrets.env — cannot bootstrap the "
+                "channels conf. Add RHEOLAB_BETA_CHANNEL_SECRET to the ops store "
+                "and re-run."
+            )
 
-    # Is it already there?
-    try:
-        out = exec_checked(
-            ssh,
-            f"grep -c RHEOLAB_ALPHA_CHANNEL_SECRET {shlex.quote(location)} || true",
-            print_command=False,
-        )
-        already = int((out.strip() or "0").splitlines()[0]) > 0
-    except (RuntimeError, ValueError):
-        already = False
-
-    if already:
-        print(f"  RHEOLAB_ALPHA_CHANNEL_SECRET already present in {location}")
-        print("  → updating value in place")
-        # Replace existing line.
-        if location.endswith("envvars"):
-            line = f'export RHEOLAB_ALPHA_CHANNEL_SECRET="{alpha_secret}"'
-        else:
-            line = f'SetEnv RHEOLAB_ALPHA_CHANNEL_SECRET {alpha_secret}'
-        # sed in place with delimiters that don't clash with hex chars.
+        print(f"  greenfield host: creating {CHANNEL_CONF_REMOTE}")
+        # Ensure mod_env is available (SetEnv needs it).
+        exec_checked(ssh, "a2enmod -q env || a2enmod env", print_command=False)
         exec_checked(
             ssh,
-            "sed -i '/RHEOLAB_ALPHA_CHANNEL_SECRET/d' " + shlex.quote(location),
+            f"install -m 0644 -o root -g root /dev/null {shlex.quote(CHANNEL_CONF_REMOTE)}",
             print_command=False,
         )
         exec_checked(
             ssh,
-            f"echo {shlex.quote(line)} >> {shlex.quote(location)}",
+            f"printf '%s\\n' "
+            f"'# RheoLab channel HMAC secrets — managed by scripts/deploy/deploy-alpha-channel.py' "
+            f"'# Do NOT edit manually. Both values must match the compile-time env vars' "
+            f"'# used when building the Tauri app (scripts/dev/.env.keys).' "
+            f"> {shlex.quote(CHANNEL_CONF_REMOTE)}",
             print_command=False,
         )
+        _upsert_var(ssh, CHANNEL_CONF_REMOTE, "RHEOLAB_BETA_CHANNEL_SECRET", beta_secret)
+        _upsert_var(ssh, CHANNEL_CONF_REMOTE, "RHEOLAB_ALPHA_CHANNEL_SECRET", alpha_secret)
+
+        # Enable the conf so Apache actually loads it.
+        exec_checked(
+            ssh,
+            f"a2enconf -q {Path(CHANNEL_CONF_REMOTE).stem} || "
+            f"a2enconf {Path(CHANNEL_CONF_REMOTE).stem}",
+            print_command=False,
+        )
+        print(f"  wrote SetEnv for BETA + ALPHA → {CHANNEL_CONF_REMOTE} (enabled)")
     else:
-        if location.endswith("envvars"):
-            line = f'export RHEOLAB_ALPHA_CHANNEL_SECRET="{alpha_secret}"'
-        else:
-            line = f'SetEnv RHEOLAB_ALPHA_CHANNEL_SECRET {alpha_secret}'
-        print(f"  appending new line to {location}")
-        exec_checked(
-            ssh,
-            f"echo {shlex.quote(line)} >> {shlex.quote(location)}",
-            print_command=False,
-        )
+        # Brownfield path — alpha lives next to beta.
+        print(f"  beta secret lives in {location}; adding/updating alpha there")
+        _upsert_var(ssh, location, "RHEOLAB_ALPHA_CHANNEL_SECRET", alpha_secret)
 
 
 def apache_reload(ssh) -> None:
@@ -249,45 +295,87 @@ def apache_reload(ssh) -> None:
 
 def smoke_test(endpoint_base: str, alpha_secret: str) -> None:
     """
-    Hit the public update endpoint from the deploy host. We only
-    verify status-code shape, not manifest content — the goal is to
-    catch misconfiguration (Apache not reloaded, env var not picked
-    up, etc.), not to exercise Tauri parsing.
+    Hit the public update endpoint from the deploy host and show which
+    manifest is actually served for each channel header.
+
+    The endpoint is currently served by mod_rewrite (see the security
+    TODO in .htaccess), so update-channel.php is only reached when none
+    of the static <channel>.json files exist. That means:
+
+      * stable  → releases/v1/update/{target}/stable.json
+      * beta    → beta.json if present, otherwise PHP/stable fallback
+      * alpha   → alpha.json if present, otherwise stable (fail-closed)
+
+    Probes print the manifest version found in the body, so we can see
+    whether alpha actually has its own manifest yet, whether beta is
+    stale, etc. Missing alpha.json is NOT a failure — it's expected on
+    any deploy where publish-update.js hasn't uploaded the alpha
+    manifest yet.
     """
     print("\n── Smoke test ───────────────────────────────────────────")
     url = f"{endpoint_base}/releases/v1/update/windows-x86_64/update"
 
-    def probe(label: str, headers: dict[str, str]) -> None:
+    def probe(label: str, headers: dict[str, str]) -> dict[str, str]:
         req = urllib.request.Request(url, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
-                served = resp.headers.get("X-Channel-Served", "(none)")
-                print(f"  {label:<40} → HTTP {resp.status}  X-Channel-Served={served}")
+                body = resp.read(4096).decode("utf-8", errors="replace")
+                status = resp.status
         except urllib.error.HTTPError as e:
             print(f"  {label:<40} → HTTP {e.code}")
+            return {}
         except Exception as e:
             print(f"  {label:<40} → error: {e}")
+            return {}
+
+        version = "(unparsed)"
+        try:
+            data = json.loads(body)
+            version = str(data.get("version", "(missing)"))
+        except json.JSONDecodeError:
+            pass
+        print(f"  {label:<40} → HTTP {status}  version={version}")
+        return {"status": str(status), "version": version, "body": body}
 
     # 1. No channel header — baseline stable.
-    probe("no header", {})
+    baseline = probe("no header (→ stable)", {})
+    stable_version = baseline.get("version", "")
 
-    # 2. Alpha header without token — must downgrade to stable.
+    # 2. Beta header, no token — if beta.json exists it is served
+    #    regardless (mod_rewrite). HMAC validation only bites when
+    #    PHP takes over (alpha.json absent, beta.json absent).
+    probe("beta header (→ beta.json)", {"X-Update-Channel": "beta"})
+
+    # 3. Alpha header without token — expected to fall through to
+    #    stable because alpha.json is (most likely) absent.
     probe("alpha, no token", {"X-Update-Channel": "alpha"})
 
-    # 3. Alpha header with a valid HMAC token.
+    # 4. Alpha header with a valid HMAC token. Same behaviour as #3
+    #    until alpha.json is published — that's fine, the HMAC only
+    #    matters when PHP reaches the alpha fallback path.
     window = int(time.time() // 300)
     message = f"alpha:{window}".encode()
     token = hmac.new(alpha_secret.encode(), message, hashlib.sha256).hexdigest()
-    probe("alpha + valid HMAC", {
+    alpha_result = probe("alpha + valid HMAC", {
         "X-Update-Channel": "alpha",
         "X-Update-Token": token,
     })
 
-    # 4. Same but with a corrupted token — must downgrade.
+    # 5. Corrupted token — must NOT serve an alpha/beta manifest.
     probe("alpha + tampered HMAC", {
         "X-Update-Channel": "alpha",
         "X-Update-Token": "0" * 64,
     })
+
+    # Helpful nudges — not failures.
+    print()
+    if stable_version:
+        print(f"  stable manifest reports version {stable_version}")
+    alpha_version = alpha_result.get("version", "")
+    if alpha_version and alpha_version == stable_version:
+        print("  NOTE: alpha channel currently falls back to stable "
+              "(alpha.json not published). Run publish-update.js "
+              "--channel alpha to activate it.")
 
 
 def main() -> int:
@@ -307,11 +395,16 @@ def main() -> int:
                         help="base URL to probe during smoke-test (default: https://license.vizbuka.ru)")
     args = parser.parse_args()
 
-    # Load the alpha secret from the ops store (not from the repo).
+    # Load the secrets from the ops store (not from the repo).
+    # beta_secret is only required when the server is greenfield (see
+    # install_alpha_secret for the bootstrap path). It's always loaded
+    # so we can back-fill a missing beta secret transparently.
     alpha_secret = ""
+    beta_secret = ""
     if not args.skip_secret:
         envmap = parse_env_file(args.secrets_file)
         alpha_secret = envmap.get("RHEOLAB_ALPHA_CHANNEL_SECRET", "").strip()
+        beta_secret = envmap.get("RHEOLAB_BETA_CHANNEL_SECRET", "").strip()
         if not alpha_secret:
             print(
                 f"ERROR: RHEOLAB_ALPHA_CHANNEL_SECRET is missing from {args.secrets_file}\n"
@@ -327,6 +420,12 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
+        if beta_secret and len(beta_secret) < 32:
+            print(
+                f"WARNING: RHEOLAB_BETA_CHANNEL_SECRET in {args.secrets_file} looks too "
+                f"short (len={len(beta_secret)}); bootstrap may fail.",
+                file=sys.stderr,
+            )
 
     ssh = None
     try:
@@ -341,7 +440,7 @@ def main() -> int:
         upload_files(ssh)
 
         if not args.skip_secret:
-            install_alpha_secret(ssh, info, alpha_secret)
+            install_alpha_secret(ssh, info, alpha_secret, beta_secret=beta_secret or None)
 
         if not args.no_reload:
             apache_reload(ssh)
