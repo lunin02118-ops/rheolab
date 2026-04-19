@@ -352,7 +352,7 @@ rheolab-core/src/parser/
 ```
 
 **Примечание по изменениям относительно плана:**
-- `detectors.rs` (1079 LOC) оставлен монолитным — запланирован для отдельного WP в рамках следующей итерации Фазы 4.
+- `detectors.rs` (1079 LOC) — ✅ **декомпозирован в WP-4.7** (2026-04-19).
 - Директория `rheo/` не создавалась: `rheo_parser/` сохраняет оригинальное имя модуля для обратной совместимости с `mod.rs` в `src/parser/`.
 - **Ключевой фикс**: `mod csv;` внутри `rheo_parser/mod.rs` затенял внешний крейт `csv` → файл переименован в `csv_parser.rs`, `mod csv_parser;`.
 - **Видимость**: функции-«мосты» используют `pub(super)` (доступны только из `mod.rs`); общие хелперы вызываются через `super::` из дочерних модулей.
@@ -389,6 +389,30 @@ src-tauri/src/db/repositories/experiments/
 | `src/lib/analysis/report-types/converters.ts` | 471 | по целевому формату |
 | `src/lib/parsing/client.ts` | 468 | `client/read.ts`, `client/write.ts`, `client/transform.ts` |
 | `src/components/calibration/CalibrationChartsUplot.tsx` | 466 | hooks + subcomponents |
+
+### WP-4.7 `detectors.rs` (1080 LOC → 7 модулей) ✅ DONE (2026-04-19)
+
+**Фактическая структура:**
+```
+rheolab-core/src/detectors/
+├── mod.rs        (83 LOC)   // constants + pub re-exports + mod tests
+├── mixing.rs     (64 LOC)   // is_mixing_step (anchor helper)
+├── classify.rs   (168 LOC)  // create_cycle, classify_cycle_type,
+│                            //   is_symmetric/monotonic_pattern, merge_symmetric_cycles
+├── anchor.rs     (115 LOC)  // detect_anchor_cycles_internal
+├── sst.rs        (185 LOC)  // SSTPhase + is_sst_pattern + detect_sst_cycles_internal
+├── repeating.rs  (161 LOC)  // is_repeating_sequence_pattern +
+│                            //   detect_repeating_sequence_cycles_internal
+└── tests.rs      (217 LOC)  // unit tests (moved from inline #[cfg(test)] mod)
+```
+
+- **Результат.** Все 7 файлов ≤ 220 LOC (крупнейший — `tests.rs` с 9 unit-тестами).
+- **Публичный API сохранён.** 5 функций продолжают re-exportироваться из `rheolab_core::lib.rs` с идентичными сигнатурами.
+- **Гарантия.** Pure move — никаких поведенческих изменений:
+  - `cargo test --lib`: 89/89 ✅
+  - `cargo test --test golden_tests`: 9/9 ✅
+  - `cargo test --test bsl_pipeline_test --test pdf_from_csv_test`: 6/6 ✅
+- Closes follow-up §5.4 item 12 from 2026-04-18 audit.
 
 ### WP-4.6 Автогенерация `tauri.d.ts` через `specta` ✅ ALREADY DONE (pre-existing)
 
@@ -444,10 +468,10 @@ Specta интеграция уже работает:
 ### WP-6.1 Повторный audit ✅ DONE (2026-04-19)
 
 - **Статические метрики (2026-04-19, post-refactor v2):** (см. `runtime/refactor-baseline/metrics.json`)
-  - Rust LOC: **36 067** (146 файлов) | TS LOC: **31 834** (208 файлов)
+  - Rust LOC: **36 137** (152 файла) | TS LOC: **31 834** (208 файлов)
   - **Rust non-test production:** `unwrap()` = **0** | `expect()` = **45** | `panic!()` = **0** | `todo!()` = **0**
   - Все оставшиеся `expect()` — static-regex `LazyLock` инициализация с задокументированными SAFETY-инвариантами.
-  - Rust файлов > 500 LOC: **12** (включая 2 test-файла; производственных монолитов — 10)
+  - Rust файлов > 500 LOC: **11** (включая 2 test-файла; производственных монолитов — 9) — после WP-4.7 `detectors.rs` разбит
   - TS файлов > 400 LOC: **6** (все — компоненты page/settings, лимит превышен на 1–43 строки)
   - Tauri commands: **89 defined / 87 registered** (`experiments_export` orphan удалён)
   - Mojibake: **0 вхождений** (`runtime/refactor-baseline/metrics.json.mojibake.total = 0`)
