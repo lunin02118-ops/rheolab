@@ -3,45 +3,26 @@ Options -Indexes
     RewriteEngine On
 
     # Channel-aware endpoint. This is the per-subdirectory .htaccess for
-    # /releases/; Apache applies it BEFORE the one in the site root, and the
-    # [L] flag prevents further rewrite passes. That is why the channel
-    # rewrites live here — putting them in the root .htaccess has no effect.
+    # /releases/; Apache applies it BEFORE the one in the site root and
+    # the [L] flag prevents further rewrite passes.
     #
-    # Rules are ordered from most-privileged to least so the first one that
-    # matches an authenticated client header wins.
+    # Every update poll is routed through api/update-channel.php, which
+    # picks the correct manifest (alpha.json / beta.json / stable.json)
+    # only after validating the HMAC proof carried in X-Update-Token.
+    # Do NOT add per-channel rewrites here: they would hand out the
+    # privileged manifest based on the X-Update-Channel header alone,
+    # bypassing the HMAC check. (Fixed 2026-04-19; was tracked in
+    # docs/LICENSING_CHANNELS.md as a hardening TODO.)
     #
-    # Channel ladder (highest privilege first):
+    # Channel ladder, enforced by update-channel.php:
     #   alpha  — Superuser licences only  (v0.2.0-beta.8+)
     #   beta   — Developer licences       (v0.1.510+)
-    #   stable — everyone else (default)
-
-    # Alpha channel: Superuser licences only.
-    #   GET /releases/v1/update/{target}/update  +  X-Update-Channel: alpha
-    #   → v1/update/{target}/alpha.json   (only if file exists)
-    #   Otherwise falls through to beta → stable.
-    RewriteCond %{HTTP:X-Update-Channel} alpha [NC]
-    RewriteCond %{DOCUMENT_ROOT}/releases/v1/update/windows-x86_64/alpha.json -f
-    RewriteRule ^v1/update/([^/]+)/update$ v1/update/$1/alpha.json [L]
-
-    # Beta channel: Developer licences.
-    #   GET /releases/v1/update/{target}/update  +  X-Update-Channel: beta
-    #   → v1/update/{target}/beta.json    (only if file exists)
-    #   Otherwise falls through to stable.
-    RewriteCond %{HTTP:X-Update-Channel} beta [NC]
-    RewriteCond %{DOCUMENT_ROOT}/releases/v1/update/windows-x86_64/beta.json -f
-    RewriteRule ^v1/update/([^/]+)/update$ v1/update/$1/beta.json [L]
-
-    # Default: everyone else gets stable.json
-    RewriteRule ^v1/update/([^/]+)/update$ v1/update/$1/stable.json [L]
+    #   stable — everyone else (default / unauthenticated)
+    RewriteRule ^v1/update/([^/]+)/update$ /api/update-channel.php?target=$1 [L,QSA]
 
     # Legacy endpoint (<=0.1.497): {target}/{arch}/{version}?channel=...
+    # These clients predate the channel scheme — always stable.
     RewriteRule ^v1/update/([^/]+)/[^/]+/[0-9].+$ v1/update/$1/stable.json [L,QSA]
-
-    # Note: the HMAC validation in api/update-channel.php only runs when
-    # none of the above static manifests exist. See the security TODO in
-    # this repo's docs/LICENSING_CHANNELS.md — upgrade to route every
-    # /releases/v1/update/{target}/update request through PHP once the
-    # header-only rewrites have served their purpose.
 </IfModule>
 <IfModule mod_headers.c>
     <FilesMatch "\.json$">
