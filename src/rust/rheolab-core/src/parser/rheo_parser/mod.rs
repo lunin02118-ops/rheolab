@@ -1,21 +1,18 @@
 use std::io::{Cursor, Read, Seek};
 use calamine::{Reader, Xlsx, Xls, open_workbook_from_rs};
 use super::types::{
-    AiContextCandidate, AiContextRow, AiMappingResponse, ColumnMapping, ParsingMetadata,
+    AiContextCandidate, AiContextRow, AiMappingResponse, ColumnMapping,
     ParsingResult,
 };
-use crate::types::RheoPoint as RheoDataPoint;
 use super::header_detector::{detect_header, detect_header_bsl_fast, find_raw_data_sections};
 use super::row_mapper::{
-    map_row, RowMapperConfig, TimeParsingMode,
+    RowMapperConfig, TimeParsingMode,
     detect_time_unit, detect_time_mode_from_data, detect_temperature_unit,
     detect_stress_multiplier, detect_stress_multiplier_from_data,
     detect_pressure_multiplier, detect_pressure_multiplier_from_data,
     detect_excel_serial_time, is_time_too_large_for_minutes,
 };
-use super::date_detector::detect_date;
 use super::instrument_detector::detect_instrument;
-use super::geometry_verifier::{detect_geometry, physics_geometry};
 
 mod workbook;
 mod csv_parser;

@@ -4,18 +4,23 @@ use calamine::{Reader, Xlsx, Xls, DataType, open_workbook_from_rs};
 use std::io::Cursor;
 use super::{CalibrationDataPoint, BSLMeta, CalibrationMeta, CalibrationReport};
 
-// Static compiled regexes for calibration parsing (#8 fix)
+// Static compiled regexes for calibration parsing (#8 fix).
+//
+// Each `.expect()` below fires at most once on first LazyLock access and is
+// invariant-guarded: the pattern is a compile-time string literal verified by
+// the parser test-suite on every run.  A panic here would indicate a typo
+// introduced during editing of the pattern string itself.
 static BSL_DATE_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"(\d{2}\.\d{2}\.\d{4})").unwrap()
+    regex::Regex::new(r"(\d{2}\.\d{2}\.\d{4})").expect("BSL_DATE_RE pattern is static and valid")
 });
 static CHANDLER_DATE_RE1: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"Last Calibration[:\s]+([^,]+)").unwrap()
+    regex::Regex::new(r"Last Calibration[:\s]+([^,]+)").expect("CHANDLER_DATE_RE1 pattern is static and valid")
 });
 static CHANDLER_DATE_RE2: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"Calibration Date[:\s]+([^,]+)").unwrap()
+    regex::Regex::new(r"Calibration Date[:\s]+([^,]+)").expect("CHANDLER_DATE_RE2 pattern is static and valid")
 });
 static CHANDLER_DATE_RE3: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"Date[:\s]+([^,]+)").unwrap()
+    regex::Regex::new(r"Date[:\s]+([^,]+)").expect("CHANDLER_DATE_RE3 pattern is static and valid")
 });
 
 // Universal calibration quality limits (industry standard for Couette rheometers)

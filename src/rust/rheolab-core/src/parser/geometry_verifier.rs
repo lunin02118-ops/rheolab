@@ -82,22 +82,37 @@ pub fn verify_with_physics(data: &[RheoPoint]) -> Option<String> {
 /// Full physics-geometry result including the computed K-factor and sample size.
 /// Returns `None` when there are too few points or no geometry matches.
 pub fn physics_geometry(data: &[RheoPoint]) -> Option<PhysicsGeometry> {
-    let valid_points: Vec<&RheoPoint> = data.iter().filter(|p| {
-        p.viscosity_cp > 0.0 && 
-        p.shear_stress.unwrap_or(0.0) > 0.0 && 
-        p.rpm.unwrap_or(0.0) > 0.0
-    }).collect();
+    // Project each point into (shear_stress, rpm, viscosity) where ALL three
+    // values are present and > 0.  Using `filter_map` here eliminates the need
+    // for separate `.filter(..) + .unwrap()` passes and removes two unwrap
+    // call sites that relied on an implicit "fields-are-Some" invariant.
+    let valid_points: Vec<(f64, f64, f64)> = data
+        .iter()
+        .filter_map(|p| {
+            let stress = p.shear_stress?;
+            let rpm = p.rpm?;
+            if stress > 0.0 && rpm > 0.0 && p.viscosity_cp > 0.0 {
+                Some((stress, rpm, p.viscosity_cp))
+            } else {
+                None
+            }
+        })
+        .collect();
 
     if valid_points.len() < MIN_PHYSICS_POINTS {
         return None;
     }
+    let n_points = valid_points.len();
 
     // Use median instead of mean to be robust against outlier rows
     // (e.g. ramp transitions, initial equilibration spikes).
-    let mut k_values: Vec<f64> = valid_points.iter().map(|p| {
-        let calc_rate = (p.shear_stress.unwrap() * 1000.0) / p.viscosity_cp;
-        calc_rate / p.rpm.unwrap()
-    }).collect();
+    let mut k_values: Vec<f64> = valid_points
+        .iter()
+        .map(|(stress, rpm, viscosity)| {
+            let calc_rate = (stress * 1000.0) / viscosity;
+            calc_rate / rpm
+        })
+        .collect();
     k_values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let mid = k_values.len() / 2;
     let median_k = if k_values.len() % 2 == 0 {
@@ -120,6 +135,6 @@ pub fn physics_geometry(data: &[RheoPoint]) -> Option<PhysicsGeometry> {
     Some(PhysicsGeometry {
         geometry: geometry.to_string(),
         avg_k: median_k,
-        n_points: valid_points.len(),
+        n_points,
     })
 }

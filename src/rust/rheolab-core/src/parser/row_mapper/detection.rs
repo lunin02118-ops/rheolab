@@ -4,12 +4,13 @@ use std::sync::LazyLock;
 use super::super::types::ColumnMapping;
 use super::{TemperatureUnit, TimeParsingMode};
 
-// Static compiled regexes for time-unit detection — compiled once (#8 fix)
+// Static compiled regexes for time-unit detection — compiled once (#8 fix).
+// `.expect()` fires once on first LazyLock access; guarded by static pattern.
 static TIME_MIN_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)time.*min|время.*мин").unwrap()
+    Regex::new(r"(?i)time.*min|время.*мин").expect("TIME_MIN_RE pattern is static and valid")
 });
 static TIME_HOUR_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)time.*(hr|hour)|время.*час").unwrap()
+    Regex::new(r"(?i)time.*(hr|hour)|время.*час").expect("TIME_HOUR_RE pattern is static and valid")
 });
 
 #[derive(Debug, Clone)]

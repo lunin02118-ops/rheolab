@@ -2,15 +2,19 @@ use chrono::{NaiveDate, Datelike};
 use regex::Regex;
 use std::sync::LazyLock;
 
-// Static compiled regexes — compiled once, reused on every row (#8 fix)
+// Static compiled regexes — compiled once, reused on every row (#8 fix).
+// `.expect()` fires once on first LazyLock access; guarded by static pattern.
 static NUMERIC_DATE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{2,4})|(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2})").unwrap()
+    Regex::new(r"(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{2,4})|(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2})")
+        .expect("NUMERIC_DATE_RE pattern is static and valid")
 });
 static ALPHA_DATE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(\d{1,2})[\s-]([A-Za-zА-Яа-я]{3})[\s-](\d{2,4})").unwrap()
+    Regex::new(r"(\d{1,2})[\s-]([A-Za-zА-Яа-я]{3})[\s-](\d{2,4})")
+        .expect("ALPHA_DATE_RE pattern is static and valid")
 });
 static CONCAT_DATE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"([A-Za-z]{3,9})(\d{1,2})(\d{4})").unwrap()
+    Regex::new(r"([A-Za-z]{3,9})(\d{1,2})(\d{4})")
+        .expect("CONCAT_DATE_RE pattern is static and valid")
 });
 
 const SCAN_LIMIT: usize = 100;

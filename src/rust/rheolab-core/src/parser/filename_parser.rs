@@ -55,26 +55,34 @@ pub struct CatalogItem {
     pub category: String,
 }
 
+// ── Static regex patterns ───────────────────────────────────────────────────
+//
+// The `.expect()` calls below are executed at most once per pattern (first
+// access to the `LazyLock`) and are invariant-guarded: each pattern is a
+// compile-time string literal known to be a valid regex.  A failure here
+// would indicate a developer error in editing the pattern string, which is
+// caught by `parser::tests::regex_patterns_compile` on every test run.
+
 // Recipe regex: CONCENTRATION(REAGENT_NAME)
-static RECIPE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(\d+(?:\.\d+)?)\(([A-Za-z0-9\-]+)\)").unwrap());
+static RECIPE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(\d+(?:\.\d+)?)\(([A-Za-z0-9\-]+)\)").expect("RECIPE_REGEX pattern is static and valid"));
 // Date regex: DD.MM.YY or DD.MM.YYYY at end
-static DATE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(\d{2})\.(\d{2})(?:\.(\d{2,4}))?$").unwrap());
+static DATE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(\d{2})\.(\d{2})(?:\.(\d{2,4}))?$").expect("DATE_REGEX pattern is static and valid"));
 // Temperature regex: @XXC
-static TEMP_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"@(\d+)[Cc]").unwrap());
+static TEMP_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"@(\d+)[Cc]").expect("TEMP_REGEX pattern is static and valid"));
 // Field and destination regex: FieldName_(destination)
-static FIELD_DEST_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"([A-Za-zА-Яа-яёЁ]+)_\(([^)]+)\)").unwrap());
+static FIELD_DEST_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"([A-Za-zА-Яа-яёЁ]+)_\(([^)]+)\)").expect("FIELD_DEST_REGEX pattern is static and valid"));
 // Test ID: digits at start
-static TEST_ID_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"^\d+$").unwrap());
+static TEST_ID_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"^\d+$").expect("TEST_ID_REGEX pattern is static and valid"));
 // Test type: 2-4 uppercase letters
-static TEST_TYPE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"^[A-Z]{2,4}$").unwrap());
+static TEST_TYPE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"^[A-Z]{2,4}$").expect("TEST_TYPE_REGEX pattern is static and valid"));
 // Category patterns
-static GELLING_AGENT_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(WG-\d+|HPG-\d+|HEC-\d+|CMC|ГУАР|Guar)").unwrap());
-static CROSSLINKER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(WCL|XL-\d+|CL-\d+|Borate|Zirconate|Titanate|СШ-\d+)").unwrap());
-static BREAKER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(HT-\d+|EB-\d+|OX-\d+|Breaker|Деструктор)").unwrap());
-static BUFFER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(Buffer|pH-\d+|Буфер)").unwrap());
-static FRICTION_REDUCER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^FR-\d+").unwrap());
-static CLAY_CONTROL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^KCl$").unwrap());
-static STABILIZER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(THPS|TS-\d+)").unwrap());
+static GELLING_AGENT_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(WG-\d+|HPG-\d+|HEC-\d+|CMC|ГУАР|Guar)").expect("GELLING_AGENT_PATTERN pattern is static and valid"));
+static CROSSLINKER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(WCL|XL-\d+|CL-\d+|Borate|Zirconate|Titanate|СШ-\d+)").expect("CROSSLINKER_PATTERN pattern is static and valid"));
+static BREAKER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(HT-\d+|EB-\d+|OX-\d+|Breaker|Деструктор)").expect("BREAKER_PATTERN pattern is static and valid"));
+static BUFFER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(Buffer|pH-\d+|Буфер)").expect("BUFFER_PATTERN pattern is static and valid"));
+static FRICTION_REDUCER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^FR-\d+").expect("FRICTION_REDUCER_PATTERN pattern is static and valid"));
+static CLAY_CONTROL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^KCl$").expect("CLAY_CONTROL_PATTERN pattern is static and valid"));
+static STABILIZER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(THPS|TS-\d+)").expect("STABILIZER_PATTERN pattern is static and valid"));
 
 /// Get full test type name
 fn get_test_type_full(test_type: &str) -> &'static str {
@@ -141,18 +149,22 @@ pub fn parse_filename(filename: &str) -> FilenameMetadata {
     };
 
     // Extract test date (DD.MM.YY or DD.MM.YYYY at end)
+    //
+    // Groups 1 and 2 are mandatory in DATE_REGEX, so `.get(1)` / `.get(2)`
+    // are guaranteed to be `Some(..)` when `captures()` returns `Some`.
+    // We still use `.and_then(parse)` + `.unwrap_or(default)` to keep the
+    // function panic-free even if that invariant ever changes.
     if let Some(caps) = DATE_REGEX.captures(base_name) {
-        let day: u32 = caps.get(1).unwrap().as_str().parse().unwrap_or(1);
-        let month: u32 = caps.get(2).unwrap().as_str().parse().unwrap_or(1);
+        let day: u32 = caps.get(1)
+            .and_then(|m| m.as_str().parse().ok())
+            .unwrap_or(1);
+        let month: u32 = caps.get(2)
+            .and_then(|m| m.as_str().parse().ok())
+            .unwrap_or(1);
         let year: i32 = caps.get(3)
-            .map(|m| {
-                let y: i32 = m.as_str().parse().unwrap_or(2025);
-                if y < 100 { y + 2000 } else { y }
-            })
-            .unwrap_or_else(|| {
-                // Use 2026 as default if no year provided (current year from context)
-                2026
-            });
+            .and_then(|m| m.as_str().parse::<i32>().ok())
+            .map(|y| if y < 100 { y + 2000 } else { y })
+            .unwrap_or(2026); // default if no year provided
         result.test_date = Some(format!("{:04}-{:02}-{:02}", year, month, day));
     }
 
@@ -162,9 +174,15 @@ pub fn parse_filename(filename: &str) -> FilenameMetadata {
     }
 
     // Extract recipe components: CONCENTRATION(REAGENT_NAME)
+    //
+    // RECIPE_REGEX declares both groups as mandatory; if either group is
+    // missing we treat the match as malformed and skip it instead of
+    // panicking.
     for caps in RECIPE_REGEX.captures_iter(base_name) {
-        let concentration: f64 = caps.get(1).unwrap().as_str().parse().unwrap_or(0.0);
-        let abbreviation = caps.get(2).unwrap().as_str().to_string();
+        let Some(concentration_match) = caps.get(1) else { continue };
+        let Some(abbreviation_match) = caps.get(2) else { continue };
+        let concentration: f64 = concentration_match.as_str().parse().unwrap_or(0.0);
+        let abbreviation = abbreviation_match.as_str().to_string();
         let category = detect_category(&abbreviation);
 
         result.recipe.push(RecipeComponent {
