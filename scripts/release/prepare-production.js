@@ -52,28 +52,54 @@ const env = normalizeEnv({
   RHEOLAB_SKIP_VERSION_BUMP: '1',
 });
 
-// Load INTEGRITY_SECRET_KEY from .env.keys if not already in environment.
-// The key is embedded at compile time via option_env!("INTEGRITY_SECRET_KEY").
-// A release binary compiled without it will panic on startup.
-const _loadedIntegrityKey = (() => {
-  if ((env.INTEGRITY_SECRET_KEY || '').trim()) {
-    return env.INTEGRITY_SECRET_KEY.trim();
+// Load compile-time secrets from scripts/dev/.env.keys if not already in
+// the environment. Each key is embedded into the Rust binary at compile
+// time via option_env!(). A release binary compiled without any of them
+// falls back to a dev sentinel and panics on startup (see the assertions
+// in src-tauri/src/commands/licensing/types.rs).
+//
+// Loaded keys:
+//   INTEGRITY_SECRET_KEY    — HMAC for local licence DB
+//   BETA_CHANNEL_SECRET     — signs X-Update-Token for the beta channel
+//   ALPHA_CHANNEL_SECRET    — signs X-Update-Token for the alpha channel
+//
+// LICENSE_ENCRYPTION_KEY is intentionally not auto-loaded here — it is
+// not referenced by this script's verification path and stays out of the
+// child-process env unless the caller exports it explicitly.
+const _compileTimeSecretNames = [
+  'INTEGRITY_SECRET_KEY',
+  'BETA_CHANNEL_SECRET',
+  'ALPHA_CHANNEL_SECRET',
+];
+const _loadedSecrets = (() => {
+  const found = {};
+  const missing = _compileTimeSecretNames.filter(
+    (name) => !(env[name] || '').trim(),
+  );
+  if (missing.length === 0) {
+    return found;
   }
   const keysFile = path.join(repoRoot, 'scripts', 'dev', '.env.keys');
   if (!fs.existsSync(keysFile)) {
-    return '';
+    return found;
   }
   const lines = fs.readFileSync(keysFile, 'utf8').split(/\r?\n/);
   for (const line of lines) {
     const m = line.match(/^\s*([^#=\s]+)\s*=\s*(.+)$/);
-    if (m && m[1].trim() === 'INTEGRITY_SECRET_KEY') {
-      return m[2].trim();
+    if (!m) {
+      continue;
+    }
+    const key = m[1].trim();
+    if (missing.includes(key) && !(key in found)) {
+      found[key] = m[2].trim();
     }
   }
-  return '';
+  return found;
 })();
-if (_loadedIntegrityKey) {
-  env.INTEGRITY_SECRET_KEY = _loadedIntegrityKey;
+for (const [name, value] of Object.entries(_loadedSecrets)) {
+  if (value) {
+    env[name] = value;
+  }
 }
 
 // Load TAURI_SIGNING_PRIVATE_KEY from src-tauri/keys/updater.key if not already in environment.
