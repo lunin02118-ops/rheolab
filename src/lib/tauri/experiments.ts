@@ -8,7 +8,6 @@
 import { safeInvoke as invoke } from './core';
 import type {
   ExperimentDeleteResponse,
-  ExperimentsExportResponse,
   ExperimentsExportToFileResponse,
   ExperimentGetResponse,
   ExperimentGetBatchResponse,
@@ -103,15 +102,6 @@ export const experiments = {
    */
   async exportLaboratories(): Promise<ExperimentsLaboratoriesResponse> {
     return invoke<ExperimentsLaboratoriesResponse>('experiments_export_laboratories');
-  },
-
-  /**
-   * @deprecated Use `exportToFile()` for OOM-safe streaming export.
-   */
-  async exportData(laboratoryIds?: string[]): Promise<ExperimentsExportResponse> {
-    return invoke<ExperimentsExportResponse>('experiments_export', {
-      laboratoryIds,
-    });
   },
 
   /**

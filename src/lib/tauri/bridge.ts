@@ -23,7 +23,6 @@ export type {
   BackupInfo,
   BackupResult,
   ExperimentDeleteResponse,
-  ExperimentsExportResponse,
   ExperimentGetResponse,
   ExperimentsImportResponse,
   ExperimentsLaboratoriesResponse,

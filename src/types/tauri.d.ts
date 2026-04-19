@@ -133,14 +133,6 @@ export interface ExperimentsLaboratoriesResponse {
   error?: string;
 }
 
-export interface ExperimentsExportResponse {
-  success: boolean;
-  total: number;
-  experiments: unknown[];
-  exportedAt: string;
-  error?: string;
-}
-
 /** Response returned by `experiments_export_to_file`. */
 export interface ExperimentsExportToFileResponse {
   success: boolean;
@@ -268,7 +260,6 @@ export interface PlatformBridge {
     delete: (id: string) => Promise<ExperimentDeleteResponse>;
     lastContext: () => Promise<LastContextResponse>;
     exportLaboratories: () => Promise<ExperimentsLaboratoriesResponse>;
-    exportData: (laboratoryIds?: string[]) => Promise<ExperimentsExportResponse>;
     exportToFile: (laboratoryIds?: string[]) => Promise<ExperimentsExportToFileResponse>;
     importData: (experiments: unknown[]) => Promise<ExperimentsImportResponse>;
   };

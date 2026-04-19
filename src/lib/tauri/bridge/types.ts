@@ -12,7 +12,6 @@ export type {
   ExperimentDeleteResponse,
   BackupInfo,
   BackupResult,
-  ExperimentsExportResponse,
   ExperimentsExportToFileResponse,
   ExperimentGetResponse,
   ExperimentsImportResponse,

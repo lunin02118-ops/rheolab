@@ -234,8 +234,8 @@ async function mockTauriIPC(page: import('@playwright/test').Page) {
             return Promise.resolve(null);
           if (cmd === 'experiments_export_laboratories')
             return Promise.resolve([]);
-          if (cmd === 'experiments_export')
-            return Promise.resolve({ success: true, data: '[]' });
+          if (cmd === 'experiments_export_to_file')
+            return Promise.resolve({ success: true, filePath: '/tmp/mock.json', fileName: 'mock.json', total: 0, exportedAt: new Date().toISOString() });
           if (cmd === 'experiments_import')
             return Promise.resolve({ success: true, imported: 0 });
           if (cmd === 'experiments_water_sources')
