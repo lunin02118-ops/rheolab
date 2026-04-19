@@ -5,7 +5,15 @@
 
 // ==================== License Types ====================
 
-export type LicenseType = 'demo' | 'trial' | 'standard' | 'enterprise' | 'developer';
+/**
+ * License tiers, ordered roughly by privilege level.
+ *
+ * Update-channel mapping (handled server-side by `get_update_channel`):
+ * - `superuser` → `alpha`   (project owner's personal tier — pre-release QA)
+ * - `developer` → `beta`    (internal dev team)
+ * - everything else → `stable`
+ */
+export type LicenseType = 'demo' | 'trial' | 'standard' | 'enterprise' | 'developer' | 'superuser';
 
 export type LicenseStatus =
     | 'active'           // Полная лицензия активна

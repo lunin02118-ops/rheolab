@@ -372,13 +372,16 @@ pub async fn licensing_register_experiment(
     engine.register_experiment(&state.db_pool).await
 }
 
-/// Returns the update channel for this installation.
-///
-/// - `"beta"`   — Developer license (internal team receives pre-release builds)
-/// - `"stable"` — all other types (Standard, Enterprise, Trial, Demo)
 /// Returned by `get_update_channel` — carries the update channel and a
 /// time-bounded HMAC token that the update server uses to verify the
-/// client is genuinely developer-licensed before serving `beta.json`.
+/// client is genuinely entitled to the requested channel before serving
+/// `alpha.json` / `beta.json`.
+///
+/// Channel assignment (see [`types::LicenseType`]):
+///
+/// - `"alpha"`  — Superuser licence (project owner's personal tier)
+/// - `"beta"`   — Developer licence (internal team pre-release builds)
+/// - `"stable"` — everything else (Standard, Enterprise, Trial, Demo, unlicensed)
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct UpdateChannelInfo {
     pub channel: String,
@@ -386,50 +389,68 @@ pub struct UpdateChannelInfo {
     pub token: Option<String>,
 }
 
-fn make_beta_channel_token() -> String {
+/// Produce an HMAC token for a rolling 5-minute window, keyed by `key`.
+/// `label` is the channel prefix that gets mixed into the MAC message so
+/// alpha / beta tokens cannot be reused interchangeably on the server.
+fn make_channel_token(label: &str, key: &str) -> String {
     use hmac::Mac;
-    use self::types::{HmacSha256, BETA_CHANNEL_KEY};
+    use self::types::HmacSha256;
     // 5-minute rolling window — limits replay exposure while tolerating clock skew.
     let window = chrono::Utc::now().timestamp() / 300;
-    let message = format!("beta:{}", window);
-    let mut mac = HmacSha256::new_from_slice(BETA_CHANNEL_KEY.as_bytes())
+    let message = format!("{}:{}", label, window);
+    let mut mac = HmacSha256::new_from_slice(key.as_bytes())
         .expect("HMAC accepts any key size");
     mac.update(message.as_bytes());
     hex::encode(mac.finalize().into_bytes())
 }
 
+fn make_beta_channel_token() -> String {
+    make_channel_token("beta", self::types::BETA_CHANNEL_KEY)
+}
+
+fn make_alpha_channel_token() -> String {
+    make_channel_token("alpha", self::types::ALPHA_CHANNEL_KEY)
+}
+
 /// Returns the update channel for this installation, together with a
-/// server-verifiable HMAC token for developer-licensed clients.
+/// server-verifiable HMAC token for entitled clients.
 ///
 /// Called by `UpdateChecker.tsx` before each `check()` call.
 /// The token is forwarded as `X-Update-Token`; the server validates it
-/// before serving `beta.json` so the channel cannot be spoofed by header.
+/// before serving the channel manifest so the channel cannot be spoofed
+/// by header alone.
+///
+/// Ordering matters: we check Superuser first so that a licence that is
+/// somehow tagged as both cannot downgrade itself to beta. In practice
+/// the server issues exactly one license_type string per licence key.
 #[tauri::command]
 pub async fn get_update_channel(state: State<'_, AppState>) -> Result<UpdateChannelInfo> {
-    let is_developer = if let Some(engine) = &state.license_engine {
+    let license_type: Option<self::types::LicenseType> = if let Some(engine) = &state.license_engine {
         if let Some(cached) = engine.cached().await {
-            if let Some(ref lt) = cached.license_type {
-                self::types::LicenseType::from_str_loose(lt) == self::types::LicenseType::Developer
-            } else {
-                false
-            }
+            cached
+                .license_type
+                .as_deref()
+                .map(self::types::LicenseType::from_str_loose)
         } else {
-            false
+            None
         }
     } else {
-        false
+        None
     };
 
-    if is_developer {
-        Ok(UpdateChannelInfo {
+    match license_type {
+        Some(self::types::LicenseType::Superuser) => Ok(UpdateChannelInfo {
+            channel: "alpha".to_string(),
+            token: Some(make_alpha_channel_token()),
+        }),
+        Some(self::types::LicenseType::Developer) => Ok(UpdateChannelInfo {
             channel: "beta".to_string(),
             token: Some(make_beta_channel_token()),
-        })
-    } else {
-        Ok(UpdateChannelInfo {
+        }),
+        _ => Ok(UpdateChannelInfo {
             channel: "stable".to_string(),
             token: None,
-        })
+        }),
     }
 }
 

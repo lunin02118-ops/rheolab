@@ -13,6 +13,7 @@ pub(super) type HmacSha256 = Hmac<Sha256>;
 /// Development sentinel value — used to detect builds that forgot to set the production key.
 const DEV_INTEGRITY_KEY: &str = "rheolab-dev-integrity-key-32chars!";
 const DEV_BETA_CHANNEL_KEY: &str = "rheolab-beta-channel-dev-key-000";
+const DEV_ALPHA_CHANNEL_KEY: &str = "rheolab-alpha-channel-dev-key-00";
 
 /// Production integrity key embedded at **compile time** via `INTEGRITY_SECRET_KEY` env var.
 ///
@@ -33,6 +34,20 @@ pub(super) const BETA_CHANNEL_KEY: &str =
     match option_env!("BETA_CHANNEL_SECRET") {
         Some(k) => k,
         None => DEV_BETA_CHANNEL_KEY,
+    };
+
+/// Key used to sign and verify time-bounded alpha update-channel tokens.
+///
+/// The alpha channel is the top-tier release pipeline reserved for
+/// `LicenseType::Superuser` clients (the project owner's personal fleet).
+/// These clients receive a build first; only after a manual promotion does
+/// the artefact roll out to `beta` (Developer licences) and finally `stable`.
+///
+/// Set `ALPHA_CHANNEL_SECRET` env var at build time; falls back to dev sentinel.
+pub(super) const ALPHA_CHANNEL_KEY: &str =
+    match option_env!("ALPHA_CHANNEL_SECRET") {
+        Some(k) => k,
+        None => DEV_ALPHA_CHANNEL_KEY,
     };
 
 pub(super) const STORAGE_SALT: &str = "rheolab-storage-salt";
@@ -106,7 +121,19 @@ pub enum LicenseSource {
     Demo,
 }
 
-/// License type (matches server-side types)
+/// License type (matches server-side types).
+///
+/// Release-channel mapping used by `get_update_channel`:
+///
+/// | License type | Update channel | Who receives builds first |
+/// |--------------|----------------|---------------------------|
+/// | `Superuser`  | `alpha`        | Project owner (personal QA tier) |
+/// | `Developer`  | `beta`         | Internal dev team |
+/// | everything   | `stable`       | End users |
+///
+/// The alpha → beta → stable promotion is a **manual** pipeline: the owner
+/// ships a build to `alpha`, validates it on their machine, then promotes it
+/// to `beta`; once the dev team confirms, it moves to `stable`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "snake_case")]
 pub enum LicenseType {
@@ -115,6 +142,9 @@ pub enum LicenseType {
     Standard,
     Enterprise,
     Developer,
+    /// Top-tier personal licence for the project owner. Receives builds on
+    /// the `alpha` channel before Developer licences see them on `beta`.
+    Superuser,
 }
 
 impl LicenseType {
@@ -124,6 +154,7 @@ impl LicenseType {
             "trial" => LicenseType::Trial,
             "enterprise" => LicenseType::Enterprise,
             "developer" => LicenseType::Developer,
+            "superuser" => LicenseType::Superuser,
             _ => LicenseType::Standard,
         }
     }
@@ -204,6 +235,13 @@ pub fn assert_production_keys() {
                 "[licensing] FATAL: production binary compiled with dev beta-channel key.\n\
                  Set BETA_CHANNEL_SECRET before building:\n\
                  $env:BETA_CHANNEL_SECRET = 'your-prod-secret'; npm run tauri:build"
+            );
+        }
+        if ALPHA_CHANNEL_KEY == DEV_ALPHA_CHANNEL_KEY {
+            panic!(
+                "[licensing] FATAL: production binary compiled with dev alpha-channel key.\n\
+                 Set ALPHA_CHANNEL_SECRET before building:\n\
+                 $env:ALPHA_CHANNEL_SECRET = 'your-prod-secret'; npm run tauri:build"
             );
         }
     }

@@ -26,10 +26,19 @@ describe('release-policy', () => {
     );
   });
 
-  it('requires signatures for stable and beta channels only', () => {
-    expect(shouldRequireSignedArtifacts('stable')).toBe(true);
+  it('requires signatures for alpha, beta and stable channels', () => {
+    // alpha is the project-owner's personal QA channel but is still
+    // distributed to a real machine, so it must be signed just like beta/stable.
+    // Only `internal` (CI-only) is allowed to skip signing.
+    expect(shouldRequireSignedArtifacts('alpha')).toBe(true);
     expect(shouldRequireSignedArtifacts('beta')).toBe(true);
+    expect(shouldRequireSignedArtifacts('stable')).toBe(true);
     expect(shouldRequireSignedArtifacts('internal')).toBe(false);
+  });
+
+  it('accepts alpha as a valid release channel', () => {
+    expect(resolveReleaseChannel(['--channel', 'alpha'], undefined)).toBe('alpha');
+    expect(resolveReleaseChannel([], 'alpha')).toBe('alpha');
   });
 
   it('detects placeholder updater pubkeys', () => {

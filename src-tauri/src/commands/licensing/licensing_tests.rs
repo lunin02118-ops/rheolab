@@ -578,3 +578,69 @@ fn validate_online_result_fields_exist() {
     assert_eq!(r.server_signature.as_deref(), Some("test_sig"));
 }
 
+// ── Group UC: update-channel token tests ───────────────────────────
+
+#[test]
+fn license_type_from_str_recognises_superuser() {
+    // UC-1: The server-side licence_type string "superuser" (any case) must
+    // map onto LicenseType::Superuser so that get_update_channel routes
+    // the client to the alpha channel.
+    assert_eq!(
+        types::LicenseType::from_str_loose("superuser"),
+        types::LicenseType::Superuser,
+    );
+    assert_eq!(
+        types::LicenseType::from_str_loose("SuperUser"),
+        types::LicenseType::Superuser,
+    );
+    assert_eq!(
+        types::LicenseType::from_str_loose("SUPERUSER"),
+        types::LicenseType::Superuser,
+    );
+    // Sanity: unrelated strings must NOT collapse to Superuser.
+    assert_ne!(
+        types::LicenseType::from_str_loose("developer"),
+        types::LicenseType::Superuser,
+    );
+    assert_ne!(
+        types::LicenseType::from_str_loose("enterprise"),
+        types::LicenseType::Superuser,
+    );
+}
+
+#[test]
+fn alpha_channel_token_is_64_char_hex() {
+    // UC-2: HMAC-SHA256 → 32 bytes → 64 lowercase hex chars.
+    let token = make_alpha_channel_token();
+    assert_eq!(token.len(), 64, "alpha token must be 64 hex chars, got {}", token.len());
+    assert!(
+        token.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        "alpha token must be lowercase hex, got {token}",
+    );
+}
+
+#[test]
+fn alpha_and_beta_tokens_are_distinct() {
+    // UC-3: Alpha and beta channels must use different keys / labels so
+    // that an alpha token cannot be replayed as a beta token (or vice
+    // versa) on the update server.  Even when both keys fall back to
+    // the dev sentinel, the channel label inside the MAC message
+    // differs ("alpha:{w}" vs "beta:{w}"), so the outputs diverge.
+    let alpha = make_alpha_channel_token();
+    let beta = make_beta_channel_token();
+    assert_ne!(
+        alpha, beta,
+        "alpha and beta tokens must differ (labels are mixed into the MAC)",
+    );
+}
+
+#[test]
+fn alpha_channel_token_is_stable_within_window() {
+    // UC-4: Two calls inside the same 5-minute window must yield the
+    // same token — the server validates this exact equality, so any
+    // source of nondeterminism here would break replay-protected auth.
+    let t1 = make_alpha_channel_token();
+    let t2 = make_alpha_channel_token();
+    assert_eq!(t1, t2, "alpha token must be stable within one 5-minute window");
+}
+

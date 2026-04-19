@@ -1,4 +1,9 @@
-const RELEASE_CHANNELS = new Set(['stable', 'beta', 'internal']);
+// Channel ladder (highest → lowest privilege):
+//   alpha    — Superuser licences only (project owner's personal tier)
+//   beta     — Developer licences (internal dev team)
+//   stable   — everything else (Standard / Enterprise / Trial / Demo)
+//   internal — CI-only, bypasses signing checks (never distributed to real users)
+const RELEASE_CHANNELS = new Set(['alpha', 'stable', 'beta', 'internal']);
 const UPDATER_PUBKEY_PLACEHOLDERS = [
   'REPLACE_WITH_TAURI_UPDATER_PUBKEY',
   'CHANGE_ME',
@@ -20,11 +25,11 @@ function resolveReleaseChannel(argv, envChannel) {
 }
 
 function shouldRequireSignedArtifacts(channel) {
-  return channel === 'stable' || channel === 'beta';
+  return channel === 'stable' || channel === 'beta' || channel === 'alpha';
 }
 
 function shouldRequireUpdaterPubkey(channel) {
-  return channel === 'stable' || channel === 'beta';
+  return channel === 'stable' || channel === 'beta' || channel === 'alpha';
 }
 
 function normalizeUpdaterEndpoints(value) {

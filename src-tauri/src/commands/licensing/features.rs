@@ -61,6 +61,19 @@ pub(super) fn developer_features() -> LicenseFeatures {
     }
 }
 
+/// Superuser (project owner) license.
+///
+/// Feature-wise identical to the Developer preset — everything unlocked.
+/// The behavioural difference lives one layer up in `get_update_channel`,
+/// which routes Superuser clients to the `alpha` release channel so they
+/// receive new builds before Developer licences do.
+pub(super) fn superuser_features() -> LicenseFeatures {
+    // Intentionally reuses developer_features() so that adding a new flag
+    // automatically applies to both tiers. Do not duplicate the literal — it
+    // would drift the two presets apart over time.
+    developer_features()
+}
+
 /// Demo (unregistered / trial period): limited experiments, watermark.
 pub(super) fn demo_features() -> LicenseFeatures {
     LicenseFeatures {
@@ -100,6 +113,7 @@ pub(super) fn expired_features() -> LicenseFeatures {
 /// Get features for a given license type (used during activation).
 pub(super) fn features_for_type(license_type: LicenseType) -> LicenseFeatures {
     match license_type {
+        LicenseType::Superuser => superuser_features(),
         LicenseType::Developer => developer_features(),
         LicenseType::Trial => trial_features(),
         LicenseType::Demo => demo_features(),
@@ -150,6 +164,35 @@ mod tests {
         assert!(f.calibration_analysis);
         assert!(f.calibration_parsing);
         assert!(!f.watermark);
+    }
+
+    #[test]
+    fn superuser_matches_developer_feature_set() {
+        // Superuser and Developer must stay feature-equivalent — the only
+        // difference is the update channel routing.  If this assertion ever
+        // fails, update superuser_features() deliberately.
+        let s = superuser_features();
+        let d = developer_features();
+        assert_eq!(s.max_experiments, d.max_experiments);
+        assert_eq!(s.max_comparison_experiments, d.max_comparison_experiments);
+        assert_eq!(s.export_pdf, d.export_pdf);
+        assert_eq!(s.export_excel, d.export_excel);
+        assert_eq!(s.ai_parsing, d.ai_parsing);
+        assert_eq!(s.comparison, d.comparison);
+        assert_eq!(s.watermark, d.watermark);
+        assert_eq!(s.calibration_analysis, d.calibration_analysis);
+        assert_eq!(s.calibration_parsing, d.calibration_parsing);
+        assert_eq!(s.chandler5550_support, d.chandler5550_support);
+        assert_eq!(s.bsl_r1_support, d.bsl_r1_support);
+    }
+
+    #[test]
+    fn features_for_type_superuser_routes_to_superuser_preset() {
+        let f = features_for_type(LicenseType::Superuser);
+        assert!(f.calibration_analysis);
+        assert!(f.calibration_parsing);
+        assert!(!f.watermark);
+        assert_eq!(f.max_experiments, -1);
     }
 
     #[test]
