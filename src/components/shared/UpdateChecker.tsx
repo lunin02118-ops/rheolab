@@ -145,35 +145,21 @@ export async function relaunchApp(): Promise<void> {
 
 export function UpdateChecker(): null {
     const hasStarted = useRef(false);
+    const isE2ERef = useRef(false);
 
     useEffect(() => {
         // Only run inside the actual Tauri desktop app, not in browser/tests.
         if (!isTauri() || hasStarted.current) return;
         hasStarted.current = true;
 
-        // Subscribe to the startup_completed event emitted by lib.rs ~500 ms
-        // after launch.  When version_changed is true the user has just run
-        // the app for the first time after an update — show recovery banner.
         let unlistenStartup: (() => void) | undefined;
-        listen<StartupCompletedPayload>('startup_completed', ({ payload }) => {
-            if (payload.versionChanged && payload.previousAppVersion) {
-                useUpdateStore.getState().setPostUpdate(
-                    payload.previousAppVersion,
-                    payload.appVersion,
-                );
-                logger.info(
-                    `[UpdateChecker] Post-update first run: ${payload.previousAppVersion} → ${payload.appVersion}`,
-                );
-            }
-        }).then((unlisten) => {
-            unlistenStartup = unlisten;
-        }).catch((err) => {
-            logger.warn(`[UpdateChecker] Failed to register startup_completed listener: ${String(err)}`);
-        });
-
+        let initialTimer: ReturnType<typeof setTimeout> | null = null;
         let intervalId: ReturnType<typeof setInterval> | null = null;
+        let cancelled = false;
 
         async function runCheck(): Promise<void> {
+            // Hard stop in E2E — avoid any network / WebView navigation side-effects.
+            if (isE2ERef.current) return;
             const store = useUpdateStore.getState();
             // Skip if an update is already pending or being installed.
             if (store.status !== 'idle') return;
@@ -202,13 +188,58 @@ export function UpdateChecker(): null {
             }
         }
 
-        const initialTimer = setTimeout(() => {
-            void runCheck();
-            intervalId = setInterval(runCheck, CHECK_INTERVAL_MS);
-        }, INITIAL_DELAY_MS);
+        // Resolve E2E flag first so we can skip side-effects entirely in tests.
+        // Then register the startup_completed listener and schedule the timer.
+        (async () => {
+            // Suppress the auto-updater entirely in E2E test environments.
+            // The updater can trigger a WebView2 navigation to `edge://downloads/hub`
+            // mid-run, which breaks CDP-based Playwright fixtures. The Rust
+            // backend flags E2E mode via `RHEOLAB_E2E_SKIP_LICENSE_GATE=1`.
+            try {
+                isE2ERef.current = await invoke<boolean>('is_e2e_mode');
+            } catch {
+                isE2ERef.current = false;
+            }
+            if (cancelled) return;
+
+            if (isE2ERef.current) {
+                logger.info('[UpdateChecker] E2E mode detected — auto-updater disabled');
+                // Still register the startup_completed listener: tests may assert on it.
+            }
+
+            // Subscribe to the startup_completed event emitted by lib.rs ~500 ms
+            // after launch.  When version_changed is true the user has just run
+            // the app for the first time after an update — show recovery banner.
+            try {
+                const unlisten = await listen<StartupCompletedPayload>('startup_completed', ({ payload }) => {
+                    if (payload.versionChanged && payload.previousAppVersion) {
+                        useUpdateStore.getState().setPostUpdate(
+                            payload.previousAppVersion,
+                            payload.appVersion,
+                        );
+                        logger.info(
+                            `[UpdateChecker] Post-update first run: ${payload.previousAppVersion} → ${payload.appVersion}`,
+                        );
+                    }
+                });
+                if (cancelled) { unlisten(); return; }
+                unlistenStartup = unlisten;
+            } catch (err) {
+                logger.warn(`[UpdateChecker] Failed to register startup_completed listener: ${String(err)}`);
+            }
+
+            // In E2E mode stop here — no background timer.
+            if (isE2ERef.current) return;
+
+            initialTimer = setTimeout(() => {
+                void runCheck();
+                intervalId = setInterval(runCheck, CHECK_INTERVAL_MS);
+            }, INITIAL_DELAY_MS);
+        })();
 
         return () => {
-            clearTimeout(initialTimer);
+            cancelled = true;
+            if (initialTimer !== null) clearTimeout(initialTimer);
             if (intervalId !== null) clearInterval(intervalId);
             unlistenStartup?.();
         };

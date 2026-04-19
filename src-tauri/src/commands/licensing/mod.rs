@@ -167,7 +167,16 @@ fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
 ///
 /// Call this inside the same transaction that persists a NEW experiment
 /// so that the counter and the experiment commit or roll back together.
+///
+/// In E2E mode (`RHEOLAB_E2E_SKIP_LICENSE_GATE=1`) the counter is **not**
+/// incremented even if the current status is Demo — otherwise repeated E2E
+/// runs accumulate saves and trip `demo_expired` for subsequent launches,
+/// which breaks the startup license dialog. The skip-gate already permits
+/// saves without a license, so incrementing would be inconsistent anyway.
 pub(crate) fn maybe_increment_demo_save(conn: &rusqlite::Connection) {
+    if std::env::var("RHEOLAB_E2E_SKIP_LICENSE_GATE").as_deref() == Ok("1") {
+        return;
+    }
     let result = demo::check_demo(conn, None);
     if matches!(result.status, LicenseStatus::Demo) {
         if let Err(e) = demo::increment_demo_experiments(conn) {
@@ -422,6 +431,21 @@ pub async fn get_update_channel(state: State<'_, AppState>) -> Result<UpdateChan
             token: None,
         })
     }
+}
+
+/// Returns `true` when the application is running in an E2E test environment.
+///
+/// Detection is based on the `RHEOLAB_E2E_SKIP_LICENSE_GATE=1` environment
+/// variable, which is already the standard marker the test harness sets for
+/// other E2E-only behaviours (license-gate bypass, demo-counter no-op).
+///
+/// The frontend uses this to suppress side-effects that would otherwise
+/// destabilise Playwright tests — most importantly, the Tauri auto-updater
+/// (which can trigger a WebView2 navigation to `edge://downloads/hub` mid-run
+/// and break CDP-based test fixtures).
+#[tauri::command]
+pub fn is_e2e_mode() -> bool {
+    std::env::var("RHEOLAB_E2E_SKIP_LICENSE_GATE").as_deref() == Ok("1")
 }
 
 // ── Security regression tests (P2-3 groups G, D) ──────────────────────

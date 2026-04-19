@@ -348,6 +348,55 @@ fn maybe_increment_is_noop_when_licensed() {
     assert!(check_license_gate(&conn).is_ok());
 }
 
+#[test]
+fn maybe_increment_is_noop_when_e2e_skip_gate_set() {
+    // WP-1.5 post-scriptum: RHEOLAB_E2E_SKIP_LICENSE_GATE=1 must also skip
+    // the demo-counter increment. Otherwise repeated E2E runs accumulate
+    // saves and trip `demo_expired` for subsequent launches.
+    use std::env;
+
+    let conn = setup_test_db();
+
+    // Initialize a fresh demo state (count=0) via the public entry point.
+    let initial = demo::check_demo(&conn, None);
+    assert_eq!(
+        initial.experiments_remaining,
+        Some(10),
+        "Fresh demo state must start with full quota"
+    );
+
+    // SAFETY: Rust 1.76+ marks env mutation as unsafe because concurrent
+    // access from other threads is undefined behaviour. `cargo test` runs
+    // tests sequentially within this crate when state mutation matters;
+    // no other test reads RHEOLAB_E2E_SKIP_LICENSE_GATE concurrently.
+    unsafe { env::set_var("RHEOLAB_E2E_SKIP_LICENSE_GATE", "1") };
+
+    // Call `maybe_increment_demo_save` multiple times — all must be no-ops.
+    maybe_increment_demo_save(&conn);
+    maybe_increment_demo_save(&conn);
+    maybe_increment_demo_save(&conn);
+
+    // Clean up the env var before asserting so a failure doesn't leak it.
+    unsafe { env::remove_var("RHEOLAB_E2E_SKIP_LICENSE_GATE") };
+
+    // Counter must still be at 0 — quota must still be 10.
+    let after = demo::check_demo(&conn, None);
+    assert_eq!(
+        after.experiments_remaining,
+        Some(10),
+        "Demo counter must not have incremented with RHEOLAB_E2E_SKIP_LICENSE_GATE=1"
+    );
+
+    // Sanity: without the env var, increment *does* happen.
+    maybe_increment_demo_save(&conn);
+    let after_normal = demo::check_demo(&conn, None);
+    assert_eq!(
+        after_normal.experiments_remaining,
+        Some(9),
+        "Demo counter must increment normally without the env var"
+    );
+}
+
 // ── Group R: RSA verify_server_signature unit tests ────────────────
 //
 // Tests for the RSA verification layer.  The round-trip test (R-1) requires

@@ -351,6 +351,7 @@ pub fn run() {
             commands::licensing::licensing_can_save,
             commands::licensing::licensing_register_experiment,
             commands::licensing::get_update_channel,
+            commands::licensing::is_e2e_mode,
             // V2 data flow commands — RISK: MEDIUM (writes sync/artifact data)
             commands::data_flows::import_batches_list,
             commands::data_flows::import_batches_get,
