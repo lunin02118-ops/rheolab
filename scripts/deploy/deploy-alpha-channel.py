@@ -73,9 +73,20 @@ DEFAULT_SECRETS_FILE = Path(
     r"D:\Development\Workspace\ops\server-access\servers\04-rheolab-license\secrets.env"
 )
 REMOTE_ROOT = "/var/www/license-server"
+# (local_path_relative_to_repo_root, absolute_remote_path)
+# Order is purely for log readability. Every upload is atomically backed up
+# before overwrite, so individual file failures won't corrupt the server.
+#
+# Note on the two .htaccess files: the releases/.htaccess is the one that
+# actually carries the channel-aware rewrite rules — Apache applies the
+# deepest .htaccess first with [L] stopping further rewriting. The root
+# .htaccess keeps generic site-level guards (FilesMatch config.php, etc.)
+# and is still deployed for parity, but its RewriteRules for channel
+# routing never fire. See the comments inside each file for details.
 REMOTE_FILES: list[tuple[str, str]] = [
     ("license-server/api/update-channel.php", f"{REMOTE_ROOT}/api/update-channel.php"),
     ("license-server/.htaccess",              f"{REMOTE_ROOT}/.htaccess"),
+    ("license-server/releases.htaccess",      f"{REMOTE_ROOT}/releases/.htaccess"),
 ]
 
 

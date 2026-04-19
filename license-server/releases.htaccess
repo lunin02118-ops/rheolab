@@ -2,16 +2,46 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Channel-aware endpoint (v0.1.510+):
-    # X-Update-Channel: beta  → beta.json (if published), otherwise stable.json
+    # Channel-aware endpoint. This is the per-subdirectory .htaccess for
+    # /releases/; Apache applies it BEFORE the one in the site root, and the
+    # [L] flag prevents further rewrite passes. That is why the channel
+    # rewrites live here — putting them in the root .htaccess has no effect.
+    #
+    # Rules are ordered from most-privileged to least so the first one that
+    # matches an authenticated client header wins.
+    #
+    # Channel ladder (highest privilege first):
+    #   alpha  — Superuser licences only  (v0.2.0-beta.8+)
+    #   beta   — Developer licences       (v0.1.510+)
+    #   stable — everyone else (default)
+
+    # Alpha channel: Superuser licences only.
+    #   GET /releases/v1/update/{target}/update  +  X-Update-Channel: alpha
+    #   → v1/update/{target}/alpha.json   (only if file exists)
+    #   Otherwise falls through to beta → stable.
+    RewriteCond %{HTTP:X-Update-Channel} alpha [NC]
+    RewriteCond %{DOCUMENT_ROOT}/releases/v1/update/windows-x86_64/alpha.json -f
+    RewriteRule ^v1/update/([^/]+)/update$ v1/update/$1/alpha.json [L]
+
+    # Beta channel: Developer licences.
+    #   GET /releases/v1/update/{target}/update  +  X-Update-Channel: beta
+    #   → v1/update/{target}/beta.json    (only if file exists)
+    #   Otherwise falls through to stable.
     RewriteCond %{HTTP:X-Update-Channel} beta [NC]
     RewriteCond %{DOCUMENT_ROOT}/releases/v1/update/windows-x86_64/beta.json -f
     RewriteRule ^v1/update/([^/]+)/update$ v1/update/$1/beta.json [L]
 
+    # Default: everyone else gets stable.json
     RewriteRule ^v1/update/([^/]+)/update$ v1/update/$1/stable.json [L]
 
     # Legacy endpoint (<=0.1.497): {target}/{arch}/{version}?channel=...
     RewriteRule ^v1/update/([^/]+)/[^/]+/[0-9].+$ v1/update/$1/stable.json [L,QSA]
+
+    # Note: the HMAC validation in api/update-channel.php only runs when
+    # none of the above static manifests exist. See the security TODO in
+    # this repo's docs/LICENSING_CHANNELS.md — upgrade to route every
+    # /releases/v1/update/{target}/update request through PHP once the
+    # header-only rewrites have served their purpose.
 </IfModule>
 <IfModule mod_headers.c>
     <FilesMatch "\.json$">
