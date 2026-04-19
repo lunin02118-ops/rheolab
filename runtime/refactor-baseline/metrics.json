@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-04-19T17:52:46.179Z",
+  "generatedAt": "2026-04-19T18:17:18.427Z",
   "tool": "scripts/audit/snapshot-metrics.js",
   "totals": {
-    "rustLoc": 36067,
+    "rustLoc": 36137,
     "tsLoc": 31834,
-    "rustFiles": 146,
+    "rustFiles": 152,
     "tsFiles": 208
   },
   "loc": {
@@ -13,8 +13,8 @@
       "loc": 20792
     },
     "rheolabCore": {
-      "files": 56,
-      "loc": 15275
+      "files": 62,
+      "loc": 15345
     },
     "srcTs": {
       "files": 208,
@@ -24,10 +24,6 @@
   "oversizedFiles": {
     "rustLimit": 500,
     "rustOversize": [
-      {
-        "path": "src/rust/rheolab-core/src/detectors.rs",
-        "loc": 1080
-      },
       {
         "path": "src/rust/rheolab-core/src/report_generator/excel.rs",
         "loc": 864
@@ -119,9 +115,9 @@
         "unimplemented": 0
       },
       {
-        "path": "src/rust/rheolab-core/src/detectors.rs",
+        "path": "src/rust/rheolab-core/src/detectors/classify.rs",
         "unwrap": 0,
-        "expect": 8,
+        "expect": 6,
         "panic": 0,
         "todo": 0,
         "unimplemented": 0
@@ -176,6 +172,14 @@
       },
       {
         "path": "src/rust/rheolab-core/src/parser/rheo_parser/workbook.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/detectors/repeating.rs",
         "unwrap": 0,
         "expect": 2,
         "panic": 0,
