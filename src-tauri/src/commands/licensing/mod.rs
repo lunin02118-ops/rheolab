@@ -55,7 +55,7 @@ pub(crate) async fn can_write_via_engine(state: &AppState) -> bool {
     }
 }
 
-// в”Ђв”Ђ License gate for write/export commands (F-08) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── License gate for write/export commands (F-08) ──────────────────────
 
 /// Synchronous license gate used **only** from unit tests.
 ///
@@ -160,7 +160,7 @@ fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
     }
 }
 
-// в”Ђв”Ђ Demo counter (F-04) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Demo counter (F-04) ────────────────────────────────────────────────
 
 /// Atomically increment the demo experiment counter **if** the current
 /// license status is Demo.  In licensed mode this is a no-op.
@@ -176,7 +176,7 @@ pub(crate) fn maybe_increment_demo_save(conn: &rusqlite::Connection) {
     }
 }
 
-// в”Ђв”Ђ Tauri commands в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Tauri commands ─────────────────────────────────────────────────────
 
 /// Get hardware machine ID
 #[tauri::command]
@@ -201,7 +201,7 @@ pub async fn licensing_was_ever_licensed(state: State<'_, AppState>) -> Result<b
     }
 }
 
-// в”Ђв”Ђ Database maintenance commands в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Database maintenance commands ──────────────────────────────────────
 
 /// Force WAL checkpoint
 #[tauri::command]
@@ -258,7 +258,7 @@ pub async fn licensing_reset_experiments(
 
     Ok(SimpleResult {
         success: true,
-        message: Some(format!("РЈРґР°Р»РµРЅРѕ {} СЌРєСЃРїРµСЂРёРјРµРЅС‚РѕРІ", count)),
+        message: Some(format!("Удалено {} экспериментов", count)),
         error: None,
         deleted_count: Some(count),
     })
@@ -299,13 +299,13 @@ pub async fn licensing_reset_all_experiments(
 
     Ok(SimpleResult {
         success: true,
-        message: Some(format!("РЈРґР°Р»РµРЅРѕ РІСЃРµРіРѕ {} СЌРєСЃРїРµСЂРёРјРµРЅС‚РѕРІ", count)),
+        message: Some(format!("Удалено всего {} экспериментов", count)),
         error: None,
         deleted_count: Some(count),
     })
 }
 
-// в”Ђв”Ђ V2 Engine-based Tauri commands в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── V2 Engine-based Tauri commands ─────────────────────────────────────
 
 /// Authoritative license check — the single source of truth for license status.
 ///
@@ -424,7 +424,7 @@ pub async fn get_update_channel(state: State<'_, AppState>) -> Result<UpdateChan
     }
 }
 
-// в”Ђв”Ђ Security regression tests (P2-3 groups G, D) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Security regression tests (P2-3 groups G, D) ──────────────────────
 
 
 #[cfg(test)]

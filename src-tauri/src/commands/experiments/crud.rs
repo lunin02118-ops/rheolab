@@ -208,7 +208,7 @@ pub async fn experiments_save(
         persist_experiment(&tx, &updated)?;
 
         // V2 data flows: payload versioning + sync outbox + search projection
-        // compact_ref avoids 3Г— data duplication — Experiment table is the canonical store.
+        // compact_ref avoids 3× data duplication — Experiment table is the canonical store.
         if let Ok(payload_json) = serde_json::to_string(&updated) {
             let ref_json = super::super::data_flows::compact_ref(&existing_id, &payload_json);
             super::super::data_flows::create_experiment_payload(
@@ -239,7 +239,7 @@ pub async fn experiments_save(
     persist_experiment(&tx, &stored)?;
 
     // V2 data flows: payload + parser artifact + sync outbox + search projection
-    // compact_ref avoids 3Г— data duplication — Experiment table is the canonical store.
+    // compact_ref avoids 3× data duplication — Experiment table is the canonical store.
     if let Ok(payload_json) = serde_json::to_string(&stored) {
         let ref_json = super::super::data_flows::compact_ref(&experiment_id, &payload_json);
         super::super::data_flows::create_experiment_payload(
@@ -378,7 +378,7 @@ fn normalize_reagent(mut reagent: StoredExperimentReagent) -> StoredExperimentRe
 }
 
 
-// в”Ђв”Ђ Repository re-exports в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Repository re-exports ─────────────────────────────────────────────────────
 // SQL for these operations lives in db::repositories::experiments.
 // Re-exported here so existing callers (sync_engine, experiments::sync) do not
 // need to change their import paths.
@@ -386,9 +386,9 @@ pub(crate) use crate::db::repositories::experiments::{
     persist_experiment, load_experiment_by_id, load_experiments_batch,
 };
 
-// в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─────────────────────────────────────────────────────────────────────────────
 // Unit / integration tests — run with `cargo test -- --test-threads=1`
-// в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─────────────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 #[path = "crud_tests.rs"]

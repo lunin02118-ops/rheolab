@@ -212,7 +212,7 @@ pub(crate) fn query_experiments_list_sql(
         format!("WHERE {}", conditions.join(" AND "))
     };
 
-    // в”Ђв”Ђ COUNT query в”Ђв”Ђ
+    // ── COUNT query ──
     let count_sql = format!(
         "SELECT COUNT(*) FROM Experiment e \
          LEFT JOIN User u ON e.userId = u.id \
@@ -228,7 +228,7 @@ pub(crate) fn query_experiments_list_sql(
         return Ok((vec![], 0));
     }
 
-    // в”Ђв”Ђ Pagination в”Ђв”Ђ
+    // ── Pagination ──
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(20).clamp(1, 500);
     // Resolve sort column + direction from whitelist (no user input in SQL string).
@@ -302,7 +302,7 @@ pub(crate) fn query_experiments_list_sql(
         (format!("ORDER BY {} {}", sort_col, sort_dir_sql), "LIMIT ? OFFSET ?".to_string())
     };
 
-    // в”Ђв”Ђ DATA query (excludes rawPoints, metrics, calibration) в”Ђв”Ђ
+    // ── DATA query (excludes rawPoints, metrics, calibration) ──
     // Rebuild where_clause after cursor condition may have updated conditions
     let where_clause = if conditions.is_empty() {
         String::new()

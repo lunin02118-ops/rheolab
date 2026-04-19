@@ -9,7 +9,7 @@ use tauri::State;
 
 use super::*;
 
-// в”Ђв”Ђ Command implementations (called by thin #[tauri::command] wrappers in mod.rs) в”Ђв”Ђ
+// ── Command implementations (called by thin #[tauri::command] wrappers in mod.rs) ──
 
 pub(crate) async fn api_keys_list_impl(
     state: State<'_, AppState>,
@@ -105,12 +105,12 @@ pub(crate) async fn api_keys_create_impl(
 ) -> Result<ApiKeyMutationResponse> {
     let name = payload.name.trim().to_string();
     if name.is_empty() {
-        return Ok(ApiKeyMutationResponse::err("РќР°Р·РІР°РЅРёРµ РєР»СЋС‡Р° РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ"));
+        return Ok(ApiKeyMutationResponse::err("Название ключа обязательно"));
     }
 
     let key = payload.key.trim().to_string();
     if key.is_empty() {
-        return Ok(ApiKeyMutationResponse::err("API РєР»СЋС‡ РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј"));
+        return Ok(ApiKeyMutationResponse::err("API ключ не может быть пустым"));
     }
 
     let provider = normalize_provider(payload.provider);
@@ -161,7 +161,7 @@ pub(crate) async fn api_keys_set_active_impl(
         .optional()?;
 
     let Some((_target_id, provider)) = target else {
-        return Ok(ApiKeyMutationResponse::err("РљР»СЋС‡ РЅРµ РЅР°Р№РґРµРЅ"));
+        return Ok(ApiKeyMutationResponse::err("Ключ не найден"));
     };
 
     let now = now_rfc3339();
@@ -249,7 +249,7 @@ pub(crate) async fn api_keys_delete_impl(
         .optional()?;
 
     let Some((provider, was_active)) = existing else {
-        return Ok(ApiKeyDeleteResponse::err("РљР»СЋС‡ РЅРµ РЅР°Р№РґРµРЅ"));
+        return Ok(ApiKeyDeleteResponse::err("Ключ не найден"));
     };
 
     conn.execute("DELETE FROM APIKey WHERE id = ?1", params![id])?;
@@ -387,7 +387,7 @@ pub(crate) async fn api_keys_validate_impl(
     validate_provider_key(&provider, trimmed).await
 }
 
-// в”Ђв”Ђ Provider validation в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Provider validation ────────────────────────────────────────────────
 
 async fn validate_provider_key(
     provider: &str,

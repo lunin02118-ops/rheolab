@@ -21,7 +21,7 @@ use super::types::{
     STORAGE_SALT, DEFAULT_INTEGRITY_KEY,
 };
 
-// в”Ђв”Ђ Hex helper в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Hex helper ─────────────────────────────────────────────────────────
 
 mod hex {
     use crate::error::{AppError, Result};
@@ -44,7 +44,7 @@ mod hex {
     }
 }
 
-// в”Ђв”Ђ RSA server-signature verification (F-07) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── RSA server-signature verification (F-07) ───────────────────────────
 
 /// RSA-2048 public key in SPKI DER format, embedded at compile time.
 /// Corresponds to the private key on license.vizbuka.ru used by `sign_rsa.php`
@@ -112,14 +112,14 @@ pub(super) fn verify_server_signature(canonical_json: &str, base64_sig: &str) ->
     }
 }
 
-// в”Ђв”Ђ Key derivation в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Key derivation ─────────────────────────────────────────────────────
 
 pub(super) fn get_integrity_key() -> String {
     std::env::var("INTEGRITY_SECRET_KEY")
         .unwrap_or_else(|_| DEFAULT_INTEGRITY_KEY.to_string())
 }
 
-// в”Ђв”Ђ HMAC integrity в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── HMAC integrity ─────────────────────────────────────────────────────
 
 pub(super) fn sign_data(value: &str) -> String {
     let key = get_integrity_key();
@@ -146,7 +146,7 @@ pub(super) fn verify_signature(value: &str, signature: &str) -> bool {
     mac.verify_slice(&sig_bytes).is_ok()
 }
 
-// в”Ђв”Ђ Secure storage (encrypted file) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Secure storage (encrypted file) ────────────────────────────────────
 
 pub(super) fn secure_storage_path(app_data_dir: &std::path::Path) -> PathBuf {
     app_data_dir
@@ -229,7 +229,7 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
 
     let machine_id = get_or_create_machine_id(app_data_dir);
 
-    // в”Ђв”Ђ V2 format: AES-256-GCM (version == 2) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    // ── V2 format: AES-256-GCM (version == 2) ────────────────────────
     if data["version"].as_u64() == Some(2) {
         let nonce_hex = data["nonce"].as_str()?;
         let content_hex = data["content"].as_str()?;
@@ -297,7 +297,7 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
         return None;
     }
 
-    // в”Ђв”Ђ V1 format: AES-256-CBC (legacy — read-only, re-encrypt as GCM) в”Ђв”Ђ
+    // ── V1 format: AES-256-CBC (legacy — read-only, re-encrypt as GCM) ──
     // V1 blobs were always encrypted with the HMAC-based key derivation.
     let iv_hex = data["iv"].as_str()?;
     let content_hex = data["content"].as_str()?;
@@ -350,7 +350,7 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
     None
 }
 
-// в”Ђв”Ђ HMAC-protected SystemState DB helpers в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── HMAC-protected SystemState DB helpers ──────────────────────────────
 
 pub(super) fn get_system_state(
     conn: &rusqlite::Connection,
@@ -389,7 +389,7 @@ pub(super) fn delete_system_state(
     Ok(())
 }
 
-// в”Ђв”Ђ Tests в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ── Tests ──────────────────────────────────────────────────────────────
 
 
 #[cfg(test)]
