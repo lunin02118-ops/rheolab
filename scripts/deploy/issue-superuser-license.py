@@ -169,19 +169,59 @@ def generate_license_key() -> str:
 # ──────────────────────────────────────────────────────────────────────
 
 
+def _mysql_exec_admin(ssh, sql: str, *, want_output: bool = False) -> str:
+    """
+    Run a SQL statement with DDL-capable privileges.
+
+    Uses `/etc/mysql/debian.cnf` (Debian/Ubuntu convention — contains
+    credentials for the `debian-sys-maint` user, which has all
+    privileges but is readable only by root). This is the right
+    mechanism for one-shot admin operations like ALTER TABLE — the
+    app's `license_user` deliberately lacks ALTER, so using it here
+    would silently fall back to `_mysql_exec`'s ERROR 1142.
+
+    The DB name is still pulled from `config.php` (the one source of
+    truth for which schema we're touching); only the credentials change.
+    """
+    db_name_cmd = (
+        "php -r "
+        "\"require '/var/www/license-server/config.php'; echo DB_NAME;\""
+    )
+    db_name = exec_checked(
+        ssh, db_name_cmd, print_command=False, print_output=False
+    ).strip()
+    if not db_name:
+        raise RuntimeError("DB_NAME is empty in /var/www/license-server/config.php")
+
+    # `debian.cnf` has [client] and [mysql] sections with user/password,
+    # so --defaults-file wires auth automatically. No password on the
+    # command line, no env var, no `ps` leak.
+    mysql_cmd = (
+        f"mysql --defaults-file=/etc/mysql/debian.cnf -N {_shquote(db_name)}"
+    )
+    try:
+        out = exec_checked(
+            ssh, mysql_cmd,
+            stdin_data=sql,
+            print_command=False,
+            print_output=False,
+        )
+    except RuntimeError:
+        # Re-raise without transformation — no credentials can leak here
+        # since the only secret lives inside debian.cnf on the server.
+        raise
+    return out if want_output else ""
+
+
 def _mysql_exec(ssh, sql: str, *, want_output: bool = False) -> str:
     """
-    Run a SQL statement via the same mysql client that admin/index.php
-    talks to. Reads credentials from the server's config.php so nothing
-    sensitive lives in this script.
+    Run a SQL statement as the application user (`license_user`).
+
+    Reads credentials from the server's config.php and pipes SQL over
+    stdin to mysql(1). Use for DML (SELECT/INSERT/UPDATE) — this user
+    deliberately lacks DDL privileges so ALTER/CREATE/DROP will fail
+    with ERROR 1142. For admin operations use `_mysql_exec_admin`.
     """
-    # The server's config.php exposes DB_HOST / DB_NAME / DB_USER / DB_PASSWORD
-    # as PHP constants. Extract them with a short PHP one-liner, then pipe
-    # the SQL to mysql(1). Credentials never leave the server.
-    # config.php defines DB_PASS (not DB_PASSWORD). includes/db.php is
-    # where getDB() lives but it only loads config.php; we pull in
-    # config.php directly to avoid instantiating a PDO connection just
-    # to read constants.
     credentials_cmd = (
         "php -r "
         "\"require '/var/www/license-server/config.php'; "
@@ -201,18 +241,32 @@ def _mysql_exec(ssh, sql: str, *, want_output: bool = False) -> str:
             f"(expected 4 tab-separated fields, got {creds.count(chr(9)) + 1})"
         ) from exc
 
+    # Pass SQL over stdin — avoids (a) shell-escaping multi-line ALTER
+    # statements and (b) embedding the SQL in the remote process's
+    # command line (visible in /proc, ps, error logs).
     # Keep the password out of `ps` by passing it through MYSQL_PWD.
     env_prefix = f"MYSQL_PWD={_shquote(pw)}"
     mysql_cmd = (
         f"{env_prefix} mysql -h{_shquote(host)} -u{_shquote(user)} "
-        f"{_shquote(name)} -N -e {_shquote(sql)}"
+        f"{_shquote(name)} -N"
     )
     # Suppress stdout of the SQL command as well — INSERT returns nothing,
     # but SELECT results (e.g. the existence check) contain the licence
     # key, which we'd rather print under controlled formatting later.
-    out = exec_checked(
-        ssh, mysql_cmd, print_command=False, print_output=False
-    )
+    try:
+        out = exec_checked(
+            ssh, mysql_cmd,
+            stdin_data=sql,
+            print_command=False,
+            print_output=False,
+        )
+    except RuntimeError as exc:
+        # Redact MYSQL_PWD=... from any error message that surfaces the
+        # command line. The RuntimeError from ssh_common contains the
+        # full command string (minus the stdin data), so we strip the
+        # env prefix before re-raising.
+        msg = str(exc).replace(f"MYSQL_PWD={pw}", "MYSQL_PWD=<redacted>")
+        raise RuntimeError(msg) from None
     return out if want_output else ""
 
 
@@ -245,15 +299,19 @@ def apply_migration(ssh, dry_run: bool) -> None:
     payload = "\n".join(statements)
 
     if dry_run:
-        print("  [DRY-RUN] would apply:")
+        print("  [DRY-RUN] would apply (as debian-sys-maint):")
         for line in statements:
             print(f"    {line}")
         return
 
-    _mysql_exec(ssh, payload)
+    # ALTER needs DDL privileges — app user (license_user) deliberately
+    # lacks them. Use debian-sys-maint via /etc/mysql/debian.cnf.
+    _mysql_exec_admin(ssh, payload)
 
-    # Verify the ENUM now includes 'superuser'.
-    column_def = _mysql_exec(
+    # Verify the ENUM now includes 'superuser'. SHOW COLUMNS is a read,
+    # so the app user works — but we reuse the admin channel to keep
+    # the dry-run/real-run code paths symmetrical.
+    column_def = _mysql_exec_admin(
         ssh,
         "SHOW COLUMNS FROM license_keys WHERE Field = 'license_type';",
         want_output=True,
