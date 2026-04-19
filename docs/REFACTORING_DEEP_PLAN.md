@@ -293,9 +293,9 @@ src-tauri/src/db/
 ```
 - **Тест.** Existing-migrations-identity test: хеш SQL-выхода до/после рефакторинга совпадает.
 
-### WP-4.2 Report generator: `chart_generator.rs` (1372) и `pdf.rs` (1370) ✅ DONE (2026-04-17, коммит `fe5b120`)
+### WP-4.2 Report generator: `chart_generator.rs` (1372) и `pdf.rs` (1370) ✅ DONE (2026-04-17, коммит `fe5b120`; дополнительная декомпозиция 2026-04-19)
 
-**Фактическая структура:**
+**Фактическая структура (итерация 1, 2026-04-17):**
 ```
 rheolab-core/src/report_generator/
   chart_generator/
@@ -313,8 +313,20 @@ rheolab-core/src/report_generator/
     appendix.rs
     footer.rs
 ```
+
+**Итерация 2 (2026-04-19).** Два файла выше лимита 500 LOC были разбиты дополнительно:
+
+| Было | LOC | Стало |
+|---|---|---|
+| `chart_generator/line.rs` | 872 | `line/mod.rs` (40) + `line/shared.rs` (388) + `line/individual.rs` (373) |
+| `pdf/template.rs` | 1163 | `template/mod.rs` (434) + `helpers.rs` (40) + `stats.rs` (122) + `chart_page.rs` (338) + `raw_data.rs` (126) |
+
+Логика разбиения:
+- `line/` — диспетчер `generate_chart_svg` выполняет общий LTTB-downsample и делегирует в `shared::render` (общая Y-шкала) либо `individual::render` (per-metric шкалы). Каждый рендерер self-contained.
+- `template/` — оркестратор `generate_typst_template` собирает фрагменты из `stats` (таблица), `chart_page` (SVG + Typst overlay), `raw_data` (опциональная страница). `helpers` содержит `escape_typst` + `hex_to_typst`.
+
 - **Гарантия.** `report_regression_test.rs` сравнивает байтовый вывод — красная линия, пересекать нельзя.
-- **Результат.** Все существующие тесты прошли; `cargo check` чисто.
+- **Результат.** Все существующие тесты прошли (89/89 в core); `cargo check` чисто; декомпозиция — чистый move без поведенческих изменений.
 
 ### WP-4.3 Парсеры — разбиение на модули ✅ DONE (2026-04-18, коммит `8a54d71`, запушен)
 
@@ -429,14 +441,34 @@ Specta интеграция уже работает:
 
 ## 9. Фаза 6 — Верификация, регрессия, governance
 
-### WP-6.1 Повторный audit ✅ DONE (partial)
-- **Статические метрики (2026-04-18, post-refactor):**
-  - Rust LOC: 32 241 | TypeScript LOC: 29 439
-  - `unwrap()`: 188 | `expect()`: 37 | `panic!()`: 4 (в non-test Rust)
+### WP-6.1 Повторный audit ✅ DONE (2026-04-19)
+
+- **Статические метрики (2026-04-19, post-refactor v2):** (см. `runtime/refactor-baseline/metrics.json`)
+  - Rust LOC: **36 067** (146 файлов) | TS LOC: **31 834** (208 файлов)
+  - **Rust non-test production:** `unwrap()` = **0** | `expect()` = **45** | `panic!()` = **0** | `todo!()` = **0**
+  - Все оставшиеся `expect()` — static-regex `LazyLock` инициализация с задокументированными SAFETY-инвариантами.
+  - Rust файлов > 500 LOC: **12** (включая 2 test-файла; производственных монолитов — 10)
+  - TS файлов > 400 LOC: **6** (все — компоненты page/settings, лимит превышен на 1–43 строки)
+  - Tauri commands: **89 defined / 87 registered** (`experiments_export` orphan удалён)
+  - Mojibake: **0 вхождений** (`runtime/refactor-baseline/metrics.json.mojibake.total = 0`)
   - ESLint `--max-warnings=0`: ✅ чисто
   - `tsc --noEmit`: ✅ чисто
+  - `cargo test -p rheolab-core --lib`: **89/89 passed**
+
+- **Сравнение с baseline (2026-04-18):**
+
+| Метрика | Baseline | Current | Δ |
+|---|---|---|---|
+| Rust `unwrap()` (prod) | 188 | **0** | −188 ✅ |
+| Rust `expect()` (prod) | 37 | 45 | +8 (`LazyLock` migration: безопасные panic-messages вместо bare `.unwrap()`) |
+| Rust `panic!()` (prod) | 4 | **0** | −4 ✅ |
+| Tauri commands (orphan) | 90/88 | 89/87 | −1 ✅ |
+| `chart_generator/line.rs` | 872 LOC | разбит | WP-4.2 iter-2 ✅ |
+| `pdf/template.rs` | 1163 LOC | разбит | WP-4.2 iter-2 ✅ |
+| Mojibake | нефиксированы | 0 | ✅ |
+
 - **Не выполнено:** полный `audit:enterprise` / `audit:frontend-ipc` требует Tauri build environment (запуск вручную).
-- **Регрессия unwrap/panic:** clippy `warn` добавлен в WP-0.2; CI ESLint `--max-warnings=0` добавлен в WP-5.4.
+- **Регрессия unwrap/panic:** clippy `warn` добавлен в WP-0.2; CI ESLint `--max-warnings=0` добавлен в WP-5.4; `snapshot-metrics.js` теперь записывает baseline для автоматической регрессии.
 
 ### WP-6.2 Performance-gate ⏳ DEFERRED
 - Требуется инфраструктура: `cargo bench` benchmarks, CI nightly job.
