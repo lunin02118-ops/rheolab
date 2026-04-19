@@ -47,6 +47,11 @@ async function addExperimentFromSelector(page: Page, comparisonName: string) {
     await expect(matchButton).toBeVisible({ timeout: 15_000 });
     await matchButton.click();
     await expect(dialog).not.toBeVisible({ timeout: 10_000 });
+
+    // Let the comparison store settle before the next addExperimentFromSelector
+    // call. Under load (full perf workflow) the previous chip needs time to
+    // render and the selector state to refresh before we reopen it.
+    await page.waitForTimeout(400);
 }
 
 test.describe('[Comparison/Tauri] Memory release', () => {

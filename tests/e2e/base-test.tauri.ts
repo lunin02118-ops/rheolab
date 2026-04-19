@@ -139,6 +139,31 @@ export function setupBeforeEach(t: typeof test): void {
             const internals: any = (window as any).__TAURI_INTERNALS__;
             if (!internals) return 'no-internals';
 
+            // Expose the **unmocked** Tauri invoke via a stable global slot so
+            // specialized fixtures (e.g. real-license-ipc) can reach real Rust
+            // regardless of fixture interleaving. Set once on first wrap.
+            if (!(window as any).__e2eRealTauriInvoke) {
+                (window as any).__e2eRealTauriInvoke = internals.invoke.bind(internals);
+            }
+
+            // Install the licensing-test helper unconditionally so any spec
+            // can call real Rust licensing commands without interference from
+            // the base proxy. Idempotent — safe to re-register across tests.
+            const realInvoke = (window as any).__e2eRealTauriInvoke;
+            if (realInvoke && typeof (window as any).__e2eLicensingInvoke !== 'function') {
+                (window as any).__e2eLicensingInvoke = async function (cmd: string, args?: unknown) {
+                    const user = {
+                        id: 'tauri-e2e-admin', name: 'E2E Admin', email: 'admin',
+                        role: 'admin', isActive: true, laboratoryId: null,
+                    };
+                    if (cmd === 'auth_session') return { valid: true, user };
+                    if (cmd === 'auth_sign_in') return { success: true, sessionToken: 'e2e', user };
+                    if (cmd === 'auth_sign_out') return undefined;
+                    if (typeof cmd === 'string' && cmd.startsWith('plugin:dialog|')) return null;
+                    return realInvoke(cmd, args);
+                };
+            }
+
             // ── Try to proxy window.__TAURI_INTERNALS__ ────────────────────
             if (internals.__e2eProxy) return 'already-proxied';
             const proxy = new Proxy(internals, {

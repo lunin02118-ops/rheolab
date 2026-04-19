@@ -28,7 +28,39 @@ const test = base.extend<{ page: Page }>({
     page: async ({}, use) => {
         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
         const ctx = browser.contexts()[0];
-        const pg = ctx.pages()[0] ?? await ctx.newPage();
+
+        // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        // E2E runs WebView2 may spawn internal pages like `edge://downloads/hub`
+        // (auto-updater triggers download UI), so `pages()[0]` is not reliable.
+        async function findTauriPage(): Promise<Page> {
+            const candidates = ctx.pages();
+            console.log(`[E2E] Licensing fixture: found ${candidates.length} pages in context`);
+            for (const candidate of candidates) {
+                const url = candidate.url();
+                console.log(`[E2E] Licensing fixture:   candidate URL=${url}`);
+                // Skip internal WebView2 / Edge pages immediately.
+                if (url.startsWith('edge://') || url.startsWith('chrome://') || url.startsWith('about:')) {
+                    continue;
+                }
+                try {
+                    const hasInternals = await candidate.evaluate(
+                        () => typeof (window as any).__TAURI_INTERNALS__ !== 'undefined',
+                    );
+                    if (hasInternals) return candidate;
+                } catch {
+                    // Non-responsive page — skip.
+                }
+            }
+            // Fallback: first non-internal page or a fresh page.
+            const firstNonInternal = candidates.find((p) => {
+                const u = p.url();
+                return !u.startsWith('edge://') && !u.startsWith('chrome://') && !u.startsWith('about:');
+            });
+            return firstNonInternal ?? candidates[0] ?? (await ctx.newPage());
+        }
+
+        const pg = await findTauriPage();
+        console.log(`[E2E] Licensing fixture: selected page URL=${pg.url()}`);
 
         // Wait for Tauri page to load
         const maxWaitMs = 30_000;
@@ -47,55 +79,106 @@ const test = base.extend<{ page: Page }>({
         }
         await pg.waitForLoadState('domcontentloaded');
 
-        // Inject PARTIAL IPC proxy: only auth + dialogs — licensing passes through to Rust.
-        await pg.evaluate(() => {
+        // Capture the real, unmocked invoke and expose it on a stable slot.
+        // If base-test.tauri.ts ran earlier, it already stored the original
+        // bound invoke at `window.__e2eRealTauriInvoke`. Otherwise we capture
+        // here *before* any proxy wraps __TAURI_INTERNALS__.
+        //
+        // We also register a minimal auth/dialog shim at `window.__e2eLicensingInvoke`
+        // so the tests can call real Rust licensing commands while keeping
+        // auth/dialog stubbed out (tests shouldn't trip the login gate).
+        //
+        // In combined E2E runs the page may have been navigated or reloaded
+        // by previous specs. If __TAURI_INTERNALS__ is missing after an
+        // initial wait, force a reload to re-inject the Tauri init script.
+        const currentUrl = pg.url();
+        console.log(`[E2E] Licensing fixture: current URL=${currentUrl}`);
+
+        let setupResult: { ok: boolean; reason: string; [k: string]: unknown } = await pg.evaluate(async () => {
+            // Poll for __TAURI_INTERNALS__ availability (up to 3s).
+            const deadline = Date.now() + 3_000;
+            while (Date.now() < deadline) {
+                const it: any = (window as any).__TAURI_INTERNALS__;
+                if (it && typeof it.invoke === 'function') break;
+                await new Promise((r) => setTimeout(r, 100));
+            }
             const internals: any = (window as any).__TAURI_INTERNALS__;
-            if (!internals || internals.__e2eLicenseTestProxy) return;
+            return {
+                ok: !!internals && typeof internals.invoke === 'function',
+                reason: 'pre-check',
+                url: window.location.href,
+            };
+        });
 
-            const proxy = new Proxy(internals, {
-                get(target: any, prop: string | symbol) {
-                    if (prop === '__e2eLicenseTestProxy') return true;
-                    if (prop !== 'invoke') return target[prop];
-
-                    return async function e2eLicenseTestInvoke(...args: any[]) {
-                        const [cmd] = args;
-                        const user = {
-                            id: 'tauri-e2e-admin', name: 'E2E Admin', email: 'admin',
-                            role: 'admin', isActive: true, laboratoryId: null,
-                        };
-                        // Only mock auth and dialogs — everything else goes to real Rust
-                        if (cmd === 'auth_session') return { valid: true, user };
-                        if (cmd === 'auth_sign_in') return { success: true, sessionToken: 'e2e', user };
-                        if (cmd === 'auth_sign_out') return undefined;
-                        if (cmd?.startsWith('plugin:dialog|')) return null;
-
-                        // ALL licensing commands pass through to real Rust IPC
-                        return target.invoke(...args);
-                    };
-                },
-            });
-
+        // If internals are missing, reload the page to force re-injection.
+        if (!setupResult.ok) {
+            console.log('[E2E] Licensing fixture: __TAURI_INTERNALS__ missing, reloading page...');
             try {
-                Object.defineProperty(window, '__TAURI_INTERNALS__', {
-                    configurable: true, enumerable: true, writable: true, value: proxy,
-                });
-            } catch {
-                // Fallback: direct patch (same pattern as base-test.tauri.ts)
-                const origInvoke = internals.invoke.bind(internals);
-                internals.invoke = async function (...args: any[]) {
-                    const [cmd] = args;
-                    const user = {
-                        id: 'tauri-e2e-admin', name: 'E2E Admin', email: 'admin',
-                        role: 'admin', isActive: true, laboratoryId: null,
-                    };
-                    if (cmd === 'auth_session') return { valid: true, user };
-                    if (cmd === 'auth_sign_in') return { success: true, sessionToken: 'e2e', user };
-                    if (cmd === 'auth_sign_out') return undefined;
-                    if (cmd?.startsWith('plugin:dialog|')) return null;
-                    return origInvoke(...args);
+                await pg.reload({ waitUntil: 'domcontentloaded', timeout: 15_000 });
+                // Give Tauri a moment to re-inject the init script.
+                await pg.waitForTimeout(1_000);
+            } catch (e) {
+                console.log(`[E2E] Licensing fixture: reload failed — ${(e as Error).message}`);
+            }
+        }
+
+        setupResult = await pg.evaluate(async () => {
+            // Poll for __TAURI_INTERNALS__ availability (up to 10s post-reload).
+            const deadline = Date.now() + 10_000;
+            while (Date.now() < deadline) {
+                const it: any = (window as any).__TAURI_INTERNALS__;
+                if (it && typeof it.invoke === 'function') break;
+                await new Promise((r) => setTimeout(r, 100));
+            }
+
+            const internals: any = (window as any).__TAURI_INTERNALS__;
+            if (!internals || typeof internals.invoke !== 'function') {
+                return {
+                    ok: false,
+                    reason: 'no-tauri-internals',
+                    url: window.location.href,
+                    hasInternals: !!internals,
+                    invokeType: internals ? typeof internals.invoke : 'n/a',
                 };
             }
+
+            // Prefer the reference stashed by base-test.tauri.ts; otherwise capture now.
+            // Note: if base-fixture already wrapped invoke with a mock, this could
+            // capture the mock. So ALWAYS try to read the original invoke from the
+            // prototype chain first (unmocked Tauri exposes it on the prototype).
+            if (!(window as any).__e2eRealTauriInvoke) {
+                let raw: unknown = internals.invoke;
+                // If __e2eProxy is present, base-fixture already proxied. The
+                // target of the proxy should still have original invoke on it.
+                if (internals.__e2eProxy) {
+                    const proto = Object.getPrototypeOf(internals);
+                    const protoInvoke = proto && proto.invoke;
+                    if (typeof protoInvoke === 'function') raw = protoInvoke;
+                }
+                if (typeof raw === 'function') {
+                    (window as any).__e2eRealTauriInvoke = (raw as Function).bind(internals);
+                }
+            }
+
+            const realInvoke = (window as any).__e2eRealTauriInvoke;
+            if (!realInvoke) return { ok: false, reason: 'no-real-invoke' };
+
+            (window as any).__e2eLicensingInvoke = async function (cmd: string, args?: unknown) {
+                const user = {
+                    id: 'tauri-e2e-admin', name: 'E2E Admin', email: 'admin',
+                    role: 'admin', isActive: true, laboratoryId: null,
+                };
+                if (cmd === 'auth_session') return { valid: true, user };
+                if (cmd === 'auth_sign_in') return { success: true, sessionToken: 'e2e', user };
+                if (cmd === 'auth_sign_out') return undefined;
+                if (typeof cmd === 'string' && cmd.startsWith('plugin:dialog|')) return null;
+                // Real Rust for everything else (including all licensing_* commands).
+                return realInvoke(cmd, args);
+            };
+
+            return { ok: true, reason: 'installed' };
         });
+        console.log(`[E2E] Licensing fixture setup: ${JSON.stringify(setupResult)}`);
 
         await use(pg);
         await browser.close();
@@ -112,10 +195,10 @@ test.describe('Real Licensing IPC (no mocks)', () => {
         // authoritative source that always reads from DB, while get_status may
         // return null if no cache is populated yet.
         const result = await page.evaluate(async () => {
-            const internals = (window as any).__TAURI_INTERNALS__;
-            if (!internals?.invoke) return { error: 'no __TAURI_INTERNALS__' };
+            const invoke = (window as any).__e2eLicensingInvoke;
+            if (typeof invoke !== 'function') return { error: 'no __e2eLicensingInvoke' };
             try {
-                return await internals.invoke('licensing_check');
+                return await invoke('licensing_check');
             } catch (e: any) {
                 return { error: e?.message || String(e) };
             }
@@ -147,13 +230,13 @@ test.describe('Real Licensing IPC (no mocks)', () => {
         // has been called, the cache should be populated and return the same status.
         // First ensure cache is populated:
         await page.evaluate(async () => {
-            await (window as any).__TAURI_INTERNALS__.invoke('licensing_check');
+            await (window as any).__e2eLicensingInvoke('licensing_check');
         });
 
         const result = await page.evaluate(async () => {
-            const internals = (window as any).__TAURI_INTERNALS__;
+            const invoke = (window as any).__e2eLicensingInvoke;
             try {
-                return await internals.invoke('licensing_get_status');
+                return await invoke('licensing_get_status');
             } catch (e: any) {
                 return { error: e?.message || String(e) };
             }
@@ -165,15 +248,15 @@ test.describe('Real Licensing IPC (no mocks)', () => {
 
         // Both commands should return the same status
         const checkResult = await page.evaluate(async () => {
-            return await (window as any).__TAURI_INTERNALS__.invoke('licensing_check');
+            return await (window as any).__e2eLicensingInvoke('licensing_check');
         });
-        expect(result.status).toBe(checkResult.status);
+        expect((result as { status: string }).status).toBe((checkResult as { status: string }).status);
     });
 
     test('licensing_machine_id returns a non-empty string', async ({ page }) => {
         const machineId = await page.evaluate(async () => {
             try {
-                return await (window as any).__TAURI_INTERNALS__.invoke('licensing_machine_id');
+                return await (window as any).__e2eLicensingInvoke('licensing_machine_id');
             } catch (e: any) {
                 return { error: e?.message || String(e) };
             }
@@ -187,8 +270,8 @@ test.describe('Real Licensing IPC (no mocks)', () => {
     test('licensing features shape matches TypeScript types', async ({ page }) => {
         // Verify the features object has ALL expected fields — catches Rust/TS drift.
         const result = await page.evaluate(async () => {
-            return await (window as any).__TAURI_INTERNALS__.invoke('licensing_check');
-        });
+            return await (window as any).__e2eLicensingInvoke('licensing_check');
+        }) as { features: Record<string, unknown> };
 
         const features = result.features;
         const expectedKeys = [
@@ -222,7 +305,7 @@ test.describe('Real Licensing IPC (no mocks)', () => {
     test('licensing_was_ever_licensed returns boolean', async ({ page }) => {
         const result = await page.evaluate(async () => {
             try {
-                return await (window as any).__TAURI_INTERNALS__.invoke('licensing_was_ever_licensed');
+                return await (window as any).__e2eLicensingInvoke('licensing_was_ever_licensed');
             } catch (e: any) {
                 return { error: e?.message || String(e) };
             }
@@ -236,7 +319,7 @@ test.describe('Real Licensing IPC (no mocks)', () => {
         // With RHEOLAB_E2E_SKIP_LICENSE_GATE=1, it should return true.
         const result = await page.evaluate(async () => {
             try {
-                return await (window as any).__TAURI_INTERNALS__.invoke('licensing_can_save');
+                return await (window as any).__e2eLicensingInvoke('licensing_can_save');
             } catch (e: any) {
                 return { error: e?.message || String(e) };
             }
