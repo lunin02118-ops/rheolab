@@ -1,0 +1,228 @@
+{
+  "generatedAt": "2026-04-19T17:52:46.179Z",
+  "tool": "scripts/audit/snapshot-metrics.js",
+  "totals": {
+    "rustLoc": 36067,
+    "tsLoc": 31834,
+    "rustFiles": 146,
+    "tsFiles": 208
+  },
+  "loc": {
+    "srcTauri": {
+      "files": 90,
+      "loc": 20792
+    },
+    "rheolabCore": {
+      "files": 56,
+      "loc": 15275
+    },
+    "srcTs": {
+      "files": 208,
+      "loc": 31834
+    }
+  },
+  "oversizedFiles": {
+    "rustLimit": 500,
+    "rustOversize": [
+      {
+        "path": "src/rust/rheolab-core/src/detectors.rs",
+        "loc": 1080
+      },
+      {
+        "path": "src/rust/rheolab-core/src/report_generator/excel.rs",
+        "loc": 864
+      },
+      {
+        "path": "src-tauri/src/commands/backup/restore_tests.rs",
+        "loc": 674
+      },
+      {
+        "path": "src-tauri/src/commands/parsing/commands.rs",
+        "loc": 664
+      },
+      {
+        "path": "src-tauri/src/db/migration.rs",
+        "loc": 605
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/calibration/parsers.rs",
+        "loc": 603
+      },
+      {
+        "path": "src/rust/rheolab-core/src/report_generator/touch_point.rs",
+        "loc": 601
+      },
+      {
+        "path": "src-tauri/src/commands/licensing/hardware.rs",
+        "loc": 564
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/rheo_parser/mod.rs",
+        "loc": 558
+      },
+      {
+        "path": "src-tauri/src/commands/experiments/helpers.rs",
+        "loc": 544
+      },
+      {
+        "path": "src-tauri/src/commands/licensing/licensing_tests.rs",
+        "loc": 532
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/row_mapper/mod.rs",
+        "loc": 519
+      }
+    ],
+    "tsLimit": 400,
+    "tsOversize": [
+      {
+        "path": "src/lib/utils/touch-point.ts",
+        "loc": 443
+      },
+      {
+        "path": "src/lib/store/chart-settings-store.ts",
+        "loc": 408
+      },
+      {
+        "path": "src/app/dashboard/settings/page.tsx",
+        "loc": 404
+      },
+      {
+        "path": "src/app/dashboard/page.tsx",
+        "loc": 403
+      },
+      {
+        "path": "src/hooks/useRheologyChartOptions.ts",
+        "loc": 402
+      },
+      {
+        "path": "src/types/index.ts",
+        "loc": 401
+      }
+    ]
+  },
+  "rustQuality": {
+    "total": {
+      "unwrap": 0,
+      "expect": 45,
+      "panic": 0,
+      "todo": 0,
+      "unimplemented": 0
+    },
+    "topOffenders": [
+      {
+        "path": "src/rust/rheolab-core/src/parser/filename_parser.rs",
+        "unwrap": 0,
+        "expect": 13,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/detectors.rs",
+        "unwrap": 0,
+        "expect": 8,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/calibration/parsers.rs",
+        "unwrap": 0,
+        "expect": 4,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src-tauri/src/commands/licensing/crypto.rs",
+        "unwrap": 0,
+        "expect": 3,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/date_detector.rs",
+        "unwrap": 0,
+        "expect": 3,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/report_generator/typst_renderer.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/row_mapper/detection.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/rheo_parser/csv_parser.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/rheo_parser/workbook.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/analysis/hydration.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/examples/gen_pdf.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src-tauri/src/commands/parsing/mod.rs",
+        "unwrap": 0,
+        "expect": 1,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src-tauri/src/commands/licensing/hardware.rs",
+        "unwrap": 0,
+        "expect": 1,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      }
+    ],
+    "note": "Counts exclude `#[cfg(test)]` modules and individual `#[test]` bodies. Strings and comments stripped before matching."
+  },
+  "tauriCommands": {
+    "defined": 89,
+    "registered": 87
+  },
+  "mojibake": {
+    "total": 0,
+    "byPattern": {}
+  }
+}
