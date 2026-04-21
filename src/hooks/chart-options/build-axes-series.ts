@@ -9,7 +9,7 @@ import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import { getStrokeDasharray } from '@/lib/store/chart-settings-store';
 import type { TimeDisplayFormat } from '@/lib/store/chart-settings-types';
 import type { ChartTranslations } from './translations';
-import { applyOpacity, formatTimeTick, parseDash } from './time-format';
+import { applyOpacity, applyTimeAxisOptions, parseDash } from './time-format';
 
 // Show per-series dots only when zoomed in enough (< 60 visible data points).
 const showPointsWhenZoomed: uPlot.Series['points'] = {
@@ -53,19 +53,24 @@ export function buildAxes({
     const axisColor = isDark ? '#475569' : '#cbd5e1';
     const gridColorOpa = applyOpacity(gridColor, activeSettings.gridOpacity ?? 1);
 
-    const xAxis: uPlot.Axis = {
-        scale: 'x',
-        label: t.timeAxis,
-        labelSize: 20,
-        labelFont: '12px sans-serif',
-        font: '12px sans-serif',
-        stroke: textColor,
-        grid: { show: activeSettings.showGridLines !== false, stroke: gridColorOpa, width: 1, dash: [3, 3] },
-        ticks: { stroke: axisColor, width: 1 },
-        ...(timeFmt !== 'minutes'
-            ? { values: (_u: uPlot, vals: number[]) => vals.map(v => formatTimeTick(v, timeFmt)) }
-            : {}),
-    };
+    const xAxis: uPlot.Axis = applyTimeAxisOptions(
+        {
+            scale: 'x',
+            label: t.timeAxis,
+            labelSize: 20,
+            labelFont: '12px sans-serif',
+            font: '12px sans-serif',
+            stroke: textColor,
+            grid: {
+                show: activeSettings.showGridLines !== false,
+                stroke: gridColorOpa,
+                width: 1,
+                dash: [3, 3],
+            },
+            ticks: { stroke: axisColor, width: 1 },
+        },
+        timeFmt,
+    );
 
     if (isShared) {
         const leftLabels = [t.viscosityAxis];

@@ -16,6 +16,7 @@ import type uPlot from 'uplot';
 import { useTheme } from '@/contexts/theme-context';
 import { useChartSettingsStore, getStrokeDasharray, timeUnitLabel } from '@/lib/store/chart-settings-store';
 import type { TimeDisplayFormat } from '@/lib/store/chart-settings-types';
+import { applyTimeAxisOptions } from '@/hooks/chart-options/time-format';
 import {
     sanitiseAndNormalisePoints,
     sanitiseAndNormaliseColumnarDirect,
@@ -233,30 +234,19 @@ export function useComparisonChartData(params: UseComparisonChartDataParams): Us
         const gridStroke = isDark ? '#334155' : '#e2e8f0';
         const tickStroke = isDark ? '#475569' : '#94a3b8';
         const timeFmt: TimeDisplayFormat = chartSettings.rheologyUnits?.timeFormat ?? 'seconds';
-        const fmtTimeTick = (minVal: number): string => {
-            switch (timeFmt) {
-                case 'seconds': return String(Math.round(minVal * 60));
-                case 'hh:mm:ss': {
-                    const totalSec = Math.round(minVal * 60);
-                    const h = Math.floor(totalSec / 3600);
-                    const m = Math.floor((totalSec % 3600) / 60);
-                    const s = totalSec % 60;
-                    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-                }
-                default: return String(Math.round(minVal * 10) / 10);
-            }
-        };
         const uData: (number | null | undefined)[][] = [sortedTimes];
         const sConfig: uPlot.Series[] = [{ label: 'Время' }];
         const aConfig: uPlot.Axis[] = [
-            {
-                scale: 'x',
-                label: `Время (${timeUnitLabel(timeFmt)})`,
-                stroke: axisStroke,
-                grid: { stroke: gridStroke, width: 1, dash: [3, 3] },
-                ticks: { stroke: tickStroke, width: 1 },
-                ...(timeFmt !== 'minutes' ? { values: (_u: uPlot, vals: number[]) => vals.map(v => fmtTimeTick(v)) } : {}),
-            }
+            applyTimeAxisOptions(
+                {
+                    scale: 'x',
+                    label: `Время (${timeUnitLabel(timeFmt)})`,
+                    stroke: axisStroke,
+                    grid: { stroke: gridStroke, width: 1, dash: [3, 3] },
+                    ticks: { stroke: tickStroke, width: 1 },
+                },
+                timeFmt,
+            ),
         ];
 
         const isShared = comparisonAxisMode === 'shared';
