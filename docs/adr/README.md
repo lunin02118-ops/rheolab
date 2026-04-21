@@ -12,6 +12,7 @@
 | [ADR-0006](ADR-0006-sync-engine-contract.md) | Delta-sync engine — офлайн обмен данными | ✅ Реализовано | 2026-03-15 |
 | [ADR-0007](ADR-0007-parser-pipeline.md) | Parser pipeline — мультиформатный парсинг | ✅ Реализовано | до 2026-02-01 |
 | [ADR-0008](ADR-0008-logging-and-telemetry.md) | Logging and telemetry — единый фасад логирования | ✅ Реализовано | 2026-04-17 |
+| [ADR-0009](ADR-0009-refactor-modularization-2026-04.md) | Поэтапная модуляризация кода (W1–W3, bundle -8 KB, migration hardening) | ✅ Реализовано | 2026-04-19 |
 
 ---
 
