@@ -22,10 +22,18 @@ export type {
     ChartLineSettings,
     ChartPrecision,
     ChartSettings,
+    UnitPreset,
+    RheologyUnits,
+    ConsistencyUnit,
+    PlasticViscosityUnit,
+    YieldPointUnit,
 } from './chart-settings-types';
 export {
     DEFAULT_LINE_SETTINGS,
     DEFAULT_CHART_SETTINGS,
+    METRIC_UNITS,
+    IMPERIAL_UNITS,
+    getPresetUnits,
 } from './chart-settings-defaults';
 
 import type {
@@ -35,10 +43,14 @@ import type {
     ChartLineSettings,
     ChartPrecision,
     ChartSettings,
+    RheologyUnits,
+    UnitPreset,
 } from './chart-settings-types';
 import {
     DEFAULT_LINE_SETTINGS,
     DEFAULT_CHART_SETTINGS,
+    METRIC_UNITS,
+    getPresetUnits,
 } from './chart-settings-defaults';
 
 // === Line Key Type ===
@@ -52,6 +64,10 @@ interface ChartSettingsState {
     setSettings: (settings: Partial<ChartSettings>) => void;
     setLineSettings: (lineKey: LineKey, lineSettings: Partial<LineSettings>) => void;
     setPrecision: (precision: Partial<ChartPrecision>) => void;
+    /** Apply a unit preset (metric/imperial) or switch to custom. */
+    applyUnitPreset: (preset: UnitPreset) => void;
+    /** Change a single rheology unit (auto-switches to 'custom' preset). */
+    setRheologyUnit: <K extends keyof RheologyUnits>(key: K, value: RheologyUnits[K]) => void;
     resetToDefaults: () => void;
     
     // Export/Import
@@ -109,6 +125,37 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                     },
                 })),
 
+            applyUnitPreset: (preset) =>
+                set((state) => {
+                    const units = getPresetUnits(preset, state.settings.rheologyUnits);
+                    // Also sync line units for chart axes
+                    const lines = { ...state.settings.lines };
+                    lines.viscosity = { ...lines.viscosity, unit: units.viscosity };
+                    lines.temperature = { ...lines.temperature, unit: units.temperature };
+                    lines.bathTemperature = { ...lines.bathTemperature, unit: units.temperature };
+                    lines.pressure = { ...lines.pressure, unit: units.pressure };
+                    return {
+                        settings: { ...state.settings, unitPreset: preset, rheologyUnits: units, lines },
+                    };
+                }),
+
+            setRheologyUnit: (key, value) =>
+                set((state) => {
+                    const rheologyUnits = { ...state.settings.rheologyUnits, [key]: value };
+                    // Sync chart line units where applicable
+                    const lines = { ...state.settings.lines };
+                    const lu = value as unknown as import('./chart-settings-types').LineUnit;
+                    if (key === 'viscosity') lines.viscosity = { ...lines.viscosity, unit: lu };
+                    if (key === 'temperature') {
+                        lines.temperature = { ...lines.temperature, unit: lu };
+                        lines.bathTemperature = { ...lines.bathTemperature, unit: lu };
+                    }
+                    if (key === 'pressure') lines.pressure = { ...lines.pressure, unit: lu };
+                    return {
+                        settings: { ...state.settings, unitPreset: 'custom', rheologyUnits, lines },
+                    };
+                }),
+
             resetToDefaults: () =>
                 set({ settings: structuredClone(DEFAULT_CHART_SETTINGS) }),
 
@@ -150,7 +197,7 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
         {
             name: 'rheolab-chart-settings',
             storage: debouncedJsonStorage,
-            version: 9, // v9: added per-line unit field
+            version: 10, // v10: unitPreset + rheologyUnits
             // merge is called on every hydration — guarantees all default keys
             // (e.g. bathTemperature) are present even in old persisted states.
             merge: (persisted, current) => {
@@ -170,6 +217,13 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
             },
             migrate: (persistedState: unknown, version: number) => {
                 const state = persistedState as Record<string, unknown>;
+
+                // Migration to v10: add unitPreset + rheologyUnits
+                if (version < 10) {
+                    const s = state?.settings as Record<string, unknown> | undefined;
+                    if (s && !s.unitPreset) s.unitPreset = 'metric';
+                    if (s && !s.rheologyUnits) s.rheologyUnits = { ...METRIC_UNITS };
+                }
 
                 // Migration to v9: ensure every line has a unit field
                 if (version < 9) {

@@ -5,7 +5,7 @@ import type { GraceCycleResult } from '@/lib/analysis/types';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
-import { getViscosityUnit, type UnitSystem } from '@/lib/store/display-settings-store';
+import type { UnitSystem } from '@/lib/store/display-settings-store';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { CycleRow } from './CycleRow';
 import { CycleStepsDetail } from './CycleStepsDetail';
@@ -19,7 +19,8 @@ interface CycleResultsTableProps {
 export const CycleResultsTable = memo(function CycleResultsTable({ cycles, results, onEditCycle }: CycleResultsTableProps) {
     const { isExpert } = useUIMode();
     const expertSettings = useAnalysisSettingsStore(s => s.expertSettings);
-    const viscUnit = useChartSettingsStore(s => s.settings.lines.viscosity.unit) as 'mPa·s' | 'Pa·s' | 'cP';
+    const rUnits = useChartSettingsStore(s => s.settings.rheologyUnits);
+    const viscUnit = rUnits.viscosity;
     const unitSystem: UnitSystem = viscUnit === 'Pa·s' ? 'SI_Pas' : viscUnit === 'cP' ? 'Imperial' : 'SI';
     const [expandedCycles, setExpandedCycles] = useState<Set<number>>(new Set());
 
@@ -69,13 +70,13 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
                                 <span className="cursor-help" title="Индекс течения (n')">n'</span>
                             </th>
                             <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
-                                <span className="cursor-help" title="Индекс консистенции (K')">K' (Па·с^n)</span>
+                                <span className="cursor-help" title="Индекс консистенции (K')">K' ({rUnits.consistency})</span>
                             </th>
                             <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
-                                <span className="cursor-help" title="K slot — коэффициент для щели/трещины (ISO 13503-1 ф. 15)">Ks (Па·с^n)</span>
+                                <span className="cursor-help" title="K slot — коэффициент для щели/трещины (ISO 13503-1 ф. 15)">Ks ({rUnits.consistency})</span>
                             </th>
                             <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
-                                <span className="cursor-help" title="K pipe — коэффициент для трубы (ISO 13503-1 ф. 16)">Kp (Па·с^n)</span>
+                                <span className="cursor-help" title="K pipe — коэффициент для трубы (ISO 13503-1 ф. 16)">Kp ({rUnits.consistency})</span>
                             </th>
                             <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground">
                                 <span className="cursor-help" title="Коэффициент детерминации">R²</span>
@@ -90,10 +91,10 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
                             {isExpert && (
                                 <>
                                     <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
-                                        <span className="cursor-help" title="Пластическая вязкость (Па·с)">PV (Па·с)</span>
+                                        <span className="cursor-help" title="Пластическая вязкость">PV ({rUnits.plasticViscosity})</span>
                                     </th>
                                     <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
-                                        <span className="cursor-help" title="Предел текучести (Па)">YP (Па)</span>
+                                        <span className="cursor-help" title="Предел текучести">YP ({rUnits.yieldPoint})</span>
                                     </th>
                                     <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
                                         <span className="cursor-help" title="Модель Бингама R²">R² Bingham</span>

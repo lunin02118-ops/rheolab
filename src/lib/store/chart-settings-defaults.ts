@@ -5,6 +5,8 @@
 import type {
     ChartLineSettings,
     ChartSettings,
+    RheologyUnits,
+    UnitPreset,
 } from './chart-settings-types';
 
 // === Default Line Settings for Display ===
@@ -59,6 +61,34 @@ export const DEFAULT_LINE_SETTINGS: ChartLineSettings = {
     },
 };
 
+// === Unit presets ===
+export const METRIC_UNITS: RheologyUnits = {
+    viscosity: 'mPa·s',
+    temperature: '°C',
+    pressure: 'bar',
+    consistency: 'Pa·s^n',
+    plasticViscosity: 'Pa·s',
+    yieldPoint: 'Pa',
+};
+
+export const IMPERIAL_UNITS: RheologyUnits = {
+    viscosity: 'cP',
+    temperature: '°F',
+    pressure: 'psi',
+    consistency: 'lbf·s^n/100ft²',
+    plasticViscosity: 'cP',
+    yieldPoint: 'lbf/100ft²',
+};
+
+/** Get the RheologyUnits for a given preset (custom returns current). */
+export function getPresetUnits(preset: UnitPreset, current: RheologyUnits): RheologyUnits {
+    switch (preset) {
+        case 'metric':  return { ...METRIC_UNITS };
+        case 'imperial': return { ...IMPERIAL_UNITS };
+        default:         return current;
+    }
+}
+
 // === Default Settings ===
 export const DEFAULT_CHART_SETTINGS: ChartSettings = {
     lines: DEFAULT_LINE_SETTINGS,
@@ -76,5 +106,7 @@ export const DEFAULT_CHART_SETTINGS: ChartSettings = {
     tooltipEnabled: true,
     downsampleMode: 'smart',
     comparisonAxisMode: 'individual',
+    unitPreset: 'metric',
+    rheologyUnits: { ...METRIC_UNITS },
 };
 

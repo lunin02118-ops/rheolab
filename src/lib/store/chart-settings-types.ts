@@ -21,6 +21,16 @@ export type ShearRateUnit = '1/s';
 /** Rotational speed unit. Single option kept as a union for forward compat. */
 export type RpmUnit = 'RPM';
 
+/** Consistency index K' / Ks / Kp unit. */
+export type ConsistencyUnit = 'Pa·s^n' | 'eq.cP' | 'lbf·s^n/100ft²';
+/** Plastic viscosity (PV) unit. */
+export type PlasticViscosityUnit = 'Pa·s' | 'cP';
+/** Yield point (YP) unit. */
+export type YieldPointUnit = 'Pa' | 'lbf/100ft²';
+
+/** Unit preset selector. */
+export type UnitPreset = 'metric' | 'imperial' | 'custom';
+
 /** Discriminated union of every allowed unit string. */
 export type LineUnit =
     | ViscosityUnit
@@ -83,6 +93,16 @@ export interface ChartPrecision {
     rpm: 0 | 1;
 }
 
+// === Rheology table unit settings ===
+export interface RheologyUnits {
+    viscosity: ViscosityUnit;
+    temperature: TemperatureUnit;
+    pressure: PressureUnit;
+    consistency: ConsistencyUnit;   // K', Ks, Kp
+    plasticViscosity: PlasticViscosityUnit; // PV
+    yieldPoint: YieldPointUnit;     // YP
+}
+
 // === Full Chart Settings ===
 export interface ChartSettings {
     lines: ChartLineSettings;
@@ -94,4 +114,8 @@ export interface ChartSettings {
     downsampleMode: DownsampleMode;
     /** Axis mode for the comparison chart */
     comparisonAxisMode: ComparisonAxisMode;
+    /** Unit preset mode */
+    unitPreset: UnitPreset;
+    /** Per-parameter units for the rheology analysis table */
+    rheologyUnits: RheologyUnits;
 }

@@ -51,6 +51,11 @@ function makeChartSettings(overrides?: Partial<ChartSettings>): ChartSettings {
         tooltipEnabled: false,
         downsampleMode: 'off' as const,
         comparisonAxisMode: 'individual' as const,
+        unitPreset: 'metric' as const,
+        rheologyUnits: {
+            viscosity: 'mPa·s', temperature: '°C', pressure: 'bar',
+            consistency: 'Pa·s^n', plasticViscosity: 'Pa·s', yieldPoint: 'Pa',
+        },
         ...overrides,
     };
 }
