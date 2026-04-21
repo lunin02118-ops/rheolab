@@ -83,22 +83,22 @@ const LEGACY_TARGET = TARGET;  // same — windows-x86_64
 const urlsToTest = [
     // Current endpoint (v0.1.510+): channel-aware PHP router reads X-Update-Channel header
     {
-        label: 'Current endpoint  — {{target}}/update (channel-aware PHP router)',
+        label: `Current endpoint  — {{target}}/update (channel: ${CHANNEL})`,
         url: `${BASE_URL}/releases/v1/update/${TARGET}/update`,
         headers: { 'X-Update-Channel': CHANNEL },
         expectJson: true,
     },
-    // Previous endpoint (0.1.498–0.1.509): {{target}}/stable.json — still served as static file
+    // Direct manifest file: {{target}}/{channel}.json — this is the authoritative source
     {
-        label: 'Previous endpoint — {{target}}/stable.json (static, legacy)',
-        url: `${BASE_URL}/releases/v1/update/${TARGET}/stable.json`,
+        label: `Channel manifest  — {{target}}/${CHANNEL}.json`,
+        url: `${BASE_URL}/releases/v1/update/${TARGET}/${CHANNEL}.json`,
         expectJson: true,
+        isPrimary: true,
     },
-    // Old-style endpoint (≤0.1.497): {{target}}/{{arch}}/{{current_version}}?channel=stable
-    // {{target}}=windows-x86_64, {{arch}}=x86_64 → .htaccess strips /arch/version tail
+    // Old-style endpoint (≤0.1.497): {{target}}/{{arch}}/{{current_version}}?channel={channel}
     {
-        label: 'Legacy endpoint   — {{target}}/{{arch}}/{{version}}?channel=stable',
-        url: `${BASE_URL}/releases/v1/update/${LEGACY_TARGET}/${ARCH}/${LOCAL_VERSION}?channel=stable`,
+        label: `Legacy endpoint   — {{target}}/{{arch}}/{{version}}?channel=${CHANNEL}`,
+        url: `${BASE_URL}/releases/v1/update/${LEGACY_TARGET}/${ARCH}/${LOCAL_VERSION}?channel=${CHANNEL}`,
         expectJson: true,
     },
 ];
@@ -255,7 +255,9 @@ async function run() {
             }
         }
 
-        if (platformEntry?.url && !manifestForArtifactCheck) {
+        // Use the primary (direct {channel}.json) endpoint for artifact comparison;
+        // fall back to any endpoint if primary wasn't reached.
+        if (platformEntry?.url && (!manifestForArtifactCheck || entry.isPrimary)) {
             manifestForArtifactCheck = { ...platformEntry, version: manifest.version };
         }
     }
@@ -295,16 +297,16 @@ async function run() {
                             }
                         }
 
-                        // Compare remote manifest signature against local stable.json
+                        // Compare remote manifest signature against local {channel}.json
                         const remoteSignature = manifestForArtifactCheck.signature?.trim();
                         const localSignature  = localManifest?.platforms?.['windows-x86_64']?.signature?.trim();
                         if (remoteSignature && localSignature) {
                             if (remoteSignature === localSignature) {
-                                ok('Remote manifest signature matches local stable.json');
+                                ok(`Remote manifest signature matches local ${CHANNEL}.json`);
                             } else {
                                 fail(
-                                    'Remote manifest signature does not match local stable.json',
-                                    'The live stable.json may have been modified after upload, or a different build was published',
+                                    `Remote manifest signature does not match local ${CHANNEL}.json`,
+                                    `The live ${CHANNEL}.json may have been modified after upload, or a different build was published`,
                                 );
                             }
                         }
@@ -314,10 +316,10 @@ async function run() {
                         const localVersion  = localManifest?.version ?? null;
                         if (remoteVersion && localVersion) {
                             if (remoteVersion === localVersion) {
-                                ok(`Remote manifest version (${remoteVersion}) matches local stable.json`);
+                                ok(`Remote manifest version (${remoteVersion}) matches local ${CHANNEL}.json`);
                             } else {
                                 fail(
-                                    `Remote version (${remoteVersion}) does not match local stable.json version (${localVersion})`,
+                                    `Remote version (${remoteVersion}) does not match local ${CHANNEL}.json version (${localVersion})`,
                                     'Re-run publish-update.js or check that the correct build was deployed',
                                 );
                             }
