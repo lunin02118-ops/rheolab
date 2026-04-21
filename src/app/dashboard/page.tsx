@@ -242,6 +242,14 @@ export default function Dashboard() {
         setIsLoading(false);
     }, [setError, setIsLoading]);
 
+    const handleSaveClick = useCallback(() => {
+        setShowSaveDialog(true);
+    }, [setShowSaveDialog]);
+
+    const handleInstrumentChange = useCallback((inst: string) => {
+        updateMetadata({ instrumentType: inst });
+    }, [updateMetadata]);
+
     // Memoised analysis data for SaveExperimentDialog — avoids recreating the
     // 30+ field object literal on every render of the dashboard page.
     const analysisData = useMemo(() => {
@@ -374,8 +382,8 @@ export default function Dashboard() {
                         setEditedWaterSource={setWaterSource}
                         editedWaterParams={waterParams}
                         setEditedWaterParams={setWaterParams}
-                        onSaveClick={() => setShowSaveDialog(true)}
-                        onInstrumentChange={(inst) => updateMetadata({ instrumentType: inst })}
+                        onSaveClick={handleSaveClick}
+                        onInstrumentChange={handleInstrumentChange}
                         onGeometryChange={handleGeometryChange}
                         geometryOverride={geometryOverride}
                         cycleOverrides={cycleOverrides}

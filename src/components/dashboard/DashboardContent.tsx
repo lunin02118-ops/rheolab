@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { memo, useState, useMemo, useRef, useCallback } from 'react';
 import { BarChart3, Table, Droplets, Save, Settings, FileText } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
@@ -45,7 +45,7 @@ export interface DashboardContentProps {
     setPatternOverride: (pattern: number[] | null) => void;
 }
 
-export function DashboardContent({
+function DashboardContentInner({
     parseResult,
     cycles,
     cycleResults,
@@ -384,3 +384,12 @@ export function DashboardContent({
         </div>
     );
 }
+
+/**
+ * Memoised export — skips render when parent's unrelated state updates
+ * (SaveDialog open, isLoading, overwrite/name-conflict confirmations, …)
+ * leave every prop referentially equal. Inner callbacks in `dashboard/page.tsx`
+ * are wrapped in `useCallback`, and state slices come through Zustand+useShallow
+ * so the equality check actually holds in practice.
+ */
+export const DashboardContent = memo(DashboardContentInner);
