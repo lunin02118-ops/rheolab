@@ -102,13 +102,53 @@ rg -c "\.unwrap\(" src-tauri\src --glob '!*_tests.rs' --glob '!**/tests/**'
 | `npm audit --omit=dev` | 3 vulns (1 high) | **0** |
 | `cargo audit` | 0 | **0** |
 
-## 7. Что **не** измерялось в этой итерации
+## 7. Rust micro-benchmarks (criterion)
+
+Бенчмарк-сьют `src/rust/rheolab-core/benches/rheology_core.rs` (criterion,
+100 сэмплов, 10 кейсов) был запущен дважды:
+
+- **Run A** — 2026-04-21 ~23:35 (cold cache, после длинной паузы).
+- **Run B** — 2026-04-21 ~23:39 (warm cache, сразу после Run A).
+
+### Сравнение Run A → Run B (одна и та же сборка, идентичный код)
+
+| Benchmark | Run B vs Run A | p-value | Интерпретация |
+|-----------|----------------|--------:|---|
+| `chart_svg/500` | **−13.03 %** | < 0.05 | cold→warm cache эффект |
+| `chart_svg/2000` | **−16.92 %** | < 0.05 | cold→warm cache эффект |
+| `chart_svg/10000` | **−10.83 %** | < 0.05 | cold→warm cache эффект |
+| `chart_svg/50000` | **−7.03 %** | < 0.05 | cold→warm cache эффект |
+| `detect_schedule/plateau/1000` | −6.05 % | < 0.05 | шум |
+| `detect_schedule/plateau/5000` | −0.06 % | 0.95 | стабильно |
+| `detect_schedule/plateau/20000` | −6.96 % | < 0.05 | шум |
+| `detect_schedule/step_ramp/1000` | −5.15 % | < 0.05 | шум |
+| `detect_schedule/step_ramp/5000` | −0.26 % | 0.74 | стабильно |
+| `detect_schedule/step_ramp/20000` | −0.45 % | 0.46 | стабильно |
+
+### Вывод по Rust-перфу
+
+Код `rheolab-core` в W1–W4 **не модифицировался**: `git log -- src/rust/rheolab-core/`
+не показывает коммитов между `07:44` и `23:39` (2026-04-21). Все наблюдаемые
+дельты — **cold vs warm cache** + обычный межзапусковый шум 5–17 %, характерный
+для Windows 11 desktop.
+
+**Следствие:** для реального A/B сравнения перф-числа нужно:
+1. Запускать criterion **один раз** как throwaway (прогрев), а затем **второй раз**
+   как measurement — так делает criterion стандартно, но между `cargo bench`-ами
+   это приходится делать вручную.
+2. Фиксировать `CPU governor` / `Power Plan` в high-performance.
+3. Сохранять результаты через `--save-baseline <name>` и сравнивать через
+   `--baseline <name>`, а не полагаться на timestamp'овый `base/`, который
+   criterion перезаписывает после каждого прогона.
+
+## 8. Что **не** измерялось в этой итерации
 
 - **Playwright perf benchmark** (`npm run perf:benchmark`) — требует полную `tauri:build:debug` (~10 мин) + запущенный EXE. Отдельная задача: снять baseline+candidate через `compare-perf-baselines.js` на следующем релизе.
 - **Memory soak** (`npm run perf:soak:tauri`) — та же причина.
 - **Website scroll perf** — не входит в scope W1–W3.
+- **Стабильный criterion-baseline** — ждёт `--save-baseline` дисциплины в CI (§ 7).
 
-## 8. Вывод
+## 9. Вывод
 
 Рефакторинг **behaviour-preserving**:
 - Ни одного нового unwrap/panic в прод-коде.
@@ -117,5 +157,9 @@ rg -c "\.unwrap\(" src-tauri\src --glob '!*_tests.rs' --glob '!**/tests/**'
 - +12 новых авто-тестов (vitest + cargo).
 - 0 security-findings по обеим экосистемам.
 
+Rust `rheolab-core` не затрагивался (§ 7), поэтому дельта там нулевая —
+наблюдаемые 5–17 % между запусками criterion — это cold/warm cache и
+межзапусковый шум Windows-ядра.
+
 Следующий шаг для полноты картины — runtime-benchmark через Playwright
-(`perf:benchmark`), чтобы зафиксировать heap/FPS-дельту. См. §7.
+(`perf:benchmark`), чтобы зафиксировать heap/FPS-дельту. См. § 8.
