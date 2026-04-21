@@ -8,37 +8,13 @@ import { PerfMon } from '@/lib/perf-monitor';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 import type { ParseResult } from '@/lib/store/experiment-data-store';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
+import { getAnalysisCache, setAnalysisCache } from '@/hooks/analysisCache';
 
-// ─── Module-level analysis cache ─────────────────────────────────────────────
-// Persists across hook mount/unmount so navigation Dashboard↔Reports doesn't
-// trigger a redundant Rust IPC round-trip when the inputs haven't changed.
-interface AnalysisCacheEntry {
-    key: string;
-    cycles: RheoCycle[];
-    cycleResults: Map<number, GraceCycleResult>;
-    allSteps: RheoStep[];
-}
-let analysisCache: AnalysisCacheEntry | null = null;
-
-/** @internal – reset module-level cache between tests */
-export function __resetAnalysisCache() {
-    analysisCache = null;
-}
-
-/**
- * Clear the module-level analysis cache.
- *
- * Must be called when:
- *  - The user closes/resets the current experiment
- *  - The experiment-data-store is reset
- *
- * Without this, the last experiment's analysis results (~5-15 MB of cycles,
- * steps, and per-cycle GraceCycleResult maps) stay retained at module scope
- * indefinitely — even after navigating away from the Dashboard.
- */
-export function clearAnalysisCache() {
-    analysisCache = null;
-}
+// The module-level cache lives in `./analysisCache.ts` so lightweight
+// consumers (layouts, stores) can clear it without pulling the analysis
+// client + Tauri bridge into the main bundle. Re-exports preserve the
+// historical import paths for callers that still reach through this hook.
+export { clearAnalysisCache, __resetAnalysisCache } from '@/hooks/analysisCache';
 
 interface UseAnalysisPipelineProps {
     parseResult: ParseResult | null;
@@ -152,16 +128,17 @@ export function useAnalysisPipeline({
 
     useEffect(() => {
         // ── Cache hit — skip redundant Rust IPC ──────────────────────────
-        if (cacheKey && analysisCache?.key === cacheKey) {
+        const cached = getAnalysisCache();
+        if (cacheKey && cached?.key === cacheKey) {
             // Use functional updater — return `prev` when already set to
             // avoid creating a new object that would trigger an infinite
             // re-render ↔ useEffect loop.
             setAnalysisState(prev => {
-                if (prev.cycles === analysisCache!.cycles) return prev;
+                if (prev.cycles === cached.cycles) return prev;
                 return {
-                    cycles: analysisCache!.cycles,
-                    cycleResults: analysisCache!.cycleResults,
-                    allSteps: analysisCache!.allSteps,
+                    cycles: cached.cycles,
+                    cycleResults: cached.cycleResults,
+                    allSteps: cached.allSteps,
                 };
             });
             return;
@@ -272,7 +249,7 @@ export function useAnalysisPipeline({
                             allSteps: result.allSteps
                         };
                         setAnalysisState(state);
-                        analysisCache = { key: cacheKey, ...state };
+                        setAnalysisCache({ key: cacheKey, ...state });
                     }
                     return;
                 }
@@ -294,7 +271,7 @@ export function useAnalysisPipeline({
                         allSteps: result.allSteps
                     };
                     setAnalysisState(state);
-                    analysisCache = { key: cacheKey, ...state };
+                    setAnalysisCache({ key: cacheKey, ...state });
                 }
             } catch (err) {
                 if (signal.aborted) return; // ignore errors from a cancelled analysis

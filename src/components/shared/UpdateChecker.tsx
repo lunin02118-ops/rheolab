@@ -12,14 +12,18 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { check, type Update } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
+import { check } from '@tauri-apps/plugin-updater';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { logger } from '@/lib/logger';
 import { isTauri } from '@/lib/tauri';
 import { useUpdateStore, type StartupCompletedPayload } from '@/lib/store/update-store';
-import { backup } from '@/lib/tauri/backup';
+import { setPendingUpdate } from './update-install';
+
+// Re-export the install/relaunch helpers so existing callers that imported
+// them from `./UpdateChecker` continue to work — but prefer the lazy
+// `./update-install` path when you are about to add a new call site.
+export { startUpdateInstall, relaunchApp } from './update-install';
 
 // Delay before first check after app startup (ms)
 const INITIAL_DELAY_MS = 30_000;
@@ -42,58 +46,6 @@ function buildUpdateHeaders(info: { channel: string; token: string | null }): Re
     return headers;
 }
 
-// Module-level reference to the pending Update object.
-// Kept outside React state because it contains non-serialisable callbacks.
-let _pendingUpdate: Update | null = null;
-
-/**
- * Trigger download + install of the pending update.
- * Call this when the user confirms installation (e.g. from UpdateBanner).
- */
-export async function startUpdateInstall(): Promise<void> {
-    if (!_pendingUpdate) return;
-
-    const store = useUpdateStore.getState();
-    store.setDownloading(0);
-
-    // Create a pre-update backup so the user can roll back if the new version
-    // causes data-loss or crashes.  Non-fatal: a backup failure must not block
-    // the update — log a warning and continue.
-    try {
-        const backupResult = await backup.create();
-        logger.info(`[UpdateChecker] Pre-update backup created: ${backupResult.name ?? '(no name)'}`);
-    } catch (backupErr) {
-        const msg = backupErr instanceof Error ? backupErr.message : String(backupErr);
-        logger.warn(`[UpdateChecker] Pre-update backup failed (non-fatal): ${msg}`);
-    }
-
-    let downloaded = 0;
-    let totalBytes = 0;
-
-    try {
-        await _pendingUpdate.downloadAndInstall((event) => {
-            if (event.event === 'Started') {
-                totalBytes = event.data.contentLength ?? 0;
-            } else if (event.event === 'Progress') {
-                downloaded += event.data.chunkLength;
-                const pct = totalBytes > 0
-                    ? Math.min(99, Math.round((downloaded / totalBytes) * 100))
-                    : 0;
-                store.setDownloading(pct);
-            } else if (event.event === 'Finished') {
-                store.setReady();
-            }
-        });
-
-        // If downloadAndInstall resolves without 'Finished' event (edge-case):
-        store.setReady();
-    } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        logger.error(`[UpdateChecker] Install failed: ${msg}`);
-        store.setError(`Ошибка установки: ${msg}`);
-    }
-}
-
 /**
  * Trigger an immediate update check (called from Settings → О программе).
  * Safe to call at any time — no-ops if already checking/installing.
@@ -113,7 +65,7 @@ export async function checkUpdateNow(): Promise<void> {
         const info = await getUpdateChannelInfo();
         const update = await check({ headers: buildUpdateHeaders(info) });
         if (update?.available) {
-            _pendingUpdate = update;
+            setPendingUpdate(update);
             const notes = update.body?.trim() ?? null;
             store.setAvailable(update.version, notes);
             logger.info(`[UpdateChecker] Manual check — update available: v${update.version}`);
@@ -128,18 +80,6 @@ export async function checkUpdateNow(): Promise<void> {
         // silently (offline is expected), but manual checks should be honest.
         store.setError(`Не удалось проверить: ${msg}`);
         logger.error(`[UpdateChecker] Manual check failed: ${msg}`);
-    }
-}
-
-/**
- * Trigger app relaunch after update installation.
- * Call this when the user clicks "Restart" in UpdateBanner.
- */
-export async function relaunchApp(): Promise<void> {
-    try {
-        await relaunch();
-    } catch (err) {
-        logger.error(`[UpdateChecker] Relaunch failed: ${String(err)}`);
     }
 }
 
@@ -170,7 +110,7 @@ export function UpdateChecker(): null {
                 const update = await check({ headers: buildUpdateHeaders(info) });
 
                 if (update?.available) {
-                    _pendingUpdate = update;
+                    setPendingUpdate(update);
                     const notes = update.body?.trim() ?? null;
                     store.setAvailable(update.version, notes);
                     logger.info(

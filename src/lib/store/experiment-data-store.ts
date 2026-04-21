@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { toFiniteNumber } from '@/lib/utils/numbers';
 import type { RheoDataPoint, ParsingMetadata, RecipeComponent } from '@/lib/parsing/types';
 import type { ParseResult, ParseSummary, WaterParams } from '@/types';
-import { clearAnalysisCache } from '@/hooks/useAnalysisPipeline';
+import { clearAnalysisCache } from '@/hooks/analysisCache';
 import { isTauri } from '@/lib/tauri/core';
 
 /**

@@ -13,8 +13,22 @@
 
 import { Download, RefreshCw, X, ArrowDownToLine, ShieldCheck, FolderOpen } from 'lucide-react';
 import { useUpdateStore } from '@/lib/store/update-store';
-import { startUpdateInstall, relaunchApp } from './UpdateChecker';
 import { backup } from '@/lib/tauri/backup';
+
+/**
+ * Lazy-load the install/relaunch helpers only when the user actually clicks.
+ * Keeping them out of the main bundle removes the Tauri updater + process
+ * plugins (~10 kB gzipped) from the initial page weight.
+ */
+async function handleInstallClick(): Promise<void> {
+    const { startUpdateInstall } = await import('./update-install');
+    await startUpdateInstall();
+}
+
+async function handleRelaunchClick(): Promise<void> {
+    const { relaunchApp } = await import('./update-install');
+    await relaunchApp();
+}
 
 export function UpdateBanner() {
     const status = useUpdateStore((state) => state.status);
@@ -108,7 +122,7 @@ export function UpdateBanner() {
                     <div className="flex items-center gap-2 shrink-0">
                         <button
                             type="button"
-                            onClick={startUpdateInstall}
+                            onClick={handleInstallClick}
                             className="flex items-center gap-1.5 text-xs font-medium bg-purple-600 hover:bg-purple-500 text-foreground px-3 py-1.5 rounded-md transition-colors"
                         >
                             <Download className="w-3.5 h-3.5" />
@@ -177,7 +191,7 @@ export function UpdateBanner() {
                     </div>
                     <button
                         type="button"
-                        onClick={relaunchApp}
+                        onClick={handleRelaunchClick}
                         className="flex items-center gap-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-foreground px-3 py-1.5 rounded-md transition-colors shrink-0"
                     >
                         <RefreshCw className="w-3.5 h-3.5" />

@@ -7,13 +7,17 @@ import { LicenseStatusBadge } from '@/components/licensing/LicenseStatusBadge';
 import { LicenseGuard } from '@/components/licensing/LicenseGuard';
 import { useLicenseStore } from '@/lib/store/license-store';
 import { useComparisonStore } from '@/lib/store/comparison-store';
-import { clearAnalysisCache } from '@/hooks/useAnalysisPipeline';
-import { UpdateChecker } from '@/components/shared/UpdateChecker';
+import { clearAnalysisCache } from '@/hooks/analysisCache';
 import { UpdateBanner } from '@/components/shared/UpdateBanner';
 
 // Lazy-load licensing UI that is only shown conditionally (trial / activation)
 const TrialBanner = lazy(() => import('@/components/licensing/TrialBanner').then(m => ({ default: m.TrialBanner })));
 const LicenseActivationDialog = lazy(() => import('@/components/licensing/LicenseActivationDialog').then(m => ({ default: m.LicenseActivationDialog })));
+
+// UpdateChecker is a background worker (30 s delay before first check).
+// Deferring its bundle removes Tauri updater/process/event plugins
+// from the main chunk.
+const UpdateChecker = lazy(() => import('@/components/shared/UpdateChecker').then(m => ({ default: m.UpdateChecker })));
 
 interface DashboardLayoutClientProps {
     children: React.ReactNode;
@@ -137,8 +141,10 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
                 {/* Blocking Guard */}
                 <LicenseGuard />
 
-                {/* Auto-updater background worker */}
-                <UpdateChecker />
+                {/* Auto-updater background worker (lazy — polls after 30 s) */}
+                <Suspense fallback={null}>
+                    <UpdateChecker />
+                </Suspense>
             </div>
     );
 }
