@@ -105,7 +105,7 @@ export function UnitSystemCard() {
         <div className="bg-card/50 border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <Ruler className="w-5 h-5 text-orange-400" />
+                    <Ruler className="w-5 h-5 text-amber-400" />
                     Система единиц
                 </h2>
             </div>
@@ -124,10 +124,10 @@ export function UnitSystemCard() {
                             onClick={() => handlePreset(p.value)}
                             title={p.hint}
                             aria-pressed={active}
-                            className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition-colors text-center ${
+                            className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 ${
                                 active
-                                    ? 'bg-orange-600 border-orange-500 text-white'
-                                    : 'bg-secondary border-border text-muted-foreground hover:text-foreground hover:border-orange-500/40'
+                                    ? 'bg-amber-600 border-amber-500 text-white shadow-inner'
+                                    : 'bg-secondary border-border text-muted-foreground hover:text-foreground hover:border-amber-500/40'
                             }`}
                         >
                             {p.label}
@@ -159,10 +159,10 @@ export function UnitSystemCard() {
                                             key={opt.value}
                                             onClick={() => setRheologyUnit(row.key, opt.value as RheologyUnits[typeof row.key])}
                                             aria-pressed={active}
-                                            className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
+                                            className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 ${
                                                 active
-                                                    ? 'bg-orange-600/90 border-orange-500 text-white'
-                                                    : 'bg-secondary/60 border-border/60 text-muted-foreground hover:text-foreground hover:border-orange-500/40'
+                                                    ? 'bg-amber-600/90 border-amber-500 text-white shadow-inner'
+                                                    : 'bg-secondary/60 border-border/60 text-muted-foreground hover:text-foreground hover:border-amber-500/40'
                                             }`}
                                         >
                                             {opt.label}
