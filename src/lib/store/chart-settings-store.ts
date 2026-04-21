@@ -36,6 +36,7 @@ export {
     IMPERIAL_UNITS,
     getPresetUnits,
     formatTime,
+    timeUnitLabel,
 } from './chart-settings-defaults';
 
 import type {
@@ -83,13 +84,26 @@ interface ChartSettingsState {
 // 500 ms debounce coalesces rapid successive writes into a single flush.
 function makeDebouncedStorage(delayMs = 500) {
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let pending: { name: string; value: string } | null = null;
+
+    const flushNow = () => {
+        if (timer !== null) { clearTimeout(timer); timer = null; }
+        if (pending) { localStorage.setItem(pending.name, pending.value); pending = null; }
+    };
+
+    // Flush on app close / reload so debounced writes are never lost
+    if (typeof window !== 'undefined') {
+        window.addEventListener('beforeunload', flushNow);
+    }
+
     return {
         getItem: (name: string) => localStorage.getItem(name),
         setItem: (name: string, value: string) => {
+            pending = { name, value };
             if (timer !== null) clearTimeout(timer);
-            timer = setTimeout(() => localStorage.setItem(name, value), delayMs);
+            timer = setTimeout(flushNow, delayMs);
         },
-        removeItem: (name: string) => localStorage.removeItem(name),
+        removeItem: (name: string) => { pending = null; localStorage.removeItem(name); },
     };
 }
 
@@ -205,15 +219,26 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
             merge: (persisted, current) => {
                 const p = (persisted ?? {}) as Record<string, unknown>;
                 const pSettings = (p.settings ?? {}) as Record<string, unknown>;
+
+                // Deep-merge each line object so new fields (e.g. unit) get defaults
+                const pLines = (pSettings.lines ?? {}) as Record<string, Record<string, unknown>>;
+                const defaults = DEFAULT_LINE_SETTINGS as unknown as Record<string, Record<string, unknown>>;
+                const mergedLines: Record<string, Record<string, unknown>> = {};
+                for (const key of Object.keys(defaults)) {
+                    mergedLines[key] = { ...defaults[key], ...(pLines[key] ?? {}) };
+                }
+
+                // Deep-merge rheologyUnits so new fields (e.g. timeFormat) get defaults
+                const pRheoUnits = (pSettings.rheologyUnits ?? {}) as Record<string, unknown>;
+                const mergedRheoUnits = { ...METRIC_UNITS, ...pRheoUnits };
+
                 return {
                     ...current,
                     settings: {
                         ...current.settings,
                         ...pSettings,
-                        lines: {
-                            ...DEFAULT_LINE_SETTINGS,
-                            ...((pSettings.lines ?? {}) as object),
-                        },
+                        lines: mergedLines as unknown as ChartLineSettings,
+                        rheologyUnits: mergedRheoUnits as unknown as RheologyUnits,
                     },
                 };
             },

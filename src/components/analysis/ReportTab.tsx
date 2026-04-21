@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Download, Loader2 } from 'lucide-react';
+import { FileText, Download, Loader2, Languages } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useBrandingStore } from '@/lib/store/branding-store';
 import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
@@ -32,13 +32,24 @@ export function ReportTab({
 }: ReportTabProps) {
     // Defaults from global store — useShallow is MANDATORY for object selectors
     // to prevent React #185 (maximum update depth exceeded).
-    const { reportLanguage, showCalibration, showRawData, showRecipe, showWaterAnalysis } = useBrandingStore(
+    const {
+        reportLanguage, setReportLanguage,
+        showCalibration, setShowCalibration,
+        showRawData, setShowRawData,
+        showRecipe, setShowRecipe,
+        showWaterAnalysis, setShowWaterAnalysis,
+    } = useBrandingStore(
         useShallow(s => ({
             reportLanguage: s.reportLanguage,
+            setReportLanguage: s.setReportLanguage,
             showCalibration: s.showCalibration,
+            setShowCalibration: s.setShowCalibration,
             showRawData: s.showRawData,
+            setShowRawData: s.setShowRawData,
             showRecipe: s.showRecipe,
+            setShowRecipe: s.setShowRecipe,
             showWaterAnalysis: s.showWaterAnalysis,
+            setShowWaterAnalysis: s.setShowWaterAnalysis,
         }))
     );
     const chartSettings = useChartSettingsStore(s => s.settings);
@@ -77,7 +88,7 @@ export function ReportTab({
     const {
         isExporting, isExcelExporting,
         exportError, clearError,
-        handleDownload, handleExcelDownload,
+        handleDownloadAll: downloadAll,
     } = useReportExport({
         parseResult, editedRecipe, editedWaterParams, editedWaterSource,
         cycleResults, cycles,
@@ -98,12 +109,7 @@ export function ReportTab({
     const canDownload = formatPdf || formatExcel;
 
     const handleDownloadAll = async () => {
-        if (formatPdf) {
-            await handleDownload();
-        }
-        if (formatExcel) {
-            await handleExcelDownload();
-        }
+        await downloadAll(formatPdf, formatExcel);
     };
 
     return (
@@ -120,10 +126,80 @@ export function ReportTab({
                 </p>
             </div>
 
-            {/* Sections */}
+            {/* Report defaults */}
+            <div className="bg-card/50 border border-border rounded-xl p-4 space-y-4">
+                <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                    <Languages className="w-4 h-4 text-purple-400" />
+                    {reportLanguage === 'en' ? 'Report settings' : 'Настройки отчёта'}
+                </h3>
+
+                {/* Language */}
+                <div>
+                    <label className="text-xs font-semibold text-foreground mb-1.5 block">
+                        {reportLanguage === 'en' ? 'Report language' : 'Язык отчёта'}
+                    </label>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setReportLanguage('ru')}
+                            data-testid="ReportLanguageRu"
+                            className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                reportLanguage === 'ru'
+                                    ? 'bg-secondary border-purple-500 text-foreground font-semibold'
+                                    : 'bg-background border-border text-muted-foreground hover:border-purple-400'
+                            }`}
+                        >
+                            Русский
+                        </button>
+                        <button
+                            onClick={() => setReportLanguage('en')}
+                            data-testid="ReportLanguageEn"
+                            className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                reportLanguage === 'en'
+                                    ? 'bg-secondary border-purple-500 text-foreground font-semibold'
+                                    : 'bg-background border-border text-muted-foreground hover:border-purple-400'
+                            }`}
+                        >
+                            English
+                        </button>
+                    </div>
+                </div>
+
+                {/* Default section toggles */}
+                <div className="space-y-2 pt-2 border-t border-border">
+                    <label className="text-xs font-semibold text-foreground mb-1 block">
+                        {reportLanguage === 'en' ? 'Default sections' : 'Секции по умолчанию'}
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" checked={showCalibration}
+                            onChange={(e) => setShowCalibration(e.target.checked)}
+                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500" />
+                        <span className="text-sm text-foreground">{reportLanguage === 'en' ? 'Calibration data' : 'Калибровка'}</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" checked={showRawData}
+                            onChange={(e) => setShowRawData(e.target.checked)}
+                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500" />
+                        <span className="text-sm text-foreground">{reportLanguage === 'en' ? 'Raw data' : 'Сырые данные'}</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" checked={showRecipe}
+                            onChange={(e) => setShowRecipe(e.target.checked)}
+                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500" />
+                        <span className="text-sm text-foreground">{reportLanguage === 'en' ? 'Recipe' : 'Рецептура'}</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" checked={showWaterAnalysis}
+                            onChange={(e) => setShowWaterAnalysis(e.target.checked)}
+                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500" />
+                        <span className="text-sm text-foreground">{reportLanguage === 'en' ? 'Water analysis' : 'Анализ воды'}</span>
+                    </label>
+                </div>
+            </div>
+
+            {/* Per-export sections */}
             <div className="bg-card/50 border border-border rounded-xl p-4 space-y-3">
                 <h3 className="text-sm font-semibold text-foreground mb-2">
-                    {reportLanguage === 'en' ? 'Report sections' : 'Секции отчёта'}
+                    {reportLanguage === 'en' ? 'This report' : 'Этот отчёт'}
                 </h3>
                 <label className="flex items-center gap-3 cursor-pointer group">
                     <input

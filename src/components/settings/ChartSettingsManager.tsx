@@ -1,4 +1,4 @@
-import { LineChart, Hash, Grid3X3 } from 'lucide-react';
+import { LineChart, Grid3X3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { useShallow } from 'zustand/react/shallow';
@@ -7,19 +7,17 @@ import {
     type DownsampleMode,
     type ComparisonAxisMode,
 } from '@/lib/store/chart-settings-store';
-import { LineConfigRow, SelectInput, LINE_CONFIGS, UNIT_OPTIONS, PRECISION_OPTIONS } from './settings-shared';
+import { LineConfigRow, LINE_CONFIGS, UNIT_OPTIONS } from './settings-shared';
 
 export function ChartSettingsManager() {
     const {
         settings,
         setSettings,
         setLineSettings,
-        setPrecision,
     } = useChartSettingsStore(useShallow(s => ({
         settings: s.settings,
         setSettings: s.setSettings,
         setLineSettings: s.setLineSettings,
-        setPrecision: s.setPrecision,
     })));
 
 
@@ -36,13 +34,13 @@ export function ChartSettingsManager() {
                 </CardHeader>
                 <CardContent>
                     <div className="mb-3 flex items-center gap-3 text-xs text-muted-foreground border-b border-border pb-2">
-                        <span className="w-9">Вкл</span>
-                        <span className="w-28">Параметр</span>
-                        <span className="w-7">Цвет</span>
-                        <span className="w-[104px]">Толщина</span>
-                        <span className="w-[88px]">Стиль</span>
-                        <span>Ось</span>
-                        <span>Единицы</span>
+                        <span className="w-9 text-center">Вкл</span>
+                        <span className="w-28 text-center">Параметр</span>
+                        <span className="w-7 text-center">Цвет</span>
+                        <span className="w-[104px] text-center">Толщина</span>
+                        <span className="w-[88px] text-center">Стиль</span>
+                        <span className="w-[52px] text-center">Ось</span>
+                        <span className="w-16 text-center">Единицы</span>
                     </div>
                     {LINE_CONFIGS.map(config => (
                         <LineConfigRow
@@ -73,27 +71,6 @@ export function ChartSettingsManager() {
                             onVisibleChange={visible => setLineSettings(config.key, { visible })}
                         />
                     ))}
-                </CardContent>
-            </Card>
-
-            {/* Precision Settings */}
-            <Card className="bg-card/50 border-border">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-foreground">
-                        <Hash className="w-5 h-5 text-amber-400" />
-                        Точность отображения
-                    </CardTitle>
-                    <CardDescription>Количество знаков после запятой</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-                        <SelectInput accent="blue" label="Вязкость" options={PRECISION_OPTIONS} value={settings.precision.viscosity} onChange={v => setPrecision({ viscosity: v as 0 | 1 | 2 | 3 })} />
-                        <SelectInput accent="blue" label="Температура" options={PRECISION_OPTIONS.slice(0, 3)} value={settings.precision.temperature} onChange={v => setPrecision({ temperature: v as 0 | 1 | 2 })} />
-                        <SelectInput accent="blue" label="Давление" options={PRECISION_OPTIONS} value={settings.precision.pressure} onChange={v => setPrecision({ pressure: v as 0 | 1 | 2 | 3 })} />
-                        <SelectInput accent="blue" label="Время" options={PRECISION_OPTIONS.slice(0, 3)} value={settings.precision.time} onChange={v => setPrecision({ time: v as 0 | 1 | 2 })} />
-                        <SelectInput accent="blue" label="Скор. сдвига" options={PRECISION_OPTIONS.slice(0, 3)} value={settings.precision.shearRate} onChange={v => setPrecision({ shearRate: v as 0 | 1 | 2 })} />
-                        <SelectInput accent="blue" label="Обороты" options={PRECISION_OPTIONS.slice(0, 2)} value={settings.precision.rpm} onChange={v => setPrecision({ rpm: v as 0 | 1 })} />
-                    </div>
                 </CardContent>
             </Card>
 

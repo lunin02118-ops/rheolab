@@ -6,7 +6,8 @@ import { ChartBrush } from '../charts/chart-brush';
 import { tooltipPlugin } from '../charts/plugins/tooltip';
 import { zoomPlugin } from '../charts/plugins/zoom';
 import { touchPointsPlugin } from '../charts/plugins/touchPoints';
-import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
+import { useChartSettingsStore, timeUnitLabel } from '@/lib/store/chart-settings-store';
+import type { TimeDisplayFormat } from '@/lib/store/chart-settings-types';
 import { useChartResize } from '@/hooks/useChartResize';
 import type uPlot from 'uplot';
 import { ComparisonLegend } from './ComparisonLegend';
@@ -28,6 +29,7 @@ function ComparisonChartUPlotInner({
     const chartContainerRef = useRef<HTMLDivElement | null>(null);
     const chartSize = useChartResize(chartContainerRef);
     const comparisonAxisMode = useChartSettingsStore(s => s.settings.comparisonAxisMode ?? 'shared');
+    const chartSettings = useChartSettingsStore(s => s.settings);
     const { resolvedTheme } = useTheme();
     const isDark = resolvedTheme === 'dark';
     const uPlotRef = useRef<uPlot | null>(null);
@@ -254,7 +256,23 @@ function ComparisonChartUPlotInner({
                     },
                 },
                 tooltipPlugin({
-                    titleFormatter: (val: number) => `Время: ${val} мин`,
+                    titleFormatter: (val: number) => {
+                        const timeFmt: TimeDisplayFormat = chartSettings.rheologyUnits?.timeFormat ?? 'seconds';
+                        let formatted: string;
+                        switch (timeFmt) {
+                            case 'seconds': formatted = String(Math.round(val * 60)); break;
+                            case 'hh:mm:ss': {
+                                const ts = Math.round(val * 60);
+                                const h = Math.floor(ts / 3600);
+                                const m = Math.floor((ts % 3600) / 60);
+                                const s = ts % 60;
+                                formatted = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                                break;
+                            }
+                            default: formatted = String(Math.round(val * 10) / 10);
+                        }
+                        return `Время: ${formatted} ${timeUnitLabel(timeFmt)}`;
+                    },
                     isDark,
                 }),
                 zoomPlugin({

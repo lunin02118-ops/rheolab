@@ -12,7 +12,7 @@ import type { RecipeComponent } from '@/lib/parsing/types';
 import type { WaterParams } from '@/types';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import { generatePdfReportBlob, generateExcelReportBlob } from '@/lib/reports/client';
-import { saveBlob } from '@/lib/reports/report-save';
+import { saveBlob, saveBlobsToDir, type SaveBlobItem } from '@/lib/reports/report-save';
 import {
     mapRawData,
     mapCycleResults,
@@ -165,6 +165,48 @@ export function useReportExport(options: UseReportExportOptions) {
         }
     }, [buildContext, parseResult.metadata.filename]);
 
+    /** Generate both PDF + Excel and save via a single folder dialog. */
+    const handleDownloadAll = useCallback(async (wantPdf: boolean, wantExcel: boolean) => {
+        if (!wantPdf && !wantExcel) return;
+
+        // If only one format, use the dedicated handler (single-file save dialog)
+        if (wantPdf && !wantExcel) { await handleDownload(); return; }
+        if (!wantPdf && wantExcel) { await handleExcelDownload(); return; }
+
+        // Both formats — generate blobs, then save to one folder
+        setIsExporting(true);
+        setIsExcelExporting(true);
+        setIsCapturing(true);
+        setExportError(null);
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        try {
+            const ctx = buildContext();
+            const baseName = `${parseResult.metadata.filename || 'report'}_${new Date().toISOString().split('T')[0]}`;
+            const items: SaveBlobItem[] = [];
+
+            // PDF
+            const pdfInput = buildPdfReportInput(ctx);
+            const pdfBlob = await generatePdfReportBlob(pdfInput);
+            items.push({ blob: pdfBlob, filename: `${baseName}.pdf` });
+
+            // Excel
+            const excelInput = buildExcelReportInput(ctx);
+            const excelBlob = await generateExcelReportBlob(excelInput);
+            items.push({ blob: excelBlob, filename: `${baseName}.xlsx` });
+
+            await saveBlobsToDir(items);
+        } catch (err) {
+            logger.error('[ReportsPanel] Combined export failed:', err);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            setExportError(`Ошибка генерации отчёта: ${errorMessage}`);
+        } finally {
+            setIsCapturing(false);
+            setIsExporting(false);
+            setIsExcelExporting(false);
+        }
+    }, [buildContext, parseResult.metadata.filename, handleDownload, handleExcelDownload]);
+
     return {
         isExporting,
         isExcelExporting,
@@ -173,6 +215,7 @@ export function useReportExport(options: UseReportExportOptions) {
         clearError: useCallback(() => setExportError(null), []),
         handleDownload,
         handleExcelDownload,
+        handleDownloadAll,
         /** Pre-mapped raw data — reuse for chart preview */
         chartData: rawDataMapped,
     };

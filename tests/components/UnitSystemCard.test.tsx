@@ -1,12 +1,9 @@
 // @vitest-environment jsdom
 /**
- * UI-018 — UnitSystemCard: single source of truth for viscosity units.
+ * UI-018 — UnitSystemCard: preset-based unit system with per-parameter overrides.
  *
- * The card writes directly to `chartSettings.lines.viscosity.unit`, which is
- * read by:
- *   - cycle-results-table (K', PV, YP, η@γ̇ headers & values)
- *   - ReportTab / ReportsPanel (derives Rust `unitSystem` enum)
- *   - RheologyChart Y-axis label
+ * The card writes to `chartSettings.unitPreset` + `chartSettings.rheologyUnits`,
+ * and syncs `chartSettings.lines.viscosity.unit` automatically.
  */
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
@@ -14,67 +11,73 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { UnitSystemCard } from '@/components/analysis/UnitSystemCard';
 import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
+import { METRIC_UNITS, IMPERIAL_UNITS } from '@/lib/store/chart-settings-defaults';
 
 beforeEach(() => {
-    // Reset viscosity unit to default before each test.
     act(() => {
-        useChartSettingsStore.getState().setLineSettings('viscosity', { unit: 'mPa·s' });
+        useChartSettingsStore.getState().applyUnitPreset('metric');
     });
 });
 
 describe('UnitSystemCard', () => {
-    it('renders three options and marks mPa·s as active by default', () => {
+    it('renders three preset buttons and marks Metric as active by default', () => {
         render(<UnitSystemCard />);
-        const si  = screen.getByRole('button', { name: /SI \(мПа·с\)/i });
-        const pas = screen.getByRole('button', { name: /SI \(Па·с\)/i });
-        const cp  = screen.getByRole('button', { name: /Imperial \(сП\)/i });
-        expect(si.getAttribute('aria-pressed')).toBe('true');
-        expect(pas.getAttribute('aria-pressed')).toBe('false');
-        expect(cp.getAttribute('aria-pressed')).toBe('false');
+        const metric   = screen.getByRole('button', { name: /Метрический/i });
+        const imperial = screen.getByRole('button', { name: /Имперский/i });
+        const custom   = screen.getByRole('button', { name: /Ручная/i });
+        expect(metric.getAttribute('aria-pressed')).toBe('true');
+        expect(imperial.getAttribute('aria-pressed')).toBe('false');
+        expect(custom.getAttribute('aria-pressed')).toBe('false');
     });
 
-    it('switching to Pa·s writes to chart-settings store', () => {
+    it('switching to Imperial applies imperial units to store', () => {
         render(<UnitSystemCard />);
-        fireEvent.click(screen.getByRole('button', { name: /SI \(Па·с\)/i }));
-        expect(useChartSettingsStore.getState().settings.lines.viscosity.unit).toBe('Pa·s');
+        fireEvent.click(screen.getByRole('button', { name: /Имперский/i }));
+        const s = useChartSettingsStore.getState().settings;
+        expect(s.unitPreset).toBe('imperial');
+        expect(s.rheologyUnits.viscosity).toBe('cP');
+        expect(s.rheologyUnits.temperature).toBe('°F');
+        expect(s.rheologyUnits.pressure).toBe('psi');
+        expect(s.lines.viscosity.unit).toBe('cP');
     });
 
-    it('switching to Imperial (сП) writes to chart-settings store', () => {
+    it('switching to Metric applies SI units to store', () => {
         render(<UnitSystemCard />);
-        fireEvent.click(screen.getByRole('button', { name: /Imperial \(сП\)/i }));
-        expect(useChartSettingsStore.getState().settings.lines.viscosity.unit).toBe('cP');
+        // First switch to imperial, then back to metric
+        fireEvent.click(screen.getByRole('button', { name: /Имперский/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Метрический/i }));
+        const s = useChartSettingsStore.getState().settings;
+        expect(s.unitPreset).toBe('metric');
+        expect(s.rheologyUnits.viscosity).toBe('mPa·s');
+        expect(s.rheologyUnits.temperature).toBe('°C');
+        expect(s.lines.viscosity.unit).toBe('mPa·s');
     });
 
-    it('visual active state follows the store', () => {
+    it('round-trip Metric → Imperial → Metric preserves units', () => {
         render(<UnitSystemCard />);
-        fireEvent.click(screen.getByRole('button', { name: /Imperial \(сП\)/i }));
-        const cp  = screen.getByRole('button', { name: /Imperial \(сП\)/i });
-        const si  = screen.getByRole('button', { name: /SI \(мПа·с\)/i });
-        expect(cp.getAttribute('aria-pressed')).toBe('true');
-        expect(si.getAttribute('aria-pressed')).toBe('false');
+        fireEvent.click(screen.getByRole('button', { name: /Имперский/i }));
+        expect(useChartSettingsStore.getState().settings.rheologyUnits).toEqual(IMPERIAL_UNITS);
+        fireEvent.click(screen.getByRole('button', { name: /Метрический/i }));
+        expect(useChartSettingsStore.getState().settings.rheologyUnits).toEqual(METRIC_UNITS);
     });
 
     it('external store mutation propagates to the card UI', () => {
         render(<UnitSystemCard />);
         act(() => {
-            useChartSettingsStore.getState().setLineSettings('viscosity', { unit: 'Pa·s' });
+            useChartSettingsStore.getState().applyUnitPreset('imperial');
         });
-        const pas = screen.getByRole('button', { name: /SI \(Па·с\)/i });
-        expect(pas.getAttribute('aria-pressed')).toBe('true');
+        const imperial = screen.getByRole('button', { name: /Имперский/i });
+        expect(imperial.getAttribute('aria-pressed')).toBe('true');
     });
 
-    it('round-trip through all three units preserves the invariant', () => {
-        render(<UnitSystemCard />);
-        const btns = {
-            si:  screen.getByRole('button', { name: /SI \(мПа·с\)/i }),
-            pas: screen.getByRole('button', { name: /SI \(Па·с\)/i }),
-            cp:  screen.getByRole('button', { name: /Imperial \(сП\)/i }),
-        };
-        fireEvent.click(btns.pas);
-        expect(useChartSettingsStore.getState().settings.lines.viscosity.unit).toBe('Pa·s');
-        fireEvent.click(btns.cp);
-        expect(useChartSettingsStore.getState().settings.lines.viscosity.unit).toBe('cP');
-        fireEvent.click(btns.si);
-        expect(useChartSettingsStore.getState().settings.lines.viscosity.unit).toBe('mPa·s');
+    it('timeFormat is included in preset units', () => {
+        act(() => {
+            useChartSettingsStore.getState().applyUnitPreset('metric');
+        });
+        expect(useChartSettingsStore.getState().settings.rheologyUnits.timeFormat).toBe('seconds');
+        act(() => {
+            useChartSettingsStore.getState().applyUnitPreset('imperial');
+        });
+        expect(useChartSettingsStore.getState().settings.rheologyUnits.timeFormat).toBe('minutes');
     });
 });

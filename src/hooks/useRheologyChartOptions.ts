@@ -12,7 +12,7 @@ import { zoomPlugin } from '@/components/charts/plugins/zoom';
 import { touchPointsPlugin, type TouchPointsPluginOptions } from '@/components/charts/plugins/touchPoints';
 import { getStrokeDasharray } from '@/lib/store/chart-settings-store';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
-import type { PressureUnit } from '@/lib/store/chart-settings-types';
+import type { PressureUnit, TimeDisplayFormat } from '@/lib/store/chart-settings-types';
 import type { TouchPointMarker } from './useRheologyData';
 import { useTheme } from '@/contexts/theme-context';
 
@@ -103,6 +103,29 @@ export function useRheologyChartOptions({
         const uShear = activeSettings.lines.shearRate.unit ?? '1/s';
         const uPress = activeSettings.lines.pressure.unit ?? 'bar';
         const uRpm = activeSettings.lines.rpm.unit ?? 'RPM';
+        const timeFmt: TimeDisplayFormat = chartSettings.rheologyUnits?.timeFormat ?? 'seconds';
+
+        // Helpers to format X-axis ticks & tooltips (data is always in minutes)
+        const fmtTimeTick = (minVal: number): string => {
+            switch (timeFmt) {
+                case 'seconds': return String(Math.round(minVal * 60));
+                case 'hh:mm:ss': {
+                    const totalSec = Math.round(minVal * 60);
+                    const h = Math.floor(totalSec / 3600);
+                    const m = Math.floor((totalSec % 3600) / 60);
+                    const s = totalSec % 60;
+                    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                }
+                default: return String(Math.round(minVal * 10) / 10);
+            }
+        };
+        const timeAxisUnit = (lang: string) => {
+            switch (timeFmt) {
+                case 'seconds':  return lang === 'en' ? 'sec' : 'с';
+                case 'hh:mm:ss': return lang === 'en' ? 'hh:mm:ss' : 'чч:мм:сс';
+                default:         return lang === 'en' ? 'min' : 'мин';
+            }
+        };
 
         // Localised pressure label (bar → бар in Russian)
         const pressLabel = (unit: PressureUnit, lang: string) => {
@@ -115,7 +138,7 @@ export function useRheologyChartOptions({
 
         // ── Translations (unit-aware) ────────────────────────────────────────
         const t = language === 'en' ? {
-            timeAxis: 'Time (min)',
+            timeAxis: `Time (${timeAxisUnit('en')})`,
             viscosityAxis: `Viscosity (${uVisc})`,
             temperatureAxis: `Temperature (${uTemp})`,
             bathTempAxis: `Bath Temp. (${uBath})`,
@@ -131,9 +154,9 @@ export function useRheologyChartOptions({
             seriesRpm: 'RPM',
             seriesBathTemp: 'Bath Temp.',
             tooltipUnits: ['', uVisc, uTemp, uShear, uPress, uRpm, uBath] as string[],
-            tooltipTimeLabel: (v: number) => `Time: ${v} min`,
+            tooltipTimeLabel: (v: number) => `Time: ${fmtTimeTick(v)} ${timeAxisUnit('en')}`,
         } : {
-            timeAxis: 'Время (мин)',
+            timeAxis: `Время (${timeAxisUnit('ru')})`,
             viscosityAxis: `Вязкость (${uVisc === 'cP' ? 'сП' : uVisc})`,
             temperatureAxis: `Температура (${uTemp})`,
             bathTempAxis: `Темп. бани (${uBath})`,
@@ -149,7 +172,7 @@ export function useRheologyChartOptions({
             seriesRpm: 'Обороты',
             seriesBathTemp: 'Темп. бани',
             tooltipUnits: ['', uVisc === 'cP' ? 'сП' : uVisc, uTemp, uShear === '1/s' ? '1/с' : uShear, pressLabel(uPress as PressureUnit, 'ru'), uRpm === 'RPM' ? 'об/мин' : uRpm, uBath] as string[],
-            tooltipTimeLabel: (v: number) => `Время: ${v} мин`,
+            tooltipTimeLabel: (v: number) => `Время: ${fmtTimeTick(v)} ${timeAxisUnit('ru')}`,
         };
         const axisColor = isDark ? '#475569' : '#cbd5e1';
         // Apply gridOpacity to grid stroke color
@@ -237,6 +260,7 @@ export function useRheologyChartOptions({
                     stroke: textColor,
                     grid: { show: activeSettings.showGridLines !== false, stroke: gridColorOpa, width: 1, dash: [3, 3] },
                     ticks: { stroke: axisColor, width: 1 },
+                    ...(timeFmt !== 'minutes' ? { values: (_u: uPlot, vals: number[]) => vals.map(v => fmtTimeTick(v)) } : {}),
                 };
                 if (isShared) {
                     const leftLabels = [t.viscosityAxis];

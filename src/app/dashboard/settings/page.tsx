@@ -2,15 +2,14 @@ import { Suspense, lazy, Component, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Monitor, Moon, Sun, Languages, Database,
-    BrainCircuit, Key,
-    LayoutTemplate, Info, Settings as SettingsIcon,
-    LineChart, AlertTriangle,
+    BrainCircuit, Key, User,
+    Info, Settings as SettingsIcon,
+    LineChart, AlertTriangle, Ruler,
     Loader2
 } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useTheme } from '@/contexts/theme-context';
-import { useBrandingStore } from '@/lib/store/branding-store';
 const ExpertSettingsPanel = lazy(() =>
     import('@/components/analysis/expert-settings-panel').then(m => ({ default: m.ExpertSettingsPanel })));
 const UnitSystemCard = lazy(() =>
@@ -25,6 +24,8 @@ const BrandingManager = lazy(() =>
     import('@/components/settings/BrandingManager').then(m => ({ default: m.BrandingManager })));
 const ChartSettingsManager = lazy(() =>
     import('@/components/settings/ChartSettingsManager').then(m => ({ default: m.ChartSettingsManager })));
+const PrecisionSettingsCard = lazy(() =>
+    import('@/components/settings/PrecisionSettingsCard').then(m => ({ default: m.PrecisionSettingsCard })));
 const AppSettingsExporter = lazy(() =>
     import('@/components/settings/AppSettingsExporter').then(m => ({ default: m.AppSettingsExporter })));
 const OperatorManager = lazy(() =>
@@ -68,76 +69,28 @@ class SettingsErrorBoundary extends Component<{ children: ReactNode; name: strin
     }
 }
 
-function ReportDefaultsCard() {
-    const reportLanguage = useBrandingStore(s => s.reportLanguage);
-    const setReportLanguage = useBrandingStore(s => s.setReportLanguage);
-    const showCalibration = useBrandingStore(s => s.showCalibration);
-    const setShowCalibration = useBrandingStore(s => s.setShowCalibration);
-    const showRawData = useBrandingStore(s => s.showRawData);
-    const setShowRawData = useBrandingStore(s => s.setShowRawData);
-
-    return (
-        <>
-            <div>
-                <label className="text-sm font-semibold text-foreground mb-2 block">Язык отчёта</label>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setReportLanguage('ru')}
-                        data-testid="ReportLanguageRu"
-                        className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${reportLanguage === 'ru'
-                            ? 'bg-secondary border-purple-500 text-foreground font-semibold'
-                            : 'bg-background border-border text-muted-foreground hover:border-purple-400'
-                        }`}
-                    >
-                        Русский
-                    </button>
-                    <button
-                        onClick={() => setReportLanguage('en')}
-                        data-testid="ReportLanguageEn"
-                        className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${reportLanguage === 'en'
-                            ? 'bg-secondary border-purple-500 text-foreground font-semibold'
-                            : 'bg-background border-border text-muted-foreground hover:border-purple-400'
-                        }`}
-                    >
-                        English
-                    </button>
-                </div>
-            </div>
-            <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={showCalibration}
-                        onChange={(e) => setShowCalibration(e.target.checked)}
-                        className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-foreground group-hover:text-foreground/80">Включать калибровку по умолчанию</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={showRawData}
-                        onChange={(e) => setShowRawData(e.target.checked)}
-                        className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-foreground group-hover:text-foreground/80">Включать сырые данные по умолчанию</span>
-                </label>
-            </div>
-        </>
-    );
-}
-
 function SettingsContent() {
     const { mode, setMode } = useUIMode();
     const { theme, setTheme } = useTheme();
     const [searchParams] = useSearchParams();
 
-    // Read tab from URL query params (e.g., ?tab=reports)
+    // Read tab from URL query params (e.g., ?tab=display)
     const tabFromUrl = searchParams.get('tab');
-    const validTabs = ['general', 'data', 'analysis', 'charts', 'system'];
+    // Accept legacy aliases so old bookmarks/links keep working.
+    const legacyAliases: Record<string, string> = {
+        general: 'general',    // kept
+        profile: 'profile',    // kept
+        data: 'data',          // kept (now includes former 'system')
+        analysis: 'analysis',  // kept
+        charts: 'charts',      // kept
+        system: 'data',        // merged into Data & System
+        reports: 'data',       // legacy: reports-ish settings live alongside data/system now
+    };
+    const validTabs = ['general', 'display', 'profile', 'data', 'analysis', 'charts'];
+    const requestedTab = tabFromUrl ? (legacyAliases[tabFromUrl] ?? tabFromUrl) : null;
     // In beginner mode, analysis tab is hidden — silently fall back to general
     const isExpertMode = mode === 'expert';
-    const resolvedTab = validTabs.includes(tabFromUrl || '') ? tabFromUrl! : 'general';
+    const resolvedTab = requestedTab && validTabs.includes(requestedTab) ? requestedTab : 'general';
     const defaultTab = (!isExpertMode && resolvedTab === 'analysis') ? 'general' : resolvedTab;
 
     return (
@@ -152,14 +105,22 @@ function SettingsContent() {
 
             <main className="max-w-5xl mx-auto">
                 <Tabs defaultValue={defaultTab} className="space-y-6">
-                    <TabsList data-testid="SettingsMainTabs" className={`grid w-full ${isExpertMode ? 'grid-cols-5' : 'grid-cols-4'} bg-card/50 p-1 border border-border rounded-xl h-auto`}>
+                    <TabsList data-testid="SettingsMainTabs" className={`grid w-full ${isExpertMode ? 'grid-cols-6' : 'grid-cols-5'} bg-card/50 p-1 border border-border rounded-xl h-auto`}>
                         <TabsTrigger value="general" className="flex items-center gap-2 py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-colors">
-                            <LayoutTemplate className="w-4 h-4" />
-                            <span>Общие</span>
+                            <Monitor className="w-4 h-4" />
+                            <span>Интерфейс</span>
                         </TabsTrigger>
-                        <TabsTrigger value="data" className="flex items-center gap-2 py-3 data-[state=active]:bg-green-600 data-[state=active]:text-white transition-colors">
-                            <Database className="w-4 h-4" />
-                            <span>Библиотека</span>
+                        <TabsTrigger value="display" className="flex items-center gap-2 py-3 data-[state=active]:bg-amber-600 data-[state=active]:text-white transition-colors">
+                            <Ruler className="w-4 h-4" />
+                            <span>Единицы</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="profile" className="flex items-center gap-2 py-3 data-[state=active]:bg-indigo-600 data-[state=active]:text-white transition-colors">
+                            <User className="w-4 h-4" />
+                            <span>Профиль</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="charts" className="flex items-center gap-2 py-3 data-[state=active]:bg-cyan-600 data-[state=active]:text-white transition-colors">
+                            <LineChart className="w-4 h-4" />
+                            <span>Графики</span>
                         </TabsTrigger>
                         {isExpertMode && (
                         <TabsTrigger value="analysis" className="flex items-center gap-2 py-3 data-[state=active]:bg-purple-600 data-[state=active]:text-white transition-colors">
@@ -167,13 +128,9 @@ function SettingsContent() {
                             <span>Анализ</span>
                         </TabsTrigger>
                         )}
-                        <TabsTrigger value="charts" className="flex items-center gap-2 py-3 data-[state=active]:bg-cyan-600 data-[state=active]:text-white transition-colors">
-                            <LineChart className="w-4 h-4" />
-                            <span>Графики</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="system" className="flex items-center gap-2 py-3 data-[state=active]:bg-orange-600 data-[state=active]:text-white transition-colors">
-                            <SettingsIcon className="w-4 h-4" />
-                            <span>Система</span>
+                        <TabsTrigger value="data" className="flex items-center gap-2 py-3 data-[state=active]:bg-green-600 data-[state=active]:text-white transition-colors">
+                            <Database className="w-4 h-4" />
+                            <span>Данные и система</span>
                         </TabsTrigger>
                     </TabsList>
 
@@ -294,20 +251,24 @@ function SettingsContent() {
                             </CardContent>
                         </Card>
 
-                        {/* Viscosity Unit System */}
-                        <Card className="bg-card/50 border-border">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-foreground">
-                                    <Languages className="w-5 h-5 text-purple-400" />
-                                    Отчёты по умолчанию
-                                </CardTitle>
-                                <CardDescription>Настройки генерации PDF/Excel отчётов</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <ReportDefaultsCard />
-                            </CardContent>
-                        </Card>
+                    </TabsContent>
 
+                    {/* === DISPLAY TAB === */}
+                    <TabsContent value="display" className="space-y-6">
+                        <SettingsErrorBoundary name="Система единиц">
+                            <Suspense fallback={<TabLoader />}>
+                                <UnitSystemCard />
+                            </Suspense>
+                        </SettingsErrorBoundary>
+                        <SettingsErrorBoundary name="Точность отображения">
+                            <Suspense fallback={<TabLoader />}>
+                                <PrecisionSettingsCard />
+                            </Suspense>
+                        </SettingsErrorBoundary>
+                    </TabsContent>
+
+                    {/* === PROFILE TAB === */}
+                    <TabsContent value="profile" className="space-y-6">
                         <SettingsErrorBoundary name="\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u044b">
                             <Suspense fallback={<TabLoader />}>
                                 <OperatorManager />
@@ -362,39 +323,15 @@ function SettingsContent() {
                         </Card>
                         </Suspense>
                         </SettingsErrorBoundary>
-                    </TabsContent>
 
-                    {/* === ANALYSIS TAB === (expert mode only) */}
-                    {isExpertMode && (
-                    <TabsContent value="analysis" className="space-y-6">
-                        <SettingsErrorBoundary name="Анализ">
+                        {/* —— Former «Система» content, merged here —— */}
+                        <SettingsErrorBoundary name="Экспорт настроек">
                             <Suspense fallback={<TabLoader />}>
-                                <div className="space-y-6">
-                                    <UnitSystemCard />
-                                    <ExpertSettingsPanel />
-                                </div>
+                                <AppSettingsExporter />
                             </Suspense>
                         </SettingsErrorBoundary>
-                    </TabsContent>
-                    )}
 
-                    {/* === CHARTS TAB === */}
-                    <TabsContent value="charts" className="space-y-6">
-                        <SettingsErrorBoundary name="Графики">
-                            <Suspense fallback={<TabLoader />}>
-                                <ChartSettingsManager />
-                            </Suspense>
-                        </SettingsErrorBoundary>
-                    </TabsContent>
-
-                    {/* === SYSTEM TAB === */}
-                    <TabsContent value="system" className="space-y-6">
-                        {/* Settings Export/Import */}
-                        <SettingsErrorBoundary name="Система">
-                        <Suspense fallback={<TabLoader />}>
-                            <AppSettingsExporter />
-                        </Suspense>
-
+                        <SettingsErrorBoundary name="API Ключи">
                         <Card className="bg-card/50 border-border">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-foreground">
@@ -411,7 +348,9 @@ function SettingsContent() {
                                 </div>
                             </CardContent>
                         </Card>
+                        </SettingsErrorBoundary>
 
+                        <SettingsErrorBoundary name="О программе">
                         <Card className="bg-card/50 border-border">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-foreground">
@@ -447,6 +386,27 @@ function SettingsContent() {
                         </Card>
                         </SettingsErrorBoundary>
                     </TabsContent>
+
+                    {/* === ANALYSIS TAB === (expert mode only) */}
+                    {isExpertMode && (
+                    <TabsContent value="analysis" className="space-y-6">
+                        <SettingsErrorBoundary name="Анализ">
+                            <Suspense fallback={<TabLoader />}>
+                                <ExpertSettingsPanel />
+                            </Suspense>
+                        </SettingsErrorBoundary>
+                    </TabsContent>
+                    )}
+
+                    {/* === CHARTS TAB === */}
+                    <TabsContent value="charts" className="space-y-6">
+                        <SettingsErrorBoundary name="Графики">
+                            <Suspense fallback={<TabLoader />}>
+                                <ChartSettingsManager />
+                            </Suspense>
+                        </SettingsErrorBoundary>
+                    </TabsContent>
+
                 </Tabs>
             </main>
         </div>

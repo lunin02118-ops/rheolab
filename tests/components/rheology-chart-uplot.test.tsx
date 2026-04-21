@@ -10,6 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { RheologyChart } from '@/components/charts/rheology-chart-uplot';
+import { DEFAULT_CHART_SETTINGS } from '@/lib/store/chart-settings-defaults';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────
 
@@ -62,8 +63,8 @@ vi.mock('@/hooks/useRheologyChartOptions', () => ({
 
 function setupDefaults(hasData = true) {
     mockVisibility.mockReturnValue({
-        activeSettings: {},
-        chartSettings: {},
+        activeSettings: DEFAULT_CHART_SETTINGS,
+        chartSettings: DEFAULT_CHART_SETTINGS,
         timeShiftEnabled: false,
         downsampleMode: 'auto',
         showTemperature: true,
@@ -136,7 +137,7 @@ describe('RheologyChart', () => {
         const cards = screen.getAllByTestId('StatCard');
         expect(cards.length).toBeGreaterThan(0);
         expect(screen.getByText('Макс. вязкость')).toBeDefined();
-        expect(screen.getByText('110 сП')).toBeDefined();
+        expect(screen.getByText(/110.*mPa/)).toBeDefined();
     });
 
     it('renders custom title in CollapsibleCard', () => {

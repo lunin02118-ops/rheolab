@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { CheckCircle2, AlertCircle, Pencil } from 'lucide-react';
+import { AlertCircle, Pencil } from 'lucide-react';
 import type { RheoCycle } from '@/lib/analysis/types';
 import type { GraceCycleResult } from '@/lib/analysis/types';
 import { CYCLE_TYPE_STYLES, type CycleTypeName } from '@/lib/analysis/constants';
@@ -32,7 +32,6 @@ export const CycleRow = memo(function CycleRow({
     onEdit
 }: CycleRowProps) {
     const hasResult = !!result;
-    const isGoodFit = hasResult && result.r2 > 0.9;
     const rowIndex = cycle.cycleIndex || cycle.id;
     const typeStyle = CYCLE_TYPE_STYLES[cycle.type as CycleTypeName] ?? CYCLE_TYPE_STYLES.Custom;
 
@@ -92,7 +91,7 @@ export const CycleRow = memo(function CycleRow({
                         {result.K_pipe_PaSn != null && isFinite(result.K_pipe_PaSn) ? result.K_pipe_PaSn.toFixed(4) : '—'}
                     </td>
                     <td className="py-3 px-3 text-center">
-                        <span className={`font-data ${isGoodFit ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                        <span className={`font-data ${(result.r2 ?? 0) > 0.9 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
                             {result.r2 != null ? result.r2.toFixed(4) : '—'}
                         </span>
                     </td>
@@ -124,22 +123,6 @@ export const CycleRow = memo(function CycleRow({
                             </td>
                         </>
                     )}
-                    {/* Status */}
-                    <td className="py-3 px-3">
-                        <div className="flex items-center justify-center gap-1.5">
-                            {isGoodFit ? (
-                                <>
-                                    <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                    <span className="text-xs font-semibold text-green-600 dark:text-green-400">ОК</span>
-                                </>
-                            ) : (
-                                <>
-                                    <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                                    <span className="text-xs font-semibold whitespace-nowrap text-orange-600 dark:text-orange-400">Низкий R²</span>
-                                </>
-                            )}
-                        </div>
-                    </td>
                     {/* Edit button (Expert mode) */}
                     {isExpert && onEdit && (
                         <td className="py-3 px-2 text-center">
@@ -162,12 +145,9 @@ export const CycleRow = memo(function CycleRow({
                     {/* Spans: n'(1)+K'(1)+Ks(1)+Kp(1)+R²(1)+viscosities+bingham?+edit? */}
                     <td className="py-3 px-2 text-center text-muted-foreground"
                         colSpan={viscosityRates.length + 5 + (isExpert ? 3 : 0) + (isExpert && !!onEdit ? 1 : 0)}>
-                        Недостаточно данных
-                    </td>
-                    <td className="py-3 px-2">
                         <div className="flex items-center justify-center gap-1.5 text-red-600 dark:text-red-400">
                             <AlertCircle className="w-4 h-4" />
-                            <span className="text-xs font-medium">Ошибка</span>
+                            <span className="text-xs font-medium">Недостаточно данных</span>
                         </div>
                     </td>
                 </>

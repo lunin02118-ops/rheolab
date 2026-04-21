@@ -8,8 +8,9 @@
  */
 
 import { isTauri } from '@/lib/tauri';
-import { save } from '@tauri-apps/plugin-dialog';
+import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
+import { join } from '@tauri-apps/api/path';
 import { logger } from '@/lib/logger';
 
 export interface SaveBlobOptions {
@@ -51,6 +52,56 @@ export async function saveBlob({ blob, filename, filters }: SaveBlobOptions): Pr
         // Browser mode OR E2E (skip dialogs) — trigger browser-side download
         // so Playwright can intercept via page.waitForEvent('download').
         downloadViaBrowser(blob, filename);
+    }
+}
+
+/** Item to save in a batch (multiple files to one directory). */
+export interface SaveBlobItem {
+    blob: Blob;
+    filename: string;
+}
+
+/**
+ * Save multiple blobs to a single directory chosen via one dialog.
+ * Falls back to individual browser downloads outside Tauri.
+ */
+export async function saveBlobsToDir(items: SaveBlobItem[]): Promise<void> {
+    if (items.length === 0) return;
+
+    // Single file — use the normal single-file save dialog
+    if (items.length === 1) {
+        const ext = items[0].filename.split('.').pop() ?? '';
+        await saveBlob({
+            blob: items[0].blob,
+            filename: items[0].filename,
+            filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
+        });
+        return;
+    }
+
+    const e2eSkipDialogs = sessionStorage.getItem('__e2e_skip_dialogs') === '1';
+
+    if (isTauri() && !e2eSkipDialogs) {
+        const dir = await open({ directory: true, title: 'Выберите папку для сохранения отчётов' });
+        if (!dir || typeof dir !== 'string') return; // cancelled
+
+        for (const item of items) {
+            try {
+                const filePath = await join(dir, item.filename);
+                const buffer = await item.blob.arrayBuffer();
+                await writeFile(filePath, new Uint8Array(buffer));
+                logger.info(`[saveBlobsToDir] Saved to ${filePath}`);
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                logger.error(`[saveBlobsToDir] writeFile failed for ${item.filename}: ${msg}`);
+                throw new Error(`Не удалось сохранить ${item.filename}: ${msg}`);
+            }
+        }
+    } else {
+        // Browser fallback — download each file individually
+        for (const item of items) {
+            downloadViaBrowser(item.blob, item.filename);
+        }
     }
 }
 

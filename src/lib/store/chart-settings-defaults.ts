@@ -94,14 +94,15 @@ export function getPresetUnits(preset: UnitPreset, current: RheologyUnits): Rheo
 
 /**
  * Format a time value (in seconds) according to the selected display format.
- * - 'seconds'  → "1201 с"
- * - 'minutes'  → "20.0 мин"
+ * Returns only the numeric part — use `timeUnitLabel()` for the unit suffix.
+ * - 'seconds'  → "1201"
+ * - 'minutes'  → "20.0"
  * - 'hh:mm:ss' → "00:20:01"
  */
 export function formatTime(seconds: number, fmt: TimeDisplayFormat): string {
     switch (fmt) {
         case 'minutes':
-            return `${(seconds / 60).toFixed(1)} мин`;
+            return (seconds / 60).toFixed(1);
         case 'hh:mm:ss': {
             const h = Math.floor(seconds / 3600);
             const m = Math.floor((seconds % 3600) / 60);
@@ -109,7 +110,16 @@ export function formatTime(seconds: number, fmt: TimeDisplayFormat): string {
             return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
         default:
-            return `${Math.round(seconds)} с`;
+            return String(Math.round(seconds));
+    }
+}
+
+/** Short unit label for the time column header, e.g. "с", "мин". Empty for hh:mm:ss (self-explanatory). */
+export function timeUnitLabel(fmt: TimeDisplayFormat): string {
+    switch (fmt) {
+        case 'minutes':  return 'мин';
+        case 'hh:mm:ss': return '';
+        default:         return 'с';
     }
 }
 
