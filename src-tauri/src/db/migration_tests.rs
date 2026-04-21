@@ -468,3 +468,75 @@ fn schema_identity_with_raw_ddl() {
         "run_migrations() must produce identical schema to direct V1_DDL execution"
     );
 }
+
+// ── Registry invariants (W3.4) ──────────────────────────────────────────
+
+/// The MIGRATIONS registry must only contain monotonically-increasing,
+/// strictly-positive, unique version numbers. `validate_registry()` exists
+/// so CI catches typos at test time rather than at runtime.
+#[test]
+fn migration_registry_invariants_hold() {
+    crate::db::migrations::validate_registry()
+        .expect("MIGRATIONS registry must have strictly increasing positive versions");
+    assert!(
+        !crate::db::migrations::MIGRATIONS.is_empty(),
+        "At least one migration must be registered — otherwise run_migrations cannot create schema_meta"
+    );
+}
+
+/// The compile-time `CURRENT_SCHEMA_VERSION` constant and the last entry in
+/// `MIGRATIONS` must agree. If a developer adds a migration but forgets to
+/// bump the constant (or vice versa), this test catches the drift.
+#[test]
+fn current_schema_version_matches_last_registered_migration() {
+    assert_eq!(
+        CURRENT_SCHEMA_VERSION,
+        crate::db::migrations::latest_registered_version(),
+        "CURRENT_SCHEMA_VERSION must equal the last registered migration's version()"
+    );
+}
+
+/// When `schema_meta.schema_version` already records the latest version,
+/// calling `run_migrations` a second time must be a no-op at the migration
+/// level — it only upserts the schema_meta row. We can't observe "skip"
+/// directly without instrumentation, but we can verify the idempotent
+/// outcome: the row count of schema_meta stays at 1 and schema_version is
+/// unchanged.
+#[test]
+fn run_migrations_is_idempotent_across_restarts() {
+    let conn = open();
+    let first = run_migrations(&conn).unwrap();
+    assert_eq!(first.schema_version, CURRENT_SCHEMA_VERSION);
+
+    // Second call — simulates app restart.
+    let second = run_migrations(&conn).unwrap();
+    assert_eq!(second.schema_version, CURRENT_SCHEMA_VERSION);
+
+    let schema_meta_rows: i64 = conn
+        .query_row("SELECT COUNT(*) FROM schema_meta", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(schema_meta_rows, 1, "schema_meta must remain a singleton row");
+}
+
+/// Regression guard: if the stored schema_version is ahead of the binary's
+/// CURRENT_SCHEMA_VERSION we log a warning but must not error out; the
+/// application continues to start so the user can see the warning and
+/// restore from backup.
+#[test]
+fn downgrade_scenario_does_not_error() {
+    let conn = open();
+    run_migrations(&conn).unwrap();
+    // Fake a future schema_version as if a newer app build had run against
+    // this DB previously.
+    conn.execute(
+        "UPDATE schema_meta SET schema_version = ?1 WHERE id = 1",
+        rusqlite::params![CURRENT_SCHEMA_VERSION + 100],
+    )
+    .unwrap();
+
+    let result = run_migrations(&conn);
+    assert!(
+        result.is_ok(),
+        "downgrade (stored version > CURRENT_SCHEMA_VERSION) must not be a hard failure"
+    );
+}

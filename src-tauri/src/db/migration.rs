@@ -15,7 +15,7 @@
 //! warning but does not attempt to reverse the schema — the caller should
 //! handle this before touching user data.
 
-use rusqlite::{Connection, OptionalExtension};
+use rusqlite::Connection;
 use serde::Serialize;
 
 /// Current schema version embedded at compile time.
@@ -63,23 +63,75 @@ pub struct MigrationResult {
 /// app version that ran the migration.  This is the prerequisite for
 /// startup recovery detection (Phase 3.3).
 pub fn run_migrations(conn: &Connection) -> Result<MigrationResult, rusqlite::Error> {
-    // Step 1: Apply all registered migrations in version order.  Every
-    // statement uses IF NOT EXISTS so this is safe on any existing database.
-    for migration in super::migrations::MIGRATIONS {
-        migration.up(conn).map_err(|e| match e {
-            super::migrations::MigrationError::Sqlite(inner) => inner,
-        })?;
+    // Dev-time invariant check: catches typos in the MIGRATIONS registry
+    // (non-monotonic or duplicate versions). In release builds this is a
+    // no-op on a correctly-ordered registry.
+    debug_assert!(
+        super::migrations::validate_registry().is_ok(),
+        "MIGRATIONS registry invariants violated: {:?}",
+        super::migrations::validate_registry()
+    );
+
+    // Step 0: Read the existing schema_meta row *before* applying anything,
+    // so we can (a) skip migrations that have already been applied and
+    // (b) detect downgrades (stored_version > target).
+    //
+    // schema_meta itself is created by v0001_initial's DDL (`IF NOT EXISTS`),
+    // so this query may fail with `no such table` on a fresh install — treat
+    // that as "no prior state" rather than surfacing the error.
+    let existing_row: Option<(i64, String)> = match conn.query_row(
+        "SELECT schema_version, app_version FROM schema_meta WHERE id = 1",
+        [],
+        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
+    ) {
+        Ok(r) => Some(r),
+        Err(rusqlite::Error::QueryReturnedNoRows) => None,
+        Err(rusqlite::Error::SqliteFailure(_, Some(ref msg)))
+            if msg.contains("no such table") => None,
+        Err(e) => {
+            // Any other error (corruption, I/O, …) is a real failure we
+            // should not swallow.
+            let err_msg = e.to_string();
+            if err_msg.contains("no such table") {
+                None
+            } else {
+                return Err(e);
+            }
+        }
+    };
+    let stored_version: i64 = existing_row.as_ref().map(|(v, _)| *v).unwrap_or(0);
+
+    // Step 1: Downgrade detection — the stored schema is ahead of this binary.
+    // We don't attempt automatic rollback; the caller / UI layer is expected
+    // to intervene before touching user data.
+    if stored_version > CURRENT_SCHEMA_VERSION {
+        tracing::warn!(
+            "Database schema_version ({}) is newer than the binary's CURRENT_SCHEMA_VERSION ({}). \
+             This is a downgrade — no migrations will be applied.",
+            stored_version, CURRENT_SCHEMA_VERSION
+        );
     }
 
-    // Step 2: Check whether schema_meta already existed before this run and
-    // capture the previously-stored app version for post-update detection.
-    let existing_row: Option<(i64, String)> = conn
-        .query_row(
-            "SELECT schema_version, app_version FROM schema_meta WHERE id = 1",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .optional()?;
+    // Step 2: Apply each registered migration whose version is greater than
+    // what's already stored. Every migration's DDL is idempotent (uses
+    // `IF NOT EXISTS`), but skipping already-applied versions still matters:
+    //   * avoids needless work on every app start,
+    //   * keeps `ALTER TABLE` migrations (non-idempotent) from firing twice,
+    //   * preserves a clear "applied N migrations this run" log signal.
+    //
+    // Each migration runs in its own transaction so a partial failure
+    // leaves the database at a well-defined prior version.
+    for migration in super::migrations::MIGRATIONS {
+        if migration.version() <= stored_version {
+            continue;
+        }
+        let tx = conn.unchecked_transaction()?;
+        migration.up(&tx).map_err(|e| match e {
+            super::migrations::MigrationError::Sqlite(inner) => inner,
+        })?;
+        tx.commit()?;
+        tracing::info!("Migration v{:04} applied", migration.version());
+    }
 
     let was_fresh_install = existing_row.is_none();
     let previous_app_version: Option<String> = existing_row.map(|(_, ver)| ver);
