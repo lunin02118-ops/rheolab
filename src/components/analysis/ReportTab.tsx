@@ -108,6 +108,22 @@ export function ReportTab({
     const isGenerating = isExporting || isExcelExporting;
     const canDownload = formatPdf || formatExcel;
 
+    // Show the "Save as default" affordance only when the visible selection
+    // no longer matches the stored defaults — otherwise the click would be
+    // a no-op and add visual noise to the form.
+    const isDefaultDirty =
+        includeCalibration !== showCalibration ||
+        includeRawData     !== showRawData ||
+        includeRecipe      !== showRecipe ||
+        includeWaterAnalysis !== showWaterAnalysis;
+
+    const saveSectionsAsDefault = () => {
+        setShowCalibration(includeCalibration);
+        setShowRawData(includeRawData);
+        setShowRecipe(includeRecipe);
+        setShowWaterAnalysis(includeWaterAnalysis);
+    };
+
     const handleDownloadAll = async () => {
         await downloadAll(formatPdf, formatExcel);
     };
@@ -164,92 +180,81 @@ export function ReportTab({
                     </div>
                 </div>
 
-                {/* Default section toggles */}
+                {/* Section toggles — visible selection is what goes into THIS export.
+                    The "Save as default" link promotes the current selection to the
+                    global branding store so it becomes the pre-selected state for the
+                    next experiment. The two separate checkbox blocks we used to ship
+                    here (Default sections + This report) were a UX footgun: the same
+                    four labels appeared twice with no indication of which one won. */}
                 <div className="space-y-2 pt-2 border-t border-border">
-                    <label className="text-xs font-semibold text-foreground mb-1 block">
-                        {reportLanguage === 'en' ? 'Default sections' : 'Секции по умолчанию'}
+                    <div className="flex items-baseline justify-between gap-2 mb-1">
+                        <label className="text-xs font-semibold text-foreground block">
+                            {reportLanguage === 'en' ? 'Report sections' : 'Разделы отчёта'}
+                        </label>
+                        {isDefaultDirty && (
+                            <button
+                                type="button"
+                                onClick={saveSectionsAsDefault}
+                                data-testid="ReportSaveDefaultsButton"
+                                className="text-[11px] font-medium text-purple-400 hover:text-purple-300 underline-offset-2 hover:underline transition-colors"
+                                title={reportLanguage === 'en'
+                                    ? 'Remember this selection for future reports'
+                                    : 'Запомнить этот набор для следующих отчётов'}
+                            >
+                                {reportLanguage === 'en' ? 'Save as default' : 'Сохранить как умолчание'}
+                            </button>
+                        )}
+                    </div>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                        <input
+                            type="checkbox"
+                            checked={includeCalibration}
+                            onChange={(e) => setIncludeCalibration(e.target.checked)}
+                            disabled={!canUseCalibration}
+                            data-testid="ReportCalibrationToggle"
+                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500 disabled:opacity-40"
+                        />
+                        <span className={`text-sm ${canUseCalibration ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            {reportLanguage === 'en' ? 'Calibration data' : 'Калибровка'}
+                        </span>
                     </label>
                     <label className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={showCalibration}
-                            onChange={(e) => setShowCalibration(e.target.checked)}
-                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500" />
-                        <span className="text-sm text-foreground">{reportLanguage === 'en' ? 'Calibration data' : 'Калибровка'}</span>
+                        <input
+                            type="checkbox"
+                            checked={includeRawData}
+                            onChange={(e) => setIncludeRawData(e.target.checked)}
+                            data-testid="ReportRawDataToggle"
+                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-foreground">
+                            {reportLanguage === 'en' ? 'Raw data' : 'Сырые данные'}
+                        </span>
                     </label>
                     <label className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={showRawData}
-                            onChange={(e) => setShowRawData(e.target.checked)}
-                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500" />
-                        <span className="text-sm text-foreground">{reportLanguage === 'en' ? 'Raw data' : 'Сырые данные'}</span>
+                        <input
+                            type="checkbox"
+                            checked={includeRecipe}
+                            onChange={(e) => setIncludeRecipe(e.target.checked)}
+                            data-testid="ReportRecipeToggle"
+                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-foreground">
+                            {reportLanguage === 'en' ? 'Recipe' : 'Рецептура'}
+                        </span>
                     </label>
                     <label className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={showRecipe}
-                            onChange={(e) => setShowRecipe(e.target.checked)}
-                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500" />
-                        <span className="text-sm text-foreground">{reportLanguage === 'en' ? 'Recipe' : 'Рецептура'}</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={showWaterAnalysis}
-                            onChange={(e) => setShowWaterAnalysis(e.target.checked)}
-                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500" />
-                        <span className="text-sm text-foreground">{reportLanguage === 'en' ? 'Water analysis' : 'Анализ воды'}</span>
+                        <input
+                            type="checkbox"
+                            checked={includeWaterAnalysis}
+                            onChange={(e) => setIncludeWaterAnalysis(e.target.checked)}
+                            data-testid="ReportWaterAnalysisToggle"
+                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-foreground">
+                            {reportLanguage === 'en' ? 'Water analysis' : 'Анализ воды'}
+                        </span>
                     </label>
                 </div>
-            </div>
-
-            {/* Per-export sections */}
-            <div className="bg-card/50 border border-border rounded-xl p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-foreground mb-2">
-                    {reportLanguage === 'en' ? 'This report' : 'Этот отчёт'}
-                </h3>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={includeCalibration}
-                        onChange={(e) => setIncludeCalibration(e.target.checked)}
-                        disabled={!canUseCalibration}
-                        data-testid="ReportCalibrationToggle"
-                        className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500 disabled:opacity-40"
-                    />
-                    <span className={`text-sm ${canUseCalibration ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {reportLanguage === 'en' ? 'Calibration data' : 'Калибровка'}
-                    </span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={includeRawData}
-                        onChange={(e) => setIncludeRawData(e.target.checked)}
-                        data-testid="ReportRawDataToggle"
-                        className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-foreground">
-                        {reportLanguage === 'en' ? 'Raw data' : 'Сырые данные'}
-                    </span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={includeRecipe}
-                        onChange={(e) => setIncludeRecipe(e.target.checked)}
-                        data-testid="ReportRecipeToggle"
-                        className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-foreground">
-                        {reportLanguage === 'en' ? 'Recipe' : 'Рецептура'}
-                    </span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={includeWaterAnalysis}
-                        onChange={(e) => setIncludeWaterAnalysis(e.target.checked)}
-                        data-testid="ReportWaterAnalysisToggle"
-                        className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-foreground">
-                        {reportLanguage === 'en' ? 'Water analysis' : 'Анализ воды'}
-                    </span>
-                </label>
             </div>
 
             {/* Format */}
