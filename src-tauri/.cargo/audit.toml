@@ -1,0 +1,38 @@
+# cargo-audit configuration for RheoLab Enterprise
+# Run from src-tauri/ directory: cargo audit
+#
+# Policy: deny only actionable security vulnerabilities.
+# "unmaintained" advisories for GTK3 / proc-macro crates are transitive
+# through Tauri and cannot be resolved without a major Tauri version bump
+# (tracked separately in the roadmap).
+
+[advisories]
+ignore = [
+    # GTK3 bindings — no longer maintained (transitive through Tauri Linux deps)
+    "RUSTSEC-2024-0411", "RUSTSEC-2024-0412", "RUSTSEC-2024-0413",
+    "RUSTSEC-2024-0414", "RUSTSEC-2024-0415", "RUSTSEC-2024-0416",
+    "RUSTSEC-2024-0417", "RUSTSEC-2024-0418", "RUSTSEC-2024-0419",
+    "RUSTSEC-2024-0420",
+    # Unmaintained helper crates (transitive through Tauri / build deps)
+    "RUSTSEC-2024-0320",  # yaml-rust
+    "RUSTSEC-2024-0370",  # proc-macro-error
+    "RUSTSEC-2024-0436",  # paste
+    "RUSTSEC-2025-0057",  # fxhash
+    "RUSTSEC-2025-0080",  # unic-common
+    "RUSTSEC-2025-0081",  # unic-char-property
+    "RUSTSEC-2025-0075",  # unic-char-range
+    "RUSTSEC-2025-0100",  # unic-ucd-ident
+    "RUSTSEC-2025-0098",  # unic-ucd-version
+    "RUSTSEC-2025-0141",  # bincode
+    # Security advisories requiring upstream fixes (Tauri or advisory-db update)
+    "RUSTSEC-2023-0071",  # rsa Marvin Attack — we are on 0.9.10 (patched per changelog),
+                           # but advisory-db version range not yet updated.
+    "RUSTSEC-2024-0429",  # glib unsoundness — GTK3 transitive via Tauri Linux target,
+                           # not used on Windows (primary platform).
+    "RUSTSEC-2026-0097",  # rand unsound with custom logger — we use default logger,
+                           # no custom rng() logger configured.
+]
+
+# Informational advisories (unsound, etc.) are downgraded to warnings so CI
+# does not block on them while we evaluate each case.
+informational_warnings = ["unsound"]

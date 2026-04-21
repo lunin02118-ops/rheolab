@@ -153,8 +153,10 @@ fn validate_file_path(raw: &str) -> Result<std::path::PathBuf> {
 /// Each entry holds thousands of `ParsedPoint`s (~2-5 MB each).
 /// 12 entries = 24-60 MB permanently retained; 4 entries = 8-20 MB — still
 /// useful for re-parsing the same file but much friendlier on RSS.
+const PARSE_CACHE_SIZE: NonZeroUsize = NonZeroUsize::new(4).unwrap();
+
 pub(crate) static PARSE_CACHE: LazyLock<Mutex<LruCache<u64, Arc<ParseFileResponse>>>> =
-    LazyLock::new(|| Mutex::new(LruCache::new(NonZeroUsize::new(4).expect("4 is non-zero"))));
+    LazyLock::new(|| Mutex::new(LruCache::new(PARSE_CACHE_SIZE)));
 
 pub(crate) fn parse_cache_key(filename: &str, file_path: &str) -> Option<u64> {
     let meta = fs::metadata(file_path).ok()?;

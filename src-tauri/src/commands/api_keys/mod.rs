@@ -65,15 +65,15 @@ fn get_legacy_machine_seeds(app_data_dir: &std::path::Path) -> Vec<String> {
 
 // ── Crypto helpers ─────────────────────────────────────────────────────
 
-pub(crate) fn encode_key(raw: &str, app_data_dir: &std::path::Path) -> String {
+pub(crate) fn encode_key(raw: &str, app_data_dir: &std::path::Path) -> crate::error::Result<String> {
     let machine_seed = get_machine_seed(app_data_dir);
     let aes_key = derive_aes_key(&machine_seed);
     let cipher = Aes256Gcm::new(&aes_key);
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
     let ciphertext = cipher
         .encrypt(&nonce, raw.as_bytes())
-        .expect("AES-GCM encrypt failed");
-    format!("{}{}/{}", AES_GCM_PREFIX, to_hex(&nonce), to_hex(&ciphertext))
+        .map_err(|e| crate::error::AppError::Other(format!("AES-GCM encrypt failed: {}", e)))?;
+    Ok(format!("{}{}/{}", AES_GCM_PREFIX, to_hex(&nonce), to_hex(&ciphertext)))
 }
 
 pub(crate) fn decode_key(stored: &str, app_data_dir: &std::path::Path) -> Option<String> {
@@ -216,15 +216,16 @@ pub fn migrate_legacy_xor_keys(
     let mut migrated = 0u32;
     for (id, encoded) in rows {
         if let Some(raw_key) = decode_key(&encoded, app_data_dir) {
-            let re_encrypted = encode_key(&raw_key, app_data_dir);
-            if conn
-                .execute(
-                    "UPDATE APIKey SET key = ?1 WHERE id = ?2",
-                    params![re_encrypted, id],
-                )
-                .is_ok()
-            {
-                migrated += 1;
+            if let Ok(re_encrypted) = encode_key(&raw_key, app_data_dir) {
+                if conn
+                    .execute(
+                        "UPDATE APIKey SET key = ?1 WHERE id = ?2",
+                        params![re_encrypted, id],
+                    )
+                    .is_ok()
+                {
+                    migrated += 1;
+                }
             }
         }
     }

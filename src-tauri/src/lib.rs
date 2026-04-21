@@ -105,7 +105,7 @@ pub fn run() {
         }
     }
 
-    tauri::Builder::default()
+    let run_result = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -376,8 +376,11 @@ pub fn run() {
             commands::sync_engine::sync_resolve_conflict,
             commands::sync_engine::sync_list_conflicts,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run(tauri::generate_context!());
+    if let Err(e) = run_result {
+        log_to_file(&format!("error while running tauri application: {}", e));
+        std::process::exit(1);
+    }
 }
 
 /// Run `cargo test export_ts_bindings -- --nocapture` from src-tauri/ to regenerate.

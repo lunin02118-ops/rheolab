@@ -28,6 +28,8 @@ Minimal repo context to survive chat compaction.
 - `npm run test:parsing`: run parsing tests only
 - `npm run tauri:dev`: start desktop app in dev mode
 - `cargo test --manifest-path src-tauri/Cargo.toml`: run Rust tests
+- `npm audit --omit=dev`: audit production npm dependencies
+- `cargo audit` (from `src-tauri/`): audit Rust dependencies
 
 ## Context Hygiene
 

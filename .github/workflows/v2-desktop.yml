@@ -30,6 +30,23 @@ jobs:
         # Remove continue-on-error once a clean baseline is established.
         continue-on-error: true
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Audit npm dependencies
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Audit Rust dependencies
+        run: |
+          cargo install cargo-audit --locked
+          cd src-tauri && cargo audit
+
   linux-quality:
     runs-on: ubuntu-24.04
     timeout-minutes: 50

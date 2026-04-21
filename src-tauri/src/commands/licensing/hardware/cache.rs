@@ -31,13 +31,13 @@ pub(crate) struct MachineIdCache {
 /// application secret.  This is intentionally independent of the machine ID
 /// (no chicken-and-egg problem) and provides confidentiality + tamper-detection
 /// for the on-disk cache without involving the machine ID derivation path.
-fn derive_cache_key() -> [u8; 32] {
+fn derive_cache_key() -> crate::error::Result<[u8; 32]> {
     use hkdf::Hkdf;
     let hk = Hkdf::<Sha256>::new(None, DEFAULT_INTEGRITY_KEY.as_bytes());
     let mut okm = [0u8; 32];
     hk.expand(b"rheolab machine-id cache v1", &mut okm)
-        .expect("HKDF expand: 32 bytes is always a valid output length for SHA-256");
-    okm
+        .map_err(|e| crate::error::AppError::Other(format!("HKDF expand failed: {}", e)))?;
+    Ok(okm)
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
@@ -76,7 +76,7 @@ pub(crate) fn read_cache(app_data_dir: &std::path::Path) -> Option<MachineIdCach
         if nonce_bytes.len() != 12 {
             return None;
         }
-        let key_bytes = derive_cache_key();
+        let key_bytes = derive_cache_key().ok()?;
         let gcm_key = GcmKey::<Aes256Gcm>::from_slice(&key_bytes);
         let cipher = Aes256Gcm::new(gcm_key);
         let nonce = Nonce::from_slice(&nonce_bytes);
@@ -93,7 +93,7 @@ pub(super) fn write_cache(app_data_dir: &std::path::Path, cache: &MachineIdCache
     let _ = std::fs::create_dir_all(app_data_dir);
     let Ok(json) = serde_json::to_string(cache) else { return };
 
-    let key_bytes = derive_cache_key();
+    let Ok(key_bytes) = derive_cache_key() else { return; };
     let gcm_key = GcmKey::<Aes256Gcm>::from_slice(&key_bytes);
     let cipher = Aes256Gcm::new(gcm_key);
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);

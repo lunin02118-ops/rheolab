@@ -126,7 +126,7 @@ pub(crate) async fn api_keys_create_impl(
 
     let now = now_rfc3339();
     let id = generate_id(&name, &key, &now);
-    let encoded_key = encode_key(&key, &state.app_data_dir);
+    let encoded_key = encode_key(&key, &state.app_data_dir)?;
     let is_active = if has_provider_keys { 0i32 } else { 1i32 };
 
     conn.execute(
@@ -360,7 +360,7 @@ pub(crate) async fn api_keys_check_active_impl(
         if let Some(raw_key) = decode_key(&encoded, &state.app_data_dir) {
             // Transparent migration: re-encrypt legacy XOR keys with AES-256-GCM
             if encoded.starts_with(LEGACY_XOR_PREFIX) {
-                let re_encrypted = encode_key(&raw_key, &state.app_data_dir);
+                let re_encrypted = encode_key(&raw_key, &state.app_data_dir)?;
                 let _ = conn.execute(
                     "UPDATE APIKey SET key = ?1 WHERE id = ?2",
                     params![re_encrypted, row_id],

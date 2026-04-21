@@ -51,7 +51,7 @@ r2d2_sqlite = "0.25"
 uuid = { version = "1", features = ["v4"] }
 zstd = "0.13"
 byteorder = "1"
-lru = "0.12"
+lru = "0.17"
 rheolab-core = { path = "../src/rust/rheolab-core", default-features = false, features = ["pdf", "excel", "charts"] }
 specta = { version = "2.0.0-rc.22", features = ["derive", "export", "serde_json"] }
 specta-typescript = "0.0.9"
