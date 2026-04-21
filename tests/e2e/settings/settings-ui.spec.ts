@@ -28,9 +28,11 @@ test.describe('Settings — Tab navigation', () => {
     await settings.goto();
     await settings.expectLoaded();
 
-    // Try switching to each tab — verify no crash
-    // "Анализ" tab is only visible in expert mode, so skip it in beginner mode
-    const tabLabels = ['Данные', 'Графики', 'Отчёты', 'Система'];
+    // Try switching to each tab — verify no crash.
+    // Current semantic-group structure (see src/app/dashboard/settings/page.tsx):
+    //   Интерфейс, Единицы, Профиль, Графики, [Анализ — expert only], Данные и система.
+    // We skip "Анализ" so this test passes in both beginner and expert mode.
+    const tabLabels = ['Интерфейс', 'Единицы', 'Графики', 'Данные и система'];
     for (const label of tabLabels) {
       await settings.switchTab(label);
       await page.waitForTimeout(300);
@@ -40,10 +42,11 @@ test.describe('Settings — Tab navigation', () => {
   });
 
   test('settings_url_driven_tab', async ({ settings }) => {
+    // Legacy ?tab=reports is aliased to the modern "data" tab (Data & System)
+    // by LEGACY_TAB_ALIASES in settings/page.tsx — old bookmarks keep working.
     await settings.goto('reports');
     await settings.expectLoaded();
-    // The reports tab should be active
-    await settings.expectTabActive('Отчёты');
+    await settings.expectTabActive('Данные и система');
   });
 
   test('settings_accessible_from_nav_button', async ({ settings, page }) => {
