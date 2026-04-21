@@ -3,8 +3,8 @@
  * Do not edit manually
  */
 
-export const APP_VERSION = '0.2.0-beta.14';
+export const APP_VERSION = '0.2.0-beta.15';
 export const BUILD_DATE = '2026-04-21';
-export const COMMIT_HASH = 'f96f8ae';
+export const COMMIT_HASH = '5769e25';
 
 export const FULL_VERSION = `v${APP_VERSION} (${BUILD_DATE})`;

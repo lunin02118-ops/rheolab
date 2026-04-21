@@ -28,6 +28,9 @@ export type PlasticViscosityUnit = 'Pa·s' | 'cP';
 /** Yield point (YP) unit. */
 export type YieldPointUnit = 'Pa' | 'lbf/100ft²';
 
+/** Time display format for chart axes and analysis table. */
+export type TimeDisplayFormat = 'seconds' | 'minutes' | 'hh:mm:ss';
+
 /** Unit preset selector. */
 export type UnitPreset = 'metric' | 'imperial' | 'custom';
 
@@ -101,6 +104,7 @@ export interface RheologyUnits {
     consistency: ConsistencyUnit;   // K', Ks, Kp
     plasticViscosity: PlasticViscosityUnit; // PV
     yieldPoint: YieldPointUnit;     // YP
+    timeFormat: TimeDisplayFormat;  // Chart axis & table start time
 }
 
 // === Full Chart Settings ===

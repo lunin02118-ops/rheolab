@@ -16,6 +16,7 @@ import type {
     UnitPreset, RheologyUnits,
     ViscosityUnit, TemperatureUnit, PressureUnit,
     ConsistencyUnit, PlasticViscosityUnit, YieldPointUnit,
+    TimeDisplayFormat,
 } from '@/lib/store/chart-settings-types';
 
 const PRESETS: { value: UnitPreset; label: string; hint: string }[] = [
@@ -77,6 +78,14 @@ const UNIT_ROWS: UnitRow<string>[] = [
             { value: 'Pa',           label: 'Па' },
             { value: 'lbf/100ft²',   label: 'lbf/100ft²' },
         ] satisfies { value: YieldPointUnit; label: string }[],
+    },
+    {
+        key: 'timeFormat', label: 'Время',
+        options: [
+            { value: 'seconds',  label: 'Секунды' },
+            { value: 'minutes',  label: 'Минуты' },
+            { value: 'hh:mm:ss', label: 'ЧЧ:ММ:СС' },
+        ] satisfies { value: TimeDisplayFormat; label: string }[],
     },
 ];
 

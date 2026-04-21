@@ -5,6 +5,8 @@ import type { GraceCycleResult } from '@/lib/analysis/types';
 import { CYCLE_TYPE_STYLES, type CycleTypeName } from '@/lib/analysis/constants';
 import type { UnitSystem } from '@/lib/store/display-settings-store';
 import { convertViscosity, getViscosityDecimals } from '@/lib/store/display-settings-store';
+import type { TimeDisplayFormat } from '@/lib/store/chart-settings-types';
+import { formatTime } from '@/lib/store/chart-settings-defaults';
 
 interface CycleRowProps {
     cycle: RheoCycle;
@@ -13,6 +15,7 @@ interface CycleRowProps {
     isExpert: boolean;
     viscosityRates: number[];
     unitSystem: UnitSystem;
+    timeFormat: TimeDisplayFormat;
     onToggle: () => void;
     onEdit?: () => void;
 }
@@ -24,6 +27,7 @@ export const CycleRow = memo(function CycleRow({
     isExpert,
     viscosityRates,
     unitSystem,
+    timeFormat,
     onToggle,
     onEdit
 }: CycleRowProps) {
@@ -64,6 +68,14 @@ export const CycleRow = memo(function CycleRow({
                         {cycle.description}
                     </div>
                 )}
+            </td>
+            {/* Start time (formatted per settings) */}
+            <td className="py-3 px-2 text-center font-data text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                {cycle.steps.length > 0 ? formatTime(cycle.steps[0].startTime, timeFormat) : '—'}
+            </td>
+            {/* Duration (always seconds) */}
+            <td className="py-3 px-2 text-center font-data text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                {Math.round(cycle.duration)}
             </td>
             {hasResult ? (
                 <>

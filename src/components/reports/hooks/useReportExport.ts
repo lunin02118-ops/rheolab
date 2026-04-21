@@ -39,6 +39,8 @@ export interface UseReportExportOptions {
     targetTime: number;
     showCalibration: boolean;
     showRawData: boolean;
+    showRecipe: boolean;
+    showWaterAnalysis: boolean;
     reportViscosityRates: number[];
     isExpert: boolean;
     companyName: string;
@@ -84,6 +86,8 @@ export function useReportExport(options: UseReportExportOptions) {
         targetTime: options.targetTime,
         showCalibration: options.showCalibration,
         showRawData: options.showRawData,
+        showRecipe: options.showRecipe,
+        showWaterAnalysis: options.showWaterAnalysis,
         reportViscosityRates: options.reportViscosityRates,
         isExpert: options.isExpert,
     }), [
@@ -92,7 +96,8 @@ export function useReportExport(options: UseReportExportOptions) {
         options.cycles, options.companyName, options.companyLogo, options.chartSettings,
         options.language, options.unitSystem, options.showTouchPoints,
         options.viscosityThreshold, options.showTargetTime, options.targetTime,
-        options.showCalibration, options.showRawData, options.reportViscosityRates,
+        options.showCalibration, options.showRawData,
+        options.showRecipe, options.showWaterAnalysis, options.reportViscosityRates,
         options.isExpert,
     ]);
 

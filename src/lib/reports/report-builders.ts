@@ -215,6 +215,8 @@ export interface ReportBuildContext {
     targetTime: number;
     showCalibration: boolean;
     showRawData: boolean;
+    showRecipe: boolean;
+    showWaterAnalysis: boolean;
     reportViscosityRates: number[];
     isExpert: boolean;
 }
@@ -241,7 +243,7 @@ export function buildPdfReportInput(ctx: ReportBuildContext): PdfReportInput {
             calibration: buildCalibrationData(ctx.metadata.calibration),
         },
         cycleResults: ctx.cycleResultsMapped,
-        recipe: ctx.editedRecipe.map((r: RecipeComponent) => {
+        recipe: ctx.showRecipe ? ctx.editedRecipe.map((r: RecipeComponent) => {
             const recipeItem = r as RecipeWithBatch;
             return {
                 name: r.reagentName || r.abbreviation || 'Unknown Component',
@@ -250,8 +252,8 @@ export function buildPdfReportInput(ctx: ReportBuildContext): PdfReportInput {
                 category: r.category,
                 batchNumber: recipeItem.batchNumber,
             };
-        }),
-        waterParams: ctx.editedWaterParams ? (() => {
+        }) : [],
+        waterParams: ctx.showWaterAnalysis && ctx.editedWaterParams ? (() => {
             const params = ctx.editedWaterParams as WaterParamsExtended;
             return {
                 source: ctx.editedWaterSource,
@@ -309,13 +311,13 @@ export function buildExcelReportInput(ctx: ReportBuildContext): ExcelReportInput
             calibration: buildCalibrationData(ctx.metadata.calibration),
         },
         cycleResults: ctx.cycleResultsMapped,
-        recipe: ctx.editedRecipe.map((r: RecipeComponent) => ({
+        recipe: ctx.showRecipe ? ctx.editedRecipe.map((r: RecipeComponent) => ({
             name: r.reagentName || r.abbreviation || '',
             concentration: r.concentration || 0,
             unit: r.unit || 'кг/м³',
             category: r.category,
-        })),
-        waterParams: ctx.editedWaterParams ? (() => {
+        })) : [],
+        waterParams: ctx.showWaterAnalysis && ctx.editedWaterParams ? (() => {
             const params = ctx.editedWaterParams as WaterParamsExtended;
             return {
                 source: ctx.editedWaterSource,

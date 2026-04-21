@@ -32,11 +32,13 @@ export function ReportTab({
 }: ReportTabProps) {
     // Defaults from global store — useShallow is MANDATORY for object selectors
     // to prevent React #185 (maximum update depth exceeded).
-    const { reportLanguage, showCalibration, showRawData } = useBrandingStore(
+    const { reportLanguage, showCalibration, showRawData, showRecipe, showWaterAnalysis } = useBrandingStore(
         useShallow(s => ({
             reportLanguage: s.reportLanguage,
             showCalibration: s.showCalibration,
             showRawData: s.showRawData,
+            showRecipe: s.showRecipe,
+            showWaterAnalysis: s.showWaterAnalysis,
         }))
     );
     const chartSettings = useChartSettingsStore(s => s.settings);
@@ -68,6 +70,8 @@ export function ReportTab({
     const [formatExcel, setFormatExcel] = useState(true);
     const [includeCalibration, setIncludeCalibration] = useState(showCalibration);
     const [includeRawData, setIncludeRawData] = useState(showRawData);
+    const [includeRecipe, setIncludeRecipe] = useState(showRecipe);
+    const [includeWaterAnalysis, setIncludeWaterAnalysis] = useState(showWaterAnalysis);
 
     // Export hook — hardcode touchPoints/targetTime/threshold per TZ
     const {
@@ -84,6 +88,8 @@ export function ReportTab({
         targetTime: 0,
         showCalibration: includeCalibration && canUseCalibration,
         showRawData: includeRawData,
+        showRecipe: includeRecipe,
+        showWaterAnalysis: includeWaterAnalysis,
         reportViscosityRates, isExpert,
         companyName, companyLogo, chartSettings,
     });
@@ -142,6 +148,30 @@ export function ReportTab({
                     />
                     <span className="text-sm text-foreground">
                         {reportLanguage === 'en' ? 'Raw data' : 'Сырые данные'}
+                    </span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                        type="checkbox"
+                        checked={includeRecipe}
+                        onChange={(e) => setIncludeRecipe(e.target.checked)}
+                        data-testid="ReportRecipeToggle"
+                        className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-foreground">
+                        {reportLanguage === 'en' ? 'Recipe' : 'Рецептура'}
+                    </span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                        type="checkbox"
+                        checked={includeWaterAnalysis}
+                        onChange={(e) => setIncludeWaterAnalysis(e.target.checked)}
+                        data-testid="ReportWaterAnalysisToggle"
+                        className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-foreground">
+                        {reportLanguage === 'en' ? 'Water analysis' : 'Анализ воды'}
                     </span>
                 </label>
             </div>

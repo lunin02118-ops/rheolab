@@ -54,7 +54,7 @@ function makeChartSettings(overrides?: Partial<ChartSettings>): ChartSettings {
         unitPreset: 'metric' as const,
         rheologyUnits: {
             viscosity: 'mPa·s', temperature: '°C', pressure: 'bar',
-            consistency: 'Pa·s^n', plasticViscosity: 'Pa·s', yieldPoint: 'Pa',
+            consistency: 'Pa·s^n', plasticViscosity: 'Pa·s', yieldPoint: 'Pa', timeFormat: 'seconds',
         },
         ...overrides,
     };
@@ -115,6 +115,8 @@ function makeReportBuildContext(overrides?: Partial<ReportBuildContext>): Report
         targetTime: 10,
         showCalibration: true,
         showRawData: true,
+        showRecipe: true,
+        showWaterAnalysis: true,
         reportViscosityRates: [40, 100, 170],
         isExpert: true,
         ...overrides,

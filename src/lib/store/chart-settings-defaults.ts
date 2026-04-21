@@ -7,6 +7,7 @@ import type {
     ChartSettings,
     RheologyUnits,
     UnitPreset,
+    TimeDisplayFormat,
 } from './chart-settings-types';
 
 // === Default Line Settings for Display ===
@@ -69,6 +70,7 @@ export const METRIC_UNITS: RheologyUnits = {
     consistency: 'Pa·s^n',
     plasticViscosity: 'Pa·s',
     yieldPoint: 'Pa',
+    timeFormat: 'seconds',
 };
 
 export const IMPERIAL_UNITS: RheologyUnits = {
@@ -78,6 +80,7 @@ export const IMPERIAL_UNITS: RheologyUnits = {
     consistency: 'lbf·s^n/100ft²',
     plasticViscosity: 'cP',
     yieldPoint: 'lbf/100ft²',
+    timeFormat: 'minutes',
 };
 
 /** Get the RheologyUnits for a given preset (custom returns current). */
@@ -86,6 +89,27 @@ export function getPresetUnits(preset: UnitPreset, current: RheologyUnits): Rheo
         case 'metric':  return { ...METRIC_UNITS };
         case 'imperial': return { ...IMPERIAL_UNITS };
         default:         return current;
+    }
+}
+
+/**
+ * Format a time value (in seconds) according to the selected display format.
+ * - 'seconds'  → "1201 с"
+ * - 'minutes'  → "20.0 мин"
+ * - 'hh:mm:ss' → "00:20:01"
+ */
+export function formatTime(seconds: number, fmt: TimeDisplayFormat): string {
+    switch (fmt) {
+        case 'minutes':
+            return `${(seconds / 60).toFixed(1)} мин`;
+        case 'hh:mm:ss': {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+        default:
+            return `${Math.round(seconds)} с`;
     }
 }
 

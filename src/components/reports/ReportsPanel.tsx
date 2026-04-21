@@ -49,8 +49,8 @@ export function ReportsPanel({
         if (vUnit === 'cP') return 'Imperial';
         return 'SI';
     })();
-    const { companyName, companyLogo, showCalibration, setShowCalibration, showRawData, setShowRawData, setReportLanguage } = useBrandingStore(
-        useShallow(s => ({ companyName: s.companyName, companyLogo: s.companyLogo, showCalibration: s.showCalibration, setShowCalibration: s.setShowCalibration, showRawData: s.showRawData, setShowRawData: s.setShowRawData, setReportLanguage: s.setReportLanguage }))
+    const { companyName, companyLogo, showCalibration, setShowCalibration, showRawData, setShowRawData, showRecipe, showWaterAnalysis, setReportLanguage } = useBrandingStore(
+        useShallow(s => ({ companyName: s.companyName, companyLogo: s.companyLogo, showCalibration: s.showCalibration, setShowCalibration: s.setShowCalibration, showRawData: s.showRawData, setShowRawData: s.setShowRawData, showRecipe: s.showRecipe, showWaterAnalysis: s.showWaterAnalysis, setReportLanguage: s.setReportLanguage }))
     );
     const { result, isInitialized } = useLicense();
     const canUseCalibration = isInitialized && (result?.license?.features?.calibrationAnalysis ?? false);
@@ -72,7 +72,8 @@ export function ReportsPanel({
         cycleResults, cycles,
         language, unitSystem,
         showTouchPoints, viscosityThreshold, showTargetTime, targetTime,
-        showCalibration, showRawData, reportViscosityRates, isExpert,
+        showCalibration, showRawData, showRecipe, showWaterAnalysis,
+        reportViscosityRates, isExpert,
         companyName, companyLogo, chartSettings,
     });
 

@@ -27,6 +27,7 @@ export type {
     ConsistencyUnit,
     PlasticViscosityUnit,
     YieldPointUnit,
+    TimeDisplayFormat,
 } from './chart-settings-types';
 export {
     DEFAULT_LINE_SETTINGS,
@@ -34,6 +35,7 @@ export {
     METRIC_UNITS,
     IMPERIAL_UNITS,
     getPresetUnits,
+    formatTime,
 } from './chart-settings-defaults';
 
 import type {

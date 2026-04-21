@@ -4,7 +4,7 @@ import type { RheoCycle } from '@/lib/analysis/types';
 import type { GraceCycleResult } from '@/lib/analysis/types';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
-import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
+import { useChartSettingsStore, formatTime } from '@/lib/store/chart-settings-store';
 import type { UnitSystem } from '@/lib/store/display-settings-store';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { CycleRow } from './CycleRow';
@@ -50,8 +50,8 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
     }
 
     // Calculate colspan for expanded details
-    // Base: expand(1) + cycle(1) + type(1) + n'(1) + K'(1) + Ks(1) + Kp(1) + R²(1) + status(1) = 9
-    const baseColCount = 9 + viscosityRates.length;
+    // Base: expand(1) + cycle(1) + type(1) + time(1) + dur(1) + n'(1) + K'(1) + Ks(1) + Kp(1) + R²(1) + status(1) = 11
+    const baseColCount = 11 + viscosityRates.length;
     // Expert adds PV(1)+YP(1)+R²Bingham(1)=+3, plus edit button only when onEditCycle is provided
     const detailColSpan = isExpert
         ? baseColCount + 3 + (onEditCycle ? 1 : 0)
@@ -66,6 +66,8 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
                             <th className="w-10 py-2 px-2"></th>
                             <th className="w-[60px] py-2 px-2 text-center text-xs font-semibold text-foreground">Цикл</th>
                             <th className="w-28 py-2 px-2 text-center text-xs font-semibold text-foreground">Паттерн</th>
+                            <th className="min-w-[80px] py-2 px-2 text-center text-xs font-semibold text-foreground whitespace-nowrap">Время</th>
+                            <th className="min-w-[60px] py-2 px-2 text-center text-xs font-semibold text-foreground whitespace-nowrap">Длит. (с)</th>
                             <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground">
                                 <span className="cursor-help" title="Индекс течения (n')">n'</span>
                             </th>
@@ -121,6 +123,7 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
                                         isExpert={isExpert}
                                         viscosityRates={viscosityRates}
                                         unitSystem={unitSystem}
+                                        timeFormat={rUnits.timeFormat}
                                         onToggle={() => toggleCycle(cycle.id)}
                                         onEdit={onEditCycle ? () => onEditCycle(cycle.id) : undefined}
                                     />
