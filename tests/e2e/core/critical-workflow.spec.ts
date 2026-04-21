@@ -81,8 +81,7 @@ test.describe('Critical workflow', () => {
 
     // ── Step 7: Generate PDF report ──
     await test.step('Generate PDF report', async () => {
-      await page.getByTestId('ReportsNavButton').click();
-      await page.waitForLoadState('domcontentloaded');
+      await reports.goto();
       await reports.expectPdfButtonVisible();
 
       const pdfDownload = await reports.downloadPdf(60_000);

@@ -17,7 +17,7 @@ export class DashboardPage {
   readonly navDashboard: Locator;
   readonly navLibrary: Locator;
   readonly navComparison: Locator;
-  readonly navReports: Locator;
+  readonly navReportTab: Locator;
 
   // — File upload —
   readonly fileUploadCard: Locator;
@@ -68,7 +68,7 @@ export class DashboardPage {
     this.navDashboard = page.getByTestId('DashboardNavButton');
     this.navLibrary = page.getByTestId('LibraryNavButton');
     this.navComparison = page.getByTestId('ComparisonNavButton');
-    this.navReports = page.getByTestId('ReportsNavButton');
+    this.navReportTab = page.getByTestId('ReportTabButton');
 
     // File upload
     this.fileUploadCard = page.getByTestId('FileUploadCard');

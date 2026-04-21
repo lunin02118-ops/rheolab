@@ -12,6 +12,7 @@ import { zoomPlugin } from '@/components/charts/plugins/zoom';
 import { touchPointsPlugin, type TouchPointsPluginOptions } from '@/components/charts/plugins/touchPoints';
 import { getStrokeDasharray } from '@/lib/store/chart-settings-store';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
+import type { PressureUnit } from '@/lib/store/chart-settings-types';
 import type { TouchPointMarker } from './useRheologyData';
 import { useTheme } from '@/contexts/theme-context';
 
@@ -95,16 +96,33 @@ export function useRheologyChartOptions({
         const textColor = isDark ? '#94a3b8' : '#334155';
         const gridColor = isDark ? '#334155' : '#94a3b8';
 
-        // ── Translations ──────────────────────────────────────────────────────
+        // ── Per-line units from settings ─────────────────────────────────────
+        const uVisc = activeSettings.lines.viscosity.unit ?? 'mPa·s';
+        const uTemp = activeSettings.lines.temperature.unit ?? '°C';
+        const uBath = activeSettings.lines.bathTemperature?.unit ?? uTemp;
+        const uShear = activeSettings.lines.shearRate.unit ?? '1/s';
+        const uPress = activeSettings.lines.pressure.unit ?? 'bar';
+        const uRpm = activeSettings.lines.rpm.unit ?? 'RPM';
+
+        // Localised pressure label (bar → бар in Russian)
+        const pressLabel = (unit: PressureUnit, lang: string) => {
+            if (lang !== 'ru') return unit;
+            switch (unit) {
+                case 'bar': return 'бар';
+                default: return unit;
+            }
+        };
+
+        // ── Translations (unit-aware) ────────────────────────────────────────
         const t = language === 'en' ? {
             timeAxis: 'Time (min)',
-            viscosityAxis: 'Viscosity (cP)',
-            temperatureAxis: 'Temperature (°C)',
-            bathTempAxis: 'Bath Temp. (°C)',
-            tempBathCombinedAxis: 'Temp. / Bath Temp. (°C)',
-            shearRateAxis: 'Shear Rate (1/s)',
-            pressureAxis: 'Pressure (bar)',
-            rpmAxis: 'RPM',
+            viscosityAxis: `Viscosity (${uVisc})`,
+            temperatureAxis: `Temperature (${uTemp})`,
+            bathTempAxis: `Bath Temp. (${uBath})`,
+            tempBathCombinedAxis: `Temp. / Bath Temp. (${uTemp})`,
+            shearRateAxis: `Shear Rate (${uShear})`,
+            pressureAxis: `Pressure (${uPress})`,
+            rpmAxis: uRpm,
             seriesTime: 'Time',
             seriesViscosity: 'Viscosity',
             seriesTemperature: 'Temperature',
@@ -112,17 +130,17 @@ export function useRheologyChartOptions({
             seriesPressure: 'Pressure',
             seriesRpm: 'RPM',
             seriesBathTemp: 'Bath Temp.',
-            tooltipUnits: ['', 'cP', '°C', '1/s', 'bar', 'RPM', '°C'] as string[],
+            tooltipUnits: ['', uVisc, uTemp, uShear, uPress, uRpm, uBath] as string[],
             tooltipTimeLabel: (v: number) => `Time: ${v} min`,
         } : {
             timeAxis: 'Время (мин)',
-            viscosityAxis: 'Вязкость (сП)',
-            temperatureAxis: 'Температура (°C)',
-            bathTempAxis: 'Темп. бани (°C)',
-            tempBathCombinedAxis: 'Температура / Темп. бани (°C)',
-            shearRateAxis: 'Скор. сдвига (1/с)',
-            pressureAxis: 'Давление (бар)',
-            rpmAxis: 'Обороты (об/мин)',
+            viscosityAxis: `Вязкость (${uVisc === 'cP' ? 'сП' : uVisc})`,
+            temperatureAxis: `Температура (${uTemp})`,
+            bathTempAxis: `Темп. бани (${uBath})`,
+            tempBathCombinedAxis: `Температура / Темп. бани (${uTemp})`,
+            shearRateAxis: `Скор. сдвига (${uShear === '1/s' ? '1/с' : uShear})`,
+            pressureAxis: `Давление (${pressLabel(uPress as PressureUnit, 'ru')})`,
+            rpmAxis: `Обороты (${uRpm === 'RPM' ? 'об/мин' : uRpm})`,
             seriesTime: 'Время',
             seriesViscosity: 'Вязкость',
             seriesTemperature: 'Температура',
@@ -130,7 +148,7 @@ export function useRheologyChartOptions({
             seriesPressure: 'Давление',
             seriesRpm: 'Обороты',
             seriesBathTemp: 'Темп. бани',
-            tooltipUnits: ['', 'сП', '°C', '1/с', 'бар', 'об/мин', '°C'] as string[],
+            tooltipUnits: ['', uVisc === 'cP' ? 'сП' : uVisc, uTemp, uShear === '1/s' ? '1/с' : uShear, pressLabel(uPress as PressureUnit, 'ru'), uRpm === 'RPM' ? 'об/мин' : uRpm, uBath] as string[],
             tooltipTimeLabel: (v: number) => `Время: ${v} мин`,
         };
         const axisColor = isDark ? '#475569' : '#cbd5e1';

@@ -7,7 +7,6 @@
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
-import { useShallow } from 'zustand/react/shallow';
 
 interface UseRheologyVisibilityParams {
     previewMode: boolean;
@@ -49,12 +48,10 @@ export function useRheologyVisibility({
 }: UseRheologyVisibilityParams): RheologyVisibility {
     const expertSettings = useAnalysisSettingsStore(s => s.expertSettings);
     const { timeShiftEnabled } = expertSettings;
-    const { settings: chartSettings, reportSettings } = useChartSettingsStore(
-        useShallow(s => ({ settings: s.settings, reportSettings: s.reportSettings }))
-    );
+    const chartSettings = useChartSettingsStore(s => s.settings);
 
-    const useReportSettings = previewMode || captureMode;
-    const activeSettings = useReportSettings ? reportSettings : chartSettings;
+    // Single source of truth: same settings for dashboard and reports
+    const activeSettings = chartSettings;
 
     const showTemperature = showTemperatureProp ?? activeSettings.lines.temperature.visible;
     const showShearRate = showShearRateProp ?? activeSettings.lines.shearRate.visible;
@@ -62,13 +59,8 @@ export function useRheologyVisibility({
     const showRpm = showRpmProp ?? activeSettings.lines.rpm.visible;
     const showBathTemperature = showBathTemperatureProp ?? (activeSettings.lines.bathTemperature?.visible ?? false);
 
-    const effectiveShearRateAxis = useReportSettings
-        ? activeSettings.lines.shearRate.axis
-        : shearRateAxis;
-
-    const effectivePressureAxis = useReportSettings
-        ? activeSettings.lines.pressure.axis
-        : pressureAxis;
+    const effectiveShearRateAxis = shearRateAxis;
+    const effectivePressureAxis = pressureAxis;
 
     const axisMode = (activeSettings.comparisonAxisMode ?? 'individual') as 'shared' | 'individual';
     const downsampleMode = activeSettings.downsampleMode ?? 'smart';

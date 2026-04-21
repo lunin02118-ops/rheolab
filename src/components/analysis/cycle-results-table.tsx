@@ -4,7 +4,8 @@ import type { RheoCycle } from '@/lib/analysis/types';
 import type { GraceCycleResult } from '@/lib/analysis/types';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
-import { useDisplaySettingsStore, getViscosityUnit } from '@/lib/store/display-settings-store';
+import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
+import { getViscosityUnit, type UnitSystem } from '@/lib/store/display-settings-store';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { CycleRow } from './CycleRow';
 import { CycleStepsDetail } from './CycleStepsDetail';
@@ -18,8 +19,8 @@ interface CycleResultsTableProps {
 export const CycleResultsTable = memo(function CycleResultsTable({ cycles, results, onEditCycle }: CycleResultsTableProps) {
     const { isExpert } = useUIMode();
     const expertSettings = useAnalysisSettingsStore(s => s.expertSettings);
-    const unitSystem = useDisplaySettingsStore(s => s.unitSystem);
-    const viscUnit = getViscosityUnit(unitSystem);
+    const viscUnit = useChartSettingsStore(s => s.settings.lines.viscosity.unit) as 'mPa·s' | 'Pa·s' | 'cP';
+    const unitSystem: UnitSystem = viscUnit === 'Pa·s' ? 'SI_Pas' : viscUnit === 'cP' ? 'Imperial' : 'SI';
     const [expandedCycles, setExpandedCycles] = useState<Set<number>>(new Set());
 
     // In basic mode, force default shear rates [40, 100, 170] like C# WPF version

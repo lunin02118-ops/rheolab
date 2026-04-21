@@ -266,8 +266,7 @@ test.describe('Full multi-file workflow', () => {
       await dashboard.waitForAnalysis(60_000);
 
       // Navigate to Reports
-      await page.getByTestId('ReportsNavButton').click();
-      await page.waitForLoadState('domcontentloaded');
+      await reports.goto();
       await reports.expectPdfButtonVisible();
 
       // Download PDF
@@ -292,8 +291,7 @@ test.describe('Full multi-file workflow', () => {
       await dashboard.waitForAnalysis(60_000);
 
       // Navigate to Reports
-      await page.getByTestId('ReportsNavButton').click();
-      await page.waitForLoadState('domcontentloaded');
+      await reports.goto();
       await reports.expectPdfButtonVisible();
 
       // Toggle raw data ON
@@ -322,8 +320,7 @@ test.describe('Full multi-file workflow', () => {
       await page.waitForURL('**/dashboard', { timeout: 15_000 });
       await dashboard.waitForAnalysis(60_000);
 
-      await page.getByTestId('ReportsNavButton').click();
-      await page.waitForLoadState('domcontentloaded');
+      await reports.goto();
       await reports.expectPdfButtonVisible();
 
       // Toggle calibration ON if visible
@@ -345,8 +342,7 @@ test.describe('Full multi-file workflow', () => {
       await page.waitForURL('**/dashboard', { timeout: 15_000 });
       await dashboard.waitForAnalysis(60_000);
 
-      await page.getByTestId('ReportsNavButton').click();
-      await page.waitForLoadState('domcontentloaded');
+      await reports.goto();
       await reports.expectExcelButtonVisible();
 
       const excelDownload = await reports.downloadExcel(60_000);

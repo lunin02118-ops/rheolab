@@ -327,14 +327,14 @@ test.describe('[PerfWorkflow/Tauri] Full workflow baseline — native analysis',
             await reports.goto();
             await reports.expectPdfButtonVisible();
             // Click PDF button — dialog mock returns null → generation runs, file not saved
-            await reports.pdfButton.click();
+            await reports.downloadButton.click();
             // Wait for button to re-enable after generate + finally block.
             // With mock: near-instant. With real Typst (opt-level=2 debug): ~10–30s.
             // If the IPC mock wasn't installed (invoke frozen in Tauri v2),
             // the real Typst renderer runs at opt-level=0 and may not finish
             // in any reasonable time — cap at 30 s and skip gracefully.
             try {
-                await expect(reports.pdfButton).not.toBeDisabled({ timeout: 30_000 });
+                await expect(reports.downloadButton).not.toBeDisabled({ timeout: 30_000 });
             } catch {
                 console.log(`  ⚠ PDF button did not re-enable in 30 s (IPC mock likely inactive) — skipping`);
                 // Navigate away so the stuck generation doesn't block next step

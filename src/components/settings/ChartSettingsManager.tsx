@@ -7,7 +7,7 @@ import {
     type DownsampleMode,
     type ComparisonAxisMode,
 } from '@/lib/store/chart-settings-store';
-import { LineConfigRow, SelectInput, LINE_CONFIGS, PRECISION_OPTIONS } from './settings-shared';
+import { LineConfigRow, SelectInput, LINE_CONFIGS, UNIT_OPTIONS, PRECISION_OPTIONS } from './settings-shared';
 
 export function ChartSettingsManager() {
     const {
@@ -32,7 +32,7 @@ export function ChartSettingsManager() {
                         <LineChart className="w-5 h-5 text-blue-400" />
                         Настройки линий
                     </CardTitle>
-                    <CardDescription>Цвет, толщина и стиль для каждого параметра</CardDescription>
+                    <CardDescription>Цвет, толщина и стиль для каждого параметра (применяются ко всем графикам, включая PDF/Excel)</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="mb-3 flex items-center gap-3 text-xs text-muted-foreground border-b border-border pb-2">
@@ -42,6 +42,7 @@ export function ChartSettingsManager() {
                         <span className="w-[104px]">Толщина</span>
                         <span className="w-[88px]">Стиль</span>
                         <span>Ось</span>
+                        <span>Единицы</span>
                     </div>
                     {LINE_CONFIGS.map(config => (
                         <LineConfigRow
@@ -52,15 +53,22 @@ export function ChartSettingsManager() {
                             width={settings.lines[config.key].width}
                             style={settings.lines[config.key].style}
                             axis={config.key === 'bathTemperature' ? settings.lines.temperature.axis : settings.lines[config.key].axis}
+                            unit={config.key === 'bathTemperature' ? settings.lines.temperature.unit : settings.lines[config.key].unit}
+                            unitOptions={UNIT_OPTIONS[config.key]}
                             visible={config.disabled ? true : settings.lines[config.key].visible}
                             disabled={config.disabled}
                             axisDisabled={config.key === 'viscosity' || config.key === 'bathTemperature'}
+                            unitDisabled={config.key === 'bathTemperature'}
                             onColorChange={color => setLineSettings(config.key, { color })}
                             onWidthChange={width => setLineSettings(config.key, { width })}
                             onStyleChange={style => setLineSettings(config.key, { style })}
                             onAxisChange={axis => {
                                 setLineSettings(config.key, { axis });
                                 if (config.key === 'temperature') setLineSettings('bathTemperature', { axis });
+                            }}
+                            onUnitChange={unit => {
+                                setLineSettings(config.key, { unit });
+                                if (config.key === 'temperature') setLineSettings('bathTemperature', { unit });
                             }}
                             onVisibleChange={visible => setLineSettings(config.key, { visible })}
                         />

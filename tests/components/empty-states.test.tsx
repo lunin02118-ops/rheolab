@@ -1,10 +1,9 @@
 /**
- * Empty-state tests for Library, Comparison, and Reports pages  (5B.6)
+ * Empty-state tests for Library and Comparison pages  (5B.6)
  *
  * These pages each render a specific empty-state UI when:
  *   - Library:    renders skeleton/tabs without experiments (ExperimentList handles its own empty)
  *   - Comparison: no experiments selected → shows "Добавить тест" button
- *   - Reports:    no parseResult → shows "Нет данных для отчёта" panel
  */
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
@@ -12,56 +11,7 @@ import { render, screen } from '@testing-library/react';
 import React, { Suspense } from 'react';
 
 // ════════════════════════════════════════════════════════════════════════════
-// 1. Reports Page — empty state
-// ════════════════════════════════════════════════════════════════════════════
-
-vi.mock('@/lib/store/experiment-data-store', () => ({
-    useExperimentDataStore: (selector: (s: unknown) => unknown) =>
-        selector({
-            parseResult: null,
-            recipe: [],
-            waterSource: '',
-            waterParams: null,
-            cycleOverrides: new Map(),
-            patternOverride: null,
-        }),
-}));
-
-vi.mock('@/hooks/useAnalysisPipeline', () => ({
-    useAnalysisPipeline: () => ({ cycleResults: new Map(), cycles: [], allSteps: [] }),
-}));
-
-vi.mock('@/contexts/ui-mode-context', () => ({
-    useUIMode: () => ({ isExpert: false }),
-}));
-
-vi.mock('@/components/reports/ReportsPanel', () => ({
-    ReportsPanel: () => <div data-testid="MockReportsPanel" />,
-}));
-
-describe('ReportsPage — empty state', () => {
-    it('shows "Нет данных для отчёта" when parseResult is null', async () => {
-        // Import after mocks are registered
-        const { default: ReportsPage } = await import('@/app/dashboard/reports/page');
-        render(<ReportsPage />);
-        expect(screen.getByText(/Нет данных для отчёта/i)).toBeDefined();
-    });
-
-    it('shows explanatory help text', async () => {
-        const { default: ReportsPage } = await import('@/app/dashboard/reports/page');
-        render(<ReportsPage />);
-        expect(screen.getByText(/Пожалуйста, загрузите файл/i)).toBeDefined();
-    });
-
-    it('does not render ReportsPanel when no data', async () => {
-        const { default: ReportsPage } = await import('@/app/dashboard/reports/page');
-        render(<ReportsPage />);
-        expect(screen.queryByTestId('MockReportsPanel')).toBeNull();
-    });
-});
-
-// ════════════════════════════════════════════════════════════════════════════
-// 2. Comparison Page — no experiments selected
+// 1. Comparison Page — no experiments selected
 // ════════════════════════════════════════════════════════════════════════════
 
 vi.mock('@/lib/store/comparison-store', () => {
@@ -142,7 +92,7 @@ describe('ComparisonPage — no experiments', () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// 3. Library Page — renders root
+// 2. Library Page — renders root
 // ════════════════════════════════════════════════════════════════════════════
 
 vi.mock('react-router-dom', () => ({

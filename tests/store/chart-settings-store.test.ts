@@ -2,9 +2,7 @@ import { describe, test, expect, beforeEach } from 'vitest';
 import { 
     useChartSettingsStore, 
     DEFAULT_CHART_SETTINGS, 
-    DEFAULT_REPORT_SETTINGS,
     DEFAULT_LINE_SETTINGS,
-    DEFAULT_REPORT_LINE_SETTINGS,
     getStrokeDasharray,
     formatWithPrecision
 } from '@/lib/store/chart-settings-store';
@@ -13,7 +11,6 @@ describe('ChartSettingsStore', () => {
     beforeEach(() => {
         // Reset store to defaults before each test
         useChartSettingsStore.getState().resetToDefaults();
-        useChartSettingsStore.getState().resetReportToDefaults();
     });
 
     // ============================
@@ -92,105 +89,27 @@ describe('ChartSettingsStore', () => {
         });
     });
 
-    // ============================
-    // Report Settings Tests
-    // ============================
-    
-    describe('Report Settings', () => {
-        test('should have correct default report line settings', () => {
-            const { reportSettings } = useChartSettingsStore.getState();
-            
-            // Report colors are darker for print
-            expect(reportSettings.lines.viscosity.color).toBe('#1e40af');
-            expect(reportSettings.lines.temperature.color).toBe('#c2410c');
-            expect(reportSettings.animationsEnabled).toBe(false);
-            expect(reportSettings.tooltipEnabled).toBe(false);
-            expect(reportSettings.gridOpacity).toBe(0.3);
-        });
-
-        test('setReportLineSettings should update report line', () => {
-            useChartSettingsStore.getState().setReportLineSettings('viscosity', { 
-                color: '#123456',
-                width: 3 
-            });
-            
-            const { reportSettings, settings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.viscosity.color).toBe('#123456');
-            expect(reportSettings.lines.viscosity.width).toBe(3);
-            expect(settings.lines.viscosity.color).toBe('#3b82f6'); // display unchanged
-        });
-
-        test('setReportPrecision should update report precision', () => {
-            useChartSettingsStore.getState().setReportPrecision({ viscosity: 2 });
-            
-            const { reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.precision.viscosity).toBe(2);
-        });
-
-        test('resetReportToDefaults should reset only report settings', () => {
-            // Modify both settings
-            useChartSettingsStore.getState().setLineSettings('viscosity', { width: 4 });
-            useChartSettingsStore.getState().setReportLineSettings('viscosity', { width: 3 });
-            
-            // Reset only report
-            useChartSettingsStore.getState().resetReportToDefaults();
-            
-            const { settings, reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.viscosity.width).toBe(2); // reset to default
-            expect(settings.lines.viscosity.width).toBe(4); // display unchanged
-        });
-
-        test('copyDisplayToReport should copy line settings but disable animations', () => {
-            // Set custom display settings
-            useChartSettingsStore.getState().setSettings({ animationsEnabled: true });
-            useChartSettingsStore.getState().setLineSettings('viscosity', { 
-                color: '#abcdef',
-                width: 4,
-                style: 'dashed'
-            });
-            
-            // Copy to report
-            useChartSettingsStore.getState().copyDisplayToReport();
-            
-            const { reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.viscosity.color).toBe('#abcdef');
-            expect(reportSettings.lines.viscosity.width).toBe(4);
-            expect(reportSettings.lines.viscosity.style).toBe('dashed');
-            expect(reportSettings.animationsEnabled).toBe(false); // forced false
-            expect(reportSettings.tooltipEnabled).toBe(false); // forced false
-        });
-    });
 
     // ============================
     // Export/Import Tests
     // ============================
     
     describe('Export/Import', () => {
-        test('exportSettings should return JSON with display and report', () => {
+        test('exportSettings should return JSON with chart settings', () => {
             const json = useChartSettingsStore.getState().exportSettings();
             const parsed = JSON.parse(json);
             
-            expect(parsed).toHaveProperty('display');
-            expect(parsed).toHaveProperty('report');
-            expect(parsed.display.lines.viscosity.color).toBe('#3b82f6');
-            expect(parsed.report.lines.viscosity.color).toBe('#1e40af');
+            expect(parsed).toHaveProperty('lines');
+            expect(parsed).toHaveProperty('precision');
+            expect(parsed.lines.viscosity.color).toBe('#3b82f6');
         });
 
-        test('importSettings with new format should apply both', () => {
+        test('importSettings with v8 format (plain ChartSettings) should apply', () => {
             const importData = {
-                display: { 
-                    ...DEFAULT_CHART_SETTINGS, 
-                    lines: {
-                        ...DEFAULT_LINE_SETTINGS,
-                        viscosity: { ...DEFAULT_LINE_SETTINGS.viscosity, width: 4 }
-                    }
-                },
-                report: { 
-                    ...DEFAULT_REPORT_SETTINGS, 
-                    lines: {
-                        ...DEFAULT_REPORT_LINE_SETTINGS,
-                        viscosity: { ...DEFAULT_REPORT_LINE_SETTINGS.viscosity, width: 3 }
-                    }
+                ...DEFAULT_CHART_SETTINGS, 
+                lines: {
+                    ...DEFAULT_LINE_SETTINGS,
+                    viscosity: { ...DEFAULT_LINE_SETTINGS.viscosity, width: 4 }
                 }
             };
             
@@ -200,9 +119,30 @@ describe('ChartSettingsStore', () => {
             
             expect(result).toBe(true);
             
-            const { settings, reportSettings } = useChartSettingsStore.getState();
+            const { settings } = useChartSettingsStore.getState();
             expect(settings.lines.viscosity.width).toBe(4);
-            expect(reportSettings.lines.viscosity.width).toBe(3);
+        });
+
+        test('importSettings with v7 format (display+report) should extract display only', () => {
+            const importData = {
+                display: { 
+                    ...DEFAULT_CHART_SETTINGS, 
+                    lines: {
+                        ...DEFAULT_LINE_SETTINGS,
+                        viscosity: { ...DEFAULT_LINE_SETTINGS.viscosity, width: 4 }
+                    }
+                },
+                report: { ...DEFAULT_CHART_SETTINGS }
+            };
+            
+            const result = useChartSettingsStore.getState().importSettings(
+                JSON.stringify(importData)
+            );
+            
+            expect(result).toBe(true);
+            
+            const { settings } = useChartSettingsStore.getState();
+            expect(settings.lines.viscosity.width).toBe(4);
         });
 
         test('importSettings with invalid JSON should return false', () => {
@@ -243,16 +183,6 @@ describe('ChartSettingsStore', () => {
     // ============================
     
     describe('Settings Independence', () => {
-        test('display and report line settings should be independent', () => {
-            useChartSettingsStore.getState().setLineSettings('viscosity', { color: '#111111' });
-            useChartSettingsStore.getState().setReportLineSettings('viscosity', { color: '#222222' });
-            
-            const { settings, reportSettings } = useChartSettingsStore.getState();
-            
-            expect(settings.lines.viscosity.color).toBe('#111111');
-            expect(reportSettings.lines.viscosity.color).toBe('#222222');
-        });
-
         test('each line should have independent settings', () => {
             useChartSettingsStore.getState().setLineSettings('viscosity', { width: 1 });
             useChartSettingsStore.getState().setLineSettings('temperature', { width: 2 });
@@ -266,14 +196,6 @@ describe('ChartSettingsStore', () => {
             expect(settings.lines.shearRate.width).toBe(3);
             expect(settings.lines.pressure.width).toBe(4);
         });
-
-        test('resetting display should not affect report', () => {
-            useChartSettingsStore.getState().setReportLineSettings('viscosity', { color: '#333333' });
-            useChartSettingsStore.getState().resetToDefaults();
-            
-            const { reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.viscosity.color).toBe('#333333');
-        });
     });
 
     // ============================
@@ -281,54 +203,33 @@ describe('ChartSettingsStore', () => {
     // ============================
 
     describe('Bath Temperature Visibility', () => {
-        test('bathTemperature is on by default in display settings', () => {
+        test('bathTemperature is on by default', () => {
             const { settings } = useChartSettingsStore.getState();
             expect(settings.lines.bathTemperature.visible).toBe(true);
         });
 
-        test('bathTemperature is on by default in report settings', () => {
-            const { reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.bathTemperature.visible).toBe(true);
-        });
-
-        test('enabling bathTemperature in display does not affect report', () => {
+        test('toggling bathTemperature visibility works', () => {
             useChartSettingsStore.getState().setLineSettings('bathTemperature', { visible: false });
 
-            const { settings, reportSettings } = useChartSettingsStore.getState();
+            const { settings } = useChartSettingsStore.getState();
             expect(settings.lines.bathTemperature.visible).toBe(false);
-            expect(reportSettings.lines.bathTemperature.visible).toBe(true);
         });
 
-        test('enabling bathTemperature in report does not affect display', () => {
-            useChartSettingsStore.getState().setReportLineSettings('bathTemperature', { visible: false });
+        test('resetting settings turns on bathTemperature', () => {
+            useChartSettingsStore.getState().setLineSettings('bathTemperature', { visible: false });
+            useChartSettingsStore.getState().resetToDefaults();
 
-            const { settings, reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.bathTemperature.visible).toBe(false);
+            const { settings } = useChartSettingsStore.getState();
             expect(settings.lines.bathTemperature.visible).toBe(true);
         });
 
-        test('disabling bathTemperature in report works independently', () => {
-            useChartSettingsStore.getState().setReportLineSettings('bathTemperature', { visible: false });
-
-            const { reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.bathTemperature.visible).toBe(false);
-        });
-
-        test('resetting report settings turns on bathTemperature', () => {
-            useChartSettingsStore.getState().setReportLineSettings('bathTemperature', { visible: false });
-            useChartSettingsStore.getState().resetReportToDefaults();
-
-            const { reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.bathTemperature.visible).toBe(true);
-        });
-
         test('bathTemperature visibility does not interfere with temperature visibility', () => {
-            useChartSettingsStore.getState().setReportLineSettings('bathTemperature', { visible: true });
-            useChartSettingsStore.getState().setReportLineSettings('temperature', { visible: false });
+            useChartSettingsStore.getState().setLineSettings('bathTemperature', { visible: true });
+            useChartSettingsStore.getState().setLineSettings('temperature', { visible: false });
 
-            const { reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.bathTemperature.visible).toBe(true);
-            expect(reportSettings.lines.temperature.visible).toBe(false);
+            const { settings } = useChartSettingsStore.getState();
+            expect(settings.lines.bathTemperature.visible).toBe(true);
+            expect(settings.lines.temperature.visible).toBe(false);
         });
     });
 
@@ -372,45 +273,6 @@ describe('ChartSettingsStore', () => {
         });
     });
 
-    describe('Series Visibility Toggles (report chart)', () => {
-        const lines = ['viscosity', 'temperature', 'shearRate', 'pressure', 'rpm', 'bathTemperature'] as const;
-
-        for (const line of lines) {
-            test(`report: toggling ${line} off then on restores state`, () => {
-                useChartSettingsStore.getState().resetReportToDefaults();
-                const before = useChartSettingsStore.getState().reportSettings.lines[line].visible;
-
-                useChartSettingsStore.getState().setReportLineSettings(line, { visible: !before });
-                expect(useChartSettingsStore.getState().reportSettings.lines[line].visible).toBe(!before);
-
-                useChartSettingsStore.getState().setReportLineSettings(line, { visible: before });
-                expect(useChartSettingsStore.getState().reportSettings.lines[line].visible).toBe(before);
-            });
-        }
-
-        test('report checkbox changes are reflected in reportSettings object', () => {
-            useChartSettingsStore.getState().setReportLineSettings('temperature', { visible: false });
-            useChartSettingsStore.getState().setReportLineSettings('shearRate', { visible: true });
-            useChartSettingsStore.getState().setReportLineSettings('bathTemperature', { visible: true });
-
-            const { reportSettings } = useChartSettingsStore.getState();
-            expect(reportSettings.lines.temperature.visible).toBe(false);
-            expect(reportSettings.lines.shearRate.visible).toBe(true);
-            expect(reportSettings.lines.bathTemperature.visible).toBe(true);
-        });
-
-        test('display settings unchanged when only report settings toggled', () => {
-            useChartSettingsStore.getState().resetToDefaults();
-            const displayBeforeTemperature = useChartSettingsStore.getState().settings.lines.temperature.visible;
-
-            useChartSettingsStore.getState().setReportLineSettings('temperature', { visible: !displayBeforeTemperature });
-            useChartSettingsStore.getState().setReportLineSettings('bathTemperature', { visible: true });
-
-            const { settings } = useChartSettingsStore.getState();
-            expect(settings.lines.temperature.visible).toBe(displayBeforeTemperature);
-            expect(settings.lines.bathTemperature.visible).toBe(true);
-        });
-    });
 
     // ============================
     // Comparison Chart — Line Width & Style
@@ -486,6 +348,70 @@ describe('ChartSettingsStore', () => {
             useChartSettingsStore.getState().resetToDefaults();
             const { settings } = useChartSettingsStore.getState();
             expect(settings.comparisonAxisMode).toBe('individual');
+        });
+    });
+
+    // ============================
+    // UI-018 — Per-line Unit Settings
+    // ============================
+
+    describe('Per-line Unit Settings (UI-018)', () => {
+        test('defaults: viscosity=mPa·s, temperature=°C, bathTemperature=°C', () => {
+            const { settings } = useChartSettingsStore.getState();
+            expect(settings.lines.viscosity.unit).toBe('mPa·s');
+            expect(settings.lines.temperature.unit).toBe('°C');
+            expect(settings.lines.bathTemperature.unit).toBe('°C');
+        });
+
+        test('defaults: shearRate=1/s, pressure=bar, rpm=RPM', () => {
+            const { settings } = useChartSettingsStore.getState();
+            expect(settings.lines.shearRate.unit).toBe('1/s');
+            expect(settings.lines.pressure.unit).toBe('bar');
+            expect(settings.lines.rpm.unit).toBe('RPM');
+        });
+
+        test('setLineSettings can change viscosity unit to Pa·s', () => {
+            useChartSettingsStore.getState().setLineSettings('viscosity', { unit: 'Pa·s' });
+            expect(useChartSettingsStore.getState().settings.lines.viscosity.unit).toBe('Pa·s');
+        });
+
+        test('setLineSettings can change viscosity unit to cP (Imperial)', () => {
+            useChartSettingsStore.getState().setLineSettings('viscosity', { unit: 'cP' });
+            expect(useChartSettingsStore.getState().settings.lines.viscosity.unit).toBe('cP');
+        });
+
+        test('changing viscosity unit does not affect temperature unit', () => {
+            useChartSettingsStore.getState().setLineSettings('viscosity', { unit: 'Pa·s' });
+            expect(useChartSettingsStore.getState().settings.lines.temperature.unit).toBe('°C');
+        });
+
+        test('resetToDefaults restores all units', () => {
+            useChartSettingsStore.getState().setLineSettings('viscosity', { unit: 'cP' });
+            useChartSettingsStore.getState().setLineSettings('temperature', { unit: 'K' });
+            useChartSettingsStore.getState().resetToDefaults();
+            const { settings } = useChartSettingsStore.getState();
+            expect(settings.lines.viscosity.unit).toBe('mPa·s');
+            expect(settings.lines.temperature.unit).toBe('°C');
+        });
+
+        test('exportSettings includes unit field', () => {
+            useChartSettingsStore.getState().setLineSettings('viscosity', { unit: 'Pa·s' });
+            const json = useChartSettingsStore.getState().exportSettings();
+            const parsed = JSON.parse(json);
+            expect(parsed.lines.viscosity.unit).toBe('Pa·s');
+        });
+
+        test('importSettings preserves unit field', () => {
+            const importData = {
+                ...DEFAULT_CHART_SETTINGS,
+                lines: {
+                    ...DEFAULT_LINE_SETTINGS,
+                    viscosity: { ...DEFAULT_LINE_SETTINGS.viscosity, unit: 'cP' as const }
+                }
+            };
+            const result = useChartSettingsStore.getState().importSettings(JSON.stringify(importData));
+            expect(result).toBe(true);
+            expect(useChartSettingsStore.getState().settings.lines.viscosity.unit).toBe('cP');
         });
     });
 });

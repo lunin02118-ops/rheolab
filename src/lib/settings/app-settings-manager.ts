@@ -15,14 +15,13 @@ export interface AppSettingsExport {
     version: number;
     exportDate: string;
     appVersion: string;
-    chart: {
-        display: Record<string, unknown>;
-        report: Record<string, unknown>;
-    };
+    chart: Record<string, unknown>;
     branding: {
         companyName: string;
         companyLogo: string | null;
         showCalibration: boolean;
+        showRawData: boolean;
+        reportLanguage: 'ru' | 'en';
     };
     analysis: ExpertSettings;
 }
@@ -35,6 +34,8 @@ const DEFAULT_BRANDING = {
     companyName: 'RheoLab Enterprise',
     companyLogo: null,
     showCalibration: false,
+    showRawData: false,
+    reportLanguage: 'ru' as const,
 };
 
 // === Export Function ===
@@ -49,14 +50,13 @@ export function exportAllSettings(): AppSettingsExport {
         version: CURRENT_VERSION,
         exportDate: new Date().toISOString(),
         appVersion: APP_VERSION,
-        chart: {
-            display: chartStore.settings as unknown as Record<string, unknown>,
-            report: chartStore.reportSettings as unknown as Record<string, unknown>,
-        },
+        chart: chartStore.settings as unknown as Record<string, unknown>,
         branding: {
             companyName: brandingStore.companyName,
             companyLogo: brandingStore.companyLogo,
             showCalibration: brandingStore.showCalibration,
+            showRawData: brandingStore.showRawData,
+            reportLanguage: brandingStore.reportLanguage,
         },
         analysis: analysisStore.expertSettings,
     };
@@ -164,13 +164,12 @@ export function importAllSettings(data: unknown): ImportResult {
         // Import chart settings
         if (settings.chart) {
             const chartStore = useChartSettingsStore.getState();
-            
-            if (settings.chart.display) {
-                chartStore.setSettings(settings.chart.display);
-            }
-            if (settings.chart.report) {
-                chartStore.setReportSettings(settings.chart.report);
-            }
+            // v8+ format: chart is a plain ChartSettings object
+            // v7 and earlier: chart was { display: ..., report: ... }
+            const chartData = (settings.chart as Record<string, unknown>).display
+                ? (settings.chart as Record<string, unknown>).display as Record<string, unknown>
+                : settings.chart as Record<string, unknown>;
+            chartStore.setSettings(chartData);
             imported.chart = true;
         }
 
@@ -186,6 +185,12 @@ export function importAllSettings(data: unknown): ImportResult {
             }
             if (settings.branding.showCalibration !== undefined) {
                 brandingStore.setShowCalibration(settings.branding.showCalibration);
+            }
+            if (settings.branding.showRawData !== undefined) {
+                brandingStore.setShowRawData(settings.branding.showRawData);
+            }
+            if (settings.branding.reportLanguage) {
+                brandingStore.setReportLanguage(settings.branding.reportLanguage);
             }
             imported.branding = true;
         }
@@ -235,13 +240,14 @@ export function resetAllSettings(): void {
     // Reset chart settings
     const chartStore = useChartSettingsStore.getState();
     chartStore.resetToDefaults();
-    chartStore.resetReportToDefaults();
 
     // Reset branding
     const brandingStore = useBrandingStore.getState();
     brandingStore.setCompanyName(DEFAULT_BRANDING.companyName);
     brandingStore.setCompanyLogo(DEFAULT_BRANDING.companyLogo);
     brandingStore.setShowCalibration(DEFAULT_BRANDING.showCalibration);
+    brandingStore.setShowRawData(DEFAULT_BRANDING.showRawData);
+    brandingStore.setReportLanguage(DEFAULT_BRANDING.reportLanguage);
 
     // Reset analysis settings
     const analysisStore = useAnalysisSettingsStore.getState();
@@ -252,8 +258,7 @@ export function resetAllSettings(): void {
 
 export interface SettingsSummary {
     chart: {
-        displayLinesCount: number;
-        reportLinesCount: number;
+        visibleLinesCount: number;
     };
     branding: {
         hasLogo: boolean;
@@ -274,8 +279,7 @@ export function getSettingsSummary(): SettingsSummary {
 
     return {
         chart: {
-            displayLinesCount: countVisibleLines(chartStore.settings.lines as unknown as Record<string, { visible: boolean }>),
-            reportLinesCount: countVisibleLines(chartStore.reportSettings.lines as unknown as Record<string, { visible: boolean }>),
+            visibleLinesCount: countVisibleLines(chartStore.settings.lines as unknown as Record<string, { visible: boolean }>),
         },
         branding: {
             hasLogo: brandingStore.companyLogo !== null,

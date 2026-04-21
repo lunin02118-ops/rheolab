@@ -1,11 +1,12 @@
 /**
- * Shared UI primitives for ChartSettingsManager and ReportSettingsManager.
+ * Shared UI primitives for ChartSettingsManager.
  *
  * Centralises LineConfigRow, SelectInput and the LINE_CONFIGS / PRECISION_OPTIONS
- * constants so neither manager duplicates them.
+ * constants.
  */
 
 import type { LineWidth, LineStyle, LineAxis, LineKey } from '@/lib/store/chart-settings-store';
+import type { LineUnit, ViscosityUnit, TemperatureUnit, PressureUnit, ShearRateUnit, RpmUnit } from '@/lib/store/chart-settings-types';
 
 // ── Accent colour token ──────────────────────────────────────────────────────
 // Two variants: 'blue' (interactive charts) and 'emerald' (print reports).
@@ -30,15 +31,19 @@ export interface LineConfigRowProps {
     width: LineWidth;
     style: LineStyle;
     axis: LineAxis;
+    unit: LineUnit;
+    unitOptions: LineUnit[];
     visible: boolean;
     disabled?: boolean;
     axisDisabled?: boolean;
+    unitDisabled?: boolean;
     /** 'blue' for interactive charts, 'emerald' for print reports. Defaults to 'blue'. */
     accent?: SettingsAccent;
     onColorChange: (color: string) => void;
     onWidthChange: (width: LineWidth) => void;
     onStyleChange: (style: LineStyle) => void;
     onAxisChange: (axis: LineAxis) => void;
+    onUnitChange: (unit: LineUnit) => void;
     onVisibleChange: (visible: boolean) => void;
 }
 
@@ -62,14 +67,18 @@ export function LineConfigRow({
     width,
     style,
     axis,
+    unit,
+    unitOptions,
     visible,
     disabled,
     axisDisabled,
+    unitDisabled,
     accent = 'blue',
     onColorChange,
     onWidthChange,
     onStyleChange,
     onAxisChange,
+    onUnitChange,
     onVisibleChange,
 }: LineConfigRowProps) {
     const { toggle: toggleCls, btn: btnCls } = ACCENT_CLASSES[accent];
@@ -151,6 +160,22 @@ export function LineConfigRow({
                     R
                 </button>
             </div>
+
+            {/* Unit selector */}
+            {unitOptions.length > 1 && (
+                <select
+                    value={unit}
+                    onChange={e => onUnitChange(e.target.value as LineUnit)}
+                    disabled={unitDisabled}
+                    aria-label={`Единицы измерения: ${label}`}
+                    title={unitDisabled ? 'Синхронизировано с Температурой' : undefined}
+                    className={`px-1.5 py-0.5 text-xs bg-secondary border border-border rounded text-foreground/80 focus:outline-none focus:ring-1 focus:ring-blue-500 ${unitDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                >
+                    {unitOptions.map(u => (
+                        <option key={u} value={u}>{u}</option>
+                    ))}
+                </select>
+            )}
         </div>
     );
 }
@@ -193,6 +218,16 @@ export const LINE_CONFIGS: { key: LineKey; label: string; disabled?: boolean }[]
     { key: 'pressure',        label: 'Давление (P)' },
     { key: 'rpm',             label: 'Обороты (RPM)' },
 ];
+
+/** Per-parameter unit options — only parameters with >1 option show a selector. */
+export const UNIT_OPTIONS: Record<LineKey, LineUnit[]> = {
+    viscosity:       ['mPa·s', 'Pa·s', 'cP'] as ViscosityUnit[],
+    temperature:     ['°C', '°F', 'K'] as TemperatureUnit[],
+    bathTemperature: ['°C', '°F', 'K'] as TemperatureUnit[],
+    shearRate:       ['1/s'] as ShearRateUnit[],
+    pressure:        ['bar', 'psi', 'MPa', 'kPa'] as PressureUnit[],
+    rpm:             ['RPM'] as RpmUnit[],
+};
 
 export const PRECISION_OPTIONS = [
     { value: 0, label: '0' },

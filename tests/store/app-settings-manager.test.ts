@@ -7,12 +7,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock functions need to be defined before vi.mock
 const mockSetSettings = vi.fn();
-const mockSetReportSettings = vi.fn();
 const mockResetToDefaults = vi.fn();
-const mockResetReportToDefaults = vi.fn();
 const mockSetCompanyName = vi.fn();
 const mockSetCompanyLogo = vi.fn();
 const mockSetShowCalibration = vi.fn();
+const mockSetShowRawData = vi.fn();
+const mockSetReportLanguage = vi.fn();
 const mockSetExpertSettings = vi.fn();
 const mockResetAnalysisToDefaults = vi.fn();
 
@@ -33,28 +33,11 @@ vi.mock('@/lib/store/chart-settings-store', () => ({
                 animationsEnabled: true,
                 tooltipEnabled: true,
             },
-            reportSettings: {
-                lines: {
-                    viscosity: { color: '#1e40af', width: 2, style: 'solid', visible: true, axis: 'left' },
-                    temperature: { color: '#c2410c', width: 2, style: 'solid', visible: true, axis: 'right' },
-                    shearRate: { color: '#7e22ce', width: 2, style: 'dashed', visible: false, axis: 'left' },
-                    pressure: { color: '#15803d', width: 2, style: 'dotted', visible: false, axis: 'right' },
-                    rpm: { color: '#a16207', width: 2, style: 'dashed', visible: false, axis: 'left' },
-                },
-                precision: { viscosity: 1, temperature: 1, pressure: 2, time: 2, shearRate: 1, rpm: 0 },
-                showGridLines: true,
-                gridOpacity: 0.3,
-                animationsEnabled: false,
-                tooltipEnabled: false,
-            },
             setSettings: mockSetSettings,
-            setReportSettings: mockSetReportSettings,
             resetToDefaults: mockResetToDefaults,
-            resetReportToDefaults: mockResetReportToDefaults,
         }),
     },
     DEFAULT_CHART_SETTINGS: {},
-    DEFAULT_REPORT_SETTINGS: {},
 }));
 
 vi.mock('@/lib/store/branding-store', () => ({
@@ -63,9 +46,13 @@ vi.mock('@/lib/store/branding-store', () => ({
             companyName: 'Test Company',
             companyLogo: 'data:image/png;base64,abc123',
             showCalibration: true,
+            showRawData: false,
+            reportLanguage: 'ru',
             setCompanyName: mockSetCompanyName,
             setCompanyLogo: mockSetCompanyLogo,
             setShowCalibration: mockSetShowCalibration,
+            setShowRawData: mockSetShowRawData,
+            setReportLanguage: mockSetReportLanguage,
         }),
     },
 }));
@@ -116,8 +103,8 @@ describe('App Settings Manager', () => {
             expect(exported.version).toBe(1);
             expect(exported.appVersion).toBe('0.1.134');
             expect(exported.exportDate).toBeDefined();
-            expect(exported.chart.display).toBeDefined();
-            expect(exported.chart.report).toBeDefined();
+            expect(exported.chart).toBeDefined();
+            expect(exported.chart.lines).toBeDefined();
             expect(exported.branding.companyName).toBe('Test Company');
             expect(exported.branding.companyLogo).toBe('data:image/png;base64,abc123');
         });
@@ -180,7 +167,7 @@ describe('App Settings Manager', () => {
         it('should accept valid settings', () => {
             const validSettings = {
                 version: 1,
-                chart: { display: {}, report: {} },
+                chart: { lines: {}, precision: {} },
                 branding: { companyName: 'Test' },
                 analysis: { viscosityShearRates: [40, 100, 170] },
             };
@@ -202,16 +189,12 @@ describe('App Settings Manager', () => {
         it('should import chart settings', () => {
             const settings = {
                 version: 1,
-                chart: {
-                    display: { showGridLines: false },
-                    report: { gridOpacity: 0.8 },
-                },
+                chart: { showGridLines: false, lines: {}, precision: {} },
             };
             const result = importAllSettings(settings);
             expect(result.success).toBe(true);
             expect(result.imported.chart).toBe(true);
             expect(mockSetSettings).toHaveBeenCalled();
-            expect(mockSetReportSettings).toHaveBeenCalled();
         });
 
         it('should import branding settings', () => {
@@ -222,6 +205,8 @@ describe('App Settings Manager', () => {
                     companyName: 'New Company',
                     companyLogo: null,
                     showCalibration: false,
+                    showRawData: true,
+                    reportLanguage: 'en',
                 },
             };
             const result = importAllSettings(settings);
@@ -251,7 +236,7 @@ describe('App Settings Manager', () => {
         it('should parse JSON and import', () => {
             const json = JSON.stringify({
                 version: 1,
-                chart: { display: {}, report: {} },
+                chart: { lines: {}, precision: {} },
             });
             const result = importSettingsFromJson(json);
             expect(result.success).toBe(true);
@@ -269,10 +254,11 @@ describe('App Settings Manager', () => {
             resetAllSettings();
             
             expect(mockResetToDefaults).toHaveBeenCalled();
-            expect(mockResetReportToDefaults).toHaveBeenCalled();
             expect(mockSetCompanyName).toHaveBeenCalledWith('RheoLab Enterprise');
             expect(mockSetCompanyLogo).toHaveBeenCalledWith(null);
             expect(mockSetShowCalibration).toHaveBeenCalledWith(false);
+            expect(mockSetShowRawData).toHaveBeenCalledWith(false);
+            expect(mockSetReportLanguage).toHaveBeenCalledWith('ru');
             expect(mockResetAnalysisToDefaults).toHaveBeenCalled();
         });
     });
@@ -281,8 +267,7 @@ describe('App Settings Manager', () => {
         it('should return current settings summary', () => {
             const summary = getSettingsSummary();
 
-            expect(summary.chart.displayLinesCount).toBe(3); // viscosity, temperature, shearRate
-            expect(summary.chart.reportLinesCount).toBe(2); // viscosity, temperature
+            expect(summary.chart.visibleLinesCount).toBe(3); // viscosity, temperature, shearRate
             expect(summary.branding.companyName).toBe('Test Company');
             expect(summary.branding.hasLogo).toBe(true);
             expect(summary.analysis.shearRatesCount).toBe(3);

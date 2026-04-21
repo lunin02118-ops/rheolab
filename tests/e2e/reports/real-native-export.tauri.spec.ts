@@ -107,8 +107,7 @@ test.describe('Real Native Export', () => {
     await dashboard.uploadFile(CHANDLER_SST_63);
     await dashboard.waitForAnalysis();
 
-    await page.getByTestId('ReportsNavButton').click();
-    await page.waitForLoadState('domcontentloaded');
+    await reports.goto();
     await reports.expectPdfButtonVisible();
 
     const download = await reports.downloadPdf();
@@ -126,8 +125,7 @@ test.describe('Real Native Export', () => {
     await dashboard.uploadFile(CHANDLER_SST_63);
     await dashboard.waitForAnalysis();
 
-    await page.getByTestId('ReportsNavButton').click();
-    await page.waitForLoadState('domcontentloaded');
+    await reports.goto();
     await reports.expectExcelButtonVisible();
 
     const download = await reports.downloadExcel();

@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
-import { BarChart3, Table, Droplets, Save, Settings } from 'lucide-react';
+import { BarChart3, Table, Droplets, Save, Settings, FileText } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
 import { CalibrationPanel } from '@/components/calibration/CalibrationPanel';
@@ -8,6 +8,7 @@ import { ChartErrorBoundary } from '@/components/shared/ChartErrorBoundary';
 import { RawDataTable } from '@/components/dashboard/raw-data-table';
 import { RecipePanel } from '@/components/analysis/recipe-panel';
 import { WaterAnalysisPanel } from '@/components/analysis/water-analysis-panel';
+import { ReportTab } from '@/components/analysis/ReportTab';
 import { CycleResultsTable } from '@/components/analysis/cycle-results-table';
 import { CycleEditorDialog } from '@/components/analysis/cycle-editor-dialog';
 import { ParsingLogs } from '@/components/dashboard/parsing-logs';
@@ -65,7 +66,7 @@ export function DashboardContent({
     patternOverride,
     setPatternOverride
 }: DashboardContentProps) {
-    const [activeTab, setActiveTab] = useState<'chart' | 'table' | 'recipe' | 'water' | 'calibration'>('chart');
+    const [activeTab, setActiveTab] = useState<'chart' | 'table' | 'recipe' | 'water' | 'calibration' | 'report'>('chart');
     const [editingCycleId, setEditingCycleId] = useState<number | null>(null);
 
     // Ref for the tab bar — used to scroll it into view on tab switch.
@@ -234,6 +235,20 @@ export function DashboardContent({
                 </button>
 
                 <button
+                    onClick={() => switchTab('report')}
+                    data-testid="ReportTabButton"
+                    role="tab"
+                    aria-selected={activeTab === 'report'}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'report'
+                        ? 'bg-purple-600 text-foreground'
+                        : 'bg-secondary text-muted-foreground hover:text-foreground'
+                        }`}
+                >
+                    <FileText className="w-4 h-4" />
+                    Отчёт
+                </button>
+
+                <button
                     onClick={onSaveClick}
                     data-testid="SaveExperimentButton"
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-foreground rounded-lg font-medium transition-colors ml-auto shadow-lg shadow-green-900/20"
@@ -292,6 +307,19 @@ export function DashboardContent({
                 {activeTab === 'calibration' && (
                     <div className="w-full">
                         <CalibrationPanel calibration={parseResult.metadata?.calibration} />
+                    </div>
+                )}
+
+                {activeTab === 'report' && (
+                    <div className="w-full">
+                        <ReportTab
+                            parseResult={parseResult}
+                            editedRecipe={editedRecipe}
+                            editedWaterParams={editedWaterParams}
+                            editedWaterSource={editedWaterSource}
+                            cycleResults={cycleResults}
+                            cycles={cycles}
+                        />
                     </div>
                 )}
             </section>

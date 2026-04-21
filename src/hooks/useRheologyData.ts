@@ -11,6 +11,8 @@ import { downsampleRheoPointsSmart, downsampleRheoPointsMultiChannel } from '@/l
 import { calculateSmartTouchPoints, type TouchPointInput } from '@/lib/utils/touch-point';
 import { columnarToRawPoints } from '@/lib/utils/columnar';
 import type { ColumnarData } from '@/types';
+import type { ViscosityUnit, TemperatureUnit, PressureUnit } from '@/lib/store/chart-settings-types';
+import { convertViscosity, convertTemperature, convertPressure, viscosityDecimals, pressureDecimals } from '@/lib/utils/unit-converters';
 
 /** Single raw measurement point from the Rust parser / DB. */
 export interface RheoPoint {
@@ -44,6 +46,13 @@ export interface TouchPointMarker {
     color: string;
 }
 
+export interface ChartUnitSettings {
+    viscosityUnit: ViscosityUnit;
+    temperatureUnit: TemperatureUnit;
+    bathTemperatureUnit: TemperatureUnit;
+    pressureUnit: PressureUnit;
+}
+
 interface UseRheologyDataParams {
     data: RheoPoint[];
     columnarData?: ColumnarData | null;
@@ -55,6 +64,7 @@ interface UseRheologyDataParams {
     viscosityThreshold: number;
     showTargetTime: boolean;
     targetTime: number;
+    units?: ChartUnitSettings;
 }
 
 interface UseRheologyDataResult {
@@ -71,11 +81,19 @@ type AoSComputeResult = {
     _shearRates: Float64Array;
 };
 
+const DEFAULT_UNITS: ChartUnitSettings = {
+    viscosityUnit: 'mPa·s',
+    temperatureUnit: '°C',
+    bathTemperatureUnit: '°C',
+    pressureUnit: 'bar',
+};
+
 function computeFromAoS(
     data: RheoPoint[],
     THRESHOLD: number,
     downsampleMode: string,
     timeShiftEnabled: boolean,
+    units: ChartUnitSettings = DEFAULT_UNITS,
 ): AoSComputeResult {
     let sampledData: RheoPoint[];
     if (downsampleMode === 'off') {
@@ -102,16 +120,19 @@ function computeFromAoS(
     const rpms = new Float64Array(sampledData.length);
     const bathTemperatures = new Float64Array(sampledData.length);
 
+    const vDec = Math.pow(10, viscosityDecimals(units.viscosityUnit));
+    const pDec = Math.pow(10, pressureDecimals(units.pressureUnit));
+
     for (let i = 0; i < sampledData.length; i++) {
         const p = sampledData[i];
         times[i] = Math.round(((p.time_sec - minTime) / 60) * 100) / 100;
-        viscosities[i] = Math.round(p.viscosity_cp * 10) / 10;
-        temperatures[i] = Math.round(p.temperature_c * 10) / 10;
+        viscosities[i] = Math.round(convertViscosity(p.viscosity_cp, units.viscosityUnit) * vDec) / vDec;
+        temperatures[i] = Math.round(convertTemperature(p.temperature_c, units.temperatureUnit) * 10) / 10;
         const shearRate = p.shear_rate ?? p.shear_rate_s1 ?? 0;
         shearRates[i] = shearRate ? Math.round(shearRate * 10) / 10 : 0;
-        pressures[i] = p.pressure_bar ? Math.round(p.pressure_bar * 100) / 100 : 0;
+        pressures[i] = p.pressure_bar ? Math.round(convertPressure(p.pressure_bar, units.pressureUnit) * pDec) / pDec : 0;
         rpms[i] = (p.speed_rpm ?? p.rpm) || 0;
-        bathTemperatures[i] = p.bath_temperature_c ? Math.round(p.bath_temperature_c * 10) / 10 : 0;
+        bathTemperatures[i] = p.bath_temperature_c ? Math.round(convertTemperature(p.bath_temperature_c, units.bathTemperatureUnit) * 10) / 10 : 0;
     }
 
     let maxVisc = -Infinity, minVisc = Infinity, sumVisc = 0;
@@ -120,17 +141,20 @@ function computeFromAoS(
     let maxPressure = -Infinity, hasPressure = false;
 
     for (const p of data) {
-        if (p.viscosity_cp > maxVisc) maxVisc = p.viscosity_cp;
-        if (p.viscosity_cp < minVisc) minVisc = p.viscosity_cp;
-        sumVisc += p.viscosity_cp;
-        if (p.temperature_c > maxTemp) maxTemp = p.temperature_c;
-        if (p.temperature_c < minTemp) minTemp = p.temperature_c;
-        sumTemp += p.temperature_c;
+        const v = convertViscosity(p.viscosity_cp, units.viscosityUnit);
+        if (v > maxVisc) maxVisc = v;
+        if (v < minVisc) minVisc = v;
+        sumVisc += v;
+        const t = convertTemperature(p.temperature_c, units.temperatureUnit);
+        if (t > maxTemp) maxTemp = t;
+        if (t < minTemp) minTemp = t;
+        sumTemp += t;
         const shearRate = p.shear_rate ?? p.shear_rate_s1;
         if (shearRate && shearRate > 0) { sumShearRate += shearRate; shearRateCount++; }
         if (p.pressure_bar !== undefined) {
             hasPressure = true;
-            if (p.pressure_bar > maxPressure) maxPressure = p.pressure_bar;
+            const pr = convertPressure(p.pressure_bar, units.pressureUnit);
+            if (pr > maxPressure) maxPressure = pr;
         }
     }
 
@@ -162,7 +186,9 @@ export function useRheologyData({
     viscosityThreshold,
     showTargetTime,
     targetTime,
+    units: unitsProp,
 }: UseRheologyDataParams): UseRheologyDataResult {
+    const units = unitsProp ?? DEFAULT_UNITS;
     // Memo 1 — heavy: downsample + typed-array conversion + statistics.
     // Only recomputes when the raw data or display-mode changes.
     const { uPlotData, stats, _times, _viscosities, _shearRates } = useMemo(() => {
@@ -190,25 +216,29 @@ export function useRheologyData({
                 let maxTemp = -Infinity, minTemp = Infinity, sumTemp = 0;
                 let sumShearRate = 0, shearRateCount = 0;
                 let maxPressure = -Infinity, hasPressure = false;
+                const cvDec = Math.pow(10, viscosityDecimals(units.viscosityUnit));
+                const cpDec = Math.pow(10, pressureDecimals(units.pressureUnit));
                 for (let i = 0; i < n; i++) {
                     times[i] = Math.round(((col.timeSec[i] - minTime) / 60) * 100) / 100;
-                    viscosities[i] = Math.round(col.viscosityCp[i] * 10) / 10;
-                    temperatures[i] = Math.round(col.temperatureC[i] * 10) / 10;
+                    viscosities[i] = Math.round(convertViscosity(col.viscosityCp[i], units.viscosityUnit) * cvDec) / cvDec;
+                    temperatures[i] = Math.round(convertTemperature(col.temperatureC[i], units.temperatureUnit) * 10) / 10;
                     const sr = col.shearRate[i] ?? 0;
                     shearRates[i] = sr ? Math.round(sr * 10) / 10 : 0;
                     const pb = col.pressureBar[i];
-                    pressures[i] = pb != null ? Math.round(pb * 100) / 100 : 0;
+                    pressures[i] = pb != null ? Math.round(convertPressure(pb, units.pressureUnit) * cpDec) / cpDec : 0;
                     rpms[i] = col.speedRpm[i] ?? 0;
                     const bath = col.bathTemperatureC?.[i];
-                    bathTemperatures[i] = bath != null ? Math.round(bath * 10) / 10 : 0;
-                    if (col.viscosityCp[i] > maxVisc) maxVisc = col.viscosityCp[i];
-                    if (col.viscosityCp[i] < minVisc) minVisc = col.viscosityCp[i];
-                    sumVisc += col.viscosityCp[i];
-                    if (col.temperatureC[i] > maxTemp) maxTemp = col.temperatureC[i];
-                    if (col.temperatureC[i] < minTemp) minTemp = col.temperatureC[i];
-                    sumTemp += col.temperatureC[i];
+                    bathTemperatures[i] = bath != null ? Math.round(convertTemperature(bath, units.bathTemperatureUnit) * 10) / 10 : 0;
+                    const cv = convertViscosity(col.viscosityCp[i], units.viscosityUnit);
+                    if (cv > maxVisc) maxVisc = cv;
+                    if (cv < minVisc) minVisc = cv;
+                    sumVisc += cv;
+                    const ct = convertTemperature(col.temperatureC[i], units.temperatureUnit);
+                    if (ct > maxTemp) maxTemp = ct;
+                    if (ct < minTemp) minTemp = ct;
+                    sumTemp += ct;
                     if (sr > 0) { sumShearRate += sr; shearRateCount++; }
-                    if (pb != null) { hasPressure = true; if (pb > maxPressure) maxPressure = pb; }
+                    if (pb != null) { hasPressure = true; const cpr = convertPressure(pb, units.pressureUnit); if (cpr > maxPressure) maxPressure = cpr; }
                 }
                 const stats: RheoStats = {
                     maxVisc, minVisc, avgVisc: sumVisc / n,
@@ -226,10 +256,10 @@ export function useRheologyData({
                 };
             }
             // n > THRESHOLD and downsampling needed: convert to AoS for LTTB
-            return computeFromAoS(columnarToRawPoints(col), THRESHOLD, downsampleMode, timeShiftEnabled);
+            return computeFromAoS(columnarToRawPoints(col), THRESHOLD, downsampleMode, timeShiftEnabled, units);
         }
 
-        // ── AoS fallback path (legacy callers without columnarData) ──────────
+        // ── AoS fallback path (legacy callers without columnarData) ────────────
         if (!data?.length) {
             return {
                 uPlotData: [[], [], [], [], [], [], []] as uPlot.AlignedData,
@@ -239,8 +269,8 @@ export function useRheologyData({
                 _shearRates: new Float64Array(0),
             };
         }
-        return computeFromAoS(data, THRESHOLD, downsampleMode, timeShiftEnabled);
-    }, [data, columnarData, timeShiftEnabled, downsampleMode, captureMode, pdfMode]);
+        return computeFromAoS(data, THRESHOLD, downsampleMode, timeShiftEnabled, units);
+    }, [data, columnarData, timeShiftEnabled, downsampleMode, captureMode, pdfMode, units]);
 
     // Memo 2 — light: touch-point markers.
     // Recomputes only when touch-point settings change (threshold slider, target

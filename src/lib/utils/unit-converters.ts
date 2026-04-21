@@ -1,0 +1,102 @@
+/**
+ * Unit conversion utilities for chart display.
+ *
+ * All raw data is stored in base units:
+ *   viscosity  → mPa·s
+ *   temperature → °C
+ *   pressure   → bar
+ *   shearRate  → 1/s
+ *   rpm        → RPM
+ *
+ * These converters transform base-unit values to the target display unit
+ * chosen in Settings → Charts → per-line unit selector.
+ */
+
+import type {
+    ViscosityUnit,
+    TemperatureUnit,
+    PressureUnit,
+    LineUnit,
+} from '@/lib/store/chart-settings-types';
+
+// ── Viscosity (base: mPa·s) ────────────────────────────────────────────
+
+export function convertViscosity(v: number, unit: ViscosityUnit): number {
+    switch (unit) {
+        case 'Pa·s':  return v / 1000;
+        case 'cP':    return v;        // mPa·s ≡ cP
+        case 'mPa·s': return v;
+        default:       return v;
+    }
+}
+
+export function viscosityDecimals(unit: ViscosityUnit): number {
+    return unit === 'Pa·s' ? 4 : 1;
+}
+
+// ── Temperature (base: °C) ──────────────────────────────────────────────
+
+export function convertTemperature(c: number, unit: TemperatureUnit): number {
+    switch (unit) {
+        case '°F': return c * 9 / 5 + 32;
+        case 'K':  return c + 273.15;
+        case '°C': return c;
+        default:   return c;
+    }
+}
+
+export function temperatureDecimals(unit: TemperatureUnit): number {
+    return unit === 'K' ? 1 : 1;
+}
+
+// ── Pressure (base: bar) ────────────────────────────────────────────────
+
+export function convertPressure(bar: number, unit: PressureUnit): number {
+    switch (unit) {
+        case 'psi':  return bar * 14.5038;
+        case 'MPa':  return bar * 0.1;
+        case 'kPa':  return bar * 100;
+        case 'bar':  return bar;
+        default:     return bar;
+    }
+}
+
+export function pressureDecimals(unit: PressureUnit): number {
+    switch (unit) {
+        case 'psi':  return 1;
+        case 'MPa':  return 3;
+        case 'kPa':  return 0;
+        default:     return 2;
+    }
+}
+
+// ── Generic dispatcher ──────────────────────────────────────────────────
+
+export type SeriesKey = 'viscosity' | 'temperature' | 'shearRate' | 'pressure' | 'rpm' | 'bathTemperature';
+
+/**
+ * Convert a single value from base unit to the display unit for a given series.
+ */
+export function convertValue(value: number, series: SeriesKey, unit: LineUnit): number {
+    switch (series) {
+        case 'viscosity':
+            return convertViscosity(value, unit as ViscosityUnit);
+        case 'temperature':
+        case 'bathTemperature':
+            return convertTemperature(value, unit as TemperatureUnit);
+        case 'pressure':
+            return convertPressure(value, unit as PressureUnit);
+        default:
+            return value;
+    }
+}
+
+/**
+ * Build a localised axis label from the parameter name and its unit.
+ */
+export function axisLabel(
+    paramName: string,
+    unit: LineUnit,
+): string {
+    return `${paramName} (${unit})`;
+}

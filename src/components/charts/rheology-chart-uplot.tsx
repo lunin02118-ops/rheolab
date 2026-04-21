@@ -1,4 +1,4 @@
-import React, { useRef, memo, forwardRef } from 'react';
+import React, { useRef, useMemo, memo, forwardRef } from 'react';
 import { UPlotChart } from './uplot-chart';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -71,11 +71,20 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
         shearRateAxis, pressureAxis,
     });
 
+    // ── Unit settings for data conversion ──────────────────────────────────
+    const chartUnits = useMemo((): import('@/hooks/useRheologyData').ChartUnitSettings => ({
+        viscosityUnit: (activeSettings.lines.viscosity.unit ?? 'mPa·s') as import('@/lib/store/chart-settings-types').ViscosityUnit,
+        temperatureUnit: (activeSettings.lines.temperature.unit ?? '°C') as import('@/lib/store/chart-settings-types').TemperatureUnit,
+        bathTemperatureUnit: (activeSettings.lines.bathTemperature?.unit ?? activeSettings.lines.temperature.unit ?? '°C') as import('@/lib/store/chart-settings-types').TemperatureUnit,
+        pressureUnit: (activeSettings.lines.pressure.unit ?? 'bar') as import('@/lib/store/chart-settings-types').PressureUnit,
+    }), [activeSettings]);
+
     // ── Data processing (downsample, stats, touch points) ──────────────────
     const { uPlotData, stats, touchPoints } = useRheologyData({
         data, columnarData, timeShiftEnabled, downsampleMode,
         captureMode, pdfMode,
         showTouchPoints, viscosityThreshold, showTargetTime, targetTime,
+        units: chartUnits,
     });
 
     // ── Chart sizing ────────────────────────────────────────────────────────
@@ -116,11 +125,11 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
         >
             {stats && !captureMode && !pdfMode && !previewMode && (
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-                    <StatCard label="Макс. вязкость" value={`${Math.round(stats.maxVisc)} сП`} color="blue" />
-                    <StatCard label="Ср. вязкость" value={`${Math.round(stats.avgVisc)} сП`} color="purple" />
-                    <StatCard label="Ср. температура" value={`${Math.round(stats.avgTemp)}°C`} color="orange" />
+                    <StatCard label="Макс. вязкость" value={`${stats.maxVisc.toFixed(chartUnits.viscosityUnit === 'Pa·s' ? 4 : 0)} ${chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit}`} color="blue" />
+                    <StatCard label="Ср. вязкость" value={`${stats.avgVisc.toFixed(chartUnits.viscosityUnit === 'Pa·s' ? 4 : 0)} ${chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit}`} color="purple" />
+                    <StatCard label="Ср. температура" value={`${Math.round(stats.avgTemp)}${chartUnits.temperatureUnit}`} color="orange" />
                     {stats.maxPressure !== null && (
-                        <StatCard label="Макс. давление" value={`${Math.round(stats.maxPressure * 10) / 10} бар`} color="green" />
+                        <StatCard label="Макс. давление" value={`${stats.maxPressure.toFixed(chartUnits.pressureUnit === 'kPa' ? 0 : 1)} ${chartUnits.pressureUnit === 'bar' ? 'бар' : chartUnits.pressureUnit}`} color="green" />
                     )}
                     <StatCard label="Длительность" value={`${Math.round(stats.duration)} мин`} color="green" />
                 </div>
@@ -138,13 +147,13 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
                                     <>
                                         {targetPoint && (
                                             language === 'en'
-                                                ? <span>At minute <b>{targetTime}</b>, viscosity was <b>{Math.round(targetPoint.viscosity)}</b> cP. </span>
-                                                : <span>На <b>{targetTime}</b> минуте вязкость составила <b>{Math.round(targetPoint.viscosity)}</b> сП. </span>
+                                                ? <span>At minute <b>{targetTime}</b>, viscosity was <b>{Math.round(targetPoint.viscosity)}</b> {chartUnits.viscosityUnit}. </span>
+                                                : <span>На <b>{targetTime}</b> минуте вязкость составила <b>{Math.round(targetPoint.viscosity)}</b> {chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit}. </span>
                                         )}
                                         {thresholdPoint && (
                                             language === 'en'
-                                                ? <span>Viscosity dropped to <b>{viscosityThreshold}</b> cP at minute <b>{thresholdPoint.time}</b>.</span>
-                                                : <span>Вязкость упала до <b>{viscosityThreshold}</b> сП на <b>{thresholdPoint.time}</b> минуте.</span>
+                                                ? <span>Viscosity dropped to <b>{viscosityThreshold}</b> {chartUnits.viscosityUnit} at minute <b>{thresholdPoint.time}</b>.</span>
+                                                : <span>Вязкость упала до <b>{viscosityThreshold}</b> {chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit} на <b>{thresholdPoint.time}</b> минуте.</span>
                                         )}
                                     </>
                                 );
@@ -157,12 +166,12 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
                                 <span className="text-foreground/80">
                                     {tp.type === 'threshold' ? (
                                         language === 'en'
-                                            ? <>Threshold {viscosityThreshold}cP: <b>{tp.time.toFixed(1)} min</b></>
-                                            : <>Порог {viscosityThreshold}cP: <b>{tp.time.toFixed(1)} мин</b></>
+                                            ? <>Threshold {viscosityThreshold}{chartUnits.viscosityUnit}: <b>{tp.time.toFixed(1)} min</b></>
+                                            : <>Порог {viscosityThreshold}{chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit}: <b>{tp.time.toFixed(1)} мин</b></>
                                     ) : (
                                         language === 'en'
-                                            ? <>@{targetTime}min: <b>{tp.viscosity.toFixed(1)} cP</b></>
-                                            : <>@{targetTime}мин: <b>{tp.viscosity.toFixed(1)} cP</b></>
+                                            ? <>@{targetTime}min: <b>{tp.viscosity.toFixed(1)} {chartUnits.viscosityUnit}</b></>
+                                            : <>@{targetTime}мин: <b>{tp.viscosity.toFixed(1)} {chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit}</b></>
                                     )}
                                 </span>
                             </div>

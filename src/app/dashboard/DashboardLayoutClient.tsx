@@ -64,9 +64,8 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
         // Dashboard page.  The cache holds cycles/steps/results by identity —
         // the same objects that React set as component state.  Keeping them
         // rooted at module scope prevents V8 from collecting the unmounted
-        // fiber tree's DOM nodes.  Preserve the cache when going to Reports
-        // (which re-uses the same analysis results).
-        if (prev === '/dashboard' && pathname !== '/dashboard' && pathname !== '/dashboard/reports') {
+        // fiber tree's DOM nodes.
+        if (prev === '/dashboard' && pathname !== '/dashboard') {
             clearAnalysisCache();
         }
         previousPathRef.current = pathname;
@@ -99,7 +98,6 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
                                 <NavButton label="Анализ" href="/dashboard" exact automationId="DashboardNavButton" />
                                 <NavButton label="Библиотека" href="/dashboard/library" automationId="LibraryNavButton" />
                                 <NavButton label="Сравнение" href="/dashboard/comparison" automationId="ComparisonNavButton" />
-                                <NavButton label="Отчёты" href="/dashboard/reports" automationId="ReportsNavButton" />
                                 <NavButton label="Настройки" href="/dashboard/settings" automationId="SettingsNavButton" />
                             </nav>
 

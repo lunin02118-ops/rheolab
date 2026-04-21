@@ -95,37 +95,43 @@ export function mapCycleResults(cycleResults: Map<number, GraceCycleResult>): Cy
 
 // ── Line settings builder (shared between PDF and Excel) ────────────────
 
-function buildLineSettings(reportSettings: ChartSettings) {
+function buildLineSettings(chartSettings: ChartSettings) {
     return {
         viscosity: {
-            color: reportSettings.lines.viscosity.color,
-            width: reportSettings.lines.viscosity.width,
-            style: reportSettings.lines.viscosity.style,
+            color: chartSettings.lines.viscosity.color,
+            width: chartSettings.lines.viscosity.width,
+            style: chartSettings.lines.viscosity.style,
+            unit: chartSettings.lines.viscosity.unit,
         },
         temperature: {
-            color: reportSettings.lines.temperature.color,
-            width: reportSettings.lines.temperature.width,
-            style: reportSettings.lines.temperature.style,
+            color: chartSettings.lines.temperature.color,
+            width: chartSettings.lines.temperature.width,
+            style: chartSettings.lines.temperature.style,
+            unit: chartSettings.lines.temperature.unit,
         },
         shearRate: {
-            color: reportSettings.lines.shearRate.color,
-            width: reportSettings.lines.shearRate.width,
-            style: reportSettings.lines.shearRate.style,
+            color: chartSettings.lines.shearRate.color,
+            width: chartSettings.lines.shearRate.width,
+            style: chartSettings.lines.shearRate.style,
+            unit: chartSettings.lines.shearRate.unit,
         },
         pressure: {
-            color: reportSettings.lines.pressure.color,
-            width: reportSettings.lines.pressure.width,
-            style: reportSettings.lines.pressure.style,
+            color: chartSettings.lines.pressure.color,
+            width: chartSettings.lines.pressure.width,
+            style: chartSettings.lines.pressure.style,
+            unit: chartSettings.lines.pressure.unit,
         },
         rpm: {
-            color: reportSettings.lines.rpm.color,
-            width: reportSettings.lines.rpm.width,
-            style: reportSettings.lines.rpm.style,
+            color: chartSettings.lines.rpm.color,
+            width: chartSettings.lines.rpm.width,
+            style: chartSettings.lines.rpm.style,
+            unit: chartSettings.lines.rpm.unit,
         },
         bathTemperature: {
-            color: reportSettings.lines.bathTemperature.color,
-            width: reportSettings.lines.bathTemperature.width,
-            style: reportSettings.lines.bathTemperature.style,
+            color: chartSettings.lines.bathTemperature.color,
+            width: chartSettings.lines.bathTemperature.width,
+            style: chartSettings.lines.bathTemperature.style,
+            unit: chartSettings.lines.bathTemperature.unit,
         },
     };
 }
@@ -200,7 +206,7 @@ export interface ReportBuildContext {
     cycles: RheoCycle[];
     companyName: string;
     companyLogo: string | null;
-    reportSettings: ChartSettings;
+    chartSettings: ChartSettings;
     language: 'ru' | 'en';
     unitSystem: 'SI' | 'SI_Pas' | 'Imperial';
     showTouchPoints: boolean;
@@ -216,7 +222,7 @@ export interface ReportBuildContext {
 // ── PDF builder ─────────────────────────────────────────────────────────
 
 export function buildPdfReportInput(ctx: ReportBuildContext): PdfReportInput {
-    const { reportSettings } = ctx;
+    const { chartSettings } = ctx;
 
     return {
         rawData: ctx.rawDataMapped,
@@ -270,14 +276,14 @@ export function buildPdfReportInput(ctx: ReportBuildContext): PdfReportInput {
             showRawData: ctx.showRawData,
             viscosityShearRates: ctx.reportViscosityRates,
             showAdvancedStats: ctx.isExpert,
-            showTemperature: reportSettings.lines.temperature.visible,
-            showShearRate: reportSettings.lines.shearRate.visible,
-            showPressure: reportSettings.lines.pressure.visible,
-            showBathTemperature: reportSettings.lines.bathTemperature.visible,
-            shearRateAxis: reportSettings.lines.shearRate.axis,
-            pressureAxis: reportSettings.lines.pressure.axis,
-            axisMode: reportSettings.comparisonAxisMode ?? 'individual',
-            lineSettings: buildLineSettings(reportSettings),
+            showTemperature: chartSettings.lines.temperature.visible,
+            showShearRate: chartSettings.lines.shearRate.visible,
+            showPressure: chartSettings.lines.pressure.visible,
+            showBathTemperature: chartSettings.lines.bathTemperature.visible,
+            shearRateAxis: chartSettings.lines.shearRate.axis,
+            pressureAxis: chartSettings.lines.pressure.axis,
+            axisMode: chartSettings.comparisonAxisMode ?? 'individual',
+            lineSettings: buildLineSettings(chartSettings),
         },
     };
 }
@@ -285,7 +291,7 @@ export function buildPdfReportInput(ctx: ReportBuildContext): PdfReportInput {
 // ── Excel builder ───────────────────────────────────────────────────────
 
 export function buildExcelReportInput(ctx: ReportBuildContext): ExcelReportInput {
-    const { reportSettings } = ctx;
+    const { chartSettings } = ctx;
 
     return {
         rawData: ctx.rawDataMapped,
@@ -320,10 +326,10 @@ export function buildExcelReportInput(ctx: ReportBuildContext): ExcelReportInput
         })() : undefined,
         settings: {
             unitSystem: ctx.unitSystem,
-            showTemperature: reportSettings.lines.temperature.visible,
-            showShearRate: reportSettings.lines.shearRate.visible,
-            showPressure: reportSettings.lines.pressure.visible,
-            showBathTemperature: reportSettings.lines.bathTemperature.visible,
+            showTemperature: chartSettings.lines.temperature.visible,
+            showShearRate: chartSettings.lines.shearRate.visible,
+            showPressure: chartSettings.lines.pressure.visible,
+            showBathTemperature: chartSettings.lines.bathTemperature.visible,
             showTouchPoints: ctx.showTouchPoints,
             showCalibration: ctx.showCalibration,
             showRawData: ctx.showRawData,
@@ -333,10 +339,10 @@ export function buildExcelReportInput(ctx: ReportBuildContext): ExcelReportInput
             language: ctx.language,
             viscosityShearRates: ctx.reportViscosityRates,
             showAdvancedStats: ctx.isExpert,
-            shearRateAxis: reportSettings.lines.shearRate.axis,
-            pressureAxis: reportSettings.lines.pressure.axis,
-            axisMode: reportSettings.comparisonAxisMode ?? 'individual',
-            lineSettings: buildLineSettings(reportSettings),
+            shearRateAxis: chartSettings.lines.shearRate.axis,
+            pressureAxis: chartSettings.lines.pressure.axis,
+            axisMode: chartSettings.comparisonAxisMode ?? 'individual',
+            lineSettings: buildLineSettings(chartSettings),
         },
         cycles: ctx.cycles?.map(c => ({
             type: c.type,

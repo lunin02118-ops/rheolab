@@ -32,18 +32,18 @@ import type { ChartSettings, ChartLineSettings } from '@/lib/store/chart-setting
 // Fixtures
 // ──────────────────────────────────────────────────────────────────
 
-const DEFAULT_REPORT_LINE_SETTINGS: ChartLineSettings = {
-    viscosity:       { color: '#1e40af', width: 2, style: 'solid',  visible: true,  axis: 'left'  as const },
-    temperature:     { color: '#c2410c', width: 2, style: 'solid',  visible: true,  axis: 'right' as const },
-    shearRate:       { color: '#7e22ce', width: 2, style: 'dashed', visible: false, axis: 'right' as const },
-    pressure:        { color: '#15803d', width: 2, style: 'dotted', visible: false, axis: 'right' as const },
-    rpm:             { color: '#a16207', width: 2, style: 'dashed', visible: false, axis: 'left'  as const },
-    bathTemperature: { color: '#ea580c', width: 2, style: 'dashed', visible: true,  axis: 'right' as const },
+const FIXTURE_LINE_SETTINGS: ChartLineSettings = {
+    viscosity:       { color: '#1e40af', width: 2, style: 'solid',  visible: true,  axis: 'left'  as const, unit: 'mPa·s' },
+    temperature:     { color: '#c2410c', width: 2, style: 'solid',  visible: true,  axis: 'right' as const, unit: '°C' },
+    shearRate:       { color: '#7e22ce', width: 2, style: 'dashed', visible: false, axis: 'right' as const, unit: '1/s' },
+    pressure:        { color: '#15803d', width: 2, style: 'dotted', visible: false, axis: 'right' as const, unit: 'bar' },
+    rpm:             { color: '#a16207', width: 2, style: 'dashed', visible: false, axis: 'left'  as const, unit: 'RPM' },
+    bathTemperature: { color: '#ea580c', width: 2, style: 'dashed', visible: true,  axis: 'right' as const, unit: '°C' },
 };
 
 function makeChartSettings(overrides?: Partial<ChartSettings>): ChartSettings {
     return {
-        lines: DEFAULT_REPORT_LINE_SETTINGS,
+        lines: FIXTURE_LINE_SETTINGS,
         precision: { viscosity: 1, temperature: 1, pressure: 2, time: 2, shearRate: 1, rpm: 0 },
         showGridLines: true,
         gridOpacity: 0.3,
@@ -101,7 +101,7 @@ function makeReportBuildContext(overrides?: Partial<ReportBuildContext>): Report
         cycles: [{ type: 'SST', steps: [{ avgShearRate: 170 }] }] as any,
         companyName: 'RheoLab',
         companyLogo: null,
-        reportSettings: makeChartSettings(),
+        chartSettings: makeChartSettings(),
         language: 'ru',
         unitSystem: 'SI',
         showTouchPoints: true,
@@ -342,12 +342,12 @@ describe('Report Regression: builder completeness', () => {
         expect(buildExcelReportInput(ctxBeginner).settings.showAdvancedStats).toBe(false);
     });
 
-    it('axisMode comes from reportSettings.comparisonAxisMode', () => {
+    it('axisMode comes from chartSettings.comparisonAxisMode', () => {
         const ctxInd = makeReportBuildContext({
-            reportSettings: makeChartSettings({ comparisonAxisMode: 'individual' }),
+            chartSettings: makeChartSettings({ comparisonAxisMode: 'individual' }),
         });
         const ctxShared = makeReportBuildContext({
-            reportSettings: makeChartSettings({ comparisonAxisMode: 'shared' }),
+            chartSettings: makeChartSettings({ comparisonAxisMode: 'shared' }),
         });
 
         expect(buildPdfReportInput(ctxInd).settings.axisMode).toBe('individual');
@@ -356,16 +356,16 @@ describe('Report Regression: builder completeness', () => {
         expect(buildExcelReportInput(ctxShared).settings.axisMode).toBe('shared');
     });
 
-    it('visibility flags come from reportSettings.lines.*.visible', () => {
+    it('visibility flags come from chartSettings.lines.*.visible', () => {
         const lines: ChartLineSettings = {
-            ...DEFAULT_REPORT_LINE_SETTINGS,
-            temperature:     { ...DEFAULT_REPORT_LINE_SETTINGS.temperature, visible: false },
-            shearRate:       { ...DEFAULT_REPORT_LINE_SETTINGS.shearRate, visible: true },
-            pressure:        { ...DEFAULT_REPORT_LINE_SETTINGS.pressure, visible: true },
-            bathTemperature: { ...DEFAULT_REPORT_LINE_SETTINGS.bathTemperature, visible: false },
+            ...FIXTURE_LINE_SETTINGS,
+            temperature:     { ...FIXTURE_LINE_SETTINGS.temperature, visible: false },
+            shearRate:       { ...FIXTURE_LINE_SETTINGS.shearRate, visible: true },
+            pressure:        { ...FIXTURE_LINE_SETTINGS.pressure, visible: true },
+            bathTemperature: { ...FIXTURE_LINE_SETTINGS.bathTemperature, visible: false },
         };
         const ctx = makeReportBuildContext({
-            reportSettings: makeChartSettings({ lines }),
+            chartSettings: makeChartSettings({ lines }),
         });
 
         const pdf = buildPdfReportInput(ctx);
@@ -457,14 +457,14 @@ describe('Report Regression: end-to-end builder→converter pipeline', () => {
      */
     it('PDF margin formula inputs: settings visibility flags match converter output', () => {
         const lines: ChartLineSettings = {
-            ...DEFAULT_REPORT_LINE_SETTINGS,
-            temperature:     { ...DEFAULT_REPORT_LINE_SETTINGS.temperature, visible: true },
-            shearRate:       { ...DEFAULT_REPORT_LINE_SETTINGS.shearRate, visible: true, axis: 'left' as const },
-            pressure:        { ...DEFAULT_REPORT_LINE_SETTINGS.pressure, visible: true, axis: 'right' as const },
-            bathTemperature: { ...DEFAULT_REPORT_LINE_SETTINGS.bathTemperature, visible: true },
+            ...FIXTURE_LINE_SETTINGS,
+            temperature:     { ...FIXTURE_LINE_SETTINGS.temperature, visible: true },
+            shearRate:       { ...FIXTURE_LINE_SETTINGS.shearRate, visible: true, axis: 'left' as const },
+            pressure:        { ...FIXTURE_LINE_SETTINGS.pressure, visible: true, axis: 'right' as const },
+            bathTemperature: { ...FIXTURE_LINE_SETTINGS.bathTemperature, visible: true },
         };
         const ctx = makeReportBuildContext({
-            reportSettings: makeChartSettings({ lines }),
+            chartSettings: makeChartSettings({ lines }),
         });
         const pdf = buildPdfReportInput(ctx);
         const wasm = convertReportInputToWasm(pdf) as any;
@@ -589,10 +589,10 @@ describe('Report Regression: settings independence', () => {
 
     it('changing axis_mode does not affect show_advanced_stats', () => {
         const ctxInd = makeReportBuildContext({
-            reportSettings: makeChartSettings({ comparisonAxisMode: 'individual' }),
+            chartSettings: makeChartSettings({ comparisonAxisMode: 'individual' }),
         });
         const ctxShared = makeReportBuildContext({
-            reportSettings: makeChartSettings({ comparisonAxisMode: 'shared' }),
+            chartSettings: makeChartSettings({ comparisonAxisMode: 'shared' }),
         });
 
         const pdf1 = buildPdfReportInput(ctxInd);
@@ -606,15 +606,15 @@ describe('Report Regression: settings independence', () => {
 
     it('shear_rate_axis does not change when axis_mode changes', () => {
         const ctxLeft = makeReportBuildContext({
-            reportSettings: makeChartSettings({
+            chartSettings: makeChartSettings({
                 comparisonAxisMode: 'shared',
-                lines: { ...DEFAULT_REPORT_LINE_SETTINGS, shearRate: { ...DEFAULT_REPORT_LINE_SETTINGS.shearRate, axis: 'left' as const } },
+                lines: { ...FIXTURE_LINE_SETTINGS, shearRate: { ...FIXTURE_LINE_SETTINGS.shearRate, axis: 'left' as const } },
             }),
         });
         const ctxRight = makeReportBuildContext({
-            reportSettings: makeChartSettings({
+            chartSettings: makeChartSettings({
                 comparisonAxisMode: 'shared',
-                lines: { ...DEFAULT_REPORT_LINE_SETTINGS, shearRate: { ...DEFAULT_REPORT_LINE_SETTINGS.shearRate, axis: 'right' as const } },
+                lines: { ...FIXTURE_LINE_SETTINGS, shearRate: { ...FIXTURE_LINE_SETTINGS.shearRate, axis: 'right' as const } },
             }),
         });
 

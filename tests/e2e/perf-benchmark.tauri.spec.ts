@@ -24,11 +24,26 @@ import { enableCdp, snap, linearSlope, type CdpSnap } from './cdp-helpers';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { CHANDLER_SST_63, GRACE_REPORT } from './fixtures';
+import {
+    appendPerfEntry, loadHistory, printComparison, getVersionInfo,
+    type PerfEntry,
+} from './perf-history';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const NAV_CYCLES  = Number(process.env.RHEOLAB_BENCH_NAV_CYCLES ?? 10);
 const OUTPUT_DIR  = path.resolve('outputs', 'e2e', 'perf');
+
+// ─── Shared collectors for perf-history aggregation ─────────────────────────
+const collected: {
+    idleHeap: PerfEntry['idleHeap'];
+    analysis: PerfEntry['analysis'];
+    navLeak: PerfEntry['navLeak'] | null;
+} = {
+    idleHeap: {},
+    analysis: [],
+    navLeak: null,
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -98,6 +113,11 @@ test.describe('[Perf/Tauri] Idle heap per route', () => {
             path.join(OUTPUT_DIR, `idle-heap-tauri-${runId}.json`),
             JSON.stringify(report, null, 2), 'utf8',
         );
+
+        // Collect for history
+        for (const [label, s] of Object.entries(routeSnapshots)) {
+            collected.idleHeap[label] = { heapMb: s.heapUsedMb, nodes: s.nodes };
+        }
 
         for (const [label, s] of Object.entries(routeSnapshots)) {
             expect(s.heapUsedMb,  `${label}: heap should be < 300 MB`).toBeLessThan(300);
@@ -184,6 +204,14 @@ test.describe('[Perf/Tauri] Native analysis timing', () => {
             JSON.stringify(report, null, 2), 'utf8',
         );
 
+        // Collect for history
+        collected.analysis = results.map(r => ({
+            fixture: r.fixture,
+            analysisMs: r.analysisMs,
+            uplotMs: r.uplotInitMs,
+            heapDeltaMb: r.heapDeltaMb,
+        }));
+
         for (const entry of results) {
             if (entry.analysisMs !== null) {
                 expect(entry.analysisMs,
@@ -261,9 +289,46 @@ test.describe('[Perf/Tauri] Navigation roundtrip — heap/node leak detection', 
             JSON.stringify(report, null, 2), 'utf8',
         );
 
+        // Collect for history
+        collected.navLeak = {
+            cycles: NAV_CYCLES,
+            slopeMbPerCycle: slope,
+            peakHeapMb: peakHeap,
+            nodesRatio,
+            baselineHeapMb: baseline.heapUsedMb,
+            finalHeapMb: final.heapUsedMb,
+        };
+
         expect(slope,
             `Heap slope ${slope.toFixed(3)} MB/cycle > 3 → route-level leak`).toBeLessThan(3);
         expect(nodesRatio,
             `DOM nodes ratio ${nodesRatio.toFixed(2)}× > 2 → DOM not cleaning up`).toBeLessThan(2);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Aggregate — append to perf-history.jsonl and print comparison
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe('[Perf/Tauri] History aggregation', () => {
+    test('append run to perf-history.jsonl and compare with previous', async () => {
+        const { version, gitSha } = await getVersionInfo();
+        const history = await loadHistory();
+
+        const entry: PerfEntry = {
+            timestamp: new Date().toISOString(),
+            version,
+            gitSha,
+            idleHeap: collected.idleHeap,
+            analysis: collected.analysis,
+            navLeak: collected.navLeak ?? {
+                cycles: 0, slopeMbPerCycle: 0, peakHeapMb: 0,
+                nodesRatio: 0, baselineHeapMb: 0, finalHeapMb: 0,
+            },
+        };
+
+        await appendPerfEntry(entry);
+        printComparison(entry, history);
+
+        console.log(`[Perf/Tauri] History now has ${history.length + 1} entries.`);
     });
 });

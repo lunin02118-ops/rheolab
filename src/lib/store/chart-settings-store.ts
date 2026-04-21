@@ -25,9 +25,7 @@ export type {
 } from './chart-settings-types';
 export {
     DEFAULT_LINE_SETTINGS,
-    DEFAULT_REPORT_LINE_SETTINGS,
     DEFAULT_CHART_SETTINGS,
-    DEFAULT_REPORT_SETTINGS,
 } from './chart-settings-defaults';
 
 import type {
@@ -40,9 +38,7 @@ import type {
 } from './chart-settings-types';
 import {
     DEFAULT_LINE_SETTINGS,
-    DEFAULT_REPORT_LINE_SETTINGS,
     DEFAULT_CHART_SETTINGS,
-    DEFAULT_REPORT_SETTINGS,
 } from './chart-settings-defaults';
 
 // === Line Key Type ===
@@ -51,20 +47,12 @@ export type LineKey = keyof ChartLineSettings;
 // === Store State Interface ===
 interface ChartSettingsState {
     settings: ChartSettings;
-    reportSettings: ChartSettings;
     
-    // Display settings methods
+    // Display settings methods (also used for PDF/Excel reports — single source of truth)
     setSettings: (settings: Partial<ChartSettings>) => void;
     setLineSettings: (lineKey: LineKey, lineSettings: Partial<LineSettings>) => void;
     setPrecision: (precision: Partial<ChartPrecision>) => void;
     resetToDefaults: () => void;
-    
-    // Report settings methods
-    setReportSettings: (settings: Partial<ChartSettings>) => void;
-    setReportLineSettings: (lineKey: LineKey, lineSettings: Partial<LineSettings>) => void;
-    setReportPrecision: (precision: Partial<ChartPrecision>) => void;
-    resetReportToDefaults: () => void;
-    copyDisplayToReport: () => void;
     
     // Export/Import
     exportSettings: () => string;
@@ -95,7 +83,6 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
     persist(
         (set, get) => ({
             settings: { ...DEFAULT_CHART_SETTINGS },
-            reportSettings: { ...DEFAULT_REPORT_SETTINGS },
 
             // === Display Settings Methods ===
             setSettings: (newSettings) =>
@@ -125,76 +112,27 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
             resetToDefaults: () =>
                 set({ settings: structuredClone(DEFAULT_CHART_SETTINGS) }),
 
-            // === Report Settings Methods ===
-            setReportSettings: (newSettings) =>
-                set((state) => ({
-                    reportSettings: { ...state.reportSettings, ...newSettings },
-                })),
-
-            setReportLineSettings: (lineKey, lineSettings) =>
-                set((state) => ({
-                    reportSettings: {
-                        ...state.reportSettings,
-                        lines: {
-                            ...state.reportSettings.lines,
-                            [lineKey]: { ...state.reportSettings.lines[lineKey], ...lineSettings },
-                        },
-                    },
-                })),
-
-            setReportPrecision: (precision) =>
-                set((state) => ({
-                    reportSettings: {
-                        ...state.reportSettings,
-                        precision: { ...state.reportSettings.precision, ...precision },
-                    },
-                })),
-
-            resetReportToDefaults: () =>
-                set({ reportSettings: structuredClone(DEFAULT_REPORT_SETTINGS) }),
-
-            copyDisplayToReport: () =>
-                set((state) => ({
-                    reportSettings: { 
-                        ...structuredClone(state.settings),
-                        animationsEnabled: false,
-                        tooltipEnabled: false,
-                    },
-                })),
-
             // === Export/Import ===
             exportSettings: () => {
-                const { settings, reportSettings } = get();
-                return JSON.stringify({ display: settings, report: reportSettings }, null, 2);
+                const { settings } = get();
+                return JSON.stringify(settings, null, 2);
             },
 
             importSettings: (json: string) => {
                 try {
                     const parsed = JSON.parse(json);
                     
-                    if (parsed.display && parsed.report) {
+                    // v8+ format: plain ChartSettings object
+                    // v7 and earlier: { display: ..., report: ... } — extract display part only
+                    const chartData = parsed.display ? parsed.display : parsed;
+                    
+                    if (chartData.lines && chartData.precision) {
                         set({
                             settings: {
                                 ...DEFAULT_CHART_SETTINGS,
-                                ...parsed.display,
-                                lines: { ...DEFAULT_LINE_SETTINGS, ...parsed.display.lines },
-                                precision: { ...DEFAULT_CHART_SETTINGS.precision, ...parsed.display.precision },
-                            },
-                            reportSettings: {
-                                ...DEFAULT_REPORT_SETTINGS,
-                                ...parsed.report,
-                                lines: { ...DEFAULT_REPORT_LINE_SETTINGS, ...parsed.report.lines },
-                                precision: { ...DEFAULT_REPORT_SETTINGS.precision, ...parsed.report.precision },
-                            },
-                        });
-                    } else if (parsed.lines && parsed.precision) {
-                        // Old format - apply to display settings only
-                        set({
-                            settings: {
-                                ...DEFAULT_CHART_SETTINGS,
-                                ...parsed,
-                                lines: { ...DEFAULT_LINE_SETTINGS, ...parsed.lines },
-                                precision: { ...DEFAULT_CHART_SETTINGS.precision, ...parsed.precision },
+                                ...chartData,
+                                lines: { ...DEFAULT_LINE_SETTINGS, ...chartData.lines },
+                                precision: { ...DEFAULT_CHART_SETTINGS.precision, ...chartData.precision },
                             },
                         });
                     } else {
@@ -212,16 +150,14 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
         {
             name: 'rheolab-chart-settings',
             storage: debouncedJsonStorage,
-            version: 7, // Increment when structure changes
+            version: 9, // v9: added per-line unit field
             // merge is called on every hydration — guarantees all default keys
             // (e.g. bathTemperature) are present even in old persisted states.
             merge: (persisted, current) => {
                 const p = (persisted ?? {}) as Record<string, unknown>;
                 const pSettings = (p.settings ?? {}) as Record<string, unknown>;
-                const pReport  = (p.reportSettings ?? {}) as Record<string, unknown>;
                 return {
                     ...current,
-                    ...p,
                     settings: {
                         ...current.settings,
                         ...pSettings,
@@ -230,25 +166,34 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                             ...((pSettings.lines ?? {}) as object),
                         },
                     },
-                    reportSettings: {
-                        ...current.reportSettings,
-                        ...pReport,
-                        // Always enforce report-only fields regardless of persisted value
-                        tooltipEnabled: false,
-                        animationsEnabled: false,
-                        lines: {
-                            ...DEFAULT_REPORT_LINE_SETTINGS,
-                            ...((pReport.lines ?? {}) as object),
-                        },
-                    },
                 };
             },
             migrate: (persistedState: unknown, version: number) => {
                 const state = persistedState as Record<string, unknown>;
 
+                // Migration to v9: ensure every line has a unit field
+                if (version < 9) {
+                    const s = state?.settings as Record<string, unknown> | undefined;
+                    const sLines = s?.lines as Record<string, Record<string, unknown>> | undefined;
+                    if (sLines) {
+                        const unitDefaults: Record<string, string> = {
+                            viscosity: 'mPa·s', temperature: '°C', shearRate: '1/s',
+                            pressure: 'bar', rpm: 'RPM', bathTemperature: '°C',
+                        };
+                        for (const [key, def] of Object.entries(unitDefaults)) {
+                            if (sLines[key] && !sLines[key].unit) {
+                                sLines[key] = { ...sLines[key], unit: def };
+                            }
+                        }
+                    }
+                    // Also drop reportSettings if still present (v8 migration)
+                    delete state.reportSettings;
+                }
+
                 // Migration to v7: set reportSettings.lines.shearRate.axis to 'right'
                 // (default was 'left', but Rust PDF renderer always puts shear rate on right
                 // in individual mode — preview and PDF must match)
+                // NOTE: reportSettings is dropped in v8, so this only applies to <7
                 if (version < 7) {
                     const r = state?.reportSettings as Record<string, unknown> | undefined;
                     const rLines = r?.lines as Record<string, unknown> | undefined;
@@ -261,47 +206,33 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                 // Migration to v6: add bathTemperature to existing line settings
                 if (version < 6) {
                     const s = state?.settings as Record<string, unknown> | undefined;
-                    const r = state?.reportSettings as Record<string, unknown> | undefined;
                     const sLines = s?.lines as Record<string, unknown> | undefined;
-                    const rLines = r?.lines as Record<string, unknown> | undefined;
                     if (sLines && !('bathTemperature' in sLines)) {
                         sLines.bathTemperature = { ...DEFAULT_LINE_SETTINGS.bathTemperature };
                     }
-                    if (rLines && !('bathTemperature' in rLines)) {
-                        rLines.bathTemperature = { ...DEFAULT_REPORT_LINE_SETTINGS.bathTemperature };
-                    }
+                    // reportSettings bathTemperature handled above (dropped in v8)
                 }
 
                 // Migration to v5: reset comparisonAxisMode to 'individual' (new default) if still at v4 default
                 if (version < 5) {
                     const s = state?.settings as Record<string, unknown> | undefined;
-                    const r = state?.reportSettings as Record<string, unknown> | undefined;
                     // Only reset if not explicitly customised (v4 set 'shared' as migration default)
                     if (s && s.comparisonAxisMode === 'shared') s.comparisonAxisMode = 'individual';
-                    if (r && r.comparisonAxisMode === 'shared') r.comparisonAxisMode = 'individual';
                 }
 
                 // Migration to v4: add comparisonAxisMode to existing settings
                 if (version < 4) {
                     const s = state?.settings as Record<string, unknown> | undefined;
-                    const r = state?.reportSettings as Record<string, unknown> | undefined;
                     if (s && !('comparisonAxisMode' in s)) {
                         s.comparisonAxisMode = 'shared';
-                    }
-                    if (r && !('comparisonAxisMode' in r)) {
-                        r.comparisonAxisMode = 'shared';
                     }
                 }
 
                 // Migration to v3: add downsampleMode to existing settings
                 if (version < 3) {
                     const s = state?.settings as Record<string, unknown> | undefined;
-                    const r = state?.reportSettings as Record<string, unknown> | undefined;
                     if (s && !('downsampleMode' in s)) {
                         s.downsampleMode = 'smart';
-                    }
-                    if (r && !('downsampleMode' in r)) {
-                        r.downsampleMode = 'off';
                     }
                 }
 
@@ -325,6 +256,7 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                                 style: (oldSettings.lineStyle as LineStyle) || 'solid',
                                 visible: true,
                                 axis: 'left',
+                                unit: 'mPa·s',
                             },
                             temperature: {
                                 color: oldColors?.temperature || DEFAULT_LINE_SETTINGS.temperature.color,
@@ -332,6 +264,7 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                                 style: (oldSettings.lineStyle as LineStyle) || 'solid',
                                 visible: oldVisibility?.temperature ?? true,
                                 axis: 'right',
+                                unit: '°C',
                             },
                             shearRate: {
                                 color: oldColors?.shearRate || DEFAULT_LINE_SETTINGS.shearRate.color,
@@ -339,6 +272,7 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                                 style: (oldSettings.lineStyle as LineStyle) || 'solid',
                                 visible: oldVisibility?.shearRate ?? true,
                                 axis: 'left',
+                                unit: '1/s',
                             },
                             pressure: {
                                 color: oldColors?.pressure || DEFAULT_LINE_SETTINGS.pressure.color,
@@ -346,6 +280,7 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                                 style: (oldSettings.lineStyle as LineStyle) || 'solid',
                                 visible: oldVisibility?.pressure ?? false,
                                 axis: 'right',
+                                unit: 'bar',
                             },
                             rpm: {
                                 color: oldColors?.rpm || DEFAULT_LINE_SETTINGS.rpm.color,
@@ -353,6 +288,7 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                                 style: (oldSettings.lineStyle as LineStyle) || 'solid',
                                 visible: oldVisibility?.rpm ?? false,
                                 axis: 'left',
+                                unit: 'RPM',
                             },
                             // bathTemperature was not in v1 — use the default settings
                             bathTemperature: { ...DEFAULT_LINE_SETTINGS.bathTemperature },
@@ -368,7 +304,6 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                                 animationsEnabled: oldSettings.animationsEnabled ?? true,
                                 tooltipEnabled: oldSettings.tooltipEnabled ?? true,
                             },
-                            reportSettings: DEFAULT_REPORT_SETTINGS,
                         };
                     }
                     
@@ -376,7 +311,6 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                     if (!oldSettings?.lines) {
                         return {
                             settings: DEFAULT_CHART_SETTINGS,
-                            reportSettings: DEFAULT_REPORT_SETTINGS,
                         };
                     }
                 }

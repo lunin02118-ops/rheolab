@@ -542,7 +542,7 @@ describe('Report Generation Input', () => {
   describe('axis mode — single source of truth', () => {
     /**
      * The axis layout mode ('individual' | 'shared') comes from
-     * reportSettings.comparisonAxisMode and must flow through the converter
+     * chartSettings.comparisonAxisMode and must flow through the converter
      * unchanged so the Rust generator produces the correct chart axes.
      *
      * 'individual' (Раздельные): viscosity on its own left scale;

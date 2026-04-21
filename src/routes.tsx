@@ -9,7 +9,6 @@ const RootPage = lazy(() => import('./app/page'));
 const DashboardPage = lazy(() => import('./app/dashboard/page'));
 const LibraryPage = lazy(() => import('./app/dashboard/library/page'));
 const ComparisonPage = lazy(() => import('./app/dashboard/comparison/page'));
-const ReportsPage = lazy(() => import('./app/dashboard/reports/page'));
 const SettingsPage = lazy(() => import('./app/dashboard/settings/page'));
 const ReagentsPage = lazy(() => import('./app/dashboard/reagents/page'));
 
@@ -34,7 +33,6 @@ export function AppRoutes() {
             <Route path="/dashboard" element={<RouteErrorBoundary name="Главная"><DashboardPage /></RouteErrorBoundary>} />
             <Route path="/dashboard/library" element={<RouteErrorBoundary name="Библиотека"><LibraryPage /></RouteErrorBoundary>} />
             <Route path="/dashboard/comparison" element={<RouteErrorBoundary name="Сравнение"><ComparisonPage /></RouteErrorBoundary>} />
-            <Route path="/dashboard/reports" element={<RouteErrorBoundary name="Отчёты"><ReportsPage /></RouteErrorBoundary>} />
             <Route path="/dashboard/settings" element={<RouteErrorBoundary name="Настройки"><SettingsPage /></RouteErrorBoundary>} />
             <Route path="/dashboard/reagents" element={<RouteErrorBoundary name="Реагенты"><ReagentsPage /></RouteErrorBoundary>} />
           </Route>

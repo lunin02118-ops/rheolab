@@ -38,6 +38,12 @@ vi.mock('@/components/analysis/cycle-results-table', () => ({
     CycleResultsTable: () => <div data-testid="MockCycleResultsTable" />,
 }));
 
+vi.mock('@/components/analysis/ReportTab', () => ({
+    ReportTab: ({ parseResult }: { parseResult: { metadata: { filename: string } } }) => (
+        <div data-testid="MockReportTab">Report for {parseResult.metadata.filename}</div>
+    ),
+}));
+
 vi.mock('@/components/analysis/cycle-editor-dialog', () => ({
     CycleEditorDialog: () => null,
 }));
@@ -169,6 +175,15 @@ describe('DashboardContent', () => {
         const waterTab = screen.getByTestId('WaterTabButton');
         fireEvent.click(waterTab);
         expect(screen.getByTestId('MockWaterAnalysisPanel')).toBeDefined();
+    });
+
+    it('switches to report tab on click and renders ReportTab', () => {
+        render(<DashboardContent {...makeProps()} />);
+        const reportBtn = screen.getByTestId('ReportTabButton');
+        fireEvent.click(reportBtn);
+        const panel = screen.getByTestId('MockReportTab');
+        expect(panel).toBeDefined();
+        expect(panel.textContent).toContain('test.xlsx');
     });
 
     // ── save callback ──────────────────────────────────────────────────────

@@ -43,7 +43,7 @@ export interface UseReportExportOptions {
     isExpert: boolean;
     companyName: string;
     companyLogo: string | null;
-    reportSettings: ChartSettings;
+    chartSettings: ChartSettings;
 }
 
 export function useReportExport(options: UseReportExportOptions) {
@@ -75,7 +75,7 @@ export function useReportExport(options: UseReportExportOptions) {
         cycles: options.cycles,
         companyName: options.companyName,
         companyLogo: options.companyLogo,
-        reportSettings: options.reportSettings,
+        chartSettings: options.chartSettings,
         language: options.language,
         unitSystem: options.unitSystem,
         showTouchPoints: options.showTouchPoints,
@@ -89,7 +89,7 @@ export function useReportExport(options: UseReportExportOptions) {
     }), [
         rawDataMapped, cycleResultsMapped, parseResult.metadata, legacyFields,
         options.editedRecipe, options.editedWaterParams, options.editedWaterSource,
-        options.cycles, options.companyName, options.companyLogo, options.reportSettings,
+        options.cycles, options.companyName, options.companyLogo, options.chartSettings,
         options.language, options.unitSystem, options.showTouchPoints,
         options.viscosityThreshold, options.showTargetTime, options.targetTime,
         options.showCalibration, options.showRawData, options.reportViscosityRates,

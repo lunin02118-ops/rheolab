@@ -6,10 +6,12 @@ interface BrandingState {
     companyLogo: string | null;
     showCalibration: boolean;
     showRawData: boolean;
+    reportLanguage: 'ru' | 'en';
     setCompanyName: (name: string) => void;
     setCompanyLogo: (logo: string | null) => void;
     setShowCalibration: (show: boolean) => void;
     setShowRawData: (show: boolean) => void;
+    setReportLanguage: (lang: 'ru' | 'en') => void;
 }
 
 export const useBrandingStore = create<BrandingState>()(
@@ -19,10 +21,12 @@ export const useBrandingStore = create<BrandingState>()(
             companyLogo: null,
             showCalibration: false,
             showRawData: false,
+            reportLanguage: 'ru',
             setCompanyName: (name) => set({ companyName: name }),
             setCompanyLogo: (logo) => set({ companyLogo: logo }),
             setShowCalibration: (show) => set({ showCalibration: show }),
             setShowRawData: (show) => set({ showRawData: show }),
+            setReportLanguage: (lang) => set({ reportLanguage: lang }),
         }),
         {
             name: 'rheolab-branding-storage',

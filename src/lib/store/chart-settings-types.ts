@@ -9,6 +9,26 @@ export type LineWidth = 1 | 2 | 3 | 4;
 export type LineStyle = 'solid' | 'dashed' | 'dotted';
 export type LineAxis = 'left' | 'right';
 
+// === Per-parameter unit types ===
+/** Viscosity unit family — drives K'/PV/YP derivation in reports. */
+export type ViscosityUnit = 'mPa·s' | 'Pa·s' | 'cP';
+/** Temperature unit. Bath temperature uses the same set. */
+export type TemperatureUnit = '°C' | '°F' | 'K';
+/** Pressure unit. */
+export type PressureUnit = 'bar' | 'psi' | 'MPa' | 'kPa';
+/** Shear rate unit. Single option kept as a union for forward compat. */
+export type ShearRateUnit = '1/s';
+/** Rotational speed unit. Single option kept as a union for forward compat. */
+export type RpmUnit = 'RPM';
+
+/** Discriminated union of every allowed unit string. */
+export type LineUnit =
+    | ViscosityUnit
+    | TemperatureUnit
+    | PressureUnit
+    | ShearRateUnit
+    | RpmUnit;
+
 /**
  * Downsampling mode for charts:
  *  - 'off'        — no downsampling, render every raw point
@@ -32,6 +52,15 @@ export interface LineSettings {
     style: LineStyle;
     visible: boolean;
     axis: LineAxis;
+    /**
+     * Display unit for this parameter. Independent per line (e.g. viscosity in
+     * Pa·s, temperature in °C, pressure in psi on the same chart).
+     *
+     * The migration guarantees every persisted line gets a sensible default;
+     * code reading this field should treat missing values as the default unit
+     * of the corresponding family.
+     */
+    unit: LineUnit;
 }
 
 // === All Lines Settings ===

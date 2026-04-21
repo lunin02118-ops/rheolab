@@ -129,7 +129,7 @@ test.describe('[Perf] Idle heap & DOM per route', () => {
             { testId: 'DashboardNavButton',   url: /\/dashboard$/,            label: 'Analysis'   },
             { testId: 'LibraryNavButton',      url: /\/dashboard\/library/,   label: 'Library'    },
             { testId: 'ComparisonNavButton',   url: /\/dashboard\/comparison/, label: 'Comparison' },
-            { testId: 'ReportsNavButton',      url: /\/dashboard\/reports/,   label: 'Reports'    },
+            { testId: 'SettingsNavButton',     url: /\/dashboard\/settings/,  label: 'Settings'   },
         ];
 
         const routeSnapshots: Record<string, CdpSnapshot & { navDurationMs: number }> = {};
@@ -326,7 +326,7 @@ test.describe('[Perf] Summary report', () => {
             { testId: 'DashboardNavButton',  url: /\/dashboard$/,             label: 'Analysis'   },
             { testId: 'LibraryNavButton',     url: /\/dashboard\/library/,    label: 'Library'    },
             { testId: 'ComparisonNavButton',  url: /\/dashboard\/comparison/, label: 'Comparison' },
-            { testId: 'ReportsNavButton',     url: /\/dashboard\/reports/,    label: 'Reports'    },
+            { testId: 'SettingsNavButton',    url: /\/dashboard\/settings/,   label: 'Settings'   },
         ]) {
             const navMs = await navigateTo(page, testId, url);
             await page.waitForTimeout(600);

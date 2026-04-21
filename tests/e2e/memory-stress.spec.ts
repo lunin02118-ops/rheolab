@@ -484,7 +484,7 @@ test.describe('[MemStress] Library + Dashboard navigation cycling', () => {
             await page.waitForTimeout(300);
 
             // Comparison в†’ Reports
-            await navigateTo(page, 'ReportsNavButton', /\/reports/);
+            await navigateTo(page, 'SettingsNavButton', /\/settings/);
             await page.waitForTimeout(300);
 
             // Reports в†’ Dashboard (back to experiment)

@@ -11,7 +11,6 @@ import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
 import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
 import { useLicense } from '@/hooks/useLicense';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
-import { useDisplaySettingsStore } from '@/lib/store/display-settings-store';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import type { RecipeComponent } from '@/lib/parsing/types';
@@ -35,17 +34,23 @@ export function ReportsPanel({
     cycles
 }: ReportsPanelProps) {
     // в”Ђв”Ђ Local settings state в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-    const [language, setLanguage] = useState<'ru' | 'en'>('ru');
-    const unitSystem = useDisplaySettingsStore(s => s.unitSystem) as 'SI' | 'SI_Pas' | 'Imperial';
+    const language = useBrandingStore(s => s.reportLanguage);
     const [showTouchPoints, setShowTouchPoints] = useState(true);
     const [viscosityThreshold, setViscosityThreshold] = useState(500);
     const [showTargetTime, setShowTargetTime] = useState(true);
     const [targetTime, setTargetTime] = useState(10);
 
     // в”Ђв”Ђ Global store subscriptions в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-    const reportSettings = useChartSettingsStore(s => s.reportSettings);
-    const { companyName, companyLogo, showCalibration, setShowCalibration, showRawData, setShowRawData } = useBrandingStore(
-        useShallow(s => ({ companyName: s.companyName, companyLogo: s.companyLogo, showCalibration: s.showCalibration, setShowCalibration: s.setShowCalibration, showRawData: s.showRawData, setShowRawData: s.setShowRawData }))
+    const chartSettings = useChartSettingsStore(s => s.settings);
+    // Derive unitSystem from per-line viscosity unit for Rust report backend
+    const unitSystem: 'SI' | 'SI_Pas' | 'Imperial' = (() => {
+        const vUnit = chartSettings.lines.viscosity.unit;
+        if (vUnit === 'Pa·s') return 'SI_Pas';
+        if (vUnit === 'cP') return 'Imperial';
+        return 'SI';
+    })();
+    const { companyName, companyLogo, showCalibration, setShowCalibration, showRawData, setShowRawData, setReportLanguage } = useBrandingStore(
+        useShallow(s => ({ companyName: s.companyName, companyLogo: s.companyLogo, showCalibration: s.showCalibration, setShowCalibration: s.setShowCalibration, showRawData: s.showRawData, setShowRawData: s.setShowRawData, setReportLanguage: s.setReportLanguage }))
     );
     const { result, isInitialized } = useLicense();
     const canUseCalibration = isInitialized && (result?.license?.features?.calibrationAnalysis ?? false);
@@ -68,7 +73,7 @@ export function ReportsPanel({
         language, unitSystem,
         showTouchPoints, viscosityThreshold, showTargetTime, targetTime,
         showCalibration, showRawData, reportViscosityRates, isExpert,
-        companyName, companyLogo, reportSettings,
+        companyName, companyLogo, chartSettings,
     });
 
     const chartRef = useRef<HTMLDivElement>(null);
@@ -78,7 +83,7 @@ export function ReportsPanel({
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Settings Column */}
             <ReportSettings
-                language={language} setLanguage={setLanguage}
+                language={language} setLanguage={setReportLanguage}
                 canUseCalibration={canUseCalibration}
                 showCalibration={showCalibration} setShowCalibration={setShowCalibration}
                 showRawData={showRawData} setShowRawData={setShowRawData}

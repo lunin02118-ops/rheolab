@@ -22,7 +22,7 @@ test.describe('Dashboard — Navigation', () => {
     await expect(page.getByTestId('DashboardNavButton')).toBeVisible();
     await expect(page.getByTestId('LibraryNavButton')).toBeVisible();
     await expect(page.getByTestId('ComparisonNavButton')).toBeVisible();
-    await expect(page.getByTestId('ReportsNavButton')).toBeVisible();
+    await expect(page.getByTestId('SettingsNavButton')).toBeVisible();
 
     // Navigate to library
     await page.getByTestId('LibraryNavButton').click();

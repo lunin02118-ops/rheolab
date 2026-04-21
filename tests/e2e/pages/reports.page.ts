@@ -1,8 +1,10 @@
 /**
- * Page Object — Reports page
+ * Page Object — Report tab (on Dashboard)
  *
- * Encapsulates interaction with report generation:
- * PDF / Excel export, calibration toggle, settings link.
+ * After UI-018 refactoring the separate /dashboard/reports route was removed.
+ * Reports are now generated via the "Report" tab inside DashboardContent.
+ * This page object clicks the ReportTabButton on the dashboard to open the
+ * report form, then interacts with its controls.
  */
 
 import { type Page, type Locator, type Download, expect } from '@playwright/test';
@@ -10,59 +12,58 @@ import { type Page, type Locator, type Download, expect } from '@playwright/test
 export class ReportsPage {
   readonly page: Page;
 
-  // — Report controls —
-  readonly pdfButton: Locator;
-  readonly excelButton: Locator;
+  // — Tab button on the dashboard toolbar —
+  readonly reportTabButton: Locator;
+
+  // — Report controls inside ReportTab —
+  readonly downloadButton: Locator;
   readonly calibrationToggle: Locator;
   readonly rawDataToggle: Locator;
-  readonly settingsLink: Locator;
+  readonly formatPdfCheckbox: Locator;
+  readonly formatExcelCheckbox: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.pdfButton = page.getByTestId('ReportsPdfButton');
-    this.excelButton = page.getByTestId('ReportsExcelButton');
+    this.reportTabButton = page.getByTestId('ReportTabButton');
+    this.downloadButton = page.getByTestId('ReportDownloadButton');
     this.calibrationToggle = page.getByTestId('ReportCalibrationToggle');
     this.rawDataToggle = page.getByTestId('ReportRawDataToggle');
-    this.settingsLink = page.getByTestId('ReportsSettingsLink');
+    this.formatPdfCheckbox = page.getByTestId('ReportFormatPdf');
+    this.formatExcelCheckbox = page.getByTestId('ReportFormatExcel');
   }
 
   // ===================== Actions =====================
 
-  /** Navigate to reports page */
+  /** Switch to the Report tab on the dashboard */
   async goto() {
-    if (this.page.url().includes('/dashboard/reports')) return;
-    const navBtn = this.page.getByTestId('ReportsNavButton');
-    if (await navBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await navBtn.click();
-      await this.page.waitForURL('**/dashboard/reports', { timeout: 10_000 });
-    } else {
-      const url = this.page.url();
-      const target = url && !url.startsWith('about:')
-        ? new URL('/dashboard/reports', url).href
-        : '/dashboard/reports';
-      await this.page.goto(target);
-    }
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.reportTabButton.click();
+    await expect(this.downloadButton).toBeVisible({ timeout: 10_000 });
   }
 
-  /** Navigate to the Reports tab via nav button */
+  /** Alias kept for backward compatibility with existing E2E tests */
   async navigateViaNav() {
-    await this.page.getByTestId('ReportsNavButton').click();
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.goto();
   }
 
-  /** Generate and download a PDF report. Returns the Download object. */
+  /** Click the unified download button (generates PDF+Excel based on checkboxes). */
+  async download(timeoutMs = 30_000): Promise<Download> {
+    const downloadPromise = this.page.waitForEvent('download', { timeout: timeoutMs });
+    await this.downloadButton.click();
+    return downloadPromise;
+  }
+
+  /** Download PDF only: uncheck Excel, ensure PDF checked, click download. */
   async downloadPdf(timeoutMs = 30_000): Promise<Download> {
-    const downloadPromise = this.page.waitForEvent('download', { timeout: timeoutMs });
-    await this.pdfButton.click();
-    return downloadPromise;
+    if (!(await this.formatPdfCheckbox.isChecked())) await this.formatPdfCheckbox.click();
+    if (await this.formatExcelCheckbox.isChecked()) await this.formatExcelCheckbox.click();
+    return this.download(timeoutMs);
   }
 
-  /** Generate and download an Excel report. Returns the Download object. */
+  /** Download Excel only: uncheck PDF, ensure Excel checked, click download. */
   async downloadExcel(timeoutMs = 30_000): Promise<Download> {
-    const downloadPromise = this.page.waitForEvent('download', { timeout: timeoutMs });
-    await this.excelButton.click();
-    return downloadPromise;
+    if (await this.formatPdfCheckbox.isChecked()) await this.formatPdfCheckbox.click();
+    if (!(await this.formatExcelCheckbox.isChecked())) await this.formatExcelCheckbox.click();
+    return this.download(timeoutMs);
   }
 
   /** Toggle calibration data in report */
@@ -75,22 +76,16 @@ export class ReportsPage {
     await this.rawDataToggle.click();
   }
 
-  /** Open report settings (navigates to settings page) */
-  async openSettings() {
-    await this.settingsLink.click();
-    await this.page.waitForURL('**/settings*', { timeout: 10_000 });
-  }
-
   // ===================== Assertions =====================
 
-  /** Assert PDF button is visible */
+  /** Assert the download button is visible (report tab is active & data loaded) */
   async expectPdfButtonVisible() {
-    await expect(this.pdfButton).toBeVisible({ timeout: 10_000 });
+    await expect(this.downloadButton).toBeVisible({ timeout: 10_000 });
   }
 
-  /** Assert Excel button is visible */
+  /** Alias — same button handles both formats now */
   async expectExcelButtonVisible() {
-    await expect(this.excelButton).toBeVisible({ timeout: 10_000 });
+    await expect(this.downloadButton).toBeVisible({ timeout: 10_000 });
   }
 
   /** Assert a download has the right extension and minimum size */
