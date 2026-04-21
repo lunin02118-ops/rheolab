@@ -14,7 +14,7 @@ concurrency:
 jobs:
   security-scan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -42,10 +42,21 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Audit Rust dependencies
+      - name: Cache cargo-audit binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: cargo-audit-${{ runner.os }}-v0.22.1
+
+      - name: Install cargo-audit (if not cached)
         run: |
-          cargo install cargo-audit --locked
-          cd src-tauri && cargo audit
+          if ! command -v cargo-audit &> /dev/null; then
+            cargo install cargo-audit --locked --version 0.22.1
+          fi
+
+      - name: Audit Rust dependencies
+        working-directory: src-tauri
+        run: cargo audit
 
   linux-quality:
     runs-on: ubuntu-24.04

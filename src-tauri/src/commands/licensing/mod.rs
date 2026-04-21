@@ -398,6 +398,8 @@ fn make_channel_token(label: &str, key: &str) -> String {
     // 5-minute rolling window — limits replay exposure while tolerating clock skew.
     let window = chrono::Utc::now().timestamp() / 300;
     let message = format!("{}:{}", label, window);
+    // HMAC-SHA256 accepts any key length by design — new_from_slice is infallible here.
+    #[allow(clippy::expect_used)]
     let mut mac = HmacSha256::new_from_slice(key.as_bytes())
         .expect("HMAC accepts any key size");
     mac.update(message.as_bytes());

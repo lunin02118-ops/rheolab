@@ -123,8 +123,10 @@ pub(super) fn get_integrity_key() -> String {
 
 pub(super) fn sign_data(value: &str) -> String {
     let key = get_integrity_key();
+    // HMAC-SHA256 accepts any key length by design — new_from_slice is infallible here.
+    #[allow(clippy::expect_used)]
     let mut mac =
-        <HmacSha256 as Mac>::new_from_slice(key.as_bytes()).expect("HMAC can take key of any size");
+        <HmacSha256 as Mac>::new_from_slice(key.as_bytes()).expect("HMAC accepts any key size");
     mac.update(value.as_bytes());
     let result = mac.finalize();
     hex::encode(&result.into_bytes())
@@ -168,6 +170,8 @@ pub(super) fn derive_storage_key(machine_id: &str) -> [u8; 32] {
         machine_id.as_bytes(),
     );
     let mut okm = [0u8; 32];
+    // HKDF-SHA256 can produce up to 255*32 = 8160 bytes; 32 is always valid.
+    #[allow(clippy::expect_used)]
     hk.expand(b"rheolab storage key v1", &mut okm)
         .expect("HKDF expand: 32 bytes is always a valid output length for SHA-256");
     okm
@@ -176,8 +180,10 @@ pub(super) fn derive_storage_key(machine_id: &str) -> [u8; 32] {
 /// Legacy key derivation used before Phase 6.8 (HMAC-SHA256 single-block).
 /// Kept for backward-compatible decryption of existing v2 GCM blobs and v1 CBC blobs.
 fn derive_storage_key_legacy(machine_id: &str) -> [u8; 32] {
+    // HMAC-SHA256 accepts any key length by design — new_from_slice is infallible here.
+    #[allow(clippy::expect_used)]
     let mut mac = <HmacSha256 as Mac>::new_from_slice(STORAGE_SALT.as_bytes())
-        .expect("HMAC can take key of any size");
+        .expect("HMAC accepts any key size");
     mac.update(machine_id.as_bytes());
     let result = mac.finalize();
     let bytes = result.into_bytes();
