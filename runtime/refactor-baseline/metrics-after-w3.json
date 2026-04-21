@@ -1,0 +1,184 @@
+{
+  "generatedAt": "2026-04-21T18:30:07.311Z",
+  "tool": "scripts/audit/snapshot-metrics.js",
+  "totals": {
+    "rustLoc": 37362,
+    "tsLoc": 33211,
+    "rustFiles": 188,
+    "tsFiles": 231
+  },
+  "loc": {
+    "srcTauri": {
+      "files": 108,
+      "loc": 21490
+    },
+    "rheolabCore": {
+      "files": 80,
+      "loc": 15872
+    },
+    "srcTs": {
+      "files": 231,
+      "loc": 33211
+    }
+  },
+  "oversizedFiles": {
+    "rustLimit": 500,
+    "rustOversize": [
+      {
+        "path": "src-tauri/src/commands/backup/restore_tests.rs",
+        "loc": 674
+      },
+      {
+        "path": "src-tauri/src/commands/licensing/licensing_tests.rs",
+        "loc": 647
+      },
+      {
+        "path": "src-tauri/src/db/migration_tests.rs",
+        "loc": 543
+      },
+      {
+        "path": "src/rust/rheolab-core/src/report_generator/pdf/template/mod.rs",
+        "loc": 502
+      }
+    ],
+    "tsLimit": 400,
+    "tsOversize": [
+      {
+        "path": "src/lib/utils/touch-point.ts",
+        "loc": 443
+      },
+      {
+        "path": "src/lib/store/chart-settings-store.ts",
+        "loc": 423
+      },
+      {
+        "path": "src/app/dashboard/page.tsx",
+        "loc": 411
+      }
+    ]
+  },
+  "rustQuality": {
+    "total": {
+      "unwrap": 0,
+      "expect": 43,
+      "panic": 0,
+      "todo": 0,
+      "unimplemented": 0
+    },
+    "topOffenders": [
+      {
+        "path": "src/rust/rheolab-core/src/parser/filename_parser.rs",
+        "unwrap": 0,
+        "expect": 13,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/detectors/classify.rs",
+        "unwrap": 0,
+        "expect": 6,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src-tauri/src/commands/licensing/crypto.rs",
+        "unwrap": 0,
+        "expect": 3,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/date_detector.rs",
+        "unwrap": 0,
+        "expect": 3,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/calibration/parsers/chandler.rs",
+        "unwrap": 0,
+        "expect": 3,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/report_generator/typst_renderer.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/row_mapper/detection.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/rheo_parser/csv_parser.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/rheo_parser/workbook.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/detectors/repeating.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/analysis/hydration.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/examples/gen_pdf.rs",
+        "unwrap": 0,
+        "expect": 2,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      },
+      {
+        "path": "src/rust/rheolab-core/src/parser/calibration/parsers/bsl.rs",
+        "unwrap": 0,
+        "expect": 1,
+        "panic": 0,
+        "todo": 0,
+        "unimplemented": 0
+      }
+    ],
+    "note": "Counts exclude `#[cfg(test)]` modules and individual `#[test]` bodies. Strings and comments stripped before matching."
+  },
+  "tauriCommands": {
+    "defined": 90,
+    "registered": 0
+  },
+  "mojibake": {
+    "total": 0,
+    "byPattern": {}
+  }
+}

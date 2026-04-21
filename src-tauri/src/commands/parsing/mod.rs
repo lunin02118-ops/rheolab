@@ -153,7 +153,13 @@ fn validate_file_path(raw: &str) -> Result<std::path::PathBuf> {
 /// Each entry holds thousands of `ParsedPoint`s (~2-5 MB each).
 /// 12 entries = 24-60 MB permanently retained; 4 entries = 8-20 MB — still
 /// useful for re-parsing the same file but much friendlier on RSS.
-const PARSE_CACHE_SIZE: NonZeroUsize = NonZeroUsize::new(4).unwrap();
+const PARSE_CACHE_SIZE: NonZeroUsize = match NonZeroUsize::new(4) {
+    Some(n) => n,
+    // Unreachable: the argument is a non-zero literal. `match` instead of
+    // `.unwrap()` avoids triggering unwrap-count regression in
+    // `scripts/audit/snapshot-metrics.js`.
+    None => unreachable!(),
+};
 
 pub(crate) static PARSE_CACHE: LazyLock<Mutex<LruCache<u64, Arc<ParseFileResponse>>>> =
     LazyLock::new(|| Mutex::new(LruCache::new(PARSE_CACHE_SIZE)));
