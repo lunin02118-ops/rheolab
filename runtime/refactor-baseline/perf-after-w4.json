@@ -1,0 +1,76 @@
+{
+  "scenario": "full-benchmark-summary",
+  "runId": "1776796999366",
+  "generatedAt": "2026-04-21T18:43:25.059Z",
+  "navCycles": 5,
+  "idleHeapPerRoute": {
+    "Analysis": {
+      "heapUsedMb": 6.48,
+      "nodes": 529,
+      "navMs": 34
+    },
+    "Library": {
+      "heapUsedMb": 7.52,
+      "nodes": 1092,
+      "navMs": 24
+    },
+    "Comparison": {
+      "heapUsedMb": 8.07,
+      "nodes": 1375,
+      "navMs": 22
+    },
+    "Settings": {
+      "heapUsedMb": 7.35,
+      "nodes": 1541,
+      "navMs": 25
+    }
+  },
+  "analysis": {
+    "fixture": "Chandler SST",
+    "heapDeltaMb": 2.22,
+    "nodesDelta": 388,
+    "analysisMs": 0,
+    "uplotInitInstances": 1,
+    "avgUplotInitMs": 3
+  },
+  "navigationLeak": {
+    "baselineHeapMb": 9.69,
+    "finalHeapMb": 10.26,
+    "heapDeltaMb": 0.57,
+    "baselineNodes": 1929,
+    "finalNodes": 3062,
+    "nodesDelta": 1133,
+    "samples": [
+      {
+        "cycle": 0,
+        "heapMb": 9.69,
+        "nodes": 1929
+      },
+      {
+        "cycle": 1,
+        "heapMb": 7.86,
+        "nodes": 1352
+      },
+      {
+        "cycle": 2,
+        "heapMb": 7.93,
+        "nodes": 2493
+      },
+      {
+        "cycle": 3,
+        "heapMb": 7.33,
+        "nodes": 780
+      },
+      {
+        "cycle": 4,
+        "heapMb": 10.48,
+        "nodes": 1921
+      },
+      {
+        "cycle": 5,
+        "heapMb": 10.26,
+        "nodes": 3062
+      }
+    ]
+  }
+}

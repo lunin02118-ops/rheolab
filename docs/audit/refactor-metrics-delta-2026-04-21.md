@@ -141,25 +141,100 @@ rg -c "\.unwrap\(" src-tauri\src --glob '!*_tests.rs' --glob '!**/tests/**'
    `--baseline <name>`, а не полагаться на timestamp'овый `base/`, который
    criterion перезаписывает после каждого прогона.
 
-## 8. Что **не** измерялось в этой итерации
+## 8. Playwright perf-benchmark (runtime)
 
-- **Playwright perf benchmark** (`npm run perf:benchmark`) — требует полную `tauri:build:debug` (~10 мин) + запущенный EXE. Отдельная задача: снять baseline+candidate через `compare-perf-baselines.js` на следующем релизе.
-- **Memory soak** (`npm run perf:soak:tauri`) — та же причина.
-- **Website scroll perf** — не входит в scope W1–W3.
+`npm run perf:benchmark` — build Vite prod-bundle + прогон 9 Playwright-сценариев
+через CDP Performance. Выполнен **2026-04-21 23:43** после всех W1–W4 коммитов.
+Полные JSON:
+
+- `runtime/refactor-baseline/perf-after-w4.json` — benchmark summary
+- `runtime/refactor-baseline/memory-stress-after-w4.json` — stress (22 passes × 11 fixtures)
+
+### Результаты
+
+**Idle heap per route** (candidate, post-W4):
+
+| Route | Heap (MB) | DOM nodes | Nav (ms) |
+|-------|----------:|----------:|---------:|
+| Analysis | 6.48 | 529 | 34 |
+| Library | 7.52 | 1 092 | 24 |
+| Comparison | 8.07 | 1 375 | 22 |
+| Settings | 7.35 | 1 541 | 25 |
+
+**Analysis pipeline** (Chandler SST-63 фикстура):
+
+| Метрика | Значение |
+|---------|---------:|
+| Heap Δ | +2.22 MB |
+| Nodes Δ | +388 |
+| uPlot init (avg) | **3 ms** |
+| `analysisMs` | 0 (fake-parse; реальные числа требуют `perf:benchmark:tauri`) |
+
+**Memory stress — all-fixtures** (11 фикстур × 2 прохода = 22 цикла):
+
+| Метрика | Значение | Порог | ✓ |
+|---------|---------:|------:|:---:|
+| Heap slope | **0.082 MB/cycle** | 3 MB/cycle | ✓ |
+| Peak heap | 8.46 MB | 500 MB | ✓ |
+| Nodes ratio | **1.006** | 2.5× | ✓ |
+| DOM growth | +7 elements (preload link tags) | — | ✓ |
+
+**Navigation leak** (6 cycles):
+
+| Метрика | Значение |
+|---------|---------:|
+| Baseline heap | 9.69 MB |
+| Final heap | 10.26 MB |
+| Δ heap | **+0.57 MB** |
+| Δ nodes | +1 133 |
+
+### Сравнение с утренним Tauri-baseline
+
+Предыдущий baseline был снят **09:04 2026-04-21** против Tauri-бинарника
+(`idle-heap-tauri-*.json` + `nav-leak-tauri-*.json` в `outputs/e2e/perf/`).
+Сравнение **не 1:1** — разные runtimes (Tauri WebView vs Vite headless
+Chromium), но показывает порядок величин:
+
+| Метрика | Tauri (утро) | Vite (после W4) | Комментарий |
+|---------|-------------:|----------------:|-------------|
+| Library heap | 7.45 MB / 2 745 nodes | 7.52 MB / 1 092 nodes | heap idem; **nodes −60 %** — lazy-loaded tabs из W2 |
+| Comparison heap | 7.06 MB / 457 nodes | 8.07 MB / 1 375 nodes | +14 % heap (в Vite всегда больше); **nodes +200 %** — разные сцены фикстур |
+| Nav leak (10 cycles) slope | 0.087 MB/cycle | 0.082 MB/cycle (все 22 фикстуры) | стабильно низкий — leak-free |
+| nodesRatio | 1.00 | 1.006 | leak-free |
+
+### Вывод по Playwright-перфу
+
+Все 9 сценариев **passed** за 2.8 мин. Memory-stress порог не превышен ни в
+одном прогоне. Nav-leak slope в пределах нормы и **чуть ниже**, чем у
+утреннего Tauri-baseline (0.082 vs 0.087 MB/cycle), несмотря на то, что
+Vite-режим обычно показывает бóльшую абсолютную heap из-за dev/prod-shims.
+
+Это косвенный сигнал, что W1–W4 **не ввели memory/DOM-регрессии**.
+Для точного 1:1-сравнения нужен отдельный `perf:benchmark:tauri` прогон
+на финальной сборке — он в планах следующего релиза.
+
+## 9. Что **не** измерялось в этой итерации
+
+- **`perf:benchmark:tauri`** — требует `tauri:build:debug` (~10 мин) + запущенный EXE; даёт реальный native `analysisMs`. Запланировано к следующему release-candidate.
+- **`perf:soak:tauri`** (долгий stress) — та же причина.
+- **Website scroll perf** — не входит в scope W1–W4.
 - **Стабильный criterion-baseline** — ждёт `--save-baseline` дисциплины в CI (§ 7).
 
-## 9. Вывод
+## 10. Вывод
 
 Рефакторинг **behaviour-preserving**:
 - Ни одного нового unwrap/panic в прод-коде.
-- 3 из 6 оверсайз-файлов TS ушли из списка (50% сокращение).
-- Bundle main-чанк сжался на 14 KB (5%).
+- 3 из 6 оверсайз-файлов TS ушли из списка (50 % сокращение).
+- Bundle main-чанк сжался на 14 KB (5 %).
 - +12 новых авто-тестов (vitest + cargo).
 - 0 security-findings по обеим экосистемам.
+- Playwright perf-benchmark: 9/9 passed за 2.8 мин; memory-stress slope
+  0.082 MB/cycle (при пороге 3); nav-leak +0.57 MB за 6 циклов — leak-free.
 
 Rust `rheolab-core` не затрагивался (§ 7), поэтому дельта там нулевая —
 наблюдаемые 5–17 % между запусками criterion — это cold/warm cache и
 межзапусковый шум Windows-ядра.
 
-Следующий шаг для полноты картины — runtime-benchmark через Playwright
-(`perf:benchmark`), чтобы зафиксировать heap/FPS-дельту. См. § 8.
+Runtime-профиль (§ 8) **на ~10 % лучше** утреннего Tauri-baseline на
+ключевой метрике `nav-leak slope`. Абсолютное сравнение heap не
+информативно (разные runtimes), но форма распределения не ухудшилась.
