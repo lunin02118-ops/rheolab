@@ -373,4 +373,90 @@ mod tests {
         assert!(result.mapping.shear_rate_col.is_some()); // "Shear Rate"
         assert!(result.mapping.shear_stress_col.is_some()); // "Shear Stress"
     }
+
+    // ── find_raw_data_sections --------------------------------------------------
+    //
+    // These tests pin down the current contract so that any future refactor
+    // that accidentally flips the priority-vs-fallback logic (which was the
+    // root cause of the Ofite 1100 report being silently truncated in
+    // pre-refactor builds) will light up loudly.
+
+    fn marker_row(s: &str) -> Vec<String> {
+        vec![s.to_string()]
+    }
+
+    fn bulk_row(values: &[&str]) -> Vec<String> {
+        values.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn find_sections_picks_priority_when_log_data_header_present() {
+        // "Log Data:" wins — "Sweep Data:" is treated as a pre-computed
+        // summary dupe and intentionally skipped. This matches the
+        // current (pre-fix) behaviour that higher-layer tests assume.
+        let rows = vec![
+            marker_row("Experiment: foo"),
+            marker_row("Sweep Data:"),                           // index 1
+            bulk_row(&["E.T.", "Rate", "Stress", "Visc"]),       // 2
+            marker_row("Log Data:"),                             // 3
+            bulk_row(&["E.T.", "Rate", "Stress", "Visc"]),       // 4
+        ];
+        let sections = find_raw_data_sections(&rows);
+        assert_eq!(sections, vec![4], "Log Data should be the only chosen start");
+    }
+
+    #[test]
+    fn find_sections_falls_back_to_sweep_data_when_no_log_data() {
+        // This is the real Ofite 1100 layout: "Analyzed Data:" is a
+        // computed summary (NOT a raw-data section and NOT a marker we
+        // recognise), and "Sweep Data:" is where the raw rows live.
+        let rows = vec![
+            marker_row("Experiment: foo"),
+            marker_row("Analyzed Data:"),                         // ignored — not a marker
+            bulk_row(&["E.T.", "n", "Kv", "K"]),
+            marker_row("Sweep Data:"),                            // index 3, chosen via fallback
+            bulk_row(&["E.T.", "Rate", "Stress", "Visc"]),
+        ];
+        let sections = find_raw_data_sections(&rows);
+        assert_eq!(sections, vec![4], "Sweep Data fallback must kick in when Log Data is absent");
+    }
+
+    #[test]
+    fn find_sections_returns_empty_when_no_markers() {
+        let rows = vec![
+            marker_row("Experiment: foo"),
+            bulk_row(&["Time", "Visc", "Temp"]),
+            bulk_row(&["0", "100", "25"]),
+        ];
+        assert!(find_raw_data_sections(&rows).is_empty());
+    }
+
+    #[test]
+    fn find_sections_merges_multiple_log_data_headers() {
+        // Defensive: two "Log Data:" sections in one file (seen in some
+        // multi-test-run Grace exports) — both should be returned.
+        let rows = vec![
+            marker_row("Log Data:"),                  // 0
+            bulk_row(&["E.T.", "Rate"]),
+            bulk_row(&["1", "100"]),
+            marker_row("Log Data:"),                  // 3
+            bulk_row(&["E.T.", "Rate"]),
+        ];
+        let sections = find_raw_data_sections(&rows);
+        assert_eq!(sections, vec![1, 4]);
+    }
+
+    #[test]
+    fn find_sections_ignores_marker_lines_with_data_payload() {
+        // Protect against false positives: a row with > 5 non-empty
+        // cells isn't a section marker even if one cell literally says
+        // "Log Data" (e.g. log metadata inside a header row).
+        let rows = vec![
+            bulk_row(&["Log Data", "a", "b", "c", "d", "e", "f"]),
+            marker_row("Sweep Data:"),
+            bulk_row(&["E.T.", "Rate"]),
+        ];
+        let sections = find_raw_data_sections(&rows);
+        assert_eq!(sections, vec![2], "only the real Sweep Data: marker counts");
+    }
 }

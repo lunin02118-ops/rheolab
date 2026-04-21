@@ -226,45 +226,71 @@ fn test_golden_sst_mamontovskoe() {
 
 #[test]
 fn test_parser_parity_ofite_1100() {
-    // Integration test: Parse real Ofite 1100.dat file
-    // Validates:
-    // 1. Parser can read the file format
-    // 2. Multi-section parsing works (finds both Sweep Data and Log Data)
-    // 3. Data count matches expectation
-    
+    // Integration guard for the Ofite 1100 tab-delimited `.dat` report.
+    //
+    // Historical bug (rediscovered 2026-04-22):
+    //   The fixture shipped as `Ofite1100.dat` (no space) but this test
+    //   asked for `Ofite 1100.dat` (with space). `path.exists()` returned
+    //   false → `return;` silently skipped. The whole "Ofite parser
+    //   works end-to-end" promise was a NO-OP for months.
+    //
+    // Fix: load from the canonical name (with space) and `expect()` on
+    // the read, so a renamed / missing fixture fails the suite loudly.
+    //
+    // Structure of the real file (see tests/fixtures/Ofite 1100.dat):
+    //   L1-L12  metadata (Experiment, Date, Time, Units …)
+    //   L13     "Analyzed Data:"   — NOT raw, computed Kv/K/Kf/r/r² rows
+    //   L30     "Sweep Data:"      — raw detail: per-sweep E.T./Rate/Stress/Viscosity/RPM/Temp/Press
+    //
+    // find_raw_data_sections() has priority markers for "Log Data" and
+    // fallback markers for "Sweep Data". This fixture only carries
+    // "Sweep Data:", so fallback wins — but 328 raw points still extract.
+
     let path = fixtures_dir().join("Ofite 1100.dat");
-    if !path.exists() {
-        println!("Skipping Ofite parser test: file not found at {:?}", path);
-        return;
-    }
-    
-    let data = fs::read(&path).expect("Failed to read fixture");
-    
-    // Call parser directly
-    let result = parse_rheo_data(&data, "Ofite 1100.dat");
-    
-    match result {
-        Ok(res) => {
-             println!("[PARITY] Ofite Parsing Success: {} points", res.data.len());
-             
-             // Without multi-section support (before 2026-01-05 fixes), this would return ~40 points (only one section)
-             // The file has Sweep Data (~40) and Log Data (hundreds)
-             // We expect significantly more than 50 points if multi-section parsing works.
-             // Note: Ofite 1100.dat is likely Tab-Delimited text. 
-             // IF RUST PARSER (calamine) FAILS to read text/csv, this test will fail, indicating more work needed for full parity.
-             
-             if res.data.len() < 50 {
-                 println!("WARNING: Only {} points found. Multi-section parsing might be failing.", res.data.len());
-             }
-             
-             assert!(res.data.len() > 50, "Should parse both sections using multi-section logic, got {}", res.data.len());
-        },
-        Err(e) => {
-             println!("[PARITY] Ofite Parsing Failed: {}", e);
-             // Fail explicitly if we can't parse it
-             panic!("Parser failed to handle Ofite file: {}", e);
-        }
-    }
+    let data = fs::read(&path)
+        .unwrap_or_else(|e| panic!(
+            "Ofite fixture unreadable at {:?}: {}. \
+             If you renamed the fixture, keep the canonical \
+             `Ofite 1100.dat` (with space) — this test pair \
+             relies on that exact name.",
+            path, e,
+        ));
+
+    let result = parse_rheo_data(&data, "Ofite 1100.dat")
+        .expect("parse_rheo_data must succeed on a well-formed Ofite 1100 .dat");
+
+    println!("[PARITY] Ofite Parsing: {} points", result.data.len());
+
+    // The file has at least 100+ rows of raw sweep data across 15 Records × 8 RPM steps.
+    // A broken parser (wrong section, only the Analyzed Data header, etc.) returns < 50.
+    assert!(
+        result.data.len() > 50,
+        "Ofite 1100: expected > 50 raw points from the Sweep Data section, got {}. \
+         Likely find_raw_data_sections() or detect_header() regressed.",
+        result.data.len(),
+    );
+
+    // Instrument must be tagged as Ofite — regression guard for detect_instrument()
+    // when the file is passed without a sheet-name hint (common in .dat path).
+    assert_eq!(
+        result.metadata.instrument_type.as_deref(),
+        Some("Ofite 1100 Rheometer"),
+        "instrument_type should be auto-detected as 'Ofite 1100 Rheometer'",
+    );
+
+    // Sanity on a single point: temperature and shear rate must be populated,
+    // otherwise the `map_row()` column mapping for Ofite's header layout is off.
+    let first = &result.data[0];
+    assert!(
+        first.temperature_c > 0.0,
+        "first Ofite point must have a non-zero temperature, got {}",
+        first.temperature_c,
+    );
+    assert!(
+        first.shear_rate.unwrap_or(0.0) > 0.0,
+        "first Ofite point must have a non-zero shear rate, got {:?}",
+        first.shear_rate,
+    );
 }
 
 #[test]
