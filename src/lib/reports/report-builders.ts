@@ -202,7 +202,7 @@ export interface ReportBuildContext {
     companyLogo: string | null;
     reportSettings: ChartSettings;
     language: 'ru' | 'en';
-    unitSystem: 'SI' | 'Imperial';
+    unitSystem: 'SI' | 'SI_Pas' | 'Imperial';
     showTouchPoints: boolean;
     viscosityThreshold: number;
     showTargetTime: boolean;

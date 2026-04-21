@@ -8,6 +8,7 @@
 
 use rust_xlsxwriter::{Worksheet, XlsxError};
 use super::super::types::ReportInput;
+use super::super::formatters::{convert_viscosity, get_viscosity_unit, viscosity_excel_format};
 use super::styles::Styles;
 
 /// First column for raw data. "U" in 1-based Excel = 20 (0-indexed).
@@ -24,10 +25,16 @@ pub(super) fn write_raw_data(
     styles: &Styles,
     is_ru: bool,
 ) -> Result<RawDataSummary, XlsxError> {
-    let raw_headers = if is_ru {
-        ["Время (мин)", "Вязкость (сП)", "Температура (°C)", "Скорость сдвига (1/с)", "Напряжение сдвига (Па)", "Обороты (об/мин)", "Давление (бар)", "Темп. бани (°C)"]
+    let unit_system = &input.settings.unit_system;
+    let visc_unit   = get_viscosity_unit(unit_system);
+    let visc_fmt    = viscosity_excel_format(unit_system);
+    let visc_header_ru = format!("Вязкость ({})", visc_unit);
+    let visc_header_en = format!("Viscosity ({})", visc_unit);
+
+    let raw_headers: [&str; 8] = if is_ru {
+        ["Время (мин)", &visc_header_ru, "Температура (°C)", "Скорость сдвига (1/с)", "Напряжение сдвига (Па)", "Обороты (об/мин)", "Давление (бар)", "Темп. бани (°C)"]
     } else {
-        ["Time (min)", "Viscosity (cP)", "Temperature (C)", "Shear Rate (1/s)", "Shear Stress (Pa)", "Speed (RPM)", "Pressure (bar)", "Bath Temp (°C)"]
+        ["Time (min)", &visc_header_en, "Temperature (C)", "Shear Rate (1/s)", "Shear Stress (Pa)", "Speed (RPM)", "Pressure (bar)", "Bath Temp (°C)"]
     };
 
     let has_bath = input.raw_data.iter().any(|dp| dp.bath_temperature_c.is_some());
@@ -35,6 +42,12 @@ pub(super) fn write_raw_data(
     for i in 0..header_count {
         sheet.write_string_with_format(0, (RAW_DATA_START_COL + i) as u16, raw_headers[i], &styles.header)?;
     }
+
+    let visc_fmt_ref: &rust_xlsxwriter::Format = if visc_fmt == "0.0000" {
+        &styles.fmt_viscosity_pas
+    } else {
+        &styles.fmt_viscosity_fixed
+    };
 
     let mut max_time_minutes = 0.0f64;
 
@@ -44,8 +57,10 @@ pub(super) fn write_raw_data(
 
         if time_min > max_time_minutes { max_time_minutes = time_min; }
 
-        sheet.write_number_with_format(row,  RAW_DATA_START_COL      as u16, time_min,          &styles.number)?;
-        sheet.write_number_with_format(row, (RAW_DATA_START_COL + 1) as u16, point.viscosity_cp, &styles.number)?;
+        let visc_converted = convert_viscosity(point.viscosity_cp, unit_system);
+
+        sheet.write_number_with_format(row,  RAW_DATA_START_COL      as u16, time_min,       &styles.number)?;
+        sheet.write_number_with_format(row, (RAW_DATA_START_COL + 1) as u16, visc_converted, visc_fmt_ref)?;
 
         if let Some(temp) = point.temperature_c {
             sheet.write_number_with_format(row, (RAW_DATA_START_COL + 2) as u16, temp, &styles.number)?;

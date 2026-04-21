@@ -5,11 +5,12 @@ import {
     BrainCircuit, Key,
     LayoutTemplate, Info, Settings as SettingsIcon,
     LineChart, FileText, AlertTriangle,
-    Loader2
+    Loader2, Ruler
 } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useTheme } from '@/contexts/theme-context';
+import { useDisplaySettingsStore, type UnitSystem } from '@/lib/store/display-settings-store';
 const ExpertSettingsPanel = lazy(() =>
     import('@/components/analysis/expert-settings-panel').then(m => ({ default: m.ExpertSettingsPanel })));
 const APIKeyManager = lazy(() =>
@@ -70,6 +71,8 @@ class SettingsErrorBoundary extends Component<{ children: ReactNode; name: strin
 function SettingsContent() {
     const { mode, setMode } = useUIMode();
     const { theme, setTheme } = useTheme();
+    const unitSystem = useDisplaySettingsStore(s => s.unitSystem);
+    const setUnitSystem = useDisplaySettingsStore(s => s.setUnitSystem);
     const [searchParams] = useSearchParams();
 
     // Read tab from URL query params (e.g., ?tab=reports)
@@ -237,6 +240,42 @@ function SettingsContent() {
                                 <button className="px-6 py-2.5 bg-secondary text-muted-foreground rounded-lg text-sm font-medium hover:text-foreground hover:bg-secondary transition-colors border border-border">English (Beta)</button>
                             </CardContent>
                         </Card>
+
+                        {/* Viscosity Unit System */}
+                        <Card className="bg-card/50 border-border">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-foreground">
+                                    <Ruler className="w-5 h-5 text-cyan-400" />
+                                    Единицы вязкости
+                                </CardTitle>
+                                <CardDescription>Единицы измерения вязкости (η) в таблицах и отчётах</CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid grid-cols-3 gap-3">
+                                {([
+                            ['SI', 'mPa·s', 'СИ (мПа·с)', 'Миллипаскаль-секунда'],
+                            ['SI_Pas', 'Pa·s', 'СИ (Па·с)', 'Паскаль-секунда'],
+                            ['Imperial', 'cP', 'Имперская (сП)', 'Сантипуаз'],
+                        ] as [UnitSystem, string, string, string][]).map(([key, unit, label, desc]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => setUnitSystem(key)}
+                                        className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-colors ${unitSystem === key
+                                            ? 'bg-cyan-100 dark:bg-cyan-600/20 border-cyan-500 text-cyan-700 dark:text-cyan-400 shadow-lg shadow-cyan-900/20'
+                                            : 'bg-muted/30 border-border text-muted-foreground hover:bg-muted/50 hover:border-muted-foreground/40'
+                                        }`}
+                                    >
+                                        <div className={`p-2.5 rounded-full ${unitSystem === key ? 'bg-cyan-500/20' : 'bg-muted'}`}>
+                                            <Ruler className="w-5 h-5" />
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="font-semibold text-sm mb-0.5">{label}</div>
+                                            <div className="text-[10px] opacity-70">{desc}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </CardContent>
+                        </Card>
+
                         <SettingsErrorBoundary name="\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u044b">
                             <Suspense fallback={<TabLoader />}>
                                 <OperatorManager />

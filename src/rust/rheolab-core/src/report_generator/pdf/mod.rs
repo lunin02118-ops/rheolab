@@ -3,6 +3,7 @@ use serde_json;
 use super::types::*;
 use super::typst_renderer::compile_to_pdf;
 use super::chart_generator::{ChartPoint, ChartConfig, ChartLineStyles, generate_chart_svg};
+use super::formatters::{convert_viscosity, get_viscosity_unit};
 use base64::prelude::*;
 use std::collections::HashMap;
 
@@ -32,8 +33,12 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
     // Generate chart using Plotters (native, no browser fallback)
     let (has_chart, config_out, ranges_out) = if !input.raw_data.is_empty() {
         let is_ru = input.settings.language == "ru";
-        
-        // Convert data points
+        let unit_system = &input.settings.unit_system;
+        let visc_unit   = get_viscosity_unit(unit_system);
+
+        // Convert data points — keep storage-unit (mPa·s) viscosity here so the
+        // touch-point algorithm (which compares against `viscosity_threshold`
+        // given in mPa·s) stays numerically consistent.
         let first_time = input.raw_data.first().map(|f| f.time_sec).unwrap_or(0.0);
         let chart_points: Vec<ChartPoint> = input.raw_data.iter().map(|p| {
             ChartPoint {
@@ -47,8 +52,8 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
         }).collect();
         
 
-        // Prepare labels
-        let l_visc = if is_ru { "Вязкость (сП)" } else { "Viscosity (cP)" };
+        // Prepare labels — viscosity unit follows the global display setting.
+        let l_visc = if is_ru { format!("Вязкость ({})", visc_unit) } else { format!("Viscosity ({})", visc_unit) };
         let l_temp = if is_ru { "Температура (°C)" } else { "Temperature (°C)" };
         let l_shear = if is_ru { "Скорость сдвига (1/с)" } else { "Shear Rate (1/s)" };
         let l_press = if is_ru { "Давление (бар)" } else { "Pressure (bar)" };
@@ -89,12 +94,20 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
         }
         let label_right = right_parts.join(" / ");
 
-        // Calculate touch points if enabled
-        let touch_points = if input.settings.show_touch_points {
-            template::calculate_touch_points_for_chart(&chart_points, &input.settings, is_ru)
+        // Calculate touch points if enabled (algorithm runs in storage unit mPa·s).
+        let touch_points_raw = if input.settings.show_touch_points {
+            template::calculate_touch_points_for_chart(&chart_points, &input.settings, is_ru, unit_system)
         } else {
             vec![]
         };
+        // Convert touch-point viscosity to display unit so they align with the
+        // (also converted) chart data series on the y-axis.
+        let touch_points: Vec<_> = touch_points_raw.into_iter().map(|tp| super::chart_generator::ChartTouchPoint {
+            time: tp.time,
+            viscosity: convert_viscosity(tp.viscosity, unit_system),
+            label: tp.label,
+            color: tp.color,
+        }).collect();
 
         // Convert line settings if provided
         let line_styles = input.settings.line_settings.as_ref().map(|ls| ChartLineStyles::from(ls));
@@ -170,18 +183,30 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
             
             touch_points,
             viscosity_threshold: if input.settings.show_touch_points {
-                Some(input.settings.viscosity_threshold)
+                // Threshold is stored in mPa·s; convert to display unit so it aligns
+                // with the converted viscosity series drawn on the chart.
+                Some(convert_viscosity(input.settings.viscosity_threshold, unit_system))
             } else {
                 None
             },
             line_styles,
             skip_downsample: true, // PDF needs full-precision data, no LTTB
         };
-        
+
+        // Build a display-unit view of the data for rendering. LTTB is disabled
+        // for PDF, so length/order match `chart_points` exactly.
+        let display_chart_points: Vec<ChartPoint> = chart_points.iter().map(|p| ChartPoint {
+            time_min: p.time_min,
+            viscosity_cp: convert_viscosity(p.viscosity_cp, unit_system),
+            temperature_c: p.temperature_c,
+            shear_rate: p.shear_rate,
+            pressure_bar: p.pressure_bar,
+            bath_temperature_c: p.bath_temperature_c,
+        }).collect();
 
         // Generate chart - safe wrapper to debug panics
         let svg_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            generate_chart_svg(&chart_points, &chart_config)
+            generate_chart_svg(&display_chart_points, &chart_config)
         }));
         
         let (svg_string, ranges) = match svg_result {

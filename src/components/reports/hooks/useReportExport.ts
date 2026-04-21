@@ -32,7 +32,7 @@ export interface UseReportExportOptions {
     cycles: RheoCycle[];
     // Settings
     language: 'ru' | 'en';
-    unitSystem: 'SI' | 'Imperial';
+    unitSystem: 'SI' | 'SI_Pas' | 'Imperial';
     showTouchPoints: boolean;
     viscosityThreshold: number;
     showTargetTime: boolean;

@@ -24,6 +24,7 @@ pub(super) struct Styles {
     pub(super) fmt_k_prime:        Format,
     pub(super) fmt_r_squared:      Format,
     pub(super) fmt_viscosity_fixed:Format,
+    pub(super) fmt_viscosity_pas:  Format,
     pub(super) fmt_pv:             Format,
     pub(super) fmt_yp:             Format,
     pub(super) fmt_bingham_r2:     Format,
@@ -70,6 +71,7 @@ impl Styles {
         let fmt_k_prime         = stat(excel_formats::K_PRIME);
         let fmt_r_squared       = stat(excel_formats::R_SQUARED);
         let fmt_viscosity_fixed = stat(excel_formats::VISCOSITY_FIXED);
+        let fmt_viscosity_pas   = stat(excel_formats::VISCOSITY_PAS);
         let fmt_pv              = stat(excel_formats::PV);
         let fmt_yp              = stat(excel_formats::YP);
         let fmt_bingham_r2      = stat(excel_formats::BINGHAM_R2);
@@ -84,7 +86,7 @@ impl Styles {
             header, section_title, cell, unit, number,
             fmt_time, fmt_temperature, fmt_pressure,
             fmt_n_prime, fmt_k_prime, fmt_r_squared,
-            fmt_viscosity_fixed, fmt_pv, fmt_yp, fmt_bingham_r2,
+            fmt_viscosity_fixed, fmt_viscosity_pas, fmt_pv, fmt_yp, fmt_bingham_r2,
         }
     }
 }

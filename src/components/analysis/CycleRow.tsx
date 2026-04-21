@@ -3,6 +3,8 @@ import { CheckCircle2, AlertCircle, Pencil } from 'lucide-react';
 import type { RheoCycle } from '@/lib/analysis/types';
 import type { GraceCycleResult } from '@/lib/analysis/types';
 import { CYCLE_TYPE_STYLES, type CycleTypeName } from '@/lib/analysis/constants';
+import type { UnitSystem } from '@/lib/store/display-settings-store';
+import { convertViscosity, getViscosityDecimals } from '@/lib/store/display-settings-store';
 
 interface CycleRowProps {
     cycle: RheoCycle;
@@ -10,6 +12,7 @@ interface CycleRowProps {
     isExpanded: boolean;
     isExpert: boolean;
     viscosityRates: number[];
+    unitSystem: UnitSystem;
     onToggle: () => void;
     onEdit?: () => void;
 }
@@ -20,6 +23,7 @@ export const CycleRow = memo(function CycleRow({
     isExpanded,
     isExpert,
     viscosityRates,
+    unitSystem,
     onToggle,
     onEdit
 }: CycleRowProps) {
@@ -82,11 +86,13 @@ export const CycleRow = memo(function CycleRow({
                     </td>
                     {/* Dynamic viscosity columns */}
                     {viscosityRates.map(rate => {
-                        const val = result.viscosities?.[rate]
+                        const raw = result.viscosities?.[rate]
                             ?? (rate === 40 ? result.viscAt40 : rate === 100 ? result.viscAt100 : rate === 170 ? result.viscAt170 : undefined);
+                        const val = raw != null && isFinite(raw) ? convertViscosity(raw, unitSystem) : null;
+                        const dec = getViscosityDecimals(unitSystem);
                         return (
                             <td key={rate} className="py-3 px-3 text-center font-data text-cyan-700 dark:text-cyan-400">
-                                {val != null && isFinite(val) ? val.toFixed(1) : '—'}
+                                {val != null ? val.toFixed(dec) : '—'}
                             </td>
                         );
                     })}

@@ -20,8 +20,11 @@ pub mod decimals {
     pub const K_PRIME: u32 = 4;
     /// R² (коэффициент детерминации): 4 знака
     pub const R_SQUARED: u32 = 4;
-    /// Вязкость при фиксированных скоростях сдвига (η@40, η@100, η@170): 0 знаков
+    /// Вязкость при фиксированных скоростях сдвига (η@40, η@100, η@170)
+    /// mPa·s / cP: 0 знаков, Pa·s: 4 знака
     pub const VISCOSITY_FIXED: u32 = 0;
+    /// Вязкость в Pa·s: 4 знака после запятой
+    pub const VISCOSITY_PAS: u32 = 4;
     /// PV (пластическая вязкость): 2 знака
     pub const PV: u32 = 2;
     /// YP (предел текучести): 1 знак
@@ -47,7 +50,10 @@ pub mod excel_formats {
     pub const N_PRIME: &str = "0.000";
     pub const K_PRIME: &str = "0.0000";
     pub const R_SQUARED: &str = "0.0000";
+    /// Вязкость mPa·s / cP: 0 знаков
     pub const VISCOSITY_FIXED: &str = "0";
+    /// Вязкость Pa·s: 4 знака
+    pub const VISCOSITY_PAS: &str = "0.0000";
     pub const PV: &str = "0.00";
     pub const YP: &str = "0.0";
     pub const BINGHAM_R2: &str = "0.0000";
@@ -132,6 +138,50 @@ pub fn get_yp_unit(unit_system: &str) -> &'static str {
         "lbf/100ft²"
     } else {
         "Pa"
+    }
+}
+
+/// Convert viscosity from mPa·s to target unit system
+/// Input value is always in mPa·s (storage unit)
+/// SI: keep as mPa·s (1:1)
+/// SI_Pas: convert to Pa·s (divide by 1000)
+/// Imperial: convert to cP (1:1, since 1 mPa·s = 1 cP)
+pub fn convert_viscosity(viscosity_m_pas: f64, unit_system: &str) -> f64 {
+    if unit_system == "SI_Pas" {
+        viscosity_m_pas / 1000.0
+    } else {
+        // SI (mPa·s) and Imperial (cP) are 1:1 with mPa·s
+        viscosity_m_pas
+    }
+}
+
+/// Get viscosity unit label based on unit system
+/// SI: "mPa·s", SI_Pas: "Pa·s", Imperial: "cP"
+pub fn get_viscosity_unit(unit_system: &str) -> &'static str {
+    match unit_system {
+        "SI_Pas" => "Pa·s",
+        "Imperial" => "cP",
+        _ => "mPa·s", // SI (default)
+    }
+}
+
+/// Get decimal places for viscosity based on unit system
+/// mPa·s / cP: 0, Pa·s: 4
+pub fn viscosity_decimals(unit_system: &str) -> u32 {
+    if unit_system == "SI_Pas" {
+        decimals::VISCOSITY_PAS
+    } else {
+        decimals::VISCOSITY_FIXED
+    }
+}
+
+/// Get Excel format string for viscosity based on unit system
+/// mPa·s / cP: "0", Pa·s: "0.0000"
+pub fn viscosity_excel_format(unit_system: &str) -> &'static str {
+    if unit_system == "SI_Pas" {
+        excel_formats::VISCOSITY_PAS
+    } else {
+        excel_formats::VISCOSITY_FIXED
     }
 }
 
@@ -226,6 +276,37 @@ mod tests {
     fn test_get_yp_unit() {
         assert_eq!(get_yp_unit("SI"), "Pa");
         assert_eq!(get_yp_unit("Imperial"), "lbf/100ft²");
+    }
+
+    #[test]
+    fn test_convert_viscosity() {
+        // SI (mPa·s) — no conversion
+        assert_eq!(convert_viscosity(150.0, "SI"), 150.0);
+        // SI_Pas — divide by 1000
+        assert!((convert_viscosity(150.0, "SI_Pas") - 0.15).abs() < 1e-10);
+        // Imperial (cP) — 1:1 with mPa·s
+        assert_eq!(convert_viscosity(150.0, "Imperial"), 150.0);
+    }
+
+    #[test]
+    fn test_get_viscosity_unit() {
+        assert_eq!(get_viscosity_unit("SI"), "mPa·s");
+        assert_eq!(get_viscosity_unit("SI_Pas"), "Pa·s");
+        assert_eq!(get_viscosity_unit("Imperial"), "cP");
+    }
+
+    #[test]
+    fn test_viscosity_decimals() {
+        assert_eq!(viscosity_decimals("SI"), 0);
+        assert_eq!(viscosity_decimals("SI_Pas"), 4);
+        assert_eq!(viscosity_decimals("Imperial"), 0);
+    }
+
+    #[test]
+    fn test_viscosity_excel_format() {
+        assert_eq!(viscosity_excel_format("SI"), "0");
+        assert_eq!(viscosity_excel_format("SI_Pas"), "0.0000");
+        assert_eq!(viscosity_excel_format("Imperial"), "0");
     }
 
     #[test]

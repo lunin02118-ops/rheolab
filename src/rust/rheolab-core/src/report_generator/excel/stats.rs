@@ -3,7 +3,8 @@
 use rust_xlsxwriter::{Worksheet, XlsxError};
 use super::super::formatters::{
     build_ramp_string, convert_consistency_index, convert_pv, convert_yp,
-    get_k_unit, get_pv_unit, get_yp_unit,
+    convert_viscosity, get_k_unit, get_pv_unit, get_yp_unit,
+    get_viscosity_unit, viscosity_excel_format, viscosity_decimals,
 };
 use super::super::types::{ReportInput, TouchPoint};
 use super::styles::Styles;
@@ -13,6 +14,7 @@ pub(super) fn write_touch_points_table(
     touch_points: &[TouchPoint],
     styles: &Styles,
     is_ru: bool,
+    unit_system: &str,
     row: &mut u32,
 ) -> Result<(), XlsxError> {
     if touch_points.is_empty() { return Ok(()); }
@@ -23,16 +25,28 @@ pub(super) fn write_touch_points_table(
 
     let tp_type = if is_ru { "Тип" } else { "Type" };
     let tp_time = if is_ru { "Время (мин)" } else { "Time (min)" };
-    let tp_visc = if is_ru { "Вязкость (сП)" } else { "Viscosity (cP)" };
+    let visc_unit = get_viscosity_unit(unit_system);
+    let tp_visc = if is_ru {
+        format!("Вязкость ({})", visc_unit)
+    } else {
+        format!("Viscosity ({})", visc_unit)
+    };
     sheet.write_string_with_format(*row, 0, tp_type, &styles.header)?;
     sheet.write_string_with_format(*row, 1, tp_time, &styles.header)?;
-    sheet.write_string_with_format(*row, 2, tp_visc, &styles.header)?;
+    sheet.write_string_with_format(*row, 2, &tp_visc, &styles.header)?;
     *row += 1;
 
+    let visc_dec = viscosity_decimals(unit_system);
     for tp in touch_points {
         sheet.write_string_with_format(*row, 0, &tp.label, &styles.cell)?;
-        sheet.write_number_with_format(*row, 1, tp.time, &styles.number)?;
-        sheet.write_number_with_format(*row, 2, tp.viscosity, &styles.number)?;
+        sheet.write_number_with_format(*row, 1, tp.time, &styles.fmt_time)?;
+        let visc_val = convert_viscosity(tp.viscosity, unit_system);
+        let fmt: &rust_xlsxwriter::Format = if visc_dec == 4 {
+            &styles.fmt_viscosity_pas
+        } else {
+            &styles.fmt_viscosity_fixed
+        };
+        sheet.write_number_with_format(*row, 2, visc_val, fmt)?;
         *row += 1;
     }
     *row += 1;
@@ -61,9 +75,11 @@ pub(super) fn write_statistics(
     }
 
     // ── Headers ────────────────────────────────────────────────────────
-    let k_unit  = get_k_unit(unit_system);
-    let pv_unit = get_pv_unit(unit_system);
-    let yp_unit = get_yp_unit(unit_system);
+    let k_unit   = get_k_unit(unit_system);
+    let pv_unit  = get_pv_unit(unit_system);
+    let yp_unit  = get_yp_unit(unit_system);
+    let visc_unit = get_viscosity_unit(unit_system);
+    let visc_fmt  = viscosity_excel_format(unit_system);
     let visc_rates = &input.settings.viscosity_shear_rates;
 
     let cycle_label = if is_ru { "Цикл" } else { "Cycle" };
@@ -82,7 +98,7 @@ pub(super) fn write_statistics(
         "R²".to_string(),
     ];
     for rate in visc_rates {
-        stats_headers.push(format!("η@{}", rate));
+        stats_headers.push(format!("η@{} ({})", rate, visc_unit));
     }
     if input.settings.show_advanced_stats {
         stats_headers.push(format!("PV ({})", pv_unit));
@@ -131,7 +147,7 @@ pub(super) fn write_statistics(
         // Dynamic viscosity columns from viscosities HashMap
         for rate in visc_rates {
             let key = format!("{}", rate);
-            let visc_val = cycle.viscosities.get(&key).copied()
+            let visc_raw = cycle.viscosities.get(&key).copied()
                 .or_else(|| match *rate {
                     40  => cycle.visc_at_40,
                     100 => cycle.visc_at_100,
@@ -139,7 +155,13 @@ pub(super) fn write_statistics(
                     _   => None,
                 })
                 .unwrap_or(0.0);
-            sheet.write_number_with_format(*row, col, visc_val, &styles.fmt_viscosity_fixed)?;
+            let visc_val = convert_viscosity(visc_raw, unit_system);
+            let fmt: &rust_xlsxwriter::Format = if visc_fmt == "0.0000" {
+                &styles.fmt_viscosity_pas
+            } else {
+                &styles.fmt_viscosity_fixed
+            };
+            sheet.write_number_with_format(*row, col, visc_val, fmt)?;
             col += 1;
         }
 

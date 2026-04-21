@@ -17,7 +17,7 @@ mod chart_page;
 mod raw_data;
 
 use super::super::types::*;
-use super::super::formatters::{format_date, format_number, build_ramp_string};
+use super::super::formatters::{format_date, format_number, build_ramp_string, convert_viscosity, get_viscosity_unit, viscosity_decimals};
 use super::super::chart_generator::{ChartPoint, ChartConfig, ChartTouchPoint, ChartRanges};
 use plotters::style::RGBColor;
 use std::collections::HashMap;
@@ -157,7 +157,7 @@ pub(super) fn generate_typst_template(
     let stats = stats::build_stats_section(input, is_ru);
 
     // ── 6. Touch-points block (right side of page 1) ─────────────────────
-    let touch_points_block = build_touch_points_block(chart_config, is_ru, input.settings.show_touch_points);
+    let touch_points_block = build_touch_points_block(chart_config, is_ru, input.settings.show_touch_points, &input.settings.unit_system);
 
     // ── 7. Chart page + raw-data page ────────────────────────────────────
     let chart_page = chart_page::build_chart_page(input, has_chart, chart_config, chart_ranges, is_ru);
@@ -394,19 +394,23 @@ fn build_touch_points_block(
     chart_config: Option<&ChartConfig>,
     is_ru: bool,
     show_touch_points: bool,
+    unit_system: &str,
 ) -> String {
     let Some(config) = chart_config else { return String::new(); };
     if config.touch_points.is_empty() || !show_touch_points {
         return String::new();
     }
 
+    let visc_unit = get_viscosity_unit(unit_system);
+    let visc_dec = viscosity_decimals(unit_system) as usize;
     let t_touch = if is_ru { "Контрольные точки" } else { "Control Points" };
     let mut rows = String::new();
     for tp in &config.touch_points {
         let is_threshold = tp.label.contains("Порог") || tp.label.contains("Threshold");
+        let visc_converted = convert_viscosity(tp.viscosity, unit_system);
         let value_col = if is_threshold {
             if is_ru { format!("{:.1} мин", tp.time) } else { format!("{:.1} min", tp.time) }
-        } else if is_ru { format!("{:.1} сП", tp.viscosity) } else { format!("{:.1} cP", tp.viscosity) };
+        } else if is_ru { format!("{:.dec$} {}", visc_converted, visc_unit, dec = visc_dec) } else { format!("{:.dec$} {}", visc_converted, visc_unit, dec = visc_dec) };
         rows.push_str(&format!(
             "[{}], [{}],\n",
             escape_typst(&tp.label),
@@ -433,6 +437,7 @@ pub(super) fn calculate_touch_points_for_chart(
     points: &[ChartPoint],
     settings: &ReportSettings,
     is_ru: bool,
+    unit_system: &str,
 ) -> Vec<ChartTouchPoint> {
     use super::super::touch_point::{
         TouchPointInput, TouchPointType, SmartTouchPointOptions,
@@ -463,10 +468,13 @@ pub(super) fn calculate_touch_points_for_chart(
         .into_iter()
         .map(|r| match r.tp_type {
             TouchPointType::Threshold => {
+                let visc_unit = get_viscosity_unit(unit_system);
+                let threshold_converted = convert_viscosity(settings.viscosity_threshold as f64, unit_system);
+                let threshold_display = threshold_converted.round() as i32;
                 let label = if is_ru {
-                    format!("Порог вязкости {} сП", settings.viscosity_threshold as i32)
+                    format!("Порог вязкости {} {}", threshold_display, visc_unit)
                 } else {
-                    format!("Viscosity Threshold {} cP", settings.viscosity_threshold as i32)
+                    format!("Viscosity Threshold {} {}", threshold_display, visc_unit)
                 };
                 ChartTouchPoint {
                     time: r.time,

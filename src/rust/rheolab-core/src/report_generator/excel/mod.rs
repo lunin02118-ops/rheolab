@@ -88,7 +88,7 @@ fn generate_excel_internal(input: &ReportInput) -> Result<Vec<u8>, XlsxError> {
     metadata::write_water_analysis(sheet, input, &styles, is_ru, &mut current_row)?;
 
     if input.settings.show_touch_points && !touch_points.is_empty() {
-        stats::write_touch_points_table(sheet, &touch_points, &styles, is_ru, &mut current_row)?;
+        stats::write_touch_points_table(sheet, &touch_points, &styles, is_ru, &input.settings.unit_system, &mut current_row)?;
     }
 
     // --- Program (Schedule) Section ---

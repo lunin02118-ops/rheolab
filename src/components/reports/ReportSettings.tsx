@@ -20,8 +20,6 @@ import {
 export interface ReportSettingsProps {
     language: 'ru' | 'en';
     setLanguage: (v: 'ru' | 'en') => void;
-    unitSystem: 'SI' | 'Imperial';
-    setUnitSystem: (v: 'SI' | 'Imperial') => void;
     canUseCalibration: boolean;
     showCalibration: boolean;
     setShowCalibration: (v: boolean) => void;
@@ -45,7 +43,6 @@ export interface ReportSettingsProps {
 
 export function ReportSettings({
     language, setLanguage,
-    unitSystem, setUnitSystem,
     canUseCalibration,
     showCalibration, setShowCalibration,
     showRawData, setShowRawData,
@@ -91,29 +88,20 @@ export function ReportSettings({
                         </div>
                     </div>
 
-                    {/* Unit System */}
+                    {/* Unit System — link to global Settings */}
                     <div>
-                        <label className="text-sm font-semibold text-foreground mb-2 block">{language === 'ru' ? "Система единиц (K')" : "Unit System (K')"}</label>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setUnitSystem('SI')}
-                                className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${unitSystem === 'SI'
-                                    ? 'bg-secondary border-green-500 text-foreground font-semibold'
-                                    : 'bg-background border-border text-foreground hover:border-green-400'
-                                    }`}
-                            >
-                                SI (Pa·sⁿ)
-                            </button>
-                            <button
-                                onClick={() => setUnitSystem('Imperial')}
-                                className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${unitSystem === 'Imperial'
-                                    ? 'bg-secondary border-green-500 text-foreground font-semibold'
-                                    : 'bg-background border-border text-foreground hover:border-green-400'
-                                    }`}
-                            >
-                                Imperial
-                            </button>
-                        </div>
+                        <label className="text-sm font-semibold text-foreground mb-2 block">{language === 'ru' ? 'Система единиц' : 'Unit System'}</label>
+                        <Link
+                            to="/dashboard/settings?tab=general"
+                            data-testid="UnitSystemSettingsLink"
+                            className="flex items-center justify-between px-4 py-2.5 rounded-lg border border-blue-500/40 bg-blue-50 dark:bg-blue-600/10 text-sm text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-600/20 hover:border-blue-500 dark:hover:border-blue-500/50 transition-colors group"
+                        >
+                            <div className="flex items-center gap-2">
+                                <Scale className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:rotate-12 transition-transform duration-300" />
+                                <span className="font-medium">{language === 'ru' ? 'Настроить единицы вязкости' : 'Configure viscosity units'}</span>
+                            </div>
+                            <ExternalLink className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
+                        </Link>
                     </div>
 
                     {/* Calibration Setting - Only for Developer license */}

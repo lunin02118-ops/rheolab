@@ -9,6 +9,7 @@
 //! of the `dx` / `dy` formulas used for rotated titles.
 use super::super::super::types::ReportInput;
 use super::super::super::chart_generator::{ChartConfig, ChartLineStyle, ChartRanges};
+use super::super::super::formatters::get_viscosity_unit;
 use super::helpers::{escape_typst, hex_to_typst};
 
 /// Render the entire “chart page” block, or `String::new()` when `has_chart`
@@ -65,8 +66,10 @@ pub(super) fn build_chart_page(
 
     let styles = config.line_styles.clone().unwrap_or_default();
 
+    let visc_unit = get_viscosity_unit(&input.settings.unit_system);
+
     let mut legend_items = vec![
-        make_legend_line(&styles.viscosity, &l_visc, "cP"),
+        make_legend_line(&styles.viscosity, &l_visc, visc_unit),
     ];
     if config.show_temperature {
         legend_items.push(make_legend_line(&styles.temperature, &l_temp, "°C"));
@@ -307,7 +310,7 @@ pub(super) fn build_chart_page(
                 ));
                 // Per-axis title (rotated, centred alongside the axis)
                 let title = match axis.metric.as_str() {
-                    "viscosity"                        => format!("{} (cP)",  l_visc),
+                    "viscosity"                        => format!("{} ({})", l_visc, visc_unit),
                     "temperature"                      => format!("{} (°C)",  l_temp),
                     "shear_rate" | "shearRate"         => format!("{} (1/s)", l_shear),
                     "bath_temperature" | "bathTemperature" => format!("{} (°C)", l_bath_temp),

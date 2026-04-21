@@ -6,7 +6,8 @@
 use super::super::super::types::ReportInput;
 use super::super::super::formatters::{
     format_number, format_number_direct, convert_consistency_index, convert_pv, convert_yp,
-    get_k_unit, get_pv_unit, get_yp_unit, decimals,
+    convert_viscosity, get_k_unit, get_pv_unit, get_yp_unit,
+    get_viscosity_unit, viscosity_decimals, decimals,
 };
 
 /// Fragments used by the main Typst `#table(...)` call for the stats section.
@@ -50,16 +51,18 @@ pub(super) fn build_stats_section(input: &ReportInput, is_ru: bool) -> StatsFrag
         );
 
         // Dynamic viscosity columns from viscosities HashMap
+        let visc_dec = viscosity_decimals(unit_system);
         for rate in visc_rates {
             let key = format!("{}", rate);
-            let visc_val = c.viscosities.get(&key).copied()
+            let visc_raw = c.viscosities.get(&key).copied()
                 .or_else(|| match *rate {
                     40 => c.visc_at_40,
                     100 => c.visc_at_100,
                     170 => c.visc_at_170,
                     _ => None,
                 });
-            row.push_str(&format!("[{}], ", format_number(visc_val, decimals::VISCOSITY_FIXED)));
+            let visc_converted = visc_raw.map(|v| convert_viscosity(v, unit_system));
+            row.push_str(&format!("[{}], ", format_number(visc_converted, visc_dec)));
         }
 
         // PV, YP, R²B (only in expert mode)
@@ -86,6 +89,7 @@ pub(super) fn build_stats_section(input: &ReportInput, is_ru: bool) -> StatsFrag
     let h_k_unit = get_k_unit(unit_system);
     let h_pv_unit = get_pv_unit(unit_system);
     let h_yp_unit = get_yp_unit(unit_system);
+    let h_visc_unit = get_viscosity_unit(unit_system);
 
     let mut col_fractions = vec![
         "0.5fr".to_string(),  // Cycle
@@ -113,7 +117,7 @@ pub(super) fn build_stats_section(input: &ReportInput, is_ru: bool) -> StatsFrag
     // Dynamic viscosity columns
     for rate in visc_rates {
         col_fractions.push("1fr".to_string());
-        header_cells.push(format!("header_cell[η\\@{}]", rate));
+        header_cells.push(format!("header_cell[η\\@{} #unit_text[({})]]", rate, h_visc_unit));
     }
 
     // PV, YP, R²B (only in expert mode)

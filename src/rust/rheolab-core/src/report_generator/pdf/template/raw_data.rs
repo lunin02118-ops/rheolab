@@ -4,6 +4,9 @@
 //! Returns an empty string when the user disabled raw data or there is
 //! nothing to show — callers can always embed the result unconditionally.
 use super::super::super::types::ReportInput;
+use super::super::super::formatters::{
+    convert_viscosity, get_viscosity_unit, viscosity_decimals,
+};
 
 /// Maximum number of rows Typst is asked to render.  Anything above this is
 /// truncated and a user-visible notice is appended — avoids pathological
@@ -15,10 +18,18 @@ pub(super) fn build_raw_data_page(input: &ReportInput, is_ru: bool) -> String {
         return String::new();
     }
 
+    let unit_system = &input.settings.unit_system;
+    let visc_unit = get_viscosity_unit(unit_system);
+    let visc_dec = viscosity_decimals(unit_system) as usize;
+
     let t_raw = if is_ru { "Сырые данные измерений" } else { "Raw Measurement Data" };
     let h_rd_no = "\\#";
     let h_rd_time = if is_ru { "Время (сек)" } else { "Time (sec)" };
-    let h_rd_visc = if is_ru { "Вязкость (сП)" } else { "Viscosity (cP)" };
+    let h_rd_visc = if is_ru {
+        format!("Вязкость ({})", visc_unit)
+    } else {
+        format!("Viscosity ({})", visc_unit)
+    };
     let h_rd_temp = if is_ru { "Температура (°C)" } else { "Temperature (°C)" };
     let h_rd_shear = if is_ru { "Скорость\\ сдвига (1/с)" } else { "Shear Rate\\ (1/s)" };
     let h_rd_stress = if is_ru { "Напряжение\\ сдвига (Па)" } else { "Shear Stress\\ (Pa)" };
@@ -56,7 +67,8 @@ pub(super) fn build_raw_data_page(input: &ReportInput, is_ru: bool) -> String {
     }
 
     for (i, dp) in display_data.iter().enumerate() {
-        let _ = write!(raw_rows, "[{}], [{:.1}], [{:.1}], [", i + 1, dp.time_sec, dp.viscosity_cp);
+        let visc_converted = convert_viscosity(dp.viscosity_cp, unit_system);
+        let _ = write!(raw_rows, "[{}], [{:.1}], [{:.dec$}], [", i + 1, dp.time_sec, visc_converted, dec = visc_dec);
         write_opt!(raw_rows, dp.temperature_c);
         if has_bath_col {
             raw_rows.push_str("], [");

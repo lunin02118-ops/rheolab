@@ -4,6 +4,7 @@ import type { RheoCycle } from '@/lib/analysis/types';
 import type { GraceCycleResult } from '@/lib/analysis/types';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
+import { useDisplaySettingsStore, getViscosityUnit } from '@/lib/store/display-settings-store';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { CycleRow } from './CycleRow';
 import { CycleStepsDetail } from './CycleStepsDetail';
@@ -17,6 +18,8 @@ interface CycleResultsTableProps {
 export const CycleResultsTable = memo(function CycleResultsTable({ cycles, results, onEditCycle }: CycleResultsTableProps) {
     const { isExpert } = useUIMode();
     const expertSettings = useAnalysisSettingsStore(s => s.expertSettings);
+    const unitSystem = useDisplaySettingsStore(s => s.unitSystem);
+    const viscUnit = getViscosityUnit(unitSystem);
     const [expandedCycles, setExpandedCycles] = useState<Set<number>>(new Set());
 
     // In basic mode, force default shear rates [40, 100, 170] like C# WPF version
@@ -79,7 +82,7 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
                             {/* Dynamic viscosity columns */}
                             {viscosityRates.map(rate => (
                                 <th key={rate} className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-cyan-700 dark:text-cyan-400 whitespace-nowrap">
-                                    <span className="cursor-help" title={`Вязкость при ${rate} с⁻¹`}>η@{rate}</span>
+                                    <span className="cursor-help" title={`Вязкость при ${rate} с⁻¹`}>η@{rate} ({viscUnit})</span>
                                 </th>
                             ))}
                             {/* Expert mode: Bingham model columns */}
@@ -115,6 +118,7 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
                                         isExpanded={isExpanded}
                                         isExpert={isExpert}
                                         viscosityRates={viscosityRates}
+                                        unitSystem={unitSystem}
                                         onToggle={() => toggleCycle(cycle.id)}
                                         onEdit={onEditCycle ? () => onEditCycle(cycle.id) : undefined}
                                     />

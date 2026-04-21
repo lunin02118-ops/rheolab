@@ -11,6 +11,7 @@ import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
 import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
 import { useLicense } from '@/hooks/useLicense';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
+import { useDisplaySettingsStore } from '@/lib/store/display-settings-store';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import type { RecipeComponent } from '@/lib/parsing/types';
@@ -35,7 +36,7 @@ export function ReportsPanel({
 }: ReportsPanelProps) {
     // в”Ђв”Ђ Local settings state в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     const [language, setLanguage] = useState<'ru' | 'en'>('ru');
-    const [unitSystem, setUnitSystem] = useState<'SI' | 'Imperial'>('SI');
+    const unitSystem = useDisplaySettingsStore(s => s.unitSystem) as 'SI' | 'SI_Pas' | 'Imperial';
     const [showTouchPoints, setShowTouchPoints] = useState(true);
     const [viscosityThreshold, setViscosityThreshold] = useState(500);
     const [showTargetTime, setShowTargetTime] = useState(true);
@@ -78,7 +79,6 @@ export function ReportsPanel({
             {/* Settings Column */}
             <ReportSettings
                 language={language} setLanguage={setLanguage}
-                unitSystem={unitSystem} setUnitSystem={setUnitSystem}
                 canUseCalibration={canUseCalibration}
                 showCalibration={showCalibration} setShowCalibration={setShowCalibration}
                 showRawData={showRawData} setShowRawData={setShowRawData}
