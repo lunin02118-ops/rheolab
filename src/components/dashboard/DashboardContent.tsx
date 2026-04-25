@@ -89,8 +89,9 @@ function DashboardContentInner({
     // Get license info from context (reactive)
     const { result, isInitialized } = useLicense();
 
-    // Check if calibration is available (developer license only)
-    const canUseCalibration = isInitialized && (result?.license?.features?.calibrationAnalysis ?? false);
+    // Check if calibration is available (developer license only + data present)
+    const hasCalibrationData = !!parseResult?.metadata?.calibration;
+    const canUseCalibration = isInitialized && (result?.license?.features?.calibrationAnalysis ?? false) && hasCalibrationData;
 
     // Keep source points as-is to avoid an extra full-array remap before chart processing.
     const chartData = useMemo(() => {
