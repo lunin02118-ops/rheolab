@@ -137,7 +137,7 @@ function buildComparisonChartConfig(
         },
         lineSettings: buildLineSettingsForComparison(chartSettings),
         experimentColors: [...EXPERIMENT_COLORS],
-        timeFormat: chartSettings.rheologyUnits.timeFormat,
+        timeFormat: chartSettings.rheologyUnits?.timeFormat,
     };
 }
 
