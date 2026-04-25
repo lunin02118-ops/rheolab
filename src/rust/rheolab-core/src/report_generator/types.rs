@@ -279,6 +279,50 @@ pub struct ReportSettings {
     /// Line settings for chart rendering (colors, widths, styles)
     #[serde(default)]
     pub line_settings: Option<ChartLineSettings>,
+    /// Per-category display unit overrides (viscosity / K' / PV / YP / time format).
+    ///
+    /// When present, the report stats table uses THESE labels + their
+    /// accompanying unit conversions instead of falling back to the
+    /// coarse `unit_system` enum (which forces every quantity into the
+    /// same Imperial-or-SI bucket and breaks mixed presets like
+    /// "cP viscosity + Pa·s^n K'").  See `formatters.rs::render_*_with`
+    /// for the conversion table.  Absent → legacy `unit_system` path.
+    #[serde(default)]
+    pub rheology_units: Option<RheologyUnits>,
+}
+
+/// Per-category display unit overrides mirrored from
+/// `chartSettings.rheologyUnits` in the TS store.
+///
+/// Each field carries the *target* label string (e.g. `"Pa·s^n"`,
+/// `"lbf·s^n/100ft²"`).  Formatters in `formatters.rs` accept this struct
+/// and decide both the numerical conversion factor AND the rendered
+/// label from the string alone — the report stays in lockstep with what
+/// the UI stats table prints, including custom / mixed presets.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RheologyUnits {
+    /// Viscosity display unit. One of `"mPa·s"` | `"Pa·s"` | `"cP"`.
+    #[serde(default)]
+    pub viscosity: String,
+    /// Temperature display unit. One of `"°C"` | `"°F"`.
+    #[serde(default)]
+    pub temperature: String,
+    /// Pressure display unit. One of `"bar"` | `"psi"`.
+    #[serde(default)]
+    pub pressure: String,
+    /// Consistency index K' unit. One of `"Pa·s^n"` | `"lbf·s^n/100ft²"`.
+    #[serde(default)]
+    pub consistency: String,
+    /// Plastic viscosity (PV) unit. One of `"Pa·s"` | `"cP"`.
+    #[serde(default)]
+    pub plastic_viscosity: String,
+    /// Yield point (YP) unit. One of `"Pa"` | `"lbf/100ft²"`.
+    #[serde(default)]
+    pub yield_point: String,
+    /// Time display format. One of `"seconds"` | `"minutes"` | `"hh:mm:ss"`.
+    /// Controls the `Время (…)` column header AND the rendered cell value.
+    #[serde(default)]
+    pub time_format: String,
 }
 
 fn default_language() -> String { "ru".to_string() }
@@ -312,6 +356,7 @@ impl Default for ReportSettings {
             viscosity_shear_rates: default_viscosity_shear_rates(),
             show_advanced_stats: default_show_advanced_stats(),
             line_settings: None,
+            rheology_units: None,
         }
     }
 }

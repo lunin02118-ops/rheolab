@@ -1,0 +1,297 @@
+
+> rheolab-enterprise@0.2.0-beta.23 perf:benchmark
+> node scripts/test/run-perf-benchmark.js
+
+[perf-benchmark] Mode: Playwright benchmark (browser JS heap + timing)
+[perf-benchmark] Running Playwright benchmark suite...
+[perf-benchmark]   Config: playwright.benchmark.config.ts
+[perf-benchmark]   Output: outputs/e2e/perf/benchmark-*.json
+[WebServer] [plugin vite:resolve] Module "crypto" has been externalized for browser compatibility, imported by "D:/Development/Rheolab/src/lib/utils/encryption.ts". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+
+Running 9 tests using 1 worker
+
+[E2E] Test license configured
+[stress] baseline: heap=4.58 MB, liveNodes=172 nodes(cdp)=180
+
+[stress] round 1/10: Chandler SST
+  heap=5.47 MB (╬Ф+0.89)  liveNodes=172 nodes(cdp)=201
+
+[stress] round 2/10: Grace Report
+  heap=5.66 MB (╬Ф+1.08)  liveNodes=172 nodes(cdp)=201
+
+[stress] round 3/10: Chandler SST
+  heap=5.86 MB (╬Ф+1.28)  liveNodes=172 nodes(cdp)=201
+
+[stress] round 4/10: Grace Report
+  heap=5.94 MB (╬Ф+1.36)  liveNodes=172 nodes(cdp)=201
+
+[stress] round 5/10: Chandler SST
+  heap=6.07 MB (╬Ф+1.49)  liveNodes=172 nodes(cdp)=201
+
+[stress] round 6/10: Grace Report
+  heap=6.08 MB (╬Ф+1.5)  liveNodes=172 nodes(cdp)=201
+
+[stress] round 7/10: Chandler SST
+  heap=6.18 MB (╬Ф+1.6)  liveNodes=172 nodes(cdp)=201
+
+[stress] round 8/10: Grace Report
+  heap=6.23 MB (╬Ф+1.65)  liveNodes=172 nodes(cdp)=201
+
+[stress] round 9/10: Chandler SST
+  heap=6.43 MB (╬Ф+1.85)  liveNodes=172 nodes(cdp)=201
+
+[stress] round 10/10: Grace Report
+  heap=6.46 MB (╬Ф+1.88)  liveNodes=172 nodes(cdp)=201
+
+[stress:upload-reset] ╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В
+  [ 0] heap=5.5 MB  nodes=172
+  [ 1] heap=5.7 MB  nodes=172
+  [ 2] heap=5.9 MB  nodes=172
+  [ 3] heap=5.9 MB  nodes=172
+  [ 4] heap=6.1 MB  nodes=172
+  [ 5] heap=6.1 MB  nodes=172
+  [ 6] heap=6.2 MB  nodes=172
+  [ 7] heap=6.2 MB  nodes=172
+  [ 8] heap=6.4 MB  nodes=172
+  [ 9] heap=6.5 MB  nodes=172
+  slope=0.102 MB/round  nodesRatio=1.00  peak=6.5 MB
+[stress] Report ╨▓тАатАЩ D:\Development\Rheolab\outputs\e2e\perf\memory-stress-upload-reset-1776803661939.json
+  тЬУ  1 [chromium] тА║ tests\e2e\memory-stress.spec.ts:226:3 тА║ [MemStress] Repeated upload╨▓╨ВтАЬanalyze╨▓╨ВтАЬreset тА║ heap should not grow with repeated file loads (20.9s)
+[E2E] Test license configured
+[stress] baseline: heap=4.58 MB, liveNodes=172 nodes(cdp)=180
+
+[stress] ╨▓тАв╤Т╨▓тАв╤Т╨▓тАв╤Т ALL FIXTURES pass 1/2 ╨▓тАв╤Т╨▓тАв╤Т╨▓тАв╤Т
+  ╨▓тАатАЩ Loading Chandler SST (csv)
+  heap=6.31 MB (╬Ф+1.73)  liveNodes=178 nodes(cdp)=522
+  ╨▓тАатАЩ Loading Chandler SWB (csv)
+  heap=6.72 MB (╬Ф+2.14)  liveNodes=178 nodes(cdp)=829
+  ╨▓тАатАЩ Loading Grace Report (xlsx)
+  heap=6.94 MB (╬Ф+2.36)  liveNodes=178 nodes(cdp)=1136
+  ╨▓тАатАЩ Loading Brookfield 4 (xlsx)
+  heap=7.17 MB (╬Ф+2.59)  liveNodes=178 nodes(cdp)=1443
+  ╨▓тАатАЩ Loading BSL Report (xlsx)
+  heap=7.5 MB (╬Ф+2.92)  liveNodes=178 nodes(cdp)=1750
+  ╨▓тАатАЩ Loading Ofite 1100 (dat)
+  heap=7.57 MB (╬Ф+2.99)  liveNodes=178 nodes(cdp)=2057
+  ╨▓тАатАЩ Loading Chandler 5610 (csv)
+  heap=7.64 MB (╬Ф+3.06)  liveNodes=178 nodes(cdp)=2364
+  ╨▓тАатАЩ Loading Chandler Report (xls)
+  heap=7.63 MB (╬Ф+3.05)  liveNodes=178 nodes(cdp)=2671
+  ╨▓тАатАЩ Loading Brookfield Report (xls)
+  heap=7.76 MB (╬Ф+3.18)  liveNodes=178 nodes(cdp)=2978
+  ╨▓тАатАЩ Loading Grace November 2008 (xls)
+  heap=7.84 MB (╬Ф+3.26)  liveNodes=178 nodes(cdp)=3285
+  ╨▓тАатАЩ Loading SWB 90 (xlsx)
+  heap=7.9 MB (╬Ф+3.32)  liveNodes=178 nodes(cdp)=3592
+
+[stress] ╨▓тАв╤Т╨▓тАв╤Т╨▓тАв╤Т ALL FIXTURES pass 2/2 ╨▓тАв╤Т╨▓тАв╤Т╨▓тАв╤Т
+  ╨▓тАатАЩ Loading Chandler SST (csv)
+  heap=7.98 MB (╬Ф+3.4)  liveNodes=179 nodes(cdp)=3900
+  ╨▓тАатАЩ Loading Chandler SWB (csv)
+  heap=8.02 MB (╬Ф+3.44)  liveNodes=179 nodes(cdp)=4207
+  ╨▓тАатАЩ Loading Grace Report (xlsx)
+  heap=8.06 MB (╬Ф+3.48)  liveNodes=179 nodes(cdp)=4514
+  ╨▓тАатАЩ Loading Brookfield 4 (xlsx)
+  heap=8.12 MB (╬Ф+3.54)  liveNodes=179 nodes(cdp)=4821
+  ╨▓тАатАЩ Loading BSL Report (xlsx)
+  heap=8.16 MB (╬Ф+3.58)  liveNodes=179 nodes(cdp)=5128
+  ╨▓тАатАЩ Loading Ofite 1100 (dat)
+  heap=8.21 MB (╬Ф+3.63)  liveNodes=179 nodes(cdp)=5435
+  ╨▓тАатАЩ Loading Chandler 5610 (csv)
+  heap=8.26 MB (╬Ф+3.68)  liveNodes=179 nodes(cdp)=5742
+  ╨▓тАатАЩ Loading Chandler Report (xls)
+  heap=8.32 MB (╬Ф+3.74)  liveNodes=179 nodes(cdp)=6049
+  ╨▓тАатАЩ Loading Brookfield Report (xls)
+  heap=8.35 MB (╬Ф+3.77)  liveNodes=179 nodes(cdp)=6356
+  ╨▓тАатАЩ Loading Grace November 2008 (xls)
+  heap=8.41 MB (╬Ф+3.83)  liveNodes=179 nodes(cdp)=6663
+  ╨▓тАатАЩ Loading SWB 90 (xlsx)
+  heap=8.45 MB (╬Ф+3.87)  liveNodes=179 nodes(cdp)=6970
+
+[stress:all-fixtures] ╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В
+  [ 0] heap=6.3 MB  nodes=178
+  [ 1] heap=6.7 MB  nodes=178
+  [ 2] heap=6.9 MB  nodes=178
+  [ 3] heap=7.2 MB  nodes=178
+  [ 4] heap=7.5 MB  nodes=178
+  [ 5] heap=7.6 MB  nodes=178
+  [ 6] heap=7.6 MB  nodes=178
+  [ 7] heap=7.6 MB  nodes=178
+  [ 8] heap=7.8 MB  nodes=178
+  [ 9] heap=7.8 MB  nodes=178
+  [10] heap=7.9 MB  nodes=178
+  [11] heap=8.0 MB  nodes=179
+  [12] heap=8.0 MB  nodes=179
+  [13] heap=8.1 MB  nodes=179
+  [14] heap=8.1 MB  nodes=179
+  [15] heap=8.2 MB  nodes=179
+  [16] heap=8.2 MB  nodes=179
+  [17] heap=8.3 MB  nodes=179
+  [18] heap=8.3 MB  nodes=179
+  [19] heap=8.3 MB  nodes=179
+  [20] heap=8.4 MB  nodes=179
+  [21] heap=8.4 MB  nodes=179
+  slope=0.082 MB/fixture  peak=8.4 MB  nodesRatio=1.01
+
+[stress:all-fixtures] DOM node growth (baseline vs last sample):
+  tag              before  after   delta
+  link                 41     48      +7
+  __elements__        135    142      +7
+  __liveAll__         172    179      +7
+[stress] Report ╨▓тАатАЩ D:\Development\Rheolab\outputs\e2e\perf\memory-stress-all-fixtures-1776803718194.json
+  тЬУ  2 [chromium] тА║ tests\e2e\memory-stress.spec.ts:299:3 тА║ [MemStress] Sequential all-fixture loading тА║ heap stabilises after loading all available fixtures (56.2s)
+[E2E] Test license configured
+[stress] baseline (with data): heap=5.55 MB, liveNodes=431 nodes(cdp)=450
+
+[stress] nav round 1/10
+  heap=6.72 MB (╬Ф+1.17)  liveNodes=440 nodes(cdp)=776
+
+[stress] nav round 2/10
+  heap=7.04 MB (╬Ф+1.49)  liveNodes=440 nodes(cdp)=776
+
+[stress] nav round 3/10
+  heap=7.15 MB (╬Ф+1.6)  liveNodes=440 nodes(cdp)=776
+
+[stress] nav round 4/10
+  heap=7.24 MB (╬Ф+1.69)  liveNodes=440 nodes(cdp)=776
+
+[stress] nav round 5/10
+  heap=7.4 MB (╬Ф+1.85)  liveNodes=440 nodes(cdp)=776
+
+[stress] nav round 6/10
+  heap=7.5 MB (╬Ф+1.95)  liveNodes=440 nodes(cdp)=776
+
+[stress] nav round 7/10
+  heap=7.58 MB (╬Ф+2.03)  liveNodes=440 nodes(cdp)=776
+
+[stress] nav round 8/10
+  heap=7.74 MB (╬Ф+2.19)  liveNodes=440 nodes(cdp)=776
+
+[stress] nav round 9/10
+  heap=7.97 MB (╬Ф+2.42)  liveNodes=440 nodes(cdp)=776
+
+[stress] nav round 10/10
+  heap=8.02 MB (╬Ф+2.47)  liveNodes=440 nodes(cdp)=776
+
+[stress:nav-cycling] ╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В
+  [ 0] heap=6.7 MB  nodes=440
+  [ 1] heap=7.0 MB  nodes=440
+  [ 2] heap=7.2 MB  nodes=440
+  [ 3] heap=7.2 MB  nodes=440
+  [ 4] heap=7.4 MB  nodes=440
+  [ 5] heap=7.5 MB  nodes=440
+  [ 6] heap=7.6 MB  nodes=440
+  [ 7] heap=7.7 MB  nodes=440
+  [ 8] heap=8.0 MB  nodes=440
+  [ 9] heap=8.0 MB  nodes=440
+  slope=0.135 MB/round  nodesRatio=1.00  peak=8.0 MB
+[stress] Report ╨▓тАатАЩ D:\Development\Rheolab\outputs\e2e\perf\memory-stress-nav-cycling-1776803740560.json
+  тЬУ  3 [chromium] тА║ tests\e2e\memory-stress.spec.ts:406:3 тА║ [MemStress] Library + Dashboard navigation cycling тА║ rapid navigation Library╨▓тАатАЭDashboard╨▓тАатАЭComparison does not leak (22.3s)
+[E2E] Test license configured
+[stress] baseline: heap=4.59 MB, liveNodes=172 nodes(cdp)=180
+
+[stress] workflow round 1: Chandler SST
+  saved: MemStress_Chandler SST_1776803744543
+  heap=6.97 MB (╬Ф+2.38)  liveNodes=190 nodes(cdp)=278
+
+[stress] workflow round 2: Grace Report
+  saved: MemStress_Grace Report_1776803748121
+  heap=7.41 MB (╬Ф+2.82)  liveNodes=190 nodes(cdp)=341
+
+[stress] workflow round 3: Brookfield 4
+  saved: MemStress_Brookfield 4_1776803751591
+  heap=7.71 MB (╬Ф+3.12)  liveNodes=190 nodes(cdp)=404
+
+[stress] workflow round 4: BSL Report
+  saved: MemStress_BSL Report_1776803755048
+  heap=7.89 MB (╬Ф+3.3)  liveNodes=190 nodes(cdp)=467
+
+[stress] workflow round 5: Ofite 1100
+  saved: MemStress_Ofite 1100_1776803758621
+  heap=8.08 MB (╬Ф+3.49)  liveNodes=190 nodes(cdp)=530
+
+[stress] workflow round 6: Chandler SWB
+  saved: MemStress_Chandler SWB_1776803762066
+  heap=8.17 MB (╬Ф+3.58)  liveNodes=190 nodes(cdp)=593
+
+[stress:full-workflow] ╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В╨▓тАЭ╨В
+  [ 0] heap=7.0 MB  nodes=190
+  [ 1] heap=7.4 MB  nodes=190
+  [ 2] heap=7.7 MB  nodes=190
+  [ 3] heap=7.9 MB  nodes=190
+  [ 4] heap=8.1 MB  nodes=190
+  [ 5] heap=8.2 MB  nodes=190
+  slope=0.234 MB/round  peak=8.2 MB  nodesRatio=1.00
+[stress] Report ╨▓тАатАЩ D:\Development\Rheolab\outputs\e2e\perf\memory-stress-full-workflow-1776803764798.json
+  тЬУ  4 [chromium] тА║ tests\e2e\memory-stress.spec.ts:481:3 тА║ [MemStress] Full workflow: upload╨▓тАатАЩsave╨▓тАатАЩlibrary╨▓тАатАЩload╨▓тАатАЩrepeat тА║ heap stays bounded through full experiment lifecycle (24.2s)
+[E2E] Test license configured
+[stress] with data: heap=5.55 MB, nodes=450
+[stress] store has data: {"hasParseResult":true}
+[stress] after close: heap=6.15 MB, nodes=262
+[stress] heap dropped by -0.6 MB after experiment close
+[stress] Report ╨▓тАатАЩ D:\Development\Rheolab\outputs\e2e\perf\memory-stress-store-leak-1776803771216.json
+╨▓╤Щ┬а Heap GREW by 0.6 MB after experiment close ╨▓╨ВтАЭ possible memory leak in store/cache cleanup
+  тЬУ  5 [chromium] тА║ tests\e2e\memory-stress.spec.ts:579:3 тА║ [MemStress] Store-level leak detection тА║ zustand stores release data on experiment close (6.4s)
+[E2E] Test license configured
+[Bench] Analysis: heap=6.49 MB, nodes=529, nav=36 ms
+[Bench] Library: heap=7.54 MB, nodes=1092, nav=33 ms
+[Bench] Comparison: heap=8.09 MB, nodes=1375, nav=18 ms
+[Bench] Settings: heap=7.38 MB, nodes=1541, nav=32 ms
+  тЬУ  6 [chromium] тА║ tests\e2e\perf-benchmark.spec.ts:111:3 тА║ [Perf] Idle heap & DOM per route тА║ measures JS heap and DOM nodes on each idle page (5.5s)
+[E2E] Test license configured
+[Bench] FAKE-PARSE mode тАФ analysisMs will be null (no Tauri binary).
+        Real native analysis timing: npm run perf:benchmark:tauri
+[Bench] Chandler SST-63: analysis=0 ms, uplot=4 ms, heap+2.86 MB, nodes+328
+[Bench] Grace Report: analysis=0 ms, uplot=1 ms, heap+2.45 MB, nodes+323
+  тЬУ  7 [chromium] тА║ tests\e2e\perf-benchmark.spec.ts:170:3 тА║ [Perf] Analysis pipeline & chart timing тА║ measures WASM analysis and uPlot init time for two fixtures (4.4s)
+[E2E] Test license configured
+[Bench] Navigation roundtrip summary: {
+  cycles: [33m10[39m,
+  baselineHeapMb: [33m6.18[39m,
+  finalHeapMb: [33m8.17[39m,
+  peakHeapMb: [33m11.56[39m,
+  heapDeltaMb: [33m1.99[39m,
+  baselineNodes: [33m620[39m,
+  finalNodes: [33m4400[39m,
+  peakNodes: [33m5022[39m,
+  nodesDelta: [33m3780[39m,
+  layoutCountDelta: [33m40[39m,
+  recalcStyleCountDelta: [33m331[39m,
+  scriptDurationDeltaMs: [33m244.58[39m
+}
+  тЬУ  8 [chromium] тА║ tests\e2e\perf-benchmark.spec.ts:245:3 тА║ [Perf] Navigation roundtrip leak detection тА║ 10 navigation cycles тАФ heap and node growth (7.8s)
+[E2E] Test license configured
+[Bench] Full report written тЖТ D:\Development\Rheolab\outputs\e2e\perf\benchmark-1776803791142.json
+[Bench] Analysis: {
+  fixture: [32m'Chandler SST'[39m,
+  heapDeltaMb: [33m2.16[39m,
+  nodesDelta: [33m388[39m,
+  analysisMs: [33m0[39m,
+  uplotInitInstances: [33m1[39m,
+  avgUplotInitMs: [33m3[39m
+}
+[Bench] Nav leak: {
+  baselineHeapMb: [33m9.66[39m,
+  finalHeapMb: [33m8.96[39m,
+  heapDeltaMb: [33m-0.7[39m,
+  baselineNodes: [33m1929[39m,
+  finalNodes: [33m5916[39m,
+  nodesDelta: [33m3987[39m,
+  samples: [
+    { cycle: [33m0[39m, heapMb: [33m9.66[39m, nodes: [33m1929[39m },
+    { cycle: [33m1[39m, heapMb: [33m7.89[39m, nodes: [33m1352[39m },
+    { cycle: [33m2[39m, heapMb: [33m7.94[39m, nodes: [33m2493[39m },
+    { cycle: [33m3[39m, heapMb: [33m8.24[39m, nodes: [33m3634[39m },
+    { cycle: [33m4[39m, heapMb: [33m8.66[39m, nodes: [33m4775[39m },
+    { cycle: [33m5[39m, heapMb: [33m8.96[39m, nodes: [33m5916[39m }
+  ]
+}
+  тЬУ  9 [chromium] тА║ tests\e2e\perf-benchmark.spec.ts:327:3 тА║ [Perf] Summary report тА║ produces a single aggregated benchmark JSON report (7.7s)
+
+  9 passed (2.8m)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report playwright-report-benchmark[39m
+[36m[39m
+[perf-benchmark] No result files found in D:\Development\Rheolab\outputs\e2e\perf for runId 1776803625977

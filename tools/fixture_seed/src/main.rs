@@ -207,10 +207,33 @@ const LABS: &[(&str, &str)] = &[
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Схема БД (полная, V2) — идентична seed_db/src/main.rs
+// Схема БД (полная, V2) — синхронизирована с
+// `src-tauri/src/db/migrations/v0001_initial.rs` + `v0002_touch_point_metrics.rs`.
+// При изменении production-миграций обновляйте обе константы ниже в lockstep.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Library-filter contract (matches the production algorithm in
+/// `src-tauri/src/db/touch_point_precompute.rs`).
+const LIBRARY_TOUCH_THRESHOLD_CP: f64 = 50.0;
+const LIBRARY_TARGET_TIME_MIN: f64 = 10.0;
+/// Precompute version tag — bump in sync with the production constant
+/// whenever the touch-point algorithm changes.
+const TOUCH_PRECOMPUTE_VERSION: i64 = 4;
+
+/// Thresholds (in centipoise) that get a dedicated row per experiment
+/// in `TouchPointPrecompute`.  Must stay in lock-step with
+/// `LIBRARY_TOUCH_THRESHOLDS_CP` in
+/// `src-tauri/src/db/migrations/v0003_multi_threshold_touch_point.rs`.
+const LIBRARY_TOUCH_THRESHOLDS_CP: &[f64] =
+    &[5.0, 10.0, 50.0, 100.0, 200.0, 300.0, 500.0, 700.0];
+
 const SCHEMA_DDL: &str = r#"
+CREATE TABLE IF NOT EXISTS schema_meta (
+    id             INTEGER PRIMARY KEY CHECK (id = 1),
+    schema_version INTEGER NOT NULL,
+    app_version    TEXT    NOT NULL,
+    migrated_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS User (
     id             TEXT PRIMARY KEY,
     name           TEXT,
@@ -333,6 +356,14 @@ CREATE TABLE IF NOT EXISTS Experiment (
     testType         TEXT DEFAULT NULL,
     dominantPattern  TEXT DEFAULT NULL,
     waterSourceId    TEXT REFERENCES WaterSourceCatalog(id),
+    -- V2 touch-point precompute (mirrors v0002_touch_point_metrics.rs).
+    -- Inlined into CREATE TABLE so the seed DB is ready at schema_version=2
+    -- straight away, no startup backfill required.
+    touchHasCrossing         INTEGER DEFAULT NULL,
+    touchCrossingTimeMin     REAL    DEFAULT NULL,
+    touchCrossingViscosityCp REAL    DEFAULT NULL,
+    touchViscosityAtTargetCp REAL    DEFAULT NULL,
+    touchPrecomputeVersion   INTEGER DEFAULT NULL,
     FOREIGN KEY (userId) REFERENCES User(id),
     FOREIGN KEY (laboratoryId) REFERENCES Laboratory(id)
 );
@@ -351,6 +382,19 @@ CREATE INDEX IF NOT EXISTS idx_experiment_test_category ON Experiment(testCatego
 CREATE INDEX IF NOT EXISTS idx_experiment_dominant_pattern ON Experiment(dominantPattern);
 CREATE INDEX IF NOT EXISTS idx_experiment_geometry      ON Experiment(geometry);
 CREATE INDEX IF NOT EXISTS idx_experiment_fluid_type    ON Experiment(fluidType);
+CREATE INDEX IF NOT EXISTS idx_experiment_updated_at    ON Experiment(updatedAt);
+CREATE INDEX IF NOT EXISTS idx_experiment_test_type     ON Experiment(testType);
+-- V2 partial indexes for the library-filter fast path.
+CREATE INDEX IF NOT EXISTS idx_experiment_touch_has_crossing
+    ON Experiment(touchHasCrossing) WHERE touchHasCrossing IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_experiment_touch_crossing_time
+    ON Experiment(touchCrossingTimeMin) WHERE touchCrossingTimeMin IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_experiment_touch_crossing_viscosity
+    ON Experiment(touchCrossingViscosityCp) WHERE touchCrossingViscosityCp IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_experiment_touch_viscosity_at_target
+    ON Experiment(touchViscosityAtTargetCp) WHERE touchViscosityAtTargetCp IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_experiment_touch_precompute_pending
+    ON Experiment(touchPrecomputeVersion) WHERE touchPrecomputeVersion IS NULL;
 CREATE TABLE IF NOT EXISTS ExperimentData (
     experimentId  TEXT PRIMARY KEY REFERENCES Experiment(id) ON DELETE CASCADE ON UPDATE CASCADE,
     dataBlob      BLOB    NOT NULL,
@@ -565,6 +609,29 @@ CREATE TRIGGER IF NOT EXISTS fts_experiment_au
         INSERT INTO fts_experiment(rowid, name, originalFilename, fieldName, operatorName, wellNumber, waterSource, instrumentType, fluidType, testCategory, testType)
         VALUES (new.rowid, new.name, new.originalFilename, new.fieldName, new.operatorName, new.wellNumber, new.waterSource, new.instrumentType, new.fluidType, new.testCategory, new.testType);
     END;
+
+CREATE TABLE IF NOT EXISTS TouchPointPrecompute (
+    experimentId        TEXT    NOT NULL,
+    thresholdCp         INTEGER NOT NULL,
+    hasCrossing         INTEGER NOT NULL,
+    crossingTimeMin     REAL,
+    crossingViscosityCp REAL,
+    viscosityAtTargetCp REAL,
+    precomputeVersion   INTEGER NOT NULL,
+    PRIMARY KEY (experimentId, thresholdCp),
+    FOREIGN KEY (experimentId) REFERENCES Experiment(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_tpp_threshold_crossing
+    ON TouchPointPrecompute(thresholdCp, hasCrossing);
+CREATE INDEX IF NOT EXISTS idx_tpp_threshold_crossing_time
+    ON TouchPointPrecompute(thresholdCp, crossingTimeMin)
+    WHERE crossingTimeMin IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tpp_threshold_viscosity_target
+    ON TouchPointPrecompute(thresholdCp, viscosityAtTargetCp)
+    WHERE viscosityAtTargetCp IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tpp_experiment
+    ON TouchPointPrecompute(experimentId);
 "#;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -697,6 +764,118 @@ fn compute_metrics(points: &[RheoPoint]) -> PointMetrics {
 // Определение набора каналов (для поля metrics)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Touch-point precompute — shape-equivalent mirror of the production algorithm
+// in `src-tauri/src/db/touch_point_precompute.rs`.  Production uses a
+// Savitzky-Golay smoother; a 5-point moving average is good enough here
+// because real fixture noise is already reasonable.  Result: the library
+// filter fast-path (`touchHasCrossing` / `touchCrossingTimeMin` / …) works
+// against real curves without waiting for the startup backfill.
+// ─────────────────────────────────────────────────────────────────────────────
+
+fn smooth_viscosity(points: &[RheoPoint]) -> Vec<f64> {
+    let n = points.len();
+    let half = 2usize; // 5-point window
+    (0..n)
+        .map(|i| {
+            let lo = i.saturating_sub(half);
+            let hi = (i + half + 1).min(n);
+            let count = (hi - lo) as f64;
+            points[lo..hi].iter().map(|p| p.viscosity_cp).sum::<f64>() / count.max(1.0)
+        })
+        .collect()
+}
+
+/// Compute the four touch-point metrics from a real parsed curve
+/// using the default 50 cP threshold.
+fn compute_touch_point_rheo(
+    points: &[RheoPoint],
+) -> (i64, Option<f64>, Option<f64>, Option<f64>) {
+    compute_touch_point_rheo_for_threshold(points, LIBRARY_TOUCH_THRESHOLD_CP)
+}
+
+/// Compute touch-point metrics for an arbitrary viscosity threshold
+/// using the **production** smart-touch-point algorithm from
+/// rheolab-core.  This guarantees the seed DB contains exactly the
+/// same crossing data that the live app would compute.
+fn compute_touch_point_rheo_for_threshold(
+    points: &[RheoPoint],
+    threshold_cp: f64,
+) -> (i64, Option<f64>, Option<f64>, Option<f64>) {
+    use rheolab_core::report_generator::touch_point::{
+        TouchPointInput, SmartTouchPointOptions, TouchPointType,
+        calculate_smart_touch_points,
+    };
+
+    if points.len() < 3 {
+        return (0, None, None, None);
+    }
+
+    let inputs: Vec<TouchPointInput> = points
+        .iter()
+        .filter(|p| p.time_sec.is_finite() && p.viscosity_cp.is_finite())
+        .map(|p| TouchPointInput {
+            time_min: p.time_sec / 60.0,
+            viscosity_cp: p.viscosity_cp,
+            shear_rate: p.shear_rate.unwrap_or(0.0),
+        })
+        .collect();
+
+    let results = calculate_smart_touch_points(
+        &inputs,
+        &SmartTouchPointOptions {
+            viscosity_threshold: threshold_cp,
+            show_target_time: true,
+            target_time: LIBRARY_TARGET_TIME_MIN,
+            ..Default::default()
+        },
+    );
+
+    let threshold_r = results.iter().find(|r| r.tp_type == TouchPointType::Threshold);
+    let target_r = results.iter().find(|r| r.tp_type == TouchPointType::Target);
+
+    // "Started below threshold" guard — same as production precompute.
+    let max_visc = inputs.iter().map(|p| p.viscosity_cp)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let (has_crossing, cross_time, cross_visc) = match threshold_r {
+        Some(r) if max_visc.is_finite() && max_visc > threshold_cp => {
+            (1i64, Some(r.time), Some(r.viscosity))
+        }
+        _ => (0i64, None, None),
+    };
+    let visc_at_target = target_r.map(|r| r.viscosity);
+
+    (has_crossing, cross_time, cross_visc, visc_at_target)
+}
+
+/// Linearly interpolate the smoothed viscosity at the given time (in
+/// seconds).  Falls back to the nearest endpoint when the target is
+/// outside the curve.
+fn interp_viscosity_at_time_rheo(
+    points: &[RheoPoint],
+    smoothed: &[f64],
+    target_sec: f64,
+) -> Option<f64> {
+    let first_t = points.first().map(|p| p.time_sec).unwrap_or(0.0);
+    let last_t = points.last().map(|p| p.time_sec).unwrap_or(0.0);
+    if first_t > target_sec {
+        return smoothed.first().copied();
+    }
+    if last_t < target_sec {
+        return smoothed.last().copied();
+    }
+    for i in 1..points.len() {
+        let t0 = points[i - 1].time_sec;
+        let t1 = points[i].time_sec;
+        if t0 <= target_sec && target_sec <= t1 {
+            let span = (t1 - t0).max(1e-9);
+            let w = (target_sec - t0) / span;
+            return Some(smoothed[i - 1] * (1.0 - w) + smoothed[i] * w);
+        }
+    }
+    None
+}
+
 fn channels_list(points: &[RheoPoint]) -> Vec<&'static str> {
     let mut v = vec!["time_sec", "viscosity_cp", "temperature_c"];
     if points.iter().any(|p| p.shear_rate.is_some())        { v.push("shear_rate"); }
@@ -753,7 +932,18 @@ fn main() {
 
     // ── Схема ──────────────────────────────────────────────────────────────
     conn.execute_batch(SCHEMA_DDL).expect("Не удалось применить схему БД");
-    println!("✓ Схема применена");
+    conn.pragma_update(None, "user_version", 3)
+        .expect("PRAGMA user_version=3 failed");
+    // schema_meta row — без него production startup попытается применить
+    // миграции повторно и упадёт на дублирующих колонках.
+    let seed_build_version = env!("CARGO_PKG_VERSION");
+    conn.execute(
+        "INSERT OR REPLACE INTO schema_meta (id, schema_version, app_version, migrated_at) \
+         VALUES (1, 3, ?1, datetime('now'))",
+        params![format!("fixture-seed-{seed_build_version}")],
+    )
+    .expect("schema_meta insert failed");
+    println!("✓ Схема v3 применена (schema_version=3, включая V3 TouchPointPrecompute)");
 
     // ── Пользователь ──────────────────────────────────────────────────────
     let user_id = "desktop-local-admin";
@@ -956,12 +1146,19 @@ fn main() {
     // ── Генерация экспериментов ────────────────────────────────────────────
     let base_date = NaiveDate::from_ymd_opt(BASE_DATE.0, BASE_DATE.1, BASE_DATE.2).unwrap();
     let mut total_inserted: u64 = 0;
+    let mut crossing_count: u64 = 0;
     let mut global_seq: usize = 0;
 
     for fixture in &parsed_fixtures {
         let blob      = encode_columnar(&fixture.points);
         let metrics   = compute_metrics(&fixture.points);
         let channels  = channels_list(&fixture.points);
+        // Compute touch-point metrics once per fixture — copies reuse the
+        // same curve so the crossing/target values are identical for all
+        // 588 copies of the same file.  Cheap enough that per-copy
+        // recomputation would be wasteful.
+        let (tp_has_crossing, tp_cross_time, tp_cross_visc, tp_visc_at_target) =
+            compute_touch_point_rheo(&fixture.points);
 
         print!("  Сохранение '{}': ", fixture.filename);
         let _ = std::io::stdout().flush();
@@ -1107,6 +1304,53 @@ fn main() {
                 params![exp_id, &blob, metrics.point_count as i64, created_at_str, created_at_str],
             ).expect("INSERT ExperimentData failed");
 
+            // Touch-point precompute mirror — production `persist_experiment`
+            // writes these during save; we replicate it here so the library
+            // filter fast-path is immediately usable without a backfill pass.
+            //
+            // Legacy 50 cP columns (V2):
+            if tp_has_crossing == 1 {
+                crossing_count += 1;
+            }
+            conn.execute(
+                "UPDATE Experiment SET \
+                    touchHasCrossing = ?1, \
+                    touchCrossingTimeMin = ?2, \
+                    touchCrossingViscosityCp = ?3, \
+                    touchViscosityAtTargetCp = ?4, \
+                    touchPrecomputeVersion = ?5 \
+                 WHERE id = ?6",
+                params![
+                    tp_has_crossing,
+                    tp_cross_time,
+                    tp_cross_visc,
+                    tp_visc_at_target,
+                    TOUCH_PRECOMPUTE_VERSION,
+                    exp_id,
+                ],
+            ).expect("UPDATE touch-point failed");
+
+            // Multi-threshold side table (V3): one row per preset.
+            for &threshold in LIBRARY_TOUCH_THRESHOLDS_CP {
+                let (th_has, th_t, th_v, th_vt) =
+                    compute_touch_point_rheo_for_threshold(&fixture.points, threshold);
+                conn.execute(
+                    "INSERT INTO TouchPointPrecompute \
+                     (experimentId, thresholdCp, hasCrossing, crossingTimeMin, \
+                      crossingViscosityCp, viscosityAtTargetCp, precomputeVersion) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        exp_id,
+                        threshold as i64,
+                        th_has,
+                        th_t,
+                        th_v,
+                        th_vt,
+                        TOUCH_PRECOMPUTE_VERSION,
+                    ],
+                ).expect("INSERT TouchPointPrecompute failed");
+            }
+
             // ExperimentReagent — рецептура из RECIPES
             let recipe = RECIPES[copy_idx % RECIPES.len()];
             for reagent in recipe.iter() {
@@ -1148,6 +1392,10 @@ fn main() {
     let count_exp: i64 = conn.query_row("SELECT COUNT(*) FROM Experiment",     [], |r| r.get(0)).unwrap_or(0);
     let count_data: i64 = conn.query_row("SELECT COUNT(*) FROM ExperimentData", [], |r| r.get(0)).unwrap_or(0);
     let count_reag: i64 = conn.query_row("SELECT COUNT(*) FROM ExperimentReagent", [], |r| r.get(0)).unwrap_or(0);
+    let tpp_rows: i64 = conn.query_row("SELECT COUNT(*) FROM TouchPointPrecompute", [], |r| r.get(0)).unwrap_or(0);
+    let tpp_crossings: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM TouchPointPrecompute WHERE hasCrossing = 1", [], |r| r.get(0)
+    ).unwrap_or(0);
     let db_size = std::fs::metadata(&db_path).map(|m| m.len()).unwrap_or(0);
 
     println!();
@@ -1155,8 +1403,13 @@ fn main() {
     println!("  Готово: {}", db_path);
     println!("  Фикстур разобрано: {}", parsed_fixtures.len());
     println!("  Экспериментов вставлено: {total_inserted} (в БД: {count_exp})");
+    println!("  Достигли порога 50 сП: {crossing_count} ({:.1}%)",
+        100.0 * (crossing_count as f64) / (total_inserted.max(1) as f64));
     println!("  Блобов данных:     {count_data}");
     println!("  Реагент-связей:    {count_reag}");
+    println!("  TPP-строк:         {tpp_rows} ({} порогов × {count_exp} эксп.)",
+             LIBRARY_TOUCH_THRESHOLDS_CP.len());
+    println!("  TPP-пересечений:  {tpp_crossings}");
     println!("  Размер базы данных:{:.1} MB", db_size as f64 / 1_048_576.0);
     println!("═══════════════════════════════════════════════════════════════");
     println!();

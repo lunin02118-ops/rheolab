@@ -2,7 +2,9 @@
 
 use super::helpers::{find_dominant_shear_rate, filter_by_shear_rate, find_viscosity_peak};
 use super::algorithm::calculate_smart_touch_points;
-use super::types::{SmartTouchPointOptions, TouchPointInput, TouchPointType};
+use super::types::{
+    SmartTouchPointOptions, TouchPointAnomaly, TouchPointInput, TouchPointType,
+};
 
 fn make_point(time_min: f64, viscosity_cp: f64, shear_rate: f64) -> TouchPointInput {
     TouchPointInput { time_min, viscosity_cp, shear_rate }
@@ -173,4 +175,140 @@ fn test_smart_touch_points_no_shear_data_falls_back() {
 
     let threshold = results.iter().find(|r| matches!(r.tp_type, TouchPointType::Threshold));
     assert!(threshold.is_some(), "should find threshold even without shear-rate data");
+}
+
+/// BUG #4 regression (mirror of the TS test):
+/// `target_time` that straddles a shear-rate jump must snap to the nearest
+/// raw data point and set `anomaly = ShearRateJump` instead of
+/// interpolating across the vertical curve discontinuity.
+#[test]
+fn test_target_time_snaps_on_shear_rate_jump() {
+    let mut points: Vec<TouchPointInput> = Vec::new();
+    let mut t = 0.0;
+    while t <= 9.5 {
+        points.push(make_point(t, 400.0, 100.0));
+        t += 0.25;
+    }
+    points.push(make_point(10.0, 900.0, 300.0)); // pulse at a different rate
+    t = 10.5;
+    while t <= 20.0 {
+        points.push(make_point(t, 420.0, 100.0));
+        t += 0.25;
+    }
+
+    let results = calculate_smart_touch_points(
+        &points,
+        &SmartTouchPointOptions {
+            viscosity_threshold: 100.0,
+            show_target_time: true,
+            target_time: 9.9,
+            ..Default::default()
+        },
+    );
+
+    let target = results
+        .iter()
+        .find(|r| matches!(r.tp_type, TouchPointType::Target))
+        .expect("target-time marker must be present");
+    assert_eq!(target.anomaly, Some(TouchPointAnomaly::ShearRateJump));
+    // The marker is snapped to one of the two neighbouring raw points
+    // (400 or 900 cP), never interpolated to the meaningless ~650 cP.
+    assert!(
+        (target.viscosity - 400.0).abs() < 1e-6 || (target.viscosity - 900.0).abs() < 1e-6,
+        "expected 400 or 900 cP, got {}",
+        target.viscosity
+    );
+}
+
+/// BUG #10 regression (mirror of the TS test): NaN / ±Infinity inputs
+/// must be filtered out at the entry point and must not poison any
+/// downstream statistic.  Valid neighbours around the dropped points
+/// continue to contribute to threshold / target-time detection.
+#[test]
+fn test_sanitises_non_finite_inputs() {
+    let mut points: Vec<TouchPointInput> = Vec::new();
+    for t in 0..=20 {
+        let t_f = t as f64;
+        if t == 5 {
+            points.push(make_point(t_f, f64::NAN, 100.0));
+        } else if t == 12 {
+            points.push(make_point(t_f, f64::INFINITY, 100.0));
+        } else if t == 15 {
+            // Valid viscosity but non-finite rate — kept with rate=0.
+            points.push(make_point(t_f, 0.0, f64::NAN));
+        } else {
+            points.push(make_point(t_f, 1000.0 - t_f * 40.0, 100.0));
+        }
+    }
+
+    let results = calculate_smart_touch_points(
+        &points,
+        &SmartTouchPointOptions {
+            viscosity_threshold: 300.0,
+            show_target_time: true,
+            target_time: 10.0,
+            ..Default::default()
+        },
+    );
+    for r in &results {
+        assert!(r.time.is_finite(), "time must be finite, got {}", r.time);
+        assert!(r.viscosity.is_finite(), "viscosity must be finite, got {}", r.viscosity);
+    }
+    let target = results
+        .iter()
+        .find(|r| matches!(r.tp_type, TouchPointType::Target))
+        .expect("target-time marker must be present");
+    assert!(
+        target.viscosity > 500.0 && target.viscosity < 700.0,
+        "expected ≈600 cP at t=10 on the decay curve, got {}",
+        target.viscosity
+    );
+}
+
+#[test]
+fn test_all_non_finite_returns_empty() {
+    let points = vec![
+        make_point(f64::NAN, 500.0, 100.0),
+        make_point(1.0, f64::NAN, 100.0),
+        make_point(2.0, 500.0, f64::NAN),
+    ];
+    let results = calculate_smart_touch_points(
+        &points,
+        &SmartTouchPointOptions {
+            viscosity_threshold: 1000.0,
+            show_target_time: false,
+            target_time: 0.0,
+            ..Default::default()
+        },
+    );
+    assert!(results.is_empty(), "expected empty result, got {:?}", results.len());
+}
+
+#[test]
+fn test_target_time_plain_interpolation_on_single_plateau() {
+    let points: Vec<TouchPointInput> = (0..=20)
+        .map(|i| make_point(i as f64, 1000.0 - (i as f64) * 40.0, 100.0))
+        .collect();
+
+    let results = calculate_smart_touch_points(
+        &points,
+        &SmartTouchPointOptions {
+            viscosity_threshold: 100.0,
+            show_target_time: true,
+            target_time: 5.5,
+            ..Default::default()
+        },
+    );
+
+    let target = results
+        .iter()
+        .find(|r| matches!(r.tp_type, TouchPointType::Target))
+        .expect("target-time marker must be present");
+    assert!(target.anomaly.is_none(), "no anomaly expected on a single plateau");
+    // Linear interpolation between (5,800) and (6,760) ⇒ 780 cP.
+    assert!(
+        (target.viscosity - 780.0).abs() < 1e-6,
+        "expected 780 cP (linear interp), got {}",
+        target.viscosity
+    );
 }

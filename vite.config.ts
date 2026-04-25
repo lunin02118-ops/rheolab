@@ -46,8 +46,21 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // Ignore Tauri backend changes
-      ignored: ['**/src-tauri/**'],
+      // Ignore files that don't belong to the React bundle so editing them
+      // doesn't trigger a full page reload (which would wipe dashboard
+      // state — confusing during dev-mode QA):
+      //   * `src-tauri/**`, `src/rust/**` — compiled by cargo, not Vite.
+      //   * `tests/**` — Playwright / Vitest files executed out-of-band;
+      //     HMR bundling them just forces reloads while editing E2E specs
+      //     with the app already running for a manual smoke test.
+      //   * `scripts/**`, `outputs/**` — dev helpers and CI artefacts.
+      ignored: [
+        '**/src-tauri/**',
+        '**/src/rust/**',
+        '**/tests/**',
+        '**/scripts/**',
+        '**/outputs/**',
+      ],
     },
   },
 

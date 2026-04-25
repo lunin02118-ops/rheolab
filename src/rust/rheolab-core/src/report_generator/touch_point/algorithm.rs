@@ -3,15 +3,71 @@
 //! target-time point.
 
 use super::helpers::{find_dominant_shear_rate, filter_by_shear_rate, find_viscosity_peak};
-use super::types::{SmartTouchPointOptions, TouchPointInput, TouchPointResult, TouchPointType};
+use super::types::{
+    SmartTouchPointOptions, TouchPointAnomaly, TouchPointInput, TouchPointResult, TouchPointType,
+};
 
-/// Minimum number of consecutive *smoothed* viscosity values at-or-below
-/// the threshold to confirm a sustained crossing.  Reduced from 5 to 3
-/// because the smoothing pass already filters single-point noise.
+/// Relative shear-rate jump threshold (5 %) used by the target-time
+/// interpolation guard.  Mirrors the TS `SHEAR_RATE_JUMP_RATIO`.
+const SHEAR_RATE_JUMP_RATIO: f64 = 0.05;
+
+fn is_shear_rate_jump(a: f64, b: f64) -> bool {
+    if a <= 0.0 || b <= 0.0 {
+        return false;
+    }
+    let denom = a.abs().max(b.abs());
+    if denom <= 0.0 {
+        return false;
+    }
+    ((a - b).abs() / denom) > SHEAR_RATE_JUMP_RATIO
+}
+
+/// Legacy point-based minimum-run floor — see
+/// [`MIN_CONSECUTIVE_BELOW_SECONDS`] for the time-based budget that now
+/// governs detection.  Retained as a lower bound so that extremely
+/// sparse sampling (60 s plateau intervals) still demands at least
+/// three consecutive points before accepting a crossing.
 const MIN_CONSECUTIVE_BELOW: usize = 3;
-/// Number of smoothed data points to look back when verifying that a
-/// threshold crossing is on a genuinely DESCENDING viscosity trend.
+/// Legacy point-based slope-guard lookback — see
+/// [`SLOPE_LOOKBACK_SECONDS`] for the time-based budget that dominates
+/// at typical sampling rates.
 const SLOPE_LOOKBACK_POINTS: usize = 10;
+/// Time-based equivalent of [`MIN_CONSECUTIVE_BELOW`] (BUG #6 fix).
+/// At 1 s sampling this yields 30 points (30 s confirmation); at 60 s
+/// sampling the legacy 3-point floor dominates (3 min confirmation).
+const MIN_CONSECUTIVE_BELOW_SECONDS: f64 = 30.0;
+/// Time-based slope-guard lookback (BUG #9 fix).  Matches the TS
+/// `SLOPE_LOOKBACK_SECONDS = 30` constant — resolves to ~15 points at
+/// 2 s sampling, or a single point at 60 s sampling, both of which
+/// correctly capture the original algorithm's intent of looking ~30 s
+/// back into the smoothed curve to reject ascending-trend crossings.
+const SLOPE_LOOKBACK_SECONDS: f64 = 30.0;
+
+/// Drop points whose `time_min` or `viscosity_cp` is NaN / infinite
+/// (BUG #10 fix — 1:1 mirror of TS `sanitizeTouchPointInputs`).  Rust's
+/// default `f64::partial_cmp` returns `None` for NaN, which would make
+/// the downstream `sort_by` non-deterministic and could mis-place the
+/// dominant cluster.  Non-finite shear rates are clamped to 0.0 so the
+/// clustering helper treats them as "no rate info" rather than losing
+/// the whole point.
+fn sanitize_touch_point_inputs(points: &[TouchPointInput]) -> Vec<TouchPointInput> {
+    let mut out = Vec::with_capacity(points.len());
+    for p in points {
+        if !p.time_min.is_finite() || !p.viscosity_cp.is_finite() {
+            continue;
+        }
+        if p.shear_rate.is_finite() && p.shear_rate >= 0.0 {
+            out.push(p.clone());
+        } else {
+            out.push(TouchPointInput {
+                time_min: p.time_min,
+                viscosity_cp: p.viscosity_cp,
+                shear_rate: 0.0,
+            });
+        }
+    }
+    out
+}
 
 /// Compute smart touch points: threshold crossing + optional target-time point.
 pub fn calculate_smart_touch_points(
@@ -22,14 +78,21 @@ pub fn calculate_smart_touch_points(
         return Vec::new();
     }
 
+    // Drop NaN / ±Infinity points before any downstream statistic can
+    // poison sort order or median selection.
+    let clean_points = sanitize_touch_point_inputs(points);
+    if clean_points.is_empty() {
+        return Vec::new();
+    }
+
     let mut results = Vec::new();
 
     // Step 1: dominant shear rate
-    let dominant_rate = find_dominant_shear_rate(points, options.shear_rate_tolerance);
+    let dominant_rate = find_dominant_shear_rate(&clean_points, options.shear_rate_tolerance);
 
     let filtered: Vec<TouchPointInput> = match dominant_rate {
-        Some(rate) => filter_by_shear_rate(points, rate, options.shear_rate_tolerance),
-        None => points.to_vec(),
+        Some(rate) => filter_by_shear_rate(&clean_points, rate, options.shear_rate_tolerance),
+        None => clean_points.clone(),
     };
 
     if filtered.is_empty() {
@@ -119,6 +182,25 @@ pub fn calculate_smart_touch_points(
             SLOPE_LOOKBACK_POINTS
         };
 
+        // ── BUG #6 & #9 fix (Rust mirror of TS): derive the confirmation
+        // run length and the slope-guard lookback from absolute TIME on
+        // top of a point-count floor.  At 1 s sampling the time budget
+        // dominates (30 points); at 60 s sampling the floor dominates
+        // (3 points = 3 min confirmation).  `median_interval` is already
+        // in minutes, so convert the seconds constants accordingly.
+        let min_below_min = MIN_CONSECUTIVE_BELOW_SECONDS / 60.0;
+        let slope_lookback_min = SLOPE_LOOKBACK_SECONDS / 60.0;
+        let required_below: usize = if median_interval > 0.0 {
+            MIN_CONSECUTIVE_BELOW.max((min_below_min / median_interval).ceil() as usize)
+        } else {
+            MIN_CONSECUTIVE_BELOW
+        };
+        let slope_lookback: usize = if median_interval > 0.0 {
+            SLOPE_LOOKBACK_POINTS.max((slope_lookback_min / median_interval).ceil() as usize)
+        } else {
+            SLOPE_LOOKBACK_POINTS
+        };
+
         let mut run_start: usize = 0;
         let mut run_length: usize = 0;
 
@@ -129,14 +211,14 @@ pub fn calculate_smart_touch_points(
                 }
                 run_length += 1;
 
-                if run_length >= MIN_CONSECUTIVE_BELOW {
+                if run_length >= required_below {
                     // Slope guard: accept only DESCENDING-trend crossings.
-                    // Walk back SLOPE_LOOKBACK_POINTS + SMOOTHING_HALF_WINDOW
+                    // Walk back slope_lookback + smoothing_half_points
                     // checking for time gaps (interval > gap_threshold).
                     // If ANY gap is found, we are near a segment boundary
                     // where viscosity is ascending from recovery — reject.
                     if run_start > 0 {
-                        let total_lookback = SLOPE_LOOKBACK_POINTS + smoothing_half_points;
+                        let total_lookback = slope_lookback + smoothing_half_points;
                         let mut walk_idx = run_start;
                         let mut gap_found = false;
                         for _ in 0..total_lookback {
@@ -157,7 +239,7 @@ pub fn calculate_smart_touch_points(
                         }
 
                         // No gap — smoothed values are clean.  Check slope.
-                        let effective_lookback = run_start.min(SLOPE_LOOKBACK_POINTS);
+                        let effective_lookback = run_start.min(slope_lookback);
                         if smoothed[run_start] > smoothed[run_start - effective_lookback] {
                             // Viscosity is RISING — reject
                             run_length = 0;
@@ -166,21 +248,25 @@ pub fn calculate_smart_touch_points(
                     }
 
                     // Confirmed sustained crossing on descending trend.
+                    // Walk BACKWARD from run_start to find where the RAW data
+                    // actually first crossed below the threshold.  Smoothed
+                    // detection confirmed the crossing is genuine (not noise);
+                    // the marker should sit at the actual raw crossing, not at
+                    // the delayed smoothed-curve crossing.
                     let mut first_idx = run_start;
-                    for j in run_start..=i {
-                        if search_points[j].viscosity_cp <= options.viscosity_threshold {
-                            first_idx = j;
-                            break;
-                        }
+                    while first_idx > 0
+                        && search_points[first_idx - 1].viscosity_cp
+                            <= options.viscosity_threshold
+                    {
+                        first_idx -= 1;
                     }
 
                     let first = search_points[first_idx];
-                    // Use the actual first below-threshold data point.
-                    // No time interpolation — marker must sit exactly ON the data series.
                     results.push(TouchPointResult {
                         time: first.time_min,
                         viscosity: first.viscosity_cp,
                         tp_type: TouchPointType::Threshold,
+                        anomaly: None,
                     });
                     break;
                 }
@@ -190,24 +276,43 @@ pub fn calculate_smart_touch_points(
         }
     }
 
-    // Step 4: target-time point (on shear-rate-filtered points)
+    // Step 4: target-time point — run on the ALL-points input (not the
+    // shear-rate-filtered set) so the marker tracks whatever curve the
+    // chart actually shows at `target_time`.  Historically the Rust port
+    // iterated `filtered` which hid shear-rate-jump anomalies for SST
+    // experiments; the TS reference also switched to `points` and this
+    // 1:1 sync brings Rust / PDF reports in line.
     if options.show_target_time {
-        for i in 0..filtered.len() {
-            let p = &filtered[i];
+        for i in 0..clean_points.len() {
+            let p = &clean_points[i];
             if p.time_min >= options.target_time {
                 let mut exact_visc = p.viscosity_cp;
+                let mut exact_time = options.target_time;
+                let mut anomaly: Option<TouchPointAnomaly> = None;
+
                 if i > 0 && p.time_min > options.target_time {
-                    let prev = &filtered[i - 1];
+                    let prev = &clean_points[i - 1];
                     let dt = p.time_min - prev.time_min;
-                    if dt.abs() > 0.001 {
+                    if is_shear_rate_jump(prev.shear_rate, p.shear_rate) {
+                        // Snap to the nearer neighbour instead of
+                        // interpolating across a vertical curve jump.
+                        let pick_prev = (options.target_time - prev.time_min).abs()
+                            <= (p.time_min - options.target_time).abs();
+                        let chosen = if pick_prev { prev } else { p };
+                        exact_time = chosen.time_min;
+                        exact_visc = chosen.viscosity_cp;
+                        anomaly = Some(TouchPointAnomaly::ShearRateJump);
+                    } else if dt.abs() > 0.001 {
                         let fraction = (options.target_time - prev.time_min) / dt;
-                        exact_visc = prev.viscosity_cp + fraction * (p.viscosity_cp - prev.viscosity_cp);
+                        exact_visc = prev.viscosity_cp
+                            + fraction * (p.viscosity_cp - prev.viscosity_cp);
                     }
                 }
                 results.push(TouchPointResult {
-                    time: options.target_time,
+                    time: exact_time,
                     viscosity: exact_visc,
                     tp_type: TouchPointType::Target,
+                    anomaly,
                 });
                 break;
             }

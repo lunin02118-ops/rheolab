@@ -123,6 +123,36 @@ type ReportSettings = {
     showAdvancedStats?: boolean;
     /** Line settings for chart (colors, widths, styles) */
     lineSettings?: ReportChartLineSettings;
+    /**
+     * Per-category display unit overrides mirrored from
+     * `chartSettings.rheologyUnits` in the UI store.  When present, the
+     * Rust side's stats table uses THESE target strings for both labels
+     * and numeric conversions — so the report walks away with exactly
+     * what the UI's `CycleResultsTable` shows, even for mixed presets
+     * like `{ viscosity: 'cP', consistency: 'Pa·s^n' }`.
+     *
+     * Absent → legacy behaviour (all conversions driven by `unitSystem`).
+     * See Rust `ReportSettings.rheology_units` + `formatters::render_*_with`.
+     */
+    rheologyUnits?: ReportRheologyUnits;
+};
+
+/** Per-category target units for report generation. */
+export type ReportRheologyUnits = {
+    /** Viscosity target unit: `'mPa·s' | 'Pa·s' | 'cP'`. */
+    viscosity: string;
+    /** Temperature target unit: `'°C' | '°F'`. */
+    temperature: string;
+    /** Pressure target unit: `'bar' | 'psi'`. */
+    pressure: string;
+    /** K' target unit: `'Pa·s^n' | 'lbf·s^n/100ft²'`. */
+    consistency: string;
+    /** PV target unit: `'Pa·s' | 'cP'`. */
+    plasticViscosity: string;
+    /** YP target unit: `'Pa' | 'lbf/100ft²'`. */
+    yieldPoint: string;
+    /** Time display format: `'seconds' | 'minutes' | 'hh:mm:ss'`. */
+    timeFormat: string;
 };
 
 /** Recipe row used in both Excel and PDF reports. */

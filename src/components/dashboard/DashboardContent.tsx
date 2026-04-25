@@ -1,16 +1,20 @@
-import { memo, useState, useMemo, useRef, useCallback } from 'react';
+import { memo, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { BarChart3, Table, Droplets, Save, Settings, FileText } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
-import { CalibrationPanel } from '@/components/calibration/CalibrationPanel';
 import { RheologyChart } from '@/components/charts/rheology-chart-uplot';
 import { ChartErrorBoundary } from '@/components/shared/ChartErrorBoundary';
-import { RawDataTable } from '@/components/dashboard/raw-data-table';
-import { RecipePanel } from '@/components/analysis/recipe-panel';
-import { WaterAnalysisPanel } from '@/components/analysis/water-analysis-panel';
-import { ReportTab } from '@/components/analysis/ReportTab';
-import { CycleResultsTable } from '@/components/analysis/cycle-results-table';
-import { CycleEditorDialog } from '@/components/analysis/cycle-editor-dialog';
+
+// Tab-level lazy chunks: these components are only rendered when the user
+// switches away from the default "chart" tab.  Deferring their bundle
+// load reduces initial JS parse cost and keeps the first-paint path lean.
+const CalibrationPanel = lazy(() => import('@/components/calibration/CalibrationPanel').then(m => ({ default: m.CalibrationPanel })));
+const RawDataTable = lazy(() => import('@/components/dashboard/raw-data-table').then(m => ({ default: m.RawDataTable })));
+const RecipePanel = lazy(() => import('@/components/analysis/recipe-panel').then(m => ({ default: m.RecipePanel })));
+const WaterAnalysisPanel = lazy(() => import('@/components/analysis/water-analysis-panel').then(m => ({ default: m.WaterAnalysisPanel })));
+const ReportTab = lazy(() => import('@/components/analysis/ReportTab').then(m => ({ default: m.ReportTab })));
+const CycleResultsTable = lazy(() => import('@/components/analysis/cycle-results-table').then(m => ({ default: m.CycleResultsTable })));
+const CycleEditorDialog = lazy(() => import('@/components/analysis/cycle-editor-dialog').then(m => ({ default: m.CycleEditorDialog })));
 import { ParsingLogs } from '@/components/dashboard/parsing-logs';
 import { InstrumentSelector } from '@/components/dashboard/instrument-selector';
 import { GeometrySelector } from '@/components/dashboard/geometry-selector';
@@ -280,47 +284,51 @@ function DashboardContentInner({
                     </div>
                 )}
 
-                {activeTab === 'table' && (
-                    <RawDataTable data={chartData} pageSize={25} />
-                )}
+                {activeTab !== 'chart' && (
+                    <Suspense fallback={<div className="flex h-48 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /></div>}>
+                        {activeTab === 'table' && (
+                            <RawDataTable data={chartData} pageSize={25} />
+                        )}
 
-                {activeTab === 'recipe' && (
-                    <div className="w-full">
-                        <RecipePanel
-                            recipe={editedRecipe}
-                            onRecipeChange={setEditedRecipe}
-                        />
-                    </div>
-                )}
+                        {activeTab === 'recipe' && (
+                            <div className="w-full">
+                                <RecipePanel
+                                    recipe={editedRecipe}
+                                    onRecipeChange={setEditedRecipe}
+                                />
+                            </div>
+                        )}
 
-                {activeTab === 'water' && (
-                    <div className="w-full">
-                        <WaterAnalysisPanel
-                            waterSource={editedWaterSource}
-                            waterParams={editedWaterParams || undefined}
-                            onWaterSourceChange={setEditedWaterSource}
-                            onParamsChange={setEditedWaterParams}
-                        />
-                    </div>
-                )}
+                        {activeTab === 'water' && (
+                            <div className="w-full">
+                                <WaterAnalysisPanel
+                                    waterSource={editedWaterSource}
+                                    waterParams={editedWaterParams || undefined}
+                                    onWaterSourceChange={setEditedWaterSource}
+                                    onParamsChange={setEditedWaterParams}
+                                />
+                            </div>
+                        )}
 
-                {activeTab === 'calibration' && (
-                    <div className="w-full">
-                        <CalibrationPanel calibration={parseResult.metadata?.calibration} />
-                    </div>
-                )}
+                        {activeTab === 'calibration' && (
+                            <div className="w-full">
+                                <CalibrationPanel calibration={parseResult.metadata?.calibration} />
+                            </div>
+                        )}
 
-                {activeTab === 'report' && (
-                    <div className="w-full">
-                        <ReportTab
-                            parseResult={parseResult}
-                            editedRecipe={editedRecipe}
-                            editedWaterParams={editedWaterParams}
-                            editedWaterSource={editedWaterSource}
-                            cycleResults={cycleResults}
-                            cycles={cycles}
-                        />
-                    </div>
+                        {activeTab === 'report' && (
+                            <div className="w-full">
+                                <ReportTab
+                                    parseResult={parseResult}
+                                    editedRecipe={editedRecipe}
+                                    editedWaterParams={editedWaterParams}
+                                    editedWaterSource={editedWaterSource}
+                                    cycleResults={cycleResults}
+                                    cycles={cycles}
+                                />
+                            </div>
+                        )}
+                    </Suspense>
                 )}
             </section>
 
@@ -330,7 +338,6 @@ function DashboardContentInner({
                     <CollapsibleCard
                         title={
                             <span className="flex items-center gap-2">
-                                <Logo className="w-5 h-5 text-orange-400" />
                                 Реологический анализ
                                 {patternOverride && <span className="ml-2 text-purple-700 dark:text-purple-400">(Применён паттерн)</span>}
                                 <span className="text-xs text-muted-foreground font-normal">({cycles.length} циклов)</span>
@@ -348,17 +355,20 @@ function DashboardContentInner({
                         }
                         defaultOpen={true}
                     >
-                        <CycleResultsTable
-                            cycles={cycles}
-                            results={cycleResults}
-                            onEditCycle={isExpert ? (cycleId) => setEditingCycleId(cycleId) : undefined}
-                        />
+                        <Suspense fallback={null}>
+                            <CycleResultsTable
+                                cycles={cycles}
+                                results={cycleResults}
+                                onEditCycle={isExpert ? (cycleId) => setEditingCycleId(cycleId) : undefined}
+                            />
+                        </Suspense>
                     </CollapsibleCard>
                 </section>
             )}
 
             {/* Cycle Editor Dialog (Expert mode) */}
             {isExpert && editingCycleId !== null && (
+                <Suspense fallback={null}>
                 <CycleEditorDialog
                     isOpen={true}
                     onClose={() => setEditingCycleId(null)}
@@ -380,6 +390,7 @@ function DashboardContentInner({
                         setEditingCycleId(null);
                     }}
                 />
+                </Suspense>
             )}
         </div>
     );

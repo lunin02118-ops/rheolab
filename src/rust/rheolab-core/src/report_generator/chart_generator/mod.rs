@@ -41,6 +41,7 @@ mod tests {
             line_styles: None, // Use defaults
             axis_mode: "shared".to_string(),
             skip_downsample: false,
+            time_format: String::new(),
         };
         
         let res = generate_chart_svg(&points, &config);
@@ -94,6 +95,7 @@ mod tests {
             line_styles: Some(custom_styles),
             axis_mode: "shared".to_string(),
             skip_downsample: false,
+            time_format: String::new(),
         };
         
         let res = generate_chart_svg(&points, &config);
@@ -148,6 +150,7 @@ mod tests {
             line_styles: Some(custom_styles),
             axis_mode: "shared".to_string(),
             skip_downsample: false,
+            time_format: String::new(),
         };
         
         let res = generate_chart_svg(&points, &config);
@@ -269,6 +272,7 @@ mod lttb_invariants {
                 viscosity_threshold: None,
                 line_styles: None,
                 skip_downsample: true,
+                time_format: String::new(),
             };
             // generate_chart_svg with skip_downsample must not reduce point count
             let result = generate_chart_svg(&data, &config);

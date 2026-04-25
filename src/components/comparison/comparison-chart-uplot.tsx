@@ -28,7 +28,13 @@ function ComparisonChartUPlotInner({
 }: ComparisonChartProps) {
     const chartContainerRef = useRef<HTMLDivElement | null>(null);
     const chartSize = useChartResize(chartContainerRef);
-    const comparisonAxisMode = useChartSettingsStore(s => s.settings.comparisonAxisMode ?? 'shared');
+    // Fallback `'individual'` mirrors the store default
+    // (`chart-settings-defaults.ts`: `comparisonAxisMode: 'individual'`) and
+    // matches the report-export fallback in `useComparisonReportExport.ts`.
+    // Using `'shared'` here silently collapses extra metrics (e.g. a
+    // shear-rate left-secondary) onto the viscosity scale whenever the
+    // persisted store is missing this key.
+    const comparisonAxisMode = useChartSettingsStore(s => s.settings.comparisonAxisMode ?? 'individual');
     const chartSettings = useChartSettingsStore(s => s.settings);
     const { resolvedTheme } = useTheme();
     const isDark = resolvedTheme === 'dark';
@@ -290,6 +296,12 @@ function ComparisonChartUPlotInner({
                 touchPointsPlugin({
                     touchPoints,
                     viscosityThreshold,
+                    // Comparison chart Y-scale for viscosity is always cP
+                    // (primary metric is `viscosity_cp`), so the plugin's
+                    // threshold conversion is an identity here.  Stating
+                    // it explicitly keeps the contract clear and future-
+                    // proof if per-experiment unit selectors are added.
+                    displayUnit: 'cP',
                     showTouchPoints,
                     targetTime,
                     isDark,

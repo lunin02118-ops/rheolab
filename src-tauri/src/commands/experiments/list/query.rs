@@ -1,4 +1,5 @@
-﻿use crate::error::Result;
+﻿use crate::db::migrations::v0003_multi_threshold_touch_point::LIBRARY_TOUCH_THRESHOLDS_CP;
+use crate::error::Result;
 use crate::state::AppState;
 use rusqlite::params;
 use rusqlite::OptionalExtension;
@@ -6,18 +7,59 @@ use serde_json::Value;
 use super::super::types::*;
 use super::super::helpers::*;
 
-/// Build dynamic WHERE clause from `ExperimentsListQuery`, execute SQL-based
-/// list query with ORDER BY + LIMIT/OFFSET, and return lightweight items
-/// excluding rawPoints/metrics/calibration.
-pub(crate) fn query_experiments_list_sql(
-    state: &AppState,
+/// Default library-filter threshold.  Used when the user has not picked
+/// any preset — the touch-point sidebar is inactive and any `hasCrossing`
+/// / crossing-time filters that DO fire still need a concrete threshold
+/// to look up in `TouchPointPrecompute`.
+const DEFAULT_LIBRARY_THRESHOLD_CP: i64 = 50;
+
+/// Parse the `viscosity_threshold` query field as a finite positive cP
+/// value.  Returns `None` when the field is missing / empty / non-numeric
+/// / non-positive — callers fall back to [`DEFAULT_LIBRARY_THRESHOLD_CP`]
+/// in that case.
+fn parse_positive_threshold(query: &ExperimentsListQuery) -> Option<f64> {
+    query
+        .viscosity_threshold
+        .as_deref()
+        .and_then(parse_number_from_str)
+        .filter(|v| v.is_finite() && *v > 0.0)
+}
+
+/// Snap a user-supplied threshold to a preset entry in
+/// [`LIBRARY_TOUCH_THRESHOLDS_CP`] within a tight tolerance.
+///
+/// Returns `Some(N)` — ready to JOIN against `tpp.thresholdCp = N` on
+/// the fast path.  Returns `None` for thresholds that are NOT one of
+/// the precomputed presets (e.g. 345 cP): those callers must route to
+/// the slow path.
+///
+/// 0.01 cP tolerance absorbs float-parse jitter — `"500.00"`, `"500.0"`,
+/// `"500"` all land on the 500 cP preset.
+fn snap_to_preset_threshold(threshold_cp: f64) -> Option<i64> {
+    LIBRARY_TOUCH_THRESHOLDS_CP
+        .iter()
+        .find(|&&preset| (preset - threshold_cp).abs() < 0.01)
+        .map(|&preset| preset as i64)
+}
+
+/// Append every non-touch-point WHERE condition for `ExperimentsListQuery`
+/// into `conditions` / `params`.
+///
+/// Shared between the fast path (precomputed 50 cP columns) and the slow
+/// path (dynamic threshold), which both need identical handling of the
+/// user's laboratory / search / date / reagent etc. filters.
+///
+/// The *touch-point precomputed* predicates (`hasCrossing`,
+/// `crossingTimeMin/Max`, `crossingViscosityMin/Max`,
+/// `viscosityAtTargetMin/Max`) are intentionally NOT added here — the
+/// slow path ignores them (replaced by on-the-fly computation) and the
+/// fast path wires them up separately in
+/// [`append_precomputed_touch_conditions`].
+pub(super) fn append_base_conditions(
     query: &ExperimentsListQuery,
-) -> Result<(Vec<ExperimentListItem>, usize)> {
-    let conn = state.pool_conn()?;
-
-    let mut conditions: Vec<String> = Vec::new();
-    let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
-
+    conditions: &mut Vec<String>,
+    params: &mut Vec<Box<dyn rusqlite::ToSql>>,
+) {
     // Helper macro for LIKE %value% filters
     macro_rules! add_like {
         ($col:expr, $val:expr) => {
@@ -104,7 +146,7 @@ pub(crate) fn query_experiments_list_sql(
         }
     }
 
-    // Viscosity range
+    // Viscosity range (general — on maxViscosity column)
     if let Some(ref v) = query.viscosity_min {
         if let Some(min) = parse_number_from_str(v) {
             conditions.push("COALESCE(e.maxViscosity, 0) >= ?".to_string());
@@ -153,7 +195,7 @@ pub(crate) fn query_experiments_list_sql(
         }
     }
 
-    // Multiple reagent names — AND semantics: experiment must contain ALL of the selected reagents
+    // Multiple reagent names — AND semantics
     if let Some(ref names) = query.reagent_names {
         for rn in names.iter().map(|s| s.trim()).filter(|s| !s.is_empty()) {
             conditions.push(
@@ -183,16 +225,13 @@ pub(crate) fn query_experiments_list_sql(
         }
     }
 
-    // Full-text search — use FTS5 index when available, fall back to multi-LIKE
+    // Full-text search via FTS5 index
     if let Some(ref search) = query.search_query {
         let s = search.trim();
         if !s.is_empty() {
-            // Tokenise the query: split on whitespace and suffix each word with *
-            // so "pump fluid" matches "pump station" + "fluid viscosity" records.
             let fts_query: String = s
                 .split_whitespace()
                 .map(|w| {
-                    // Escape FTS5 special chars to avoid parse errors
                     let escaped = w.replace('"', "\"\"");
                     format!("\"{}\"*", escaped)
                 })
@@ -200,11 +239,132 @@ pub(crate) fn query_experiments_list_sql(
                 .join(" ");
 
             conditions.push(
-                "e.rowid IN (SELECT rowid FROM fts_experiment WHERE fts_experiment MATCH ?)".to_string(),
+                "e.rowid IN (SELECT rowid FROM fts_experiment WHERE fts_experiment MATCH ?)"
+                    .to_string(),
             );
             params.push(Box::new(fts_query));
         }
     }
+}
+
+/// Append touch-point predicates that read the FAST-PATH precomputed
+/// side table (`TouchPointPrecompute tpp`).  Used only by the fast path
+/// — the slow path replaces these with on-the-fly computation and
+/// ignores the side table entirely.
+///
+/// Caller is responsible for JOIN-ing `TouchPointPrecompute` onto the
+/// query with `tpp.thresholdCp = <preset>` so every predicate below
+/// references the row for exactly one threshold.
+fn append_precomputed_touch_conditions(
+    query: &ExperimentsListQuery,
+    conditions: &mut Vec<String>,
+    params: &mut Vec<Box<dyn rusqlite::ToSql>>,
+) {
+    // hasCrossing tri-state (`"yes"` / `"no"` / other = no filter).
+    //
+    // The `tpp.hasCrossing IS NOT NULL` guard excludes experiments whose
+    // precompute is still pending (v0003 migration + backfill queue).
+    // Those rows would otherwise evaluate to NULL and match neither
+    // branch, silently falling out of the result set — the sidebar's
+    // "1234 of 2000 experiments crossed" hint would lie.
+    if let Some(ref raw) = query.has_crossing {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "yes" | "true" | "1" => {
+                conditions.push("tpp.hasCrossing = 1".to_string());
+            }
+            "no" | "false" | "0" => {
+                conditions.push(
+                    "(tpp.hasCrossing = 0 AND tpp.hasCrossing IS NOT NULL)".to_string(),
+                );
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(ref v) = query.crossing_time_min {
+        if let Some(min) = parse_number_from_str(v) {
+            conditions.push("tpp.crossingTimeMin >= ?".to_string());
+            params.push(Box::new(min));
+        }
+    }
+    if let Some(ref v) = query.crossing_time_max {
+        if let Some(max) = parse_number_from_str(v) {
+            conditions.push("tpp.crossingTimeMin <= ?".to_string());
+            params.push(Box::new(max));
+        }
+    }
+
+    if let Some(ref v) = query.crossing_viscosity_min {
+        if let Some(min) = parse_number_from_str(v) {
+            conditions.push("tpp.crossingViscosityCp >= ?".to_string());
+            params.push(Box::new(min));
+        }
+    }
+    if let Some(ref v) = query.crossing_viscosity_max {
+        if let Some(max) = parse_number_from_str(v) {
+            conditions.push("tpp.crossingViscosityCp <= ?".to_string());
+            params.push(Box::new(max));
+        }
+    }
+
+    if let Some(ref v) = query.viscosity_at_target_min {
+        if let Some(min) = parse_number_from_str(v) {
+            conditions.push("tpp.viscosityAtTargetCp >= ?".to_string());
+            params.push(Box::new(min));
+        }
+    }
+    if let Some(ref v) = query.viscosity_at_target_max {
+        if let Some(max) = parse_number_from_str(v) {
+            conditions.push("tpp.viscosityAtTargetCp <= ?".to_string());
+            params.push(Box::new(max));
+        }
+    }
+}
+
+/// Build dynamic WHERE clause from `ExperimentsListQuery`, execute SQL-based
+/// list query with ORDER BY + LIMIT/OFFSET, and return lightweight items
+/// excluding rawPoints/metrics/calibration.
+///
+/// Path selection:
+///   * `viscosity_threshold` matches a preset in
+///     [`LIBRARY_TOUCH_THRESHOLDS_CP`] (5/10/50/100/200/300/500/700 cP)
+///     → **fast path**: JOIN `TouchPointPrecompute` at that threshold
+///     and let SQLite's partial indexes do the filtering.
+///   * `viscosity_threshold` is a positive number but NOT a preset
+///     (e.g. 345 cP) → **slow path**: decode every candidate blob and
+///     recompute via `dynamic::query_with_dynamic_threshold`.
+///   * `viscosity_threshold` is absent / non-numeric / ≤ 0 → **fast
+///     path at the default [`DEFAULT_LIBRARY_THRESHOLD_CP`] (50 cP)** —
+///     the downstream `hasCrossing` / range filters (when set) are
+///     evaluated against that preset's row.
+pub(crate) fn query_experiments_list_sql(
+    state: &AppState,
+    query: &ExperimentsListQuery,
+) -> Result<(Vec<ExperimentListItem>, usize)> {
+    // Resolve the threshold that determines WHICH `TouchPointPrecompute`
+    // row this query reads from.  Custom thresholds escape to the slow
+    // path because the side table has no row for them.
+    let tpp_threshold_cp: i64 = match parse_positive_threshold(query) {
+        Some(user_cp) => match snap_to_preset_threshold(user_cp) {
+            Some(preset) => preset,
+            None => {
+                return crate::commands::experiments::list::dynamic::query_with_dynamic_threshold(
+                    state,
+                    query,
+                    user_cp,
+                );
+            }
+        },
+        None => DEFAULT_LIBRARY_THRESHOLD_CP,
+    };
+
+    let conn = state.pool_conn()?;
+
+    let mut conditions: Vec<String> = Vec::new();
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+
+    append_base_conditions(query, &mut conditions, &mut params);
+    append_precomputed_touch_conditions(query, &mut conditions, &mut params);
 
     let where_clause = if conditions.is_empty() {
         String::new()
@@ -212,13 +372,25 @@ pub(crate) fn query_experiments_list_sql(
         format!("WHERE {}", conditions.join(" AND "))
     };
 
+    // `tpp_threshold_cp` came from a closed whitelist (preset match or
+    // a hard-coded integer default) so the literal interpolation here
+    // cannot carry user-controlled SQL fragments.  Keeping it as a
+    // literal instead of a parameter lets the query planner pick the
+    // indexed row at plan time.
+    let tpp_join = format!(
+        "LEFT JOIN TouchPointPrecompute tpp \
+            ON tpp.experimentId = e.id AND tpp.thresholdCp = {}",
+        tpp_threshold_cp,
+    );
+
     // ── COUNT query ──
     let count_sql = format!(
         "SELECT COUNT(*) FROM Experiment e \
          LEFT JOIN User u ON e.userId = u.id \
          LEFT JOIN Laboratory l ON e.laboratoryId = l.id \
+         {} \
          {}",
-        where_clause
+        tpp_join, where_clause
     );
     let params_ref: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
     let total: usize = conn
@@ -310,6 +482,11 @@ pub(crate) fn query_experiments_list_sql(
         format!("WHERE {}", conditions.join(" AND "))
     };
 
+    // Columns 32-36: precomputed touch-point metrics — now sourced from
+    // `TouchPointPrecompute` for the resolved `tpp_threshold_cp` so the
+    // card's touch-point readout matches the active sidebar preset.
+    // NULL rows (pending backfill / preset not yet computed) map to
+    // `None` and are skipped on serialisation.
     let data_sql = format!(
         "SELECT e.id, e.createdAt, e.updatedAt, e.name, e.fieldName, e.operatorName, \
                 e.wellNumber, e.testId, e.originalFilename, e.testDate, e.instrumentType, \
@@ -318,14 +495,17 @@ pub(crate) fn query_experiments_list_sql(
                 e.durationSeconds, e.avgTemperatureC, e.maxTemperatureC, e.avgViscosity, \
                 e.userId, e.laboratoryId, \
                 u.name, u.email, l.id, l.name, \
-                e.testCategory, e.testType, e.dominantPattern \
+                e.testCategory, e.testType, e.dominantPattern, \
+                tpp.hasCrossing, tpp.crossingTimeMin, tpp.crossingViscosityCp, \
+                tpp.viscosityAtTargetCp, tpp.precomputeVersion \
          FROM Experiment e \
          LEFT JOIN User u ON e.userId = u.id \
          LEFT JOIN Laboratory l ON e.laboratoryId = l.id \
          {} \
          {} \
+         {} \
          {}",
-        where_clause, order_clause, limit_clause
+        tpp_join, where_clause, order_clause, limit_clause
     );
 
     let params_ref: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
@@ -358,6 +538,12 @@ pub(crate) fn query_experiments_list_sql(
             let water_params =
                 water_params_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
 
+            // Touch-point columns (32-36). Stored as INTEGER 0/1 for the
+            // boolean flag so we map explicitly via `Option<i64>` → `Option<bool>`
+            // to avoid SQLite's loose integer-to-bool coercion quirks.
+            let touch_has_crossing_raw: Option<i64> = row.get(32)?;
+            let touch_has_crossing = touch_has_crossing_raw.map(|v| v != 0);
+
             Ok((
                 experiment_id.clone(),
                 ExperimentListItem {
@@ -387,6 +573,11 @@ pub(crate) fn query_experiments_list_sql(
                     test_category: row.get(29)?,
                     test_type: row.get(30)?,
                     dominant_pattern: row.get(31)?,
+                    touch_has_crossing,
+                    touch_crossing_time_min: row.get(33)?,
+                    touch_crossing_viscosity_cp: row.get(34)?,
+                    touch_viscosity_at_target_cp: row.get(35)?,
+                    touch_precompute_version: row.get(36)?,
                     reagents: vec![], // filled below
                     user,
                     laboratory,

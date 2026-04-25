@@ -7,7 +7,7 @@ use crate::types::{BackupResult, MergeResult};
 use crate::utils::{get_pending_restore_path, log_restore};
 use chrono::Utc;
 use rusqlite;
-use std::fs;
+use std::{fs, io::ErrorKind, path::PathBuf};
 use tauri::{AppHandle, Manager, State};
 
 use super::validate::sanitize_backup_filename;
@@ -32,6 +32,31 @@ impl<'a> Drop for FkGuard<'a> {
     fn drop(&mut self) {
         if let Err(e) = self.conn.execute_batch("PRAGMA foreign_keys = ON") {
             tracing::error!("FkGuard: failed to restore foreign_keys=ON: {}", e);
+        }
+    }
+}
+
+/// RAII guard that removes a temporary directory on every exit path.
+struct TempDirGuard {
+    path: PathBuf,
+}
+
+impl TempDirGuard {
+    fn new(path: PathBuf) -> Self {
+        Self { path }
+    }
+}
+
+impl Drop for TempDirGuard {
+    fn drop(&mut self) {
+        match fs::remove_dir_all(&self.path) {
+            Ok(()) => {}
+            Err(e) if e.kind() == ErrorKind::NotFound => {}
+            Err(e) => tracing::warn!(
+                "TempDirGuard: failed to remove {}: {}",
+                self.path.display(),
+                e
+            ),
         }
     }
 }
@@ -115,120 +140,128 @@ pub async fn backup_import_db(
         return Err(AppError::License("required".into()));
     }
 
-    // --- 1. Copy to temp location so we can safely checkpoint WAL ---------------
-    let temp_dir = state.backups_dir.join("_import_temp");
-    if !temp_dir.exists() {
-        fs::create_dir_all(&temp_dir)?;
-    }
-    let temp_db = temp_dir.join("import.db");
+    // Move all heavy FS + DB work into a controlled blocking task so we
+    // never occupy a tokio worker thread for the duration of the merge.
+    let db_pool = state.db_pool.clone();
+    let backups_dir = state.backups_dir.clone();
+    let source_owned = source_path.clone();
 
-    // Copy main file
-    fs::copy(source, &temp_db)?;
+    tokio::task::spawn_blocking(move || {
+        let source = source_owned.as_path();
 
-    // Copy WAL / SHM companions if they exist alongside the source
-    let source_wal = source.with_extension("db-wal");
-    let source_shm = source.with_extension("db-shm");
-    if source_wal.exists() {
-        let _ = fs::copy(&source_wal, temp_dir.join("import.db-wal"));
-    }
-    if source_shm.exists() {
-        let _ = fs::copy(&source_shm, temp_dir.join("import.db-shm"));
-    }
+        // --- 1. Copy to temp location so we can safely checkpoint WAL ---------------
+        let temp_dir = backups_dir.join("_import_temp");
+        if !temp_dir.exists() {
+            fs::create_dir_all(&temp_dir)?;
+        }
+        let _temp_cleanup = TempDirGuard::new(temp_dir.clone());
+        let temp_db = temp_dir.join("import.db");
 
-    // --- 2. Open read-write, checkpoint WAL, validate --------------------------
-    let total_in_source: u64;
-    {
-        let conn = rusqlite::Connection::open_with_flags(
-            &temp_db,
-            rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE,
-        )?;
+        // Copy main file
+        fs::copy(source, &temp_db)?;
 
-        // Consolidate WAL into the main file
-        let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)");
-
-        // Check for expected tables
-        let has_experiment: bool = conn
-            .query_row(
-                "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type='table' AND name='Experiment'",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap_or(false);
-
-        if !has_experiment {
-            let _ = fs::remove_dir_all(&temp_dir);
-            return Ok(MergeResult::err(
-                "Файл не содержит таблицу Experiment — это не база данных RheoLab",
-            ));
+        // Copy WAL / SHM companions if they exist alongside the source
+        let source_wal = source.with_extension("db-wal");
+        let source_shm = source.with_extension("db-shm");
+        if source_wal.exists() {
+            let _ = fs::copy(&source_wal, temp_dir.join("import.db-wal"));
+        }
+        if source_shm.exists() {
+            let _ = fs::copy(&source_shm, temp_dir.join("import.db-shm"));
         }
 
-        total_in_source = conn
-            .query_row("SELECT COUNT(*) FROM Experiment", [], |row| row.get(0))
-            .unwrap_or(0);
-    }
+        // --- 2. Open read-write, checkpoint WAL, validate --------------------------
+        let total_in_source: u64;
+        {
+            let conn = rusqlite::Connection::open_with_flags(
+                &temp_db,
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE,
+            )?;
 
-    // Clean up WAL/SHM that are no longer needed after checkpoint
-    let _ = fs::remove_file(temp_dir.join("import.db-wal"));
-    let _ = fs::remove_file(temp_dir.join("import.db-shm"));
+            // Consolidate WAL into the main file
+            let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)");
 
-    // --- 3. Pre-merge backup of the current database (fail-closed) ------------
-    {
-        let conn = state.pool_conn()?;
-        let timestamp = Utc::now().format("%Y-%m-%dT%H-%M-%S").to_string();
-        let backup_name = format!("pre-import-{}.db", timestamp);
-        let backup_path = state.backups_dir.join(&backup_name);
-        let backup_path_str = backup_path.to_string_lossy().replace('\'', "''");
-        conn.execute_batch(&format!("VACUUM INTO '{}'", backup_path_str))
-            .inspect_err(|e| tracing::error!("Pre-import backup failed: {}", e))?;
-        tracing::info!("Created pre-import backup: {}", backup_name);
-    }
+            // Check for expected tables
+            let has_experiment: bool = conn
+                .query_row(
+                    "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type='table' AND name='Experiment'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap_or(false);
 
-    // --- 4. ATTACH + MERGE with FK checks OFF (RAII guard) ---------------------
-    let (imported, fk_warnings) = {
-        let conn = state.pool_conn()?;
+            if !has_experiment {
+                return Ok(MergeResult::err(
+                    "Файл не содержит таблицу Experiment — это не база данных RheoLab",
+                ));
+            }
 
-        // FkGuard: FK OFF now, ON guaranteed when `_fk_guard` drops (any path).
-        let _fk_guard = FkGuard::new(&conn)?;
-
-        let temp_db_str = temp_db.to_string_lossy().replace('\'', "''");
-        conn.execute_batch(&format!("ATTACH DATABASE '{}' AS src", temp_db_str))?;
-
-        let merge_result = merge_attached_databases(&conn, true);
-
-        // Always detach, even on merge error
-        let _ = conn.execute_batch("DETACH DATABASE src");
-
-        let (new_count, _) = merge_result?;
-
-        // Post-merge FK consistency check (P1-1).
-        // FkGuard has already scheduled FK ON for drop, but we re-enable
-        // now so foreign_key_check runs with FK enforcement active.
-        conn.execute_batch("PRAGMA foreign_keys = ON").ok();
-        let warnings = check_foreign_key_violations(&conn);
-        if !warnings.is_empty() {
-            tracing::warn!("Post-merge FK violations ({}): {:?}", warnings.len(), warnings);
+            total_in_source = conn
+                .query_row("SELECT COUNT(*) FROM Experiment", [], |row| row.get(0))
+                .unwrap_or(0);
         }
 
-        (new_count, warnings)
-    };
+        // Clean up WAL/SHM that are no longer needed after checkpoint
+        let _ = fs::remove_file(temp_dir.join("import.db-wal"));
+        let _ = fs::remove_file(temp_dir.join("import.db-shm"));
 
-    // --- 5. Cleanup temp files -------------------------------------------------
-    let _ = fs::remove_dir_all(&temp_dir);
+        // --- 3. Pre-merge backup of the current database (fail-closed) ------------
+        {
+            let conn = db_pool.get().map_err(AppError::Pool)?;
+            let timestamp = Utc::now().format("%Y-%m-%dT%H-%M-%S").to_string();
+            let backup_name = format!("pre-import-{}.db", timestamp);
+            let backup_path = backups_dir.join(&backup_name);
+            let backup_path_str = backup_path.to_string_lossy().replace('\'', "''");
+            conn.execute_batch(&format!("VACUUM INTO '{}'", backup_path_str))
+                .inspect_err(|e| tracing::error!("Pre-import backup failed: {}", e))?;
+            tracing::info!("Created pre-import backup: {}", backup_name);
+        }
 
-    let skipped = total_in_source.saturating_sub(imported);
-    tracing::info!(
-        "Merge complete: imported={}, skipped={}, source_total={}, fk_warnings={}",
-        imported,
-        skipped,
-        total_in_source,
-        fk_warnings.len(),
-    );
+        // --- 4. ATTACH + MERGE with FK checks OFF (RAII guard) ---------------------
+        let (imported, fk_warnings) = {
+            let conn = db_pool.get().map_err(AppError::Pool)?;
 
-    let mut result = MergeResult::ok(imported, skipped);
-    if !fk_warnings.is_empty() {
-        result.warnings = Some(fk_warnings);
-    }
-    Ok(result)
+            // FkGuard: FK OFF now, ON guaranteed when `_fk_guard` drops (any path).
+            let _fk_guard = FkGuard::new(&conn)?;
+
+            let temp_db_str = temp_db.to_string_lossy().replace('\'', "''");
+            conn.execute_batch(&format!("ATTACH DATABASE '{}' AS src", temp_db_str))?;
+
+            let merge_result = merge_attached_databases(&conn, true);
+
+            // Always detach, even on merge error
+            let _ = conn.execute_batch("DETACH DATABASE src");
+
+            let (new_count, _) = merge_result?;
+
+            // Post-merge FK consistency check (P1-1).
+            // FkGuard has already scheduled FK ON for drop, but we re-enable
+            // now so foreign_key_check runs with FK enforcement active.
+            conn.execute_batch("PRAGMA foreign_keys = ON").ok();
+            let warnings = check_foreign_key_violations(&conn);
+            if !warnings.is_empty() {
+                tracing::warn!("Post-merge FK violations ({}): {:?}", warnings.len(), warnings);
+            }
+
+            (new_count, warnings)
+        };
+
+        let skipped = total_in_source.saturating_sub(imported);
+        tracing::info!(
+            "Merge complete: imported={}, skipped={}, source_total={}, fk_warnings={}",
+            imported,
+            skipped,
+            total_in_source,
+            fk_warnings.len(),
+        );
+
+        let mut result = MergeResult::ok(imported, skipped);
+        if !fk_warnings.is_empty() {
+            result.warnings = Some(fk_warnings);
+        }
+        Ok(result)
+    })
+    .await?
 }
 
 /// Run `PRAGMA foreign_key_check` and return human-readable warnings.\n/// Empty vec means no violations.
@@ -267,8 +300,7 @@ fn get_common_columns(conn: &rusqlite::Connection, table: &str) -> Vec<String> {
 
     let main_cols = fetch("main");
     let src_cols = fetch("src");
-    let src_set: std::collections::HashSet<&str> =
-        src_cols.iter().map(|s| s.as_str()).collect();
+    let src_set: std::collections::HashSet<&str> = src_cols.iter().map(|s| s.as_str()).collect();
 
     main_cols
         .into_iter()
@@ -303,8 +335,7 @@ fn merge_attached_databases(conn: &rusqlite::Connection, has_fts: bool) -> Resul
         .unwrap_or(0);
 
     // RAII transaction — auto-rolls back on early return or panic.
-    let tx = conn
-        .unchecked_transaction()?;
+    let tx = conn.unchecked_transaction()?;
 
     for table in MERGE_TABLES {
         let exists: bool = tx
@@ -407,7 +438,10 @@ pub fn check_pending_restore(app: &AppHandle) -> Result<()> {
             [],
         );
         match result {
-            Ok(n) if n > 0 => tracing::info!("Pre-restore orphan cleanup: removed {} ExperimentData rows", n),
+            Ok(n) if n > 0 => tracing::info!(
+                "Pre-restore orphan cleanup: removed {} ExperimentData rows",
+                n
+            ),
             Err(e) => tracing::warn!("Pre-restore orphan cleanup failed (non-fatal): {}", e),
             _ => {}
         }

@@ -263,3 +263,4 @@ export function convertWasmResultToGrace(result: WasmGraceResult): GraceCycleRes
 }
 
 export { convertReportInputToWasm } from './report-converter';
+export { convertComparisonReportInputToWasm } from './comparison-report-converter';

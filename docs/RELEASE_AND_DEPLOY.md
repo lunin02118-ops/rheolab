@@ -1,9 +1,25 @@
 # RheoLab Enterprise — релиз и деплой обновлений
 
-> Проверено по репозиторию 2026-04-17  
-> Версия на момент проверки: `0.2.0-beta.5`
+> Проверено по репозиторию 2026-04-22
+> Версия на момент проверки: `0.2.0-beta.24`
 
 Этот документ описывает текущий рабочий release/update-контур. Он заменяет старые инструкции, где фигурировали `npm run release`, жёсткая привязка к `stable.json` как единственному endpoint и устаревшие номера версий.
+
+## 0. Обязательный Release Gate
+
+Начиная с `0.2.0-beta.24` перед любым релизом **обязателен** прогон E2E-workflow на настоящем Tauri-бинарнике:
+
+```pwsh
+npm run test:release-gate
+```
+
+Gate встроен в `npm run release:prepare` и падает с exit=1, если что-то в Comparison Report цепочке сломалось (frontend ↔ IPC ↔ Rust/Typst/XLSX). Обойти можно только явно:
+
+```pwsh
+npm run release:prepare -- --skip-release-gate   # warning + releaseGateExecuted=false в манифесте
+```
+
+Детали, инварианты и базлайн — [docs/release/RELEASE_GATE.md](release/RELEASE_GATE.md).
 
 ## 1. Источники правды
 
@@ -140,21 +156,34 @@ npm run release:prepare -- --channel beta --dry-run --allow-unsigned --skip-qa
 
 ### 5.2 Сборка
 
+Default-канал — **`alpha`** (личный tier владельца проекта, только Superuser-лицензии). Любая незаквалифицированная сборка попадает сюда, не затрагивая внешних пользователей:
+
 ```bash
-npm run release:prepare -- --channel stable
+npm run release:prepare
+# эквивалентно: npm run release:prepare -- --channel alpha
 ```
 
-или для beta:
+Перевод на beta (Developer-лицензии внутренней команды):
 
 ```bash
 npm run release:prepare -- --channel beta
 ```
 
-### 5.3 Публикация манифеста и артефакта
+Перевод на stable (все прочие пользователи — Standard / Enterprise / Trial / Demo):
 
 ```bash
-node scripts/deploy/publish-update.js --channel stable
+npm run release:prepare -- --channel stable
+```
+
+### 5.3 Публикация манифеста и артефакта
+
+Дефолт `publish-update.js` тоже `alpha` — чтобы случайная команда не ушла в stable:
+
+```bash
+node scripts/deploy/publish-update.js
+# эквивалентно: node scripts/deploy/publish-update.js --channel alpha
 node scripts/deploy/publish-update.js --channel beta
+node scripts/deploy/publish-update.js --channel stable
 ```
 
 ### 5.4 Проверка после публикации
@@ -211,7 +240,40 @@ node scripts/deploy/publish-update.js --from-manifest outputs/release/stable.jso
 - `license-server/docs/README.md`
 - `license-server/docs/INSTALLATION.md`
 
-## 9. Нельзя полагаться на устаревшие инструкции
+## 9. Диагностика: установщик ~1 MB вместо ~10 MB
+
+**Симптом:**
+
+- `RheoLab Enterprise_*_x64-setup.exe` ≈ 1 MB (вместо ожидаемых ~10 MB)
+- `src-tauri/target/release/rheolab-enterprise.exe` ≈ 2 MB (вместо ~28 MB)
+- При запуске установленного приложения окно пустое / ошибки загрузки
+
+**Диагностика:**
+
+```pwsh
+$exe = "src-tauri\target\release\rheolab-enterprise.exe"
+$bytes = [System.IO.File]::ReadAllBytes($exe)
+$text = [System.Text.Encoding]::UTF8.GetString($bytes)
+if ($text -match "index\.html") { "frontend embedded OK" } else { "frontend MISSING" }
+```
+
+**Причина:**
+
+Сборка через `npm run tauri:build` напрямую не гарантирует загрузку **всех** compile-time ключей. Если `ALPHA_CHANNEL_SECRET` отсутствует в окружении Cargo, proc-macro `tauri::generate_context!()` может завершиться без встраивания `dist/` в бинарник. Результат — рабочий, но пустой stub-бинарь размером ~2 MB и установщик ~1 MB.
+
+**Решение:**
+
+Использовать канонический путь:
+
+```pwsh
+npm run release:prepare -- --channel stable
+```
+
+Этот скрипт (`scripts/release/prepare-production.js`) грузит все три ключа (`INTEGRITY_SECRET_KEY`, `BETA_CHANNEL_SECRET`, `ALPHA_CHANNEL_SECRET`) и прогоняет release gate.
+
+Начиная с фикса 2026-04-23, `scripts/dev/run-tauri-cli.js` тоже загружает `ALPHA_CHANNEL_SECRET` из `scripts/dev/.env.keys`, так что ручной `npm run tauri:build` теперь даёт корректный по размеру бинарь. Но **официальный** release flow всё равно `release:prepare`, потому что он также валидирует версию, updater config, генерирует manifest и подписывает артефакт.
+
+## 10. Нельзя полагаться на устаревшие инструкции
 
 Считайте устаревшими любые заметки, которые утверждают одно из следующих:
 

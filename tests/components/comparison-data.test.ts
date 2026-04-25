@@ -25,12 +25,15 @@ import { describe, it, expect } from 'vitest';
 import type { RheoPoint } from '@/types';
 import {
     sanitiseAndNormalisePoints,
+    sanitiseAndNormaliseColumnarDirect,
     buildSharedTimeAxis,
     alignSeriesLastKnown,
     alignSeriesLinear,
+    alignSeriesFromColumnarLinear,
     buildComparisonUPlotData,
     type ProcessedExperiment,
 } from '@/lib/utils/comparison-data';
+import type { ColumnarData } from '@/types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -598,6 +601,71 @@ describe('buildComparisonUPlotData', () => {
 
         for (const s of data.series) {
             expect(s).toHaveLength(data.times.length);
+        }
+    });
+});
+
+// ─── 5. Bath-temperature null handling (columnar path) ─────────────────────
+//
+// Regression guard 2026-04-22: when a parser merges two tables and only one
+// of them carries `bath_temperature_c` (e.g. OFITE 1100 Sweep Data +
+// Log Data), the missing rows arrive as `null` entries in
+// `ColumnarData.bathTemperatureC`.  The comparison pipeline used to coerce
+// these to `0` via `?? 0`, producing vertical spikes that drag the orange
+// dashed line down to the X-axis at every missing point.  The fix uses
+// `NaN` so the downstream align helpers emit proper `null` gaps.
+
+describe('comparison columnar path — bath-temperature null handling', () => {
+    function makeCol(bathTempC: Array<number | null>): ColumnarData {
+        const n = bathTempC.length;
+        return {
+            timeSec: Array.from({ length: n }, (_, i) => i * 60),
+            viscosityCp: Array.from({ length: n }, () => 500),
+            temperatureC: Array.from({ length: n }, () => 100),
+            shearRate: Array.from({ length: n }, () => 10),
+            shearStress: Array.from({ length: n }, () => 1),
+            pressureBar: Array.from({ length: n }, () => 1),
+            speedRpm: Array.from({ length: n }, () => 300),
+            bathTemperatureC: bathTempC,
+        };
+    }
+
+    it('sanitiseAndNormaliseColumnarDirect stores NaN (not 0) for missing bath temp', () => {
+        const col = makeCol([110, null, 112]);
+        const pc = sanitiseAndNormaliseColumnarDirect(col, 'off', 1000);
+        expect(pc.bathTemperatureC).toHaveLength(3);
+        expect(pc.bathTemperatureC[0]).toBe(110);
+        expect(Number.isNaN(pc.bathTemperatureC[1])).toBe(true);   // ← NaN, not 0
+        expect(pc.bathTemperatureC[2]).toBe(112);
+    });
+
+    it('alignSeriesFromColumnarLinear emits null for NaN bath points on the shared axis', () => {
+        const col = makeCol([110, null, 112]);
+        const pc = sanitiseAndNormaliseColumnarDirect(col, 'off', 1000);
+
+        // Shared time axis coincides with the experiment's own times (0, 1, 2 min)
+        const sortedTimes = [0, 1, 2];
+        const aligned = alignSeriesFromColumnarLinear(pc, sortedTimes, 'bath_temperature_c');
+
+        expect(aligned).toHaveLength(3);
+        expect(aligned[0]).toBe(110);
+        expect(aligned[1]).toBeNull();   // ← was erroneously 0 before the fix
+        expect(aligned[2]).toBe(112);
+    });
+
+    it('alignSeriesFromColumnarLinear does NOT render bath line through 0 when points are missing', () => {
+        // Simulates OFITE 1100: rows 1,3,5 are "Sweep Data" without bath;
+        // rows 0,2,4 are "Log Data" with bath temp at a steady 110.
+        const col = makeCol([110, null, 110, null, 110, null]);
+        const pc = sanitiseAndNormaliseColumnarDirect(col, 'off', 1000);
+
+        const sortedTimes = [0, 1, 2, 3, 4, 5];
+        const aligned = alignSeriesFromColumnarLinear(pc, sortedTimes, 'bath_temperature_c');
+
+        // Regression guard: no 0 anywhere — the bug drew a line from 110 down
+        // to 0 and back at every other point.
+        for (const v of aligned) {
+            expect(v === null || v === 110).toBe(true);
         }
     });
 });

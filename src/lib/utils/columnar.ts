@@ -89,26 +89,35 @@ export function tauriRawRecordsToColumnar(records: Array<Record<string, unknown>
     const bathTempRaw: (number | null)[] = new Array(n);
     let hasBath = false;
 
+    // Alias-tolerant accessor: production data today uses snake_case, but
+    // legacy imports and the WASM parser can produce camelCase — coercing
+    // silently to 0 for missing keys (the previous behaviour) meant the
+    // chart rendered a flat line instead of surfacing an obvious error.
+    const pickNumber = (
+        record: Record<string, unknown>,
+        aliases: readonly string[],
+    ): number | null => {
+        for (const key of aliases) {
+            const raw = record[key];
+            if (raw == null) continue;
+            const num = Number(raw);
+            if (Number.isFinite(num)) return num;
+        }
+        return null;
+    };
+
     for (let i = 0; i < n; i++) {
         const p = records[i];
-        timeSec[i] = Number(p.time_sec ?? 0);
-        viscosityCp[i] = Number(p.viscosity_cp ?? 0);
-        temperatureC[i] = Number(p.temperature_c ?? 0);
+        timeSec[i]      = pickNumber(p, ['time_sec',      'timeSec',      'time']) ?? 0;
+        viscosityCp[i]  = pickNumber(p, ['viscosity_cp',  'viscosityCp',  'viscosity']) ?? 0;
+        temperatureC[i] = pickNumber(p, ['temperature_c', 'temperatureC', 'temperature']) ?? 0;
+        shearRate[i]    = pickNumber(p, ['shear_rate_s1', 'shearRateS1',  'shear_rate', 'shearRate']);
+        shearStress[i]  = pickNumber(p, ['shear_stress_pa', 'shearStressPa', 'shear_stress', 'shearStress']);
+        pressureBar[i]  = pickNumber(p, ['pressure_bar',  'pressureBar',  'pressure']);
+        speedRpm[i]     = pickNumber(p, ['speed_rpm',     'speedRpm',     'rpm']);
 
-        const sr = p.shear_rate_s1 ?? p.shear_rate;
-        shearRate[i] = sr != null ? Number(sr) : null;
-
-        const ss = p.shear_stress_pa ?? p.shear_stress;
-        shearStress[i] = ss != null ? Number(ss) : null;
-
-        const pb = p.pressure_bar;
-        pressureBar[i] = pb != null ? Number(pb) : null;
-
-        const rpm = p.speed_rpm ?? p.rpm;
-        speedRpm[i] = rpm != null ? Number(rpm) : null;
-
-        const bt = p.bath_temperature_c;
-        if (bt != null) { hasBath = true; bathTempRaw[i] = Number(bt); }
+        const bt = pickNumber(p, ['bath_temperature_c', 'bathTemperatureC']);
+        if (bt != null) { hasBath = true; bathTempRaw[i] = bt; }
         else { bathTempRaw[i] = null; }
     }
 

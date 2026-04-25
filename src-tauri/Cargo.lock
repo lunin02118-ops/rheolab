@@ -5245,7 +5245,7 @@ dependencies = [
 
 [[package]]
 name = "rheolab-enterprise"
-version = "0.2.0-beta.23"
+version = "0.2.0-beta.53"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -5265,6 +5265,7 @@ dependencies = [
  "r2d2",
  "r2d2_sqlite",
  "rand 0.9.4",
+ "rayon",
  "reqwest 0.12.28",
  "rheolab-core",
  "rsa",

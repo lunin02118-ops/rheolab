@@ -37,6 +37,42 @@ export interface ExperimentFilters {
     tempMax: string;
     viscosityMin: string;
     viscosityMax: string;
+    // ── Touch-point filters ─────────────────────────────────────────────────
+    // Under the **default library contract** (50 cP threshold, 10-min
+    // target) these use precomputed columns for instant queries.  When
+    // `viscosityThreshold` is set the backend switches to the slow path
+    // and recomputes crossings per-experiment against the user's threshold
+    // — this unlocks lab workflows where gel break-points vary by fluid
+    // type (e.g. crosslinked gels break near 500 cP, not 50).
+    //
+    // Filter string values are user input; empty string means "no filter".
+
+    /**
+     * Viscosity threshold (cP) for the touch-point algorithm.
+     *
+     * - `''` (empty) → fast path, fixed library threshold (50 cP).
+     * - Any positive number → slow on-the-fly path against that threshold.
+     *
+     * The sidebar offers presets 10, 50, 100, 200, 300, 500 plus a manual
+     * input for custom lab values.
+     */
+    viscosityThreshold: string;
+    /** Minimum time (min) at which viscosity first crossed below the threshold. */
+    crossingTimeMin: string;
+    /** Maximum time (min) at which viscosity first crossed below the threshold. */
+    crossingTimeMax: string;
+    /** Minimum viscosity (cP) at target time (10 min). */
+    viscosityAtTargetMin: string;
+    /** Maximum viscosity (cP) at target time (10 min). */
+    viscosityAtTargetMax: string;
+    /**
+     * Tri-state selector over the `has_crossing` flag (precomputed or
+     * dynamic, depending on whether `viscosityThreshold` is set):
+     *   - ''     → filter not applied
+     *   - 'yes'  → only experiments that crossed the threshold
+     *   - 'no'   → only experiments that did NOT cross the threshold
+     */
+    hasCrossing: '' | 'yes' | 'no';
 }
 
 /** Default/empty state for ExperimentFilters — use as useState initial value. */
@@ -63,4 +99,13 @@ export const EMPTY_FILTERS: ExperimentFilters = {
     tempMax: '',
     viscosityMin: '',
     viscosityMax: '',
+    // Touch-point filters — `viscosityThreshold` drives the algorithm,
+    // other fields filter the result.  Empty string → fast precomputed
+    // path at the fixed library threshold (50 cP).
+    viscosityThreshold: '',
+    crossingTimeMin: '',
+    crossingTimeMax: '',
+    viscosityAtTargetMin: '',
+    viscosityAtTargetMax: '',
+    hasCrossing: '',
 };

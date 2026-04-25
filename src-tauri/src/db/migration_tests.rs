@@ -4,7 +4,10 @@
 //! hygiene limit (WP-4.1 acceptance).
 
 use super::*;
+use crate::db::migrations::r#trait::Migration;
 use crate::db::migrations::v0001_initial::V1_DDL;
+use crate::db::migrations::v0002_touch_point_metrics::V0002TouchPointMetrics;
+use crate::db::migrations::v0003_multi_threshold_touch_point::V0003MultiThresholdTouchPoint;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -71,11 +74,16 @@ fn migration_v1_creates_all_tables() {
         "ImportBatch", "Laboratory", "MergeEvent", "Operator", "ParserArtifact",
         "ReagentCatalog", "ReportArtifact", "SearchProjectionLog",
         "Settings", "SyncInbox", "SyncOutbox",
-        "SystemState", "User", "WaterSourceCatalog",
+        "SystemState",
+        // v0003 side table — one row per (experimentId, thresholdCp)
+        // for multi-threshold touch-point precompute.  Sorts here in
+        // SQLite's binary collation because uppercase `T` < `U`.
+        "TouchPointPrecompute",
+        "User", "WaterSourceCatalog",
         // lowercase names sort after all uppercase-starting names in SQLite binary order
         "schema_meta",
     ];
-    assert_eq!(tables, expected, "All 22 tables should be created by V1_DDL");
+    assert_eq!(tables, expected, "All 23 tables should be created by V1_DDL + v0003 side table");
 }
 
 #[test]
@@ -432,7 +440,11 @@ fn same_version_restart_has_no_version_change() {
 }
 
 /// WP-4.1 acceptance criterion: run_migrations() must produce an identical
-/// schema to applying V1_DDL directly.
+/// schema to applying every registered migration directly in order.
+///
+/// When a new migration is added to [`MIGRATIONS`], extend the raw path
+/// (conn_b) to call `.up()` for that migration too so the identity check
+/// stays meaningful.
 #[test]
 fn schema_identity_with_raw_ddl() {
     let conn_a = open();
@@ -440,6 +452,11 @@ fn schema_identity_with_raw_ddl() {
 
     let conn_b = open();
     conn_b.execute_batch(V1_DDL).unwrap();
+    // v0002 — touch-point precompute columns + partial indexes.
+    V0002TouchPointMetrics.up(&conn_b).unwrap();
+    // v0003 — multi-threshold TouchPointPrecompute side table + partial
+    // indexes + copy-forward of legacy 50 cP data.
+    V0003MultiThresholdTouchPoint.up(&conn_b).unwrap();
 
     fn dump(conn: &Connection) -> Vec<String> {
         let mut stmt = conn
@@ -465,7 +482,8 @@ fn schema_identity_with_raw_ddl() {
     assert_eq!(
         dump(&conn_a),
         dump(&conn_b),
-        "run_migrations() must produce identical schema to direct V1_DDL execution"
+        "run_migrations() must produce the same schema as sequentially applying every \
+         registered migration on top of V1_DDL"
     );
 }
 

@@ -287,6 +287,7 @@ fn shear_rate_left_draws_valid_svg_without_right_axis_line() {
         viscosity_threshold: None,
         line_styles: None,
         skip_downsample: false,
+        time_format: String::new(),
     };
 
     let res = generate_chart_svg(&points, &config);
@@ -334,6 +335,7 @@ fn shear_rate_right_puts_values_on_right_scale() {
         viscosity_threshold: None,
         line_styles: None,
         skip_downsample: false,
+        time_format: String::new(),
     };
 
     let res = generate_chart_svg(&points, &config);
@@ -449,6 +451,7 @@ fn svg_chart_body_margins_match_between_modes() {
         viscosity_threshold: None,
         line_styles: None,
         skip_downsample: true,
+        time_format: String::new(),
     };
 
     let (svg_ind, ranges_ind) = generate_chart_svg(&points, &base_config("individual"))

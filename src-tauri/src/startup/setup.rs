@@ -41,9 +41,13 @@ pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Initialize application state
+    let app_state_started = std::time::Instant::now();
     match AppState::build(app_data_dir) {
         Ok(app_state) => {
-            log_to_file("AppState created successfully");
+            log_to_file(&format!(
+                "AppState created successfully ({} ms)",
+                app_state_started.elapsed().as_millis()
+            ));
 
             // Capture migration result before moving app_state into managed state.
             // Clone is cheap: all fields are String/bool/i64.
@@ -88,15 +92,19 @@ pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
                     let state = bg_handle.state::<AppState>();
                     if let Some(engine) = &state.license_engine {
+                        let started = std::time::Instant::now();
                         tracing::info!("Background license check: starting online validation");
                         let result = engine.check(&state.db_pool).await;
                         engine.diag(&format!(
-                            "bg check done: status={:?} source={:?}",
-                            result.status, result.source
+                            "bg check done: status={:?} source={:?} elapsed_ms={}",
+                            result.status,
+                            result.source,
+                            started.elapsed().as_millis()
                         ));
                         log_to_file(&format!(
-                            "[LIC-DIAG] bg check done: status={:?}",
-                            result.status
+                            "[LIC-DIAG] bg check done: status={:?} elapsed_ms={}",
+                            result.status,
+                            started.elapsed().as_millis()
                         ));
                         use tauri::Emitter as _;
                         if let Err(e) = bg_handle.emit("license_status_updated", &result) {
@@ -106,6 +114,117 @@ pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                                 "Background license check complete: status={:?}",
                                 result.status
                             );
+                        }
+                    }
+                });
+            }
+
+            // PR2: touch-point precompute backfill.  Walks rows added by a
+            // pre-v0002 binary whose `touchPrecomputeVersion` column is
+            // NULL and fills them in so the library-filter sidebar can
+            // answer range queries immediately after an app update.
+            //
+            // Runs on a background thread (via `spawn_blocking` — the
+            // work is CPU/IO-bound, not async) so a large library never
+            // blocks the `.setup()` callback.  Processes up to ~500
+            // rows per iteration and loops until no more pending rows
+            // remain or a soft-cap is hit.
+            {
+                let bg_handle = app.handle().clone();
+                let emit_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    // Let the window's first paint finish first so the
+                    // initial frame is never delayed by DB work.
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+                    let result = tauri::async_runtime::spawn_blocking(move || {
+                        let state = bg_handle.state::<AppState>();
+
+                        let mut total_processed = 0usize;
+                        let mut total_skipped = 0usize;
+                        // Soft-cap on iterations so a corrupted DB can
+                        // never keep the background thread busy forever.
+                        let mut iterations = 0u32;
+                        const MAX_ITERATIONS: u32 = 200;
+                        loop {
+                            iterations += 1;
+                            // Acquire a fresh connection per iteration and
+                            // release it before the next round.  The old
+                            // code held ONE connection for the entire loop
+                            // (potentially hundreds of seconds), starving
+                            // concurrent IPC queries and inflating the WAL.
+                            let conn = match state.pool_conn() {
+                                Ok(c) => c,
+                                Err(e) => {
+                                    tracing::warn!(
+                                        "touch-point backfill: pool_conn failed at iteration {}: {}",
+                                        iterations,
+                                        e,
+                                    );
+                                    break;
+                                }
+                            };
+                            match crate::db::touch_point_precompute::run_touch_point_backfill(
+                                &conn,
+                            ) {
+                                Ok(stats) => {
+                                    total_processed += stats.processed;
+                                    total_skipped += stats.skipped;
+                                    if !stats.has_more || iterations >= MAX_ITERATIONS {
+                                        break;
+                                    }
+                                }
+                                Err(e) => {
+                                    tracing::warn!(
+                                        "touch-point backfill: aborted after {} iterations: {}",
+                                        iterations,
+                                        e
+                                    );
+                                    break;
+                                }
+                            }
+                            // Release the connection *before* sleeping so
+                            // user queries can proceed unimpeded.
+                            drop(conn);
+                            // Brief pause between batches to let pending
+                            // read queries go through without WAL pressure.
+                            std::thread::sleep(std::time::Duration::from_millis(50));
+                        }
+                        (total_processed, total_skipped, iterations)
+                    })
+                    .await;
+
+                    match result {
+                        Ok((processed, skipped, iterations)) if processed + skipped > 0 => {
+                            tracing::info!(
+                                "touch-point backfill: processed={} skipped={} iterations={}",
+                                processed,
+                                skipped,
+                                iterations,
+                            );
+                            // Tell the frontend to refresh the library so
+                            // the user sees updated touch-point filter data.
+                            use tauri::Emitter as _;
+                            if let Err(e) = emit_handle.emit(
+                                "touch_point_backfill_complete",
+                                serde_json::json!({
+                                    "processed": processed,
+                                    "skipped": skipped,
+                                }),
+                            ) {
+                                tracing::warn!(
+                                    "touch-point backfill: failed to emit completion event: {}",
+                                    e,
+                                );
+                            }
+                        }
+                        Ok(_) => {
+                            // Nothing to do — every row was already
+                            // precomputed by the save-path. This is the
+                            // steady-state for post-v0002 installs.
+                        }
+                        Err(e) => {
+                            tracing::warn!("touch-point backfill: spawn_blocking panicked: {}", e);
                         }
                     }
                 });

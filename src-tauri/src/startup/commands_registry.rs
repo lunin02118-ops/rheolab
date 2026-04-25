@@ -75,6 +75,9 @@ macro_rules! register_tauri_commands {
             // Native reports commands — RISK: LOW (license-gated, returns bytes)
             $crate::commands::reports::reports_generate_pdf,
             $crate::commands::reports::reports_generate_excel,
+            // Native comparison reports (ADR-0010) — RISK: LOW (license-gated)
+            $crate::commands::reports::reports_generate_comparison_pdf,
+            $crate::commands::reports::reports_generate_comparison_excel,
             // Native analysis pipeline commands
             $crate::commands::analysis::analysis_analyze_full,
             $crate::commands::analysis::analysis_detect_steps,
@@ -84,6 +87,7 @@ macro_rules! register_tauri_commands {
             $crate::commands::logger::log_error,
             // Licensing commands — RISK: HIGH (activation/deactivation state)
             $crate::commands::licensing::licensing_machine_id,
+            $crate::commands::licensing::licensing_debug_fingerprint,
             $crate::commands::licensing::licensing_was_ever_licensed,
             $crate::commands::licensing::licensing_checkpoint_db,
             $crate::commands::licensing::licensing_reset_experiments,

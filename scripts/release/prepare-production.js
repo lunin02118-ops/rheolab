@@ -17,6 +17,8 @@ const DEV_INTEGRITY_SENTINEL = 'rheolab-dev-integrity-key-32chars!';
 const args = process.argv.slice(2);
 const skipQa = args.includes('--skip-qa');
 const skipBuild = args.includes('--skip-build');
+const skipReleaseGate = args.includes('--skip-release-gate')
+  || process.env.RHEOLAB_SKIP_RELEASE_GATE === '1';
 const dryRun = args.includes('--dry-run');
 const allowUnsigned = args.includes('--allow-unsigned') || process.env.RHEOLAB_ALLOW_UNSIGNED_RELEASE === '1';
 
@@ -354,6 +356,7 @@ function writeReleaseManifest(version, artifacts, updaterValidation, updaterPatc
     commit,
     channel: releaseChannel,
     qaFastExecuted: !skipQa,
+    releaseGateExecuted: !skipReleaseGate,
     signedArtifactsRequired: shouldRequireSignedArtifacts(releaseChannel),
     allowUnsignedOverride: allowUnsigned,
     updater: {
@@ -468,6 +471,25 @@ function main() {
         tauriBuildArgs.push('--config', tempConfigPath);
       }
       run(process.execPath, tauriBuildArgs);
+    }
+
+    // ── MANDATORY release gate ─────────────────────────────────────────
+    // Exercises the full Comparison Report user workflow (4 fixtures →
+    // 4 settings phases → 7 real Rust exports) against the freshly built
+    // binary. If this fails, the release is structurally broken and we
+    // must NOT generate the manifest / checksums.
+    //
+    // Can be bypassed ONLY via explicit `--skip-release-gate` flag or
+    // `RHEOLAB_SKIP_RELEASE_GATE=1` env, and a loud warning is printed.
+    // See docs/release/RELEASE_GATE.md for rationale.
+    if (skipReleaseGate) {
+      console.warn('[release] ⚠ WARNING: release gate SKIPPED (--skip-release-gate)');
+      console.warn('[release] ⚠ The manifest you produce below has NOT been validated against');
+      console.warn('[release] ⚠ the full user workflow. Use only for local debugging.');
+    } else {
+      console.log('\n[release] ── running mandatory release gate ──');
+      run(process.execPath, ['scripts/test/run-release-gate.js']);
+      console.log('[release] ✓ release gate passed\n');
     }
 
     const artifacts = listInstallerArtifacts(version);

@@ -24,6 +24,7 @@ import { enableCdp, snap, linearSlope, type CdpSnap } from './cdp-helpers';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { CHANDLER_SST_63, GRACE_REPORT } from './fixtures';
+import { ComparisonReportsPage } from './pages/comparison-reports.page';
 import {
     appendPerfEntry, loadHistory, printComparison, getVersionInfo,
     type PerfEntry,
@@ -39,10 +40,12 @@ const collected: {
     idleHeap: PerfEntry['idleHeap'];
     analysis: PerfEntry['analysis'];
     navLeak: PerfEntry['navLeak'] | null;
+    reportGeneration: NonNullable<PerfEntry['reportGeneration']>;
 } = {
     idleHeap: {},
     analysis: [],
     navLeak: null,
+    reportGeneration: [],
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -307,6 +310,129 @@ test.describe('[Perf/Tauri] Navigation roundtrip — heap/node leak detection', 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Scenario 4 — Report generation timing (single-exp + comparison)
+//
+// Gated behind FULL_EXPORT=1 because Typst compilation at debug opt-level
+// takes 30–60 s per PDF.  On release builds it's significantly faster.
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe('[Perf/Tauri] Report generation timing', () => {
+    test.skip(() => process.env.FULL_EXPORT !== '1', 'FULL_EXPORT=1 required for report generation benchmark');
+    test.setTimeout(900_000);
+
+    test('single-exp + comparison report generation — wall time, size, heap', async ({
+        page, dashboard, reports, comparison,
+    }) => {
+        const cdp = await enableCdp(page);
+        const fs = await import('fs');
+
+        // ── 1. Upload + analyze fixture ──────────────────────────────────
+        await dashboard.goto();
+        await dashboard.uploadFile(CHANDLER_SST_63);
+        await dashboard.waitForAnalysis(120_000);
+
+        // ── 2. Single-experiment PDF ─────────────────────────────────────
+        await reports.goto();
+        await reports.expectPdfButtonVisible();
+        {
+            const snapBefore = await snap(cdp);
+            const t0 = Date.now();
+            const dl = await reports.downloadPdf(300_000);
+            const wallMs = Date.now() - t0;
+            const snapAfter = await snap(cdp);
+            const filePath = await dl.path();
+            const sizeBytes = filePath ? fs.statSync(filePath).size : 0;
+            const heapDelta = Math.round((snapAfter.heapUsedMb - snapBefore.heapUsedMb) * 100) / 100;
+
+            console.log(`[Bench/Tauri] Single-exp PDF: ${wallMs} ms, ${sizeBytes} bytes, heap+${heapDelta} MB`);
+            collected.reportGeneration.push({ type: 'single-exp-pdf', wallMs, sizeBytes, heapDeltaMb: heapDelta });
+
+            expect(sizeBytes, 'Single-exp PDF must be > 1 KB').toBeGreaterThan(1024);
+            expect(heapDelta, 'Single-exp PDF leaked > 50 MB').toBeLessThan(50);
+        }
+
+        // ── 3. Single-experiment Excel ───────────────────────────────────
+        {
+            const snapBefore = await snap(cdp);
+            const t0 = Date.now();
+            const dl = await reports.downloadExcel(120_000);
+            const wallMs = Date.now() - t0;
+            const snapAfter = await snap(cdp);
+            const filePath = await dl.path();
+            const sizeBytes = filePath ? fs.statSync(filePath).size : 0;
+            const heapDelta = Math.round((snapAfter.heapUsedMb - snapBefore.heapUsedMb) * 100) / 100;
+
+            console.log(`[Bench/Tauri] Single-exp Excel: ${wallMs} ms, ${sizeBytes} bytes, heap+${heapDelta} MB`);
+            collected.reportGeneration.push({ type: 'single-exp-excel', wallMs, sizeBytes, heapDeltaMb: heapDelta });
+
+            expect(sizeBytes, 'Single-exp Excel must be > 1 KB').toBeGreaterThan(1024);
+            expect(heapDelta, 'Single-exp Excel leaked > 50 MB').toBeLessThan(50);
+        }
+
+        // ── 4. Save first experiment, upload second, save ────────────────
+        await dashboard.goto();
+        await dashboard.uploadFile(CHANDLER_SST_63);
+        await dashboard.waitForAnalysis(120_000);
+        const exp1 = await dashboard.saveExperiment({ name: `Bench-PDF-1 ${Date.now()}` });
+
+        await dashboard.goto();
+        await dashboard.uploadFile(GRACE_REPORT);
+        await dashboard.waitForAnalysis(120_000);
+        const exp2 = await dashboard.saveExperiment({ name: `Bench-PDF-2 ${Date.now()}` });
+
+        // ── 5. Comparison setup ──────────────────────────────────────────
+        await comparison.goto();
+        await comparison.expectLoaded();
+        await comparison.addExperimentByName(exp1.name);
+        await comparison.addExperimentByName(exp2.name);
+        await comparison.expectChipCount(2);
+
+        const cmpReports = new ComparisonReportsPage(page);
+        await cmpReports.switchToReportTab();
+        await cmpReports.expectExportButtonsEnabled();
+
+        // ── 6. Comparison PDF ────────────────────────────────────────────
+        {
+            const snapBefore = await snap(cdp);
+            const t0 = Date.now();
+            const dl = await cmpReports.downloadPdf(300_000);
+            const wallMs = Date.now() - t0;
+            const snapAfter = await snap(cdp);
+            const filePath = await dl.path();
+            const sizeBytes = filePath ? fs.statSync(filePath).size : 0;
+            const heapDelta = Math.round((snapAfter.heapUsedMb - snapBefore.heapUsedMb) * 100) / 100;
+
+            console.log(`[Bench/Tauri] Comparison PDF: ${wallMs} ms, ${sizeBytes} bytes, heap+${heapDelta} MB`);
+            collected.reportGeneration.push({ type: 'comparison-pdf', wallMs, sizeBytes, heapDeltaMb: heapDelta });
+
+            expect(sizeBytes, 'Comparison PDF must be > 5 KB').toBeGreaterThan(5 * 1024);
+            expect(heapDelta, 'Comparison PDF leaked > 50 MB').toBeLessThan(50);
+        }
+
+        // ── 7. Comparison Excel ──────────────────────────────────────────
+        {
+            const snapBefore = await snap(cdp);
+            const t0 = Date.now();
+            const dl = await cmpReports.downloadExcel(120_000);
+            const wallMs = Date.now() - t0;
+            const snapAfter = await snap(cdp);
+            const filePath = await dl.path();
+            const sizeBytes = filePath ? fs.statSync(filePath).size : 0;
+            const heapDelta = Math.round((snapAfter.heapUsedMb - snapBefore.heapUsedMb) * 100) / 100;
+
+            console.log(`[Bench/Tauri] Comparison Excel: ${wallMs} ms, ${sizeBytes} bytes, heap+${heapDelta} MB`);
+            collected.reportGeneration.push({ type: 'comparison-excel', wallMs, sizeBytes, heapDeltaMb: heapDelta });
+
+            expect(sizeBytes, 'Comparison Excel must be > 5 KB').toBeGreaterThan(5 * 1024);
+            expect(heapDelta, 'Comparison Excel leaked > 50 MB').toBeLessThan(50);
+        }
+
+        // ── Summary table ────────────────────────────────────────────────
+        console.log('\n── Report generation perf summary ──');
+        console.table(collected.reportGeneration);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Aggregate — append to perf-history.jsonl and print comparison
 // ─────────────────────────────────────────────────────────────────────────────
 test.describe('[Perf/Tauri] History aggregation', () => {
@@ -324,6 +450,9 @@ test.describe('[Perf/Tauri] History aggregation', () => {
                 cycles: 0, slopeMbPerCycle: 0, peakHeapMb: 0,
                 nodesRatio: 0, baselineHeapMb: 0, finalHeapMb: 0,
             },
+            reportGeneration: collected.reportGeneration.length > 0
+                ? collected.reportGeneration
+                : undefined,
         };
 
         await appendPerfEntry(entry);

@@ -11,7 +11,6 @@ use aes_gcm::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
     Aes256Gcm, Key, Nonce,
 };
-use chrono::Utc;
 use rusqlite::params;
 use sha2::{Digest, Sha256};
 use tauri::State;
@@ -159,9 +158,7 @@ pub(crate) fn normalize_provider(provider: Option<String>) -> String {
         .unwrap_or_else(|| "groq".to_string())
 }
 
-pub(crate) fn now_rfc3339() -> String {
-    Utc::now().to_rfc3339()
-}
+pub(crate) use crate::utils::time::now_rfc3339;
 
 pub(crate) fn generate_id(name: &str, key: &str, now: &str) -> String {
     let mut hasher = Sha256::new();

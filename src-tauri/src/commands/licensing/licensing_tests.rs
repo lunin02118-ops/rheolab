@@ -2,6 +2,44 @@ use super::*;
 use super::crypto::upsert_system_state;
 use super::demo;
 
+// ── Test-clock helpers ──────────────────────────────────────────────
+//
+// Every test previously reached for `chrono::Utc::now()` directly and
+// then composed it with `Duration::days(N)` and a format string.  The
+// intent (*"make a demo that started 31 days ago"*) was obscured by the
+// mechanics, and the pattern was copy-pasted 15+ times.
+//
+// These thin helpers name the operation and give us a single extension
+// point if a time-travel test ever needs to inject a mock clock.
+
+/// 31-day-expired demo start date in `YYYY-MM-DD`.  Ensures every demo
+/// state used as a "no-fallback" fixture falls outside `DEMO_MAX_DAYS`.
+fn expired_demo_date_ymd() -> String {
+    days_ago_ymd(31)
+}
+
+/// Current UTC instant as `YYYY-MM-DD`.
+fn today_ymd() -> String {
+    chrono::Utc::now().format("%Y-%m-%d").to_string()
+}
+
+/// `N` days ago as `YYYY-MM-DD`.
+fn days_ago_ymd(days: i64) -> String {
+    (chrono::Utc::now().date_naive() - chrono::Duration::days(days))
+        .format("%Y-%m-%d")
+        .to_string()
+}
+
+/// Current UTC instant as an RFC 3339 string.
+fn now_rfc3339() -> String {
+    chrono::Utc::now().to_rfc3339()
+}
+
+/// `N` days ago as an RFC 3339 string.
+fn days_ago_rfc3339(days: i64) -> String {
+    (chrono::Utc::now() - chrono::Duration::days(days)).to_rfc3339()
+}
+
 /// Helper: sign with the dev private key for RSA-signed test records.
 fn sign_with_dev_private_key(data: &[u8]) -> String {
     use base64::Engine;
@@ -38,11 +76,8 @@ fn gate_rejects_empty_db() {
     // G-1: No license, no demo → gate must reject
     let conn = setup_test_db();
     // Create an expired demo (started 31 days ago) so demo check fails
-    let old_date = (chrono::Utc::now().date_naive() - chrono::Duration::days(31))
-        .format("%Y-%m-%d")
-        .to_string();
     let state = types::DemoState {
-        first_launch_date: old_date,
+        first_launch_date: expired_demo_date_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: 0,
@@ -78,11 +113,8 @@ fn gate_accepts_valid_license() {
 
     // Also insert expired demo so we can be sure it passes via the license path,
     // not demo fallback.
-    let old_date = (chrono::Utc::now().date_naive() - chrono::Duration::days(31))
-        .format("%Y-%m-%d")
-        .to_string();
     let demo_state = types::DemoState {
-        first_launch_date: old_date,
+        first_launch_date: expired_demo_date_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: 0,
@@ -107,18 +139,15 @@ fn gate_rejects_tampered_hmac() {
     });
     let value = serde_json::to_string(&license).unwrap();
     // Insert with a forged signature
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = now_rfc3339();
     conn.execute(
         "INSERT INTO SystemState (key, value, signature, updatedAt) VALUES (?1, ?2, ?3, ?4)",
         rusqlite::params![types::DB_KEY_LICENSE, value, "forged_signature", now],
     ).unwrap();
 
     // Also insert expired demo so no demo fallback
-    let old_date = (chrono::Utc::now().date_naive() - chrono::Duration::days(31))
-        .format("%Y-%m-%d")
-        .to_string();
     let demo_state = types::DemoState {
-        first_launch_date: old_date,
+        first_launch_date: expired_demo_date_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: 0,
@@ -136,8 +165,7 @@ fn gate_rejects_tampered_hmac() {
 fn gate_rejects_expired_plus_grace() {
     // G-4: RSA-signed license expired beyond grace period → gate must reject
     let conn = setup_test_db();
-    let expired = (chrono::Utc::now() - chrono::Duration::days(60))
-        .to_rfc3339();
+    let expired = days_ago_rfc3339(60);
 
     let signed_payload = r#"{"id":1,"type":"standard","expiresAt":"2024-01-01"}"#;
     let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
@@ -154,11 +182,8 @@ fn gate_rejects_expired_plus_grace() {
     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
 
     // Also insert expired demo
-    let old_date = (chrono::Utc::now().date_naive() - chrono::Duration::days(31))
-        .format("%Y-%m-%d")
-        .to_string();
     let demo_state = types::DemoState {
-        first_launch_date: old_date,
+        first_launch_date: expired_demo_date_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: 0,
@@ -187,8 +212,7 @@ fn gate_accepts_active_demo() {
 fn gate_accepts_grace_period_license() {
     // G-6: RSA-signed license expired but within grace period → gate must accept
     let conn = setup_test_db();
-    let expired = (chrono::Utc::now() - chrono::Duration::days(10))
-        .to_rfc3339();
+    let expired = days_ago_rfc3339(10);
 
     let signed_payload = r#"{"id":1,"type":"standard","expiresAt":"2024-01-01"}"#;
     let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
@@ -205,11 +229,8 @@ fn gate_accepts_grace_period_license() {
     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
 
     // Expire the demo so only the license path can succeed
-    let old_date = (chrono::Utc::now().date_naive() - chrono::Duration::days(31))
-        .format("%Y-%m-%d")
-        .to_string();
     let demo_state = types::DemoState {
-        first_launch_date: old_date,
+        first_launch_date: expired_demo_date_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: 0,
@@ -229,11 +250,8 @@ fn gate_accepts_grace_period_license() {
 fn gate_rejects_expired_demo() {
     // G-7: Demo expired (past 30 days) → gate must reject
     let conn = setup_test_db();
-    let old_date = (chrono::Utc::now().date_naive() - chrono::Duration::days(31))
-        .format("%Y-%m-%d")
-        .to_string();
     let state = types::DemoState {
-        first_launch_date: old_date,
+        first_launch_date: expired_demo_date_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: 0,
@@ -273,7 +291,7 @@ fn demo_counter_enforces_limit() {
     // D-2: After reaching max experiments, demo must expire
     let conn = setup_test_db();
     let state = types::DemoState {
-        first_launch_date: chrono::Utc::now().format("%Y-%m-%d").to_string(),
+        first_launch_date: today_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: types::DEMO_MAX_EXPERIMENTS, // already at limit
@@ -305,7 +323,7 @@ fn demo_counter_tamper_resistant() {
         "maxDays": 9999,
         "maxExperiments": 9999
     });
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = now_rfc3339();
     conn.execute(
         "UPDATE SystemState SET value = ?1, updatedAt = ?3 WHERE key = ?2",
         rusqlite::params![serde_json::to_string(&forged).unwrap(), types::DB_KEY_DEMO, now],
@@ -436,18 +454,15 @@ fn load_verified_license_rejects_legacy_no_signed_payload() {
         "type": "standard",
         "expiresAt": "2099-12-31T23:59:59Z",
         "gracePeriodDays": 30,
-        "activatedAt": chrono::Utc::now().to_rfc3339()
+        "activatedAt": now_rfc3339()
         // No signedPayload, no serverSignature — legacy HMAC-only record
     });
     let value = serde_json::to_string(&license).unwrap();
     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
 
     // Also expire the demo so the demo fallback doesn't rescue the request
-    let old_date = (chrono::Utc::now().date_naive() - chrono::Duration::days(31))
-        .format("%Y-%m-%d")
-        .to_string();
     let demo_state = types::DemoState {
-        first_launch_date: old_date,
+        first_launch_date: expired_demo_date_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: 0,
@@ -503,11 +518,8 @@ fn gate_rejects_rsa_forged_license_no_demo() {
     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
 
     // Insert expired demo so there's no fallback
-    let old_date = (chrono::Utc::now().date_naive() - chrono::Duration::days(31))
-        .format("%Y-%m-%d")
-        .to_string();
     let demo_state = types::DemoState {
-        first_launch_date: old_date,
+        first_launch_date: expired_demo_date_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: 0,
@@ -539,11 +551,8 @@ fn gate_rejects_legacy_no_activated_at_no_demo() {
     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
 
     // Insert expired demo
-    let old_date = (chrono::Utc::now().date_naive() - chrono::Duration::days(31))
-        .format("%Y-%m-%d")
-        .to_string();
     let demo_state = types::DemoState {
-        first_launch_date: old_date,
+        first_launch_date: expired_demo_date_ymd(),
         server_first_seen_at: None,
         last_run_date: None,
         experiments_count: 0,

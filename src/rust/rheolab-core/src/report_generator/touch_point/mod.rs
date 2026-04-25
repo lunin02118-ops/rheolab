@@ -32,7 +32,7 @@ mod algorithm;
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 pub use types::{
-    TouchPointInput, TouchPointType, TouchPointResult, SmartTouchPointOptions,
+    TouchPointInput, TouchPointType, TouchPointAnomaly, TouchPointResult, SmartTouchPointOptions,
 };
 pub use helpers::{find_dominant_shear_rate, filter_by_shear_rate, find_viscosity_peak};
 pub use algorithm::calculate_smart_touch_points;

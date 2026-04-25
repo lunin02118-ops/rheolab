@@ -17,6 +17,7 @@ pub mod engine;
 pub use types::assert_production_keys;
 pub use hardware::get_or_create_machine_id;
 pub use hardware::all_legacy_ids;
+pub use hardware::{debug_fingerprint_info, FingerprintDebugInfo};
 pub use engine::LicenseEngine;
 
 use crate::error::Result;
@@ -44,11 +45,11 @@ pub(crate) async fn can_write_via_engine(state: &AppState) -> bool {
     }
     match state.license_engine.as_ref() {
         Some(engine) => {
-            if engine.can_write().await {
-                return true;
-            }
-            // Cache might be stale — trigger a fresh check
-            let _ = engine.check(&state.db_pool).await;
+            // Return the cached verdict immediately — never block the write
+            // path on a network round-trip.  Background reconciliation
+            // (setup.rs → online license check task) keeps the cache fresh;
+            // if it has expired the user simply sees the last-known state
+            // until the next background refresh completes.
             engine.can_write().await
         }
         None => false,
@@ -191,6 +192,20 @@ pub(crate) fn maybe_increment_demo_save(conn: &rusqlite::Connection) {
 #[tauri::command]
 pub async fn licensing_machine_id(state: State<'_, AppState>) -> Result<String> {
     Ok(get_or_create_machine_id(&state.app_data_dir))
+}
+
+/// Return the raw hardware components that feed into the v2 machine ID
+/// plus the final ID itself.  Intended for the **Settings → Диагностика**
+/// panel so users can verify, before and after an OS reinstall, that their
+/// fingerprint is unchanged (and therefore that auto-recovery *will* work).
+///
+/// Safe to call repeatedly — both the components and the final ID are
+/// process-cached after the first PowerShell roundtrip.
+#[tauri::command]
+pub async fn licensing_debug_fingerprint(
+    state: State<'_, AppState>,
+) -> Result<FingerprintDebugInfo> {
+    Ok(debug_fingerprint_info(&state.app_data_dir))
 }
 
 /// Check if installation was ever licensed

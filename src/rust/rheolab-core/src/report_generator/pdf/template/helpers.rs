@@ -7,7 +7,7 @@
 /// `<`, `>`, `` ` ``, `[`, `]`, `{`, `}`) or as string delimiters (`\`, `"`).
 /// We backslash-escape every one of them — the order matters: the `\\` rule
 /// must run first, otherwise later rules would double-escape their own slash.
-pub(super) fn escape_typst(text: &str) -> String {
+pub(crate) fn escape_typst(text: &str) -> String {
     text.replace('\\', "\\\\")
         .replace('{', "\\{")
         .replace('}', "\\}")
@@ -29,7 +29,7 @@ pub(super) fn escape_typst(text: &str) -> String {
 /// Returns a neutral grey when the input is malformed so the caller does not
 /// need to worry about error propagation — a visible but non-disruptive
 /// fallback is preferred to breaking PDF compilation.
-pub(super) fn hex_to_typst(hex: &str) -> String {
+pub(crate) fn hex_to_typst(hex: &str) -> String {
     let h = hex.trim_start_matches('#');
     if h.len() >= 6 {
         let r = u8::from_str_radix(&h[0..2], 16).unwrap_or(128);

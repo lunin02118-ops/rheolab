@@ -8,13 +8,56 @@ use std::io::{Cursor, Read, Seek};
 
 use calamine::{open_workbook_from_rs, Reader, Xls, Xlsx};
 
-use super::super::header_detector::{detect_header, detect_header_bsl_fast, find_raw_data_sections};
+use super::super::header_detector::{
+    detect_header, detect_header_bsl_fast, find_raw_data_sections,
+};
 use super::super::instrument_detector::detect_instrument;
 use super::super::types::{AiContextCandidate, AiContextRow, ColumnMapping};
 use super::heuristics::{
     candidate_sheet_bonus, cell_looks_numeric, is_chart_sheet, looks_like_unit_row,
     parse_delimited_rows,
 };
+
+const MAX_ROW_SCORE_ROWS: usize = 50;
+
+fn mapping_richness_bonus(mapping: &ColumnMapping) -> usize {
+    let mut bonus = 0usize;
+
+    if mapping.time_col.is_some() {
+        bonus += 20;
+    }
+    if mapping.viscosity_col.is_some() {
+        bonus += 80;
+    }
+    if mapping.shear_rate_col.is_some() {
+        bonus += 50;
+    }
+    if mapping.shear_stress_col.is_some() {
+        bonus += 50;
+    }
+    if mapping.temperature_col.is_some() {
+        bonus += 25;
+    }
+    if mapping.bath_temp_col.is_some() {
+        bonus += 20;
+    }
+    if mapping.pressure_col.is_some() {
+        bonus += 20;
+    }
+    if mapping.rpm_col.is_some() {
+        bonus += 15;
+    }
+
+    bonus
+}
+
+fn capped_effective_rows(data_rows: usize, data_quality: usize) -> usize {
+    if data_quality >= 3 {
+        data_rows.min(MAX_ROW_SCORE_ROWS)
+    } else {
+        data_quality
+    }
+}
 
 fn build_ai_context_candidate(
     rows: &[Vec<String>],
@@ -136,8 +179,9 @@ fn collect_ai_context_candidates_from_rows(
             } else {
                 0
             };
-            let effective_rows = if data_quality >= 3 { data_rows } else { data_quality };
-            let mut score = effective_rows * 10 + non_empty + bonus;
+            let effective_rows = capped_effective_rows(data_rows, data_quality);
+            let richness_bonus = mapping_richness_bonus(&header.mapping);
+            let mut score = effective_rows * 10 + non_empty + bonus + richness_bonus;
             if let Some(name) = sheet_name {
                 if is_chart_sheet(name) {
                     score = 0;
@@ -179,7 +223,7 @@ fn collect_ai_context_candidates_from_rows(
                 .filter(|cell| !cell.trim().is_empty())
                 .count();
             let data_rows = section_rows.len().saturating_sub(relative_idx + 1);
-            let score = data_rows * 10 + non_empty + bonus;
+            let score = data_rows.min(MAX_ROW_SCORE_ROWS) * 10 + non_empty + bonus;
             if let Some(candidate) = build_ai_context_candidate(
                 rows,
                 sheet_name,
@@ -216,14 +260,14 @@ pub fn extract_ai_context_candidates(data: &[u8], filename: &str) -> Vec<AiConte
     {
         if let Ok(rows) = parse_delimited_rows(data) {
             let instrument_hint = detect_instrument(&rows, None);
-            let mut candidates = collect_ai_context_candidates_from_rows(
-                &rows,
-                None,
-                instrument_hint.as_deref(),
-            );
+            let mut candidates =
+                collect_ai_context_candidates_from_rows(&rows, None, instrument_hint.as_deref());
             candidates.sort_by(|a, b| b.0.cmp(&a.0));
             candidates.truncate(3);
-            return candidates.into_iter().map(|(_, candidate)| candidate).collect();
+            return candidates
+                .into_iter()
+                .map(|(_, candidate)| candidate)
+                .collect();
         }
     }
 
@@ -273,5 +317,8 @@ fn extract_ai_context_candidates_from_workbook<R: Read + Seek>(
 
     candidates.sort_by(|a, b| b.0.cmp(&a.0));
     candidates.truncate(3);
-    candidates.into_iter().map(|(_, candidate)| candidate).collect()
+    candidates
+        .into_iter()
+        .map(|(_, candidate)| candidate)
+        .collect()
 }

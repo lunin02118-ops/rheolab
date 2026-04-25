@@ -1,7 +1,7 @@
 //! Pure helper functions for experiment commands.
 
 use crate::error::Result;
-use chrono::Utc;
+pub(crate) use crate::utils::time::now_rfc3339;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -112,10 +112,6 @@ pub(super) fn load_experiment_data_blobs(
     Ok(map)
 }
 
-pub(crate) fn now_rfc3339() -> String {
-    Utc::now().to_rfc3339()
-}
-
 pub(crate) fn short_hash(raw: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(raw.as_bytes());
@@ -153,9 +149,7 @@ pub(super) fn extract_avg_viscosity_from_raw(raw_points: &[Value]) -> Option<i64
     let mut count = 0_u64;
 
     for point in raw_points {
-        let v = number_from_path(point, &["viscosity_cp"])
-            .or_else(|| number_from_path(point, &["viscosityCp"]));
-        if let Some(v) = v {
+        if let Some(v) = channel_value_from_point(point, VISCOSITY_CHANNEL_ALIASES) {
             if v > 0.0 {
                 count += 1;
                 sum += v;
@@ -267,14 +261,45 @@ pub(super) fn number_from_path(value: &Value, path: &[&str]) -> Option<f64> {
     number_from_json(current)
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Channel alias lookup — single source of truth
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Raw-point JSON keys appear in two naming conventions in production data:
+//   * snake_case (`time_sec`, `viscosity_cp`, `temperature_c`, `shear_rate_s1`)
+//     — what the frontend persists today via `parse-normalize.ts` /
+//       `experiments/mappers.ts`;
+//   * camelCase (`timeSec`, `viscosityCp`, `temperatureC`, `shearRate`) —
+//     legacy shape produced by the WASM parser and the TypeScript
+//     `ColumnarData` wire format.
+//
+// Centralising the alias arrays here guarantees every consumer (JSON read
+// path, columnar decode path, touch-point precompute, export aggregations,
+// …) sees the same list.  Adding a new alias becomes a one-line change.
+
+pub(crate) const TIME_CHANNEL_ALIASES:        &[&str] = &["time_sec",      "timeSec",      "time"];
+pub(crate) const VISCOSITY_CHANNEL_ALIASES:   &[&str] = &["viscosity_cp",  "viscosityCp",  "viscosity"];
+pub(crate) const TEMPERATURE_CHANNEL_ALIASES: &[&str] = &["temperature_c", "temperatureC", "temperature"];
+pub(crate) const SHEAR_RATE_CHANNEL_ALIASES:  &[&str] = &[
+    "shear_rate_s1", "shearRateS1",
+    "shear_rate",    "shearRate",
+];
+
+/// Read a numeric channel from a raw-point JSON object, trying each alias
+/// in order. Returns `None` when none of the aliases resolve to a number.
+///
+/// Replaces the previous `number_from_path(p, &[snake]).or_else(|| number_from_path(p, &[camel]))`
+/// pattern that used to be duplicated across every aggregation helper.
+pub(crate) fn channel_value_from_point(point: &Value, aliases: &[&str]) -> Option<f64> {
+    aliases.iter().find_map(|alias| number_from_path(point, &[*alias]))
+}
+
 pub(crate) fn calculate_duration_seconds(raw_points: &[Value]) -> Option<f64> {
     let mut min_time: Option<f64> = None;
     let mut max_time: Option<f64> = None;
 
     for point in raw_points {
-        let Some(time) = number_from_path(point, &["time_sec"])
-            .or_else(|| number_from_path(point, &["timeSec"]))
-        else {
+        let Some(time) = channel_value_from_point(point, TIME_CHANNEL_ALIASES) else {
             continue;
         };
 
@@ -293,9 +318,7 @@ pub(crate) fn calculate_avg_temperature_c(raw_points: &[Value]) -> Option<f64> {
     let mut sum = 0.0_f64;
 
     for point in raw_points {
-        let Some(temp) = number_from_path(point, &["temperature_c"])
-            .or_else(|| number_from_path(point, &["temperatureC"]))
-        else {
+        let Some(temp) = channel_value_from_point(point, TEMPERATURE_CHANNEL_ALIASES) else {
             continue;
         };
 
@@ -316,9 +339,7 @@ pub(crate) fn calculate_max_temperature_c(raw_points: &[Value]) -> Option<f64> {
     let mut max_temp: Option<f64> = None;
 
     for point in raw_points {
-        let Some(temp) = number_from_path(point, &["temperature_c"])
-            .or_else(|| number_from_path(point, &["temperatureC"]))
-        else {
+        let Some(temp) = channel_value_from_point(point, TEMPERATURE_CHANNEL_ALIASES) else {
             continue;
         };
 

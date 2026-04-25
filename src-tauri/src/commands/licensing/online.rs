@@ -248,6 +248,74 @@ pub(super) async fn activate_online(
     }
 }
 
+/// Look up any active license bound to the current machine fingerprint
+/// (auto-recovery path used when no local license file exists, e.g. after
+/// an OS reinstall on the same hardware).
+///
+/// Returns:
+/// - `Ok(Some(json))` — server found an active license for this fingerprint.
+///   The `json` has the same shape as `activate_online`'s response:
+///   `{ license, key, signedPayload, signature }`.
+/// - `Ok(None)` — server reached, but no active license is bound to this
+///   machine (HTTP 404 / `success: false`).
+/// - `Err(...)` — network error, rate-limited (429), or server 5xx.
+///
+/// The caller is responsible for RSA-verifying `signedPayload` + `signature`
+/// via [`super::crypto::verify_server_signature`] before trusting the result.
+pub(super) async fn find_by_machine_online(
+    app_data_dir: &std::path::Path,
+) -> Result<Option<Value>> {
+    let machine_id = get_or_create_machine_id(app_data_dir);
+    let client = http_client()?;
+
+    let body = json!({ "machineId": machine_id });
+
+    let resp = match client
+        .post(format!("{}/api/find_by_machine.php", LICENSE_SERVER_URL))
+        .json(&body)
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(handle_network_error(&e).into()),
+    };
+
+    let http_status = resp.status();
+
+    // HTTP 404 == "not_found" — treated as the deterministic "no license"
+    // outcome, not an error.  Returning Ok(None) lets the caller cleanly
+    // fall through to demo mode.
+    if http_status.as_u16() == 404 {
+        return Ok(None);
+    }
+
+    let data: Value = resp.json().await.unwrap_or(json!({}));
+
+    if !http_status.is_success() {
+        let err = data["error"]
+            .as_str()
+            .unwrap_or("Recovery failed")
+            .to_string();
+        return Err(err.into());
+    }
+
+    if data["success"].as_bool() != Some(true) {
+        return Ok(None);
+    }
+
+    // Persist the check date so subsequent cold starts respect the online-check
+    // TTL — we just reached the server.
+    let today = Utc::now().format("%Y-%m-%d").to_string();
+    if let Err(e) = save_secure_last_check(app_data_dir, &today) {
+        tracing::warn!(
+            "Failed to save last-check date after machine-ID recovery: {}",
+            e
+        );
+    }
+
+    Ok(Some(data))
+}
+
 /// Register this machine's demo period with the license server and return the
 /// server's authoritative `first_seen_at` date (YYYY-MM-DD).
 ///

@@ -7,11 +7,54 @@ use super::types::TouchPointInput;
 const MIN_DECLINING_WINDOWS: usize = 2;
 /// Step size for sliding window (fraction of window width).
 const WINDOW_STEP_FRACTION: f64 = 0.5;
+/// Minimum relative drop between two consecutive sliding windows before the
+/// algorithm counts it as a decline.  Mirrors the TS `MIN_DECLINE_RATIO`
+/// (BUG #7 fix): on noisy plateau data the old code treated even 0.01 %
+/// fluctuations as declines, occasionally flagging the ramp-up itself as
+/// the peak.  1 % is conservative enough to filter noise but still detects
+/// every real peak observed in the fixture suite.
+const MIN_DECLINE_RATIO: f64 = 0.01;
+
+/// Return the smallest index `i` in `arr` for which `arr[i] >= value`,
+/// or `arr.len()` when no such index exists.  Assumes `arr` is sorted
+/// ascending.  Used by [`find_dominant_shear_rate`]'s symmetric clustering.
+fn lower_bound(arr: &[f64], value: f64) -> usize {
+    let (mut l, mut r) = (0usize, arr.len());
+    while l < r {
+        let m = (l + r) / 2;
+        if arr[m] < value {
+            l = m + 1;
+        } else {
+            r = m;
+        }
+    }
+    l
+}
+
+/// Return the smallest index `i` in `arr` for which `arr[i] > value`,
+/// or `arr.len()` when no such index exists.  Assumes `arr` is sorted.
+fn upper_bound(arr: &[f64], value: f64) -> usize {
+    let (mut l, mut r) = (0usize, arr.len());
+    while l < r {
+        let m = (l + r) / 2;
+        if arr[m] <= value {
+            l = m + 1;
+        } else {
+            r = m;
+        }
+    }
+    l
+}
 
 /// Determine the dominant (most frequent) shear rate in the dataset.
 ///
-/// Groups shear rates into buckets of ±tolerance and returns the centre of the
-/// largest bucket.  Ignores zero / absent shear rates.
+/// For each observed rate `r` the function counts how many rates fall
+/// inside the **symmetric** window `[r·(1−t), r·(1+t)]` and returns the
+/// median of the largest such window — BUG #8 fix.  The old greedy
+/// implementation grew each cluster only UPWARDS from its start
+/// (bounded by `centre·(1+tolerance)`), biasing the choice of cluster
+/// centre and occasionally picking an outlier at the boundary between
+/// two real clusters.  Ignores zero / absent shear rates.
 pub fn find_dominant_shear_rate(points: &[TouchPointInput], tolerance: f64) -> Option<f64> {
     let mut rates: Vec<f64> = points
         .iter()
@@ -25,30 +68,23 @@ pub fn find_dominant_shear_rate(points: &[TouchPointInput], tolerance: f64) -> O
 
     rates.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
-    // Greedy clustering: walk sorted list, group values within ±tolerance of
-    // the cluster start.
-    let mut best_start = 0usize;
-    let mut best_count = 0usize;
+    let mut best_count: usize = 0;
+    let mut best_centre: f64 = rates[0];
 
-    let mut cluster_start = 0usize;
-    while cluster_start < rates.len() {
-        let centre = rates[cluster_start];
+    for i in 0..rates.len() {
+        let centre = rates[i];
+        let lo = centre * (1.0 - tolerance);
         let hi = centre * (1.0 + tolerance);
-        let mut cluster_end = cluster_start;
-        while cluster_end < rates.len() && rates[cluster_end] <= hi {
-            cluster_end += 1;
-        }
-        let count = cluster_end - cluster_start;
+        let lo_idx = lower_bound(&rates, lo);
+        let hi_idx = upper_bound(&rates, hi);
+        let count = hi_idx - lo_idx;
         if count > best_count {
             best_count = count;
-            best_start = cluster_start;
+            best_centre = rates[lo_idx + count / 2];
         }
-        cluster_start = cluster_end;
     }
 
-    // Return median of largest cluster
-    let mid = best_start + best_count / 2;
-    Some(rates[mid])
+    Some(best_centre)
 }
 
 /// Filter points to only those recorded at approximately the dominant shear rate.
@@ -131,7 +167,19 @@ pub fn find_viscosity_peak(points: &[TouchPointInput], window_minutes: f64) -> O
             declining_count = 0;
             continue;
         }
-        if windows[i].avg < windows[i - 1].avg {
+        // BUG #7 fix: require at least MIN_DECLINE_RATIO (1 %) relative
+        // drop so that micro-oscillations of the sliding-window average
+        // on a noisy plateau are not counted as a genuine decline.
+        // Zero-valued plateau averages are treated as equal (identity
+        // threshold) to avoid divide-by-zero in edge cases.
+        let prev = windows[i - 1].avg;
+        let curr = windows[i].avg;
+        let decline_threshold = if prev > 0.0 {
+            prev * (1.0 - MIN_DECLINE_RATIO)
+        } else {
+            prev
+        };
+        if curr < decline_threshold {
             declining_count += 1;
             if declining_count >= MIN_DECLINING_WINDOWS {
                 let peak_idx = i - declining_count;

@@ -1,5 +1,5 @@
 ﻿use crate::error::{AppError, Result};
-use chrono::Utc;
+pub(crate) use crate::utils::time::now_rfc3339;
 use rusqlite::params;
 use rusqlite::OptionalExtension;
 use sha2::{Digest, Sha256};
@@ -69,6 +69,3 @@ pub(crate) fn generate_reagent_id(name: &str) -> String {
     format!("reag_{}", short)
 }
 
-pub(crate) fn now_rfc3339() -> String {
-    Utc::now().to_rfc3339()
-}

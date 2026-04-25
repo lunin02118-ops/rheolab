@@ -96,27 +96,39 @@ const isDevCommand = args.length === 0 || args.some((arg) => String(arg).toLower
 // Do NOT force RHEOLAB_SKIP_VERSION_BUMP here — callers set it themselves.
 
 // ── Inject production keys for release builds ─────────────────────────────────
-// Two compile-time requirements for a valid release binary:
+// Compile-time requirements for a valid release binary:
 //
 //   1. INTEGRITY_SECRET_KEY  — option_env! in types.rs; baked into the binary.
 //      Without it cargo silently uses the dev sentinel and the binary panics
 //      on startup.
 //
-//   2. TAURI_SIGNING_PRIVATE_KEY — Tauri reads this at build time to produce
-//      the .sig file alongside the installer.  Without it auto-update silently
+//   2. BETA_CHANNEL_SECRET   — option_env! in update-channel signing; baked in.
+//      Required for X-Update-Token on the beta channel.
+//
+//   3. ALPHA_CHANNEL_SECRET  — option_env! in update-channel signing; baked in.
+//      Required for X-Update-Token on the alpha channel. Must stay in sync with
+//      scripts/release/prepare-production.js `_compileTimeSecretNames`, otherwise
+//      builds through this wrapper diverge from the canonical release flow and
+//      the proc-macro `tauri::generate_context!()` may skip frontend embedding
+//      entirely (observed as a ~1 MB installer with no dist assets).
+//
+//   4. TAURI_SIGNING_PRIVATE_KEY — Tauri reads this at build time to produce
+//      the .sig file alongside the installer. Without it auto-update silently
 //      breaks for all installed clients (no signature = updater rejects the
 //      bundle).
 //
-// Both are loaded here so every build path (npm run tauri:build, VS Code task,
+// All are loaded here so every build path (npm run tauri:build, VS Code task,
 // CI, direct node invocation) works identically without requiring build.ps1.
 // An explicit env var in the calling process always takes precedence.
 if (isBuildCommand) {
   // ── 1. Load string values from .env.keys ───────────────────────────────────
   // Only the keys Tauri/cargo actually need are injected; the rest are ignored
   // to avoid polluting the cargo environment with unrelated secrets.
+  // Keep this list in sync with scripts/release/prepare-production.js.
   const KEYS_ALLOWLIST = new Set([
     'INTEGRITY_SECRET_KEY',
     'BETA_CHANNEL_SECRET',
+    'ALPHA_CHANNEL_SECRET',
     'TAURI_SIGNING_PRIVATE_KEY_PASSWORD',
   ]);
 

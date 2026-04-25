@@ -22,7 +22,8 @@ INSERT IGNORE INTO schema_version (version, description) VALUES
 (3, 'Add demo_users table'),
 (4, 'Add developer license type'),
 (5, 'Add discovery/demo/migrate_machine to activation_log ENUM'),
-(6, 'Add user_agent to activation_log');
+(6, 'Add user_agent to activation_log'),
+(7, 'Allow NULL license_id on activation_log for discovery miss audit');
 
 -- ─── Лицензионные ключи ──────────────────────────────────────
 CREATE TABLE IF NOT EXISTS license_keys (
@@ -71,7 +72,8 @@ CREATE TABLE IF NOT EXISTS license_keys (
 -- ─── История активаций и проверок ────────────────────────────
 CREATE TABLE IF NOT EXISTS activation_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    license_id INT NOT NULL,
+    -- Nullable since schema v7: discovery-miss audit rows have no license.
+    license_id INT NULL,
     machine_id VARCHAR(64),
     ip_address VARCHAR(45),
     action ENUM('activate', 'validate', 'deactivate', 'check', 'discovery', 'demo', 'migrate_machine') NOT NULL,

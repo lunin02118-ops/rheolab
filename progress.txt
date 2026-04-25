@@ -1,5 +1,32 @@
 # Rheolab — pending follow-ups (not blocking current work)
 
+## 0. [IN PROGRESS, 2026-04-22] Comparison Report Generation — ADR-0010
+
+**Plan**: `docs/adr/ADR-0010-comparison-report-generation.md` (approved).
+
+**Decisions locked**:
+- Per-exp Excel: one compact sheet per experiment (metadata + chart + stats + recipe + water + calibration).
+- Unanalyzed experiments → auto-run analysis pipeline before payload build.
+- Sheet names: truncate(31) + sanitize `[]:*?/\` + deterministic `_2/_3` suffix on collisions.
+- Chart format: vector SVG (PDF) + native Excel chart (XLSX). No PNG capture.
+- UI: sub-tab "Отчёт" inside Comparison.
+
+**Phases**:
+- [ ] Phase 1 — Rust backend (comparison module, multi-exp chart SVG, reusable
+      single-exp fragments, Tauri commands, unit tests).
+- [ ] Phase 2 — TS payload builders + `bridge.reports.generateComparison*`.
+- [ ] Phase 3 — UI sub-tab `ComparisonReportTab` + `useComparisonReportExport`.
+- [ ] Phase 4 — Playwright E2E + perf budget for comparison generation.
+- [ ] Phase 5 — i18n + docs + screenshots + release notes.
+
+**Acceptance after Phase 1**: `cargo test comparison_report` green, synthetic
+payload generates a real PDF + XLSX, inspected for:
+- PDF: ≥ (N+1) pages, SVG chart embedded.
+- XLSX: 1 summary + N per-exp + 1 hidden DebugInfo sheets, sanitized names,
+  native chart present.
+
+
+
 ## 2. Channel-header rewrites bypass HMAC validation (pre-existing SEC-TODO)
 
 **Location**: `license-server/releases.htaccess` (and the mirrored

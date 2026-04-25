@@ -1,0 +1,2 @@
+      Loaded 1050 security advisories (from C:\Users\VladimirWorkPC\.cargo\advisory-db)
+    Scanning Cargo.lock for vulnerabilities (884 crate dependencies)

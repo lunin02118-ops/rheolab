@@ -156,32 +156,32 @@ describe('DashboardContent', () => {
 
     // ── tab navigation ─────────────────────────────────────────────────────
 
-    it('switches to table tab on click', () => {
+    it('switches to table tab on click', async () => {
         render(<DashboardContent {...makeProps()} />);
         const tableTab = screen.getByRole('tab', { name: /Таблица/i });
         fireEvent.click(tableTab);
-        expect(screen.getByTestId('MockRawDataTable')).toBeDefined();
+        expect(await screen.findByTestId('MockRawDataTable')).toBeDefined();
     });
 
-    it('switches to recipe tab on click', () => {
+    it('switches to recipe tab on click', async () => {
         render(<DashboardContent {...makeProps()} />);
         const recipeTab = screen.getByRole('tab', { name: /Рецептура/i });
         fireEvent.click(recipeTab);
-        expect(screen.getByTestId('MockRecipePanel')).toBeDefined();
+        expect(await screen.findByTestId('MockRecipePanel')).toBeDefined();
     });
 
-    it('switches to water tab on click', () => {
+    it('switches to water tab on click', async () => {
         render(<DashboardContent {...makeProps()} />);
         const waterTab = screen.getByTestId('WaterTabButton');
         fireEvent.click(waterTab);
-        expect(screen.getByTestId('MockWaterAnalysisPanel')).toBeDefined();
+        expect(await screen.findByTestId('MockWaterAnalysisPanel')).toBeDefined();
     });
 
-    it('switches to report tab on click and renders ReportTab', () => {
+    it('switches to report tab on click and renders ReportTab', async () => {
         render(<DashboardContent {...makeProps()} />);
         const reportBtn = screen.getByTestId('ReportTabButton');
         fireEvent.click(reportBtn);
-        const panel = screen.getByTestId('MockReportTab');
+        const panel = await screen.findByTestId('MockReportTab');
         expect(panel).toBeDefined();
         expect(panel.textContent).toContain('test.xlsx');
     });

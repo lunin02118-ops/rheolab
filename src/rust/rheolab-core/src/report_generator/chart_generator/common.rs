@@ -67,6 +67,14 @@ pub struct ChartConfig {
 
     /// When true, skip LTTB downsampling (use for PDF reports that need full precision)
     pub skip_downsample: bool,
+
+    /// X-axis time-rendering mode: `"minutes"` (default), `"seconds"`, or
+    /// `"hh:mm:ss"`.  Mirrors `ReportSettings.rheology_units.time_format`
+    /// and controls the `label_bottom` unit suffix + tick-label rendering
+    /// in the Typst chart-page overlay.  Empty string is treated as
+    /// `"minutes"` so older call-sites that don't set this field keep
+    /// byte-for-byte compatible output.
+    pub time_format: String,
 }
 
 /// All line styles for chart

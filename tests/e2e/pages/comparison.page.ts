@@ -67,8 +67,9 @@ export class ComparisonPage {
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /** Open the experiment selector dialog */
+  /** Open the experiment selector dialog (no-op if already open) */
   async openSelector() {
+    if (await this.selectorDialog.isVisible().catch(() => false)) return;
     await this.openSelectorButton.click();
     await expect(this.selectorDialog).toBeVisible({ timeout: 5_000 });
   }
@@ -89,13 +90,13 @@ export class ComparisonPage {
   }
 
   /** Add an experiment to comparison by clicking its button in the selector.
-   *  The dialog auto-closes on successful add. */
+   *  The dialog may or may not auto-close — callers should use closeSelector() afterwards. */
   async addExperimentByIndex(index = 0) {
     const btn = this.page.getByTestId('ComparisonSelectorExperimentButton').nth(index);
     await expect(btn).toBeVisible({ timeout: 5_000 });
     await btn.click();
-    // Dialog auto-closes on successful add — wait for it
-    await expect(this.selectorDialog).not.toBeVisible({ timeout: 10_000 });
+    // Give React a tick to process the add
+    await this.page.waitForTimeout(300);
   }
 
   /** Add an experiment to comparison by name — opens selector, searches, clicks */

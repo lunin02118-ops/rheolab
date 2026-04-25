@@ -6,6 +6,104 @@
 
 ---
 
+## [0.2.0-beta.24] — 2026-04-22
+
+### Исправлено
+- **TP-FILTER-DYNAMIC**: Фильтр «Точка касания» в библиотеке теперь действительно находит эксперименты, пересекающие пользовательский порог — вместо бесполезного диапазонного поиска по самой вязкости в момент касания.
+  - Было: три диапазонных поля (`crossingViscosityMin/Max` на precomputed колонке `touchCrossingViscosityCp`) выдавали 0 результатов для любого осмысленного ввода. Причина: по построению алгоритма `touchCrossingViscosityCp` — это viscosity **first-below-threshold** сэмпла, поэтому всегда сидит вплотную к 50 сП (в БД пользователя из 220 эксп. — 37.77 сП у единственного с пересечением). Диапазон «300..600 сП» никогда не попадал и не мог попасть.
+  - Стало:
+    - **UI** (`viscosity-threshold-selector.tsx`, `experiment-filters.tsx`): новый компонент `ViscosityThresholdSelector` с preset-пилюлями `авто (50) / 10 / 50 / 100 / 200 / 300 / 500` + свободный input для кастомных лабораторных значений. Пресеты покрывают типовые break-points для разных типов жидкостей (сликвотер → low, сшитый гель → 500). Disclaimer в секции теперь объясняет «момент падения вязкости ниже выбранного порога», лейбл `Достигнут порог X сП` динамически подстраивается.
+    - **Rust slow path** (`commands/experiments/list/dynamic.rs`, новый модуль 343 строки): когда `viscosityThreshold` задан и положителен, query-билдер обходит precomputed колонки и прогоняет `smart_touch_points` on-the-fly против пользовательского порога. Coarse SQL-pruning по `maxViscosity ≥ threshold` (NULL-safe) отсекает заведомо непересекающие ряды, остальные декодируются из columnar zstd blob и пересчитываются. Фильтры `hasCrossing`, `crossingTime{Min,Max}`, `viscosityAtTarget{Min,Max}` применяются против свежих значений, в UI-карточках тоже показываются свежие (не stale 50 сП).
+    - **Rust fast path** сохранён 1:1: пустой `viscosityThreshold` → existing precomputed SQL-путь, байт-в-байт тот же результат, что и раньше (не ломаем backward compat).
+    - **Guard от started-below-threshold edge case**: если вся кривая лежит ниже порога (нет гельной фазы), алгоритм мог ложно сообщить о «пересечении» (slope guard пропускается при `run_start=0`). В slow path post-check `max(inputs.viscosity) > threshold` отбрасывает эти spurious crossings.
+  - Убран бесполезный `RangeFilter` «Вязкость в точке касания (сП)» из UI. Rust-поля `crossing_viscosity_min/max` оставлены в `ExperimentsListQuery` для backward-compat API — просто игнорируются UI, а при отсутствии значения становятся no-op.
+- **TP-FILTER-UX-EMPTY-STATE**: Пустой список в библиотеке при активных touch-point фильтрах теперь объясняет, почему всё скрылось, и даёт one-click выход.
+  - Было: при 0 результатов показывалось безликое «Эксперименты не найдены. Попробуйте изменить параметры фильтрации», без намёка на причину.
+  - Стало: extended `filter_metadata` (`touch_point_stats` агрегат на стороне Rust) отдаёт `{ totalExperiments, withCrossingCount, crossingTime{Min,Max}Minutes, crossingViscosity{Min,Max}Cp, viscosityAtTarget{Min,Max}Cp }`. UI использует их дважды:
+    - **В сайдбаре** под каждым touch-point-ренджем показывается подпись `в БД: X..Y мин` (или «нет данных»), `«M из N эксп. достигли порога»` — так сразу видно какие диапазоны имеют смысл.
+    - **В empty state** при активных touch-point-диапазонных фильтрах и 0 результатов рендерится контекстное сообщение вида «Из 220 эксп. только 1 достиг порога 50 сП. Остальные исключаются диапазонными фильтрами точки касания. Доступный диапазон — время: 0.02 мин, вязкость: 37.8 сП. Снимите или расширьте touch-point фильтры.» + кнопка **«Сбросить фильтры точки касания»** (включая `viscosityThreshold` и `hasCrossing`).
+  - Исправлен dev-артефакт: Vite дёргал полный page-reload при edit'e Rust-исходников (`vite.config.ts` watch.ignored = `['**/src/rust/**']`) — ломало persist загруженных экспериментов в dashboard store при обычном программировании. Store уже отбрасывает тяжёлые Float64Array на уровне persist-конфига по памяти, но обычная navigation между вкладками больше не вызывает перемонтирование из-за reload.
+
+### Инфраструктура
+- Rust (TP-FILTER-DYNAMIC): новый модуль `src-tauri/src/commands/experiments/list/dynamic.rs` с собственным candidate-selection SQL (join с `ExperimentData`), per-row decode + recompute, in-memory sort/paginate + batch-reagent load. `touch_point_precompute.rs` получил новую функцию `compute_from_inputs_with_threshold(&inputs, threshold)`, старая `compute_from_inputs` стала обёрткой над ней с фиксированным `LIBRARY_THRESHOLD_CP`. `query.rs` зарефакторен на helper-функции `append_base_conditions` / `append_precomputed_touch_conditions` — общий код fast/slow путей теперь в одном месте.
+- Rust (TP-FILTER-UX): в `ExperimentsFilterMetadataResponse` добавлено поле `touch_point_stats: TouchPointLibraryStats` с 9 полями (total / withCrossing / withTarget / 3 пары range). Единый агрегатный SELECT в `query_touch_point_stats` кэшируется под тем же `FILTER_META_TTL`.
+- TypeScript: новый hook `src/hooks/useExperimentFilterMetadata.ts` с module-level promise-кэшем — `ExperimentFilters` и `ExperimentList` делят одну metadata-загрузку на сессию (+ `resetExperimentFilterMetadataCache()` для тестов). `src/lib/library/touch-point-hints.ts` — 5 pure-формтеров для сайдбарных и empty-state подсказок. `RangeFilter` получил опциональный `hint` + `hintTestId` props. `FilterState` расширен `viscosityThreshold`, удалены устаревшие `crossingViscosity{Min,Max}` поля, EMPTY_FILTERS синхронизирован.
+- Тесты:
+  - Rust: +5 тестов `dynamic_threshold_*` (crosslinked gel 500 сП, maxViscosity prune, crossing-time narrowing, junk-input fallback на fast path, hasCrossing=no) + 3 теста `touch_point_stats_*` (empty DB, actual ranges, pending-backfill ignored). Итого cargo: **296/296 ✅** (+8 lib, rheolab-core неизменен).
+  - Vitest: `touch-point-hints.test.ts` — 19 pure-тестов на форматеры. `experiment-filters-touch-point.test.tsx` обновлён: новые тесты на пресеты threshold (`ViscosityThresholdPreset-500` / `-default`), кастомный input, динамический лейбл `Достигнут порог`, «Clear All» теперь сбрасывает и threshold. Итого: **193/193 ✅** (15 файлов), +22 против предыдущего прогона.
+  - `tsc --noEmit`: clean.
+
+### Добавлено
+- **REPORT-COMPARISON**: Сравнительный отчёт для вкладки Comparison (ADR-0010).
+  - Новая под-вкладка «Отчёт» / «Report» рядом с графиком в Comparison view (Radix Tabs).
+  - PDF: страница 1 — сводный мульти-эксперимент SVG-чарт + сводная таблица (filename, date, instrument, #cycles, средняя вязкость, температура); страницы 2..N+1 — полный per-experiment отчёт (тот же формат, что и single-exp). Рендер вектором (Typst + Plotters SVG), не PNG.
+  - Excel: лист `Сравнение`/`Comparison` — заголовок, сводная таблица, native Excel chart (редактируемый); листы 2..N+1 — компактный per-experiment отчёт (metadata + chart + stats + recipe + water + calibration + опц. raw data). Sheet name: truncate 31 символ + sanitize `[]:*?/\` + детерминированный суффикс `_2`, `_3` при коллизии.
+  - UI: независимые section-toggles (Calibration / Raw data / Recipe / Water analysis), выбор языка (RU/EN) из `brandingStore`, счётчик экспериментов, индикатор прогресса при генерации.
+- **IPC**: новые Tauri-команды `reports_generate_comparison_pdf`, `reports_generate_comparison_excel` (HMAC-gated, такой же паттерн, как single-exp отчёты).
+- **TP-PRECOMPUTE (PR2)**: библиотека теперь хранит и фильтрует результаты по точкам касания (ADR-0011).
+  - Миграция БД `v0002_touch_point_metrics`: пять новых колонок в `experiments` (`touch_has_crossing`, `touch_crossing_time_min`, `touch_crossing_viscosity_cp`, `touch_viscosity_at_target_cp`, `touch_precompute_version`) + частичные индексы `idx_experiment_touch_has_crossing` и `idx_experiment_touch_crossing_time_min`. Зафиксированный контракт: threshold = 50 сП, target time = 10 мин.
+  - Save-path: при сохранении эксперимента Rust-hook пересчитывает метрики и пишет precompute-колонки в одной транзакции с основной записью (без накладных расходов на чтение позже).
+  - Read-path: `experiments_list` получил пять новых фильтров — `hasCrossing` (tri-state: `'' | 'yes' | 'no'`), `crossingTime{Min,Max}`, `crossingViscosity{Min,Max}`, `viscosityAtTarget{Min,Max}`. Все фильтры составляются через параметризованный SQL и используют новые индексы.
+  - UI: в сайдбаре библиотеки появилась секция «Точка касания» с Radix Select для hasCrossing и тремя RangeFilter; привязано к `ExperimentFilters` через прямой spread в `listExperiments`, кнопка «Очистить всё» обнуляет и touch-point поля.
+
+### Инфраструктура
+- Rust: модуль `report_generator/comparison/` (`types`, `summary`, `excel_comparison`, `pdf_comparison`, `mod`), multi-experiment SVG-рендерер `chart_generator/line/multi_experiment.rs`, extraction общих helpers в `excel/mod.rs` и `pdf/template/mod.rs`.
+- Rust (PR2): `src-tauri/src/db/migrations/v0002_touch_point_metrics.rs`, `src-tauri/src/db/touch_point_precompute.rs`, расширение `experiments::list::query` новыми WHERE-пунктами и маппингом колонок в `ExperimentListItem`.
+- TypeScript: `src/lib/analysis/report-types/comparison-report-{inputs,converter}.ts` (camelCase ↔ snake_case), `src/lib/reports/comparison-{builders,experiment-adapter}.ts`, расширен `bridge.reports` + `src/lib/reports/client.ts` (retry-fallback).
+- TypeScript (PR2): `src/types/experiment-filters.ts` расширен пятью новыми полями `FilterState`; `RangeFilter` получил опциональные `minTestId`/`maxTestId` для стабильных E2E-селекторов.
+- Тесты:
+  - Rust: `rheolab-core` 144/144 ✅, + comparison-golden-tests и integration-тесты в `src-tauri` (PDF magic bytes, XLSX ZIP structure, sheet names, bytes > threshold); +22 тест в `src-tauri` для touch-point precompute (`crud_tests`, `migration_tests`, `list_tests`), итоговый Rust-счёт 288 lib + 22 integration.
+  - Vitest: +42 теста (converter / builders / adapter / client / hook) + 8 тестов на touch-point UI (`experiment-filters-touch-point.test.tsx`), все 1280 ✅.
+  - Playwright: +6 новых E2E в `tests/e2e/reports/comparison-report.spec.ts` (sub-tab routing, PDF/Excel download, section toggles, empty-state disable, language switch) + 6 Tauri E2E для touch-point (`tests/e2e/library/touch-point-filters.tauri.spec.ts`: seed/correctness + query-latency benchmark + heap-stability soak). Бенчмарк на реальном Tauri-бинаре: p95 фильтрованного `experiments_list` ≤ 5 мс (SLA 250 мс), heap Δ = 0 MB за 30 циклов apply/clear.
+
+### Исправлено
+- **CHART-TIME-FORMAT-01**: Ось «Время» в PDF-графике и Excel-чарте теперь следует за выбором `rheologyUnits.timeFormat` в UI (как и таблица «Реология» до этого).
+  - Было: и PDF, и Excel игнорировали выбранный `timeFormat` — ось всегда подписывалась «Время (мин)» / «Time (min)», тики рендерились в десятичных минутах (`0, 5, 10, …`), ячейки в Excel хранились в минутах с форматом `0.00`. Дашборд тем временем показывал `00:04:00`, если пользователь выбрал `hh:mm:ss`.
+  - Стало:
+    - **PDF (`chart_generator::common::ChartConfig::time_format` + Typst overlay `pdf/template/chart_page.rs::make_ticks`)**: подпись оси динамически строится через `time_axis_unit()`, bottom-tick labels форматируются через `format_time_value()` для `seconds`/`hh:mm:ss`, минуты сохраняют legacy-формат байт-в-байт.
+    - **Excel (`excel/raw_data.rs` + `excel/chart.rs`)**: заголовок time-колонки, хранимое значение (минуты / целые секунды / Excel day-serial) и `num_format` (`0` / `0` / `[h]:mm:ss`) теперь подбираются per `time_format`; `x_axis.set_max` использует возвращаемый `max_time_display` в той же единице.
+    - **Comparison PDF (`comparison/pdf_comparison.rs`)**: использует `resolve_units` anchor-эксперимента для выбора подписи оси — comparison-график согласован с per-experiment страницами.
+
+### Инфраструктура
+- Rust: `ChartConfig` получил поле `time_format: String` (пустая строка = `minutes` для обратной совместимости), `RawDataSummary` переименовал `max_time_minutes → max_time_display` и добавил `time_format`. `pdf/mod.rs`, `excel/mod.rs`, `pdf_comparison.rs` все вызывают `resolve_units` (единая точка резолва из UI).
+- Тесты: +1 Rust-регрессионный тест `excel::tests::time_format_propagates_to_xlsx_output` — проверяет, что `minutes/seconds/hh:mm:ss` дают три различных XLSX-байт-стрима и каждый из них детерминирован на повторных запусках. Исторический `single_exp_output_is_deterministic` продолжает проходить (minutes-путь байт-в-байт не изменился). Итоговый rheolab-core счёт: 166/166 ✅ (+1).
+
+### Исправлено
+- **REPORT-UNITS**: Таблица «Реология» в PDF / Excel теперь показывает ровно те единицы, что выбраны в UI графика (ADR-0012).
+  - Было: `unitSystem` выводился из **одного поля** `chartSettings.lines.viscosity.unit`, что ломало смешанные пресеты («сП вязкость + Pa·s^n K' + Pa·s PV» — UI показывал `K' (Pa·s^n) = 10.4618`, а отчёт выгружал `K' (lbf/100ft²) ≈ 500+`).
+  - Стало: через TS `chartSettings.rheologyUnits` и Rust `ReportSettings.rheology_units` передаются **отдельные target-единицы** для каждой категории (viscosity / consistency / plasticViscosity / yieldPoint / time_format). Per-category overrides побеждают коарсовый `unit_system`, значения и подписи в отчёте совпадают с `CycleResultsTable` byte-for-byte.
+  - Исправлен коэффициент конверсии K' для Imperial: было `47.88` (Pa → lbf/ft²), стало `2.0885` (Pa → lbf/100ft², API RP 13D, совпадает с YP). Старые отчёты на Imperial показывали K' в ~23× больше корректного значения.
+  - Исправлена подпись K' для Imperial: было `lbf/100ft²` (как у стресса), стало `lbf·s^n/100ft²` (честная размерность стресс·время^n, синхронизирована с TS `IMPERIAL_UNITS.consistency`).
+  - Колонка «Время» в таблице отчёта теперь рендерится согласно `rheology_units.time_format` выбранному в настройках графика: `Время (с)` → целые секунды, `Время (мин)` → десятичные минуты (как прежде), `Время (чч:мм:сс)` → `00:09:00`.
+
+### Инфраструктура
+- Rust: новая `RheologyUnits` структура в `report_generator::types`, публичные target-aware хелперы `render_k_with`/`render_pv_with`/`render_yp_with`/`render_viscosity_with` + `format_time_value` + `time_axis_unit` + `resolve_units` в `report_generator::formatters`. `pdf/template/stats.rs` и `excel/stats.rs` консолидированы на общий `resolve_units` вместо дубликатов.
+- TypeScript: новый тип `ReportRheologyUnits` в `report-types/report-inputs.ts`, serializer в `report-converter.ts` (`plasticViscosity → plastic_viscosity`, `yieldPoint → yield_point`, `timeFormat → time_format`), плюминг в обеих сборщиках `report-builders.ts` (PDF + Excel). Comparison-report автоматически наследует фикс через делегирование `convertReportInputToWasm`.
+- Тесты: +17 Rust unit-тестов в `formatters::tests::` (6 `resolve_units_*` для всех пресет-комбинаций включая user's mixed-custom + partial override + hh:mm:ss; 4 `render_*_with_targets`; 4 time-helpers; 3 viscosity-format). K'-factor-test обновлён с `47.88 → 2.0885`. Итоговый Rust-счёт: 165 lib (+17) + 230 integration.
+- Документация: новый ADR-0012 `per-category-unit-overrides-in-reports.md` описывает архитектуру wire-format, коэффициенты API RP 13D, fallback-семантику и rationale для каждого решения.
+
+### Исправлено (продолжение)
+- **CHART-BATH-01**: Точки без `bath_temperature_c` (Sweep Data в мердже OFITE 1100 Sweep + Log Data) больше не рендерятся как `0` на uPlot-графике.
+  - Было: при пропущенной температуре бани ряд попадал на X-ось → оранжевая штриховая линия падала вертикально к нулю в каждой такой точке, что визуально читалось как катастрофические сбои нагрева (хотя данных просто не было).
+  - Стало: `useRheologyData` хранит `bathTemperatures` как `Array<number | null>` и пишет `null` для пропусков — uPlot рендерит `gap`; `sanitiseAndNormaliseColumnarDirect` (Comparison-pipeline) пишет `NaN` в `Float64Array`, далее `alignSeriesFromColumnarLinear` корректно эмитит `null`. Два затронутых пути: AoS (`useRheologyData.ts:166`) и columnar (`useRheologyData.ts:266`); плюс comparison columnar (`comparison/normalize.ts:280`).
+- **CHART-BATH-02**: Правая Y-ось теперь подписана корректно, когда на ней одновременно находятся температура пробы и температура бани (shared-axes mode).
+  - Было: `build-axes-series.ts` в shared-режиме пушил в `rightLabels` только `t.temperatureAxis`, и подпись «Темп. бани» не появлялась никогда, даже если линия была видна.
+  - Стало: новая тройная ветвь — оба → `tempBathCombinedAxis` ("Температура / Темп. бани (°C)"), только баня → `bathTempAxis`, только температура → `temperatureAxis`. Individual-режим уже был корректен.
+
+### Инфраструктура (продолжение)
+- Тесты: +16 Vitest-тестов регрессии CHART-BATH.
+  - `tests/hooks/useRheologyData.test.ts` (5 тестов): null-handling в AoS- и columnar-пути, сохранение `0` как валидного измерения, конверсия бани через °F-конвертер.
+  - `tests/hooks/chart-options/build-axes-series.test.ts` (8 тестов): комбинаторика labels для shared- и individual-режимов × 4 сочетания температура/баня.
+  - `tests/components/comparison-data.test.ts` (+3 теста): `sanitiseAndNormaliseColumnarDirect` пишет `NaN` вместо `0`, `alignSeriesFromColumnarLinear` эмитит `null`, паттерн OFITE 1100 (чередование bath/no-bath) не даёт `0` в выходе.
+  - Full Vitest: 1296/1302 ✅ (+16 тестов, 0 регрессий, 6 skipped как раньше).
+
+### Релиз
+- Alpha installer собран локально: `RheoLab Enterprise_0.2.0-beta.24_x64-setup.exe` + `.sig`.
+- Channel manifests: `runtime/release/channels/alpha/{latest-manifest,release-manifest-…}.json`.
+- Release-gate PASSED на пересобранном бинарнике: 4 фикстуры × 4 настройки × 7 экспортов за 18 секунд, memory stability OK.
+
+---
+
 ## [0.2.0-beta.9] — 2026-04-21
 
 ### Добавлено

@@ -301,6 +301,26 @@ fn map_columns(header: &[String], _require_time: bool) -> ColumnMapping {
 }
 
 pub fn find_raw_data_sections(rows: &[Vec<String>]) -> Vec<usize> {
+    // Ofite 1100 `.dat` files carry COMPLEMENTARY ramp data in two
+    // sections:
+    //   * "Sweep Data:"  → per-step ramp averages (8 rate points × 14 sweeps ≈ 112 rows).
+    //                      Already segmented into clean 100-75-50-25-25-50-75-100 steps.
+    //   * "Log Data:"    → 1-min time-series (330+ rows) mostly at constant 100 1/s
+    //                      during heat-up + recovery, with fast 30-s samples
+    //                      at 50/25/75 during each sweep window.
+    //
+    // The previous logic ("priority OR fallback") discarded Sweep Data
+    // whenever Log Data was present.  Consumers then lost the per-step
+    // ramp averages — cycle detection on Log Data alone merged every
+    // 100 1/s mixing sample into the same cycle, producing 120+ weirdly
+    // segmented steps and poor R² fits during flow-curve analysis.
+    //
+    // Fix: return BOTH section starts when both exist, sorted by file
+    // position.  The downstream `parse_csv_rows` / `parse_workbook`
+    // loops already iterate `sections_to_process` and concatenate rows
+    // into `combined_data`, so the multi-section path just works once
+    // both starts reach it.  "Detail:" is still treated as a weak
+    // fallback for instruments that only expose that marker.
     let priority_markers = ["log data:", "log data"];
     let fallback_markers = ["sweep data:", "sweep data", "detail:"];
     let mut priority_sections = Vec::new();
@@ -311,12 +331,12 @@ pub fn find_raw_data_sections(rows: &[Vec<String>]) -> Vec<usize> {
         let non_empty_cells = row.iter()
             .filter(|c| !c.trim().is_empty())
             .count();
-        
+
         if non_empty_cells > 5 { continue; }
 
         let row_str = row.join(" ").to_lowercase();
         let trimmed_len = row_str.trim().len();
-        
+
         if trimmed_len == 0 { continue; }
         if trimmed_len > 100 { continue; }
 
@@ -326,14 +346,14 @@ pub fn find_raw_data_sections(rows: &[Vec<String>]) -> Vec<usize> {
             fallback_sections.push(i + 1);
         }
     }
-    
-    // Use priority sections if available, otherwise fall back
-    let mut sections = if !priority_sections.is_empty() {
-        priority_sections
-    } else {
-        fallback_sections
-    };
 
+    // Combine both marker groups.  When both exist (Ofite 1100) this
+    // now returns BOTH section starts so the parser walks Sweep Data
+    // AND Log Data.  When only one marker group matches, the other
+    // vector is simply empty and the behaviour degrades cleanly to the
+    // single-section case used by all non-Ofite instruments.
+    let mut sections = priority_sections;
+    sections.extend(fallback_sections);
     sections.sort();
     sections.dedup();
     sections
@@ -390,19 +410,32 @@ mod tests {
     }
 
     #[test]
-    fn find_sections_picks_priority_when_log_data_header_present() {
-        // "Log Data:" wins — "Sweep Data:" is treated as a pre-computed
-        // summary dupe and intentionally skipped. This matches the
-        // current (pre-fix) behaviour that higher-layer tests assume.
+    fn find_sections_returns_both_when_sweep_and_log_data_present() {
+        // Ofite 1100 layout: BOTH "Sweep Data:" and "Log Data:" are
+        // present and the parser must walk BOTH sections — Sweep Data
+        // carries the clean per-step ramp averages (100-75-50-25-25-50-
+        // 75-100) and Log Data carries the 1-min time-series with the
+        // heat-up / recovery context between sweeps.  Returning only
+        // one of them (the pre-fix "priority XOR fallback" behaviour)
+        // silently dropped ~112 per-step rows and produced the
+        // 120-mixing-sample "Cycle #1" regression documented in the
+        // golden parity test.
         let rows = vec![
             marker_row("Experiment: foo"),
-            marker_row("Sweep Data:"),                           // index 1
+            marker_row("Sweep Data:"),                           // index 1 → header at 2
             bulk_row(&["E.T.", "Rate", "Stress", "Visc"]),       // 2
-            marker_row("Log Data:"),                             // 3
+            marker_row("Log Data:"),                             // 3 → header at 4
             bulk_row(&["E.T.", "Rate", "Stress", "Visc"]),       // 4
         ];
         let sections = find_raw_data_sections(&rows);
-        assert_eq!(sections, vec![4], "Log Data should be the only chosen start");
+        assert_eq!(
+            sections,
+            vec![2, 4],
+            "BOTH Sweep Data (index 2) and Log Data (index 4) section starts \
+             must be returned so parse_csv_rows / parse_workbook can concatenate \
+             them into combined_data. Regressing to priority-XOR-fallback drops \
+             Sweep Data silently — see Ofite 1100 parity test.",
+        );
     }
 
     #[test]

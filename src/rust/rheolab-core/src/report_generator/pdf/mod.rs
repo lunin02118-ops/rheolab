@@ -3,11 +3,17 @@ use serde_json;
 use super::types::*;
 use super::typst_renderer::compile_to_pdf;
 use super::chart_generator::{ChartPoint, ChartConfig, ChartLineStyles, generate_chart_svg};
-use super::formatters::{convert_viscosity, get_viscosity_unit};
+use super::formatters::{convert_viscosity, get_viscosity_unit, resolve_units, time_axis_unit};
 use base64::prelude::*;
 use std::collections::HashMap;
 
-mod template;
+pub(crate) mod template;
+
+// Re-exports consumed by the comparison assembler (Phase 1.E+).
+// `#[allow(unused_imports)]` keeps the warning suppressed between phases
+// 1.D (lands the helpers) and 1.E (starts consuming them).
+#[allow(unused_imports)]
+pub(crate) use template::{build_typst_globals, build_single_experiment_body};
 pub fn generate_pdf_report(input_json: &str) -> Result<Vec<u8>, String> {
     let input: ReportInput = serde_json::from_str(input_json).map_err(|e| e.to_string())?;
     generate_pdf_from_input(&input)
@@ -35,6 +41,14 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
         let is_ru = input.settings.language == "ru";
         let unit_system = &input.settings.unit_system;
         let visc_unit   = get_viscosity_unit(unit_system);
+        // Resolve per-category target units — `time_format` drives the X-axis
+        // unit suffix and tick-label rendering so the chart matches the
+        // dashboard's selected time display.  When `rheology_units` is
+        // absent, `resolve_units` returns `time_format: "minutes"`, which
+        // reproduces the legacy (pre-2026-04-22) output byte-for-byte.
+        let resolved = resolve_units(input);
+        let time_fmt = resolved.time_format.clone();
+        let time_unit = time_axis_unit(&time_fmt, if is_ru { "ru" } else { "en" });
 
         // Convert data points — keep storage-unit (mPa·s) viscosity here so the
         // touch-point algorithm (which compares against `viscosity_threshold`
@@ -57,7 +71,11 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
         let l_temp = if is_ru { "Температура (°C)" } else { "Temperature (°C)" };
         let l_shear = if is_ru { "Скорость сдвига (1/с)" } else { "Shear Rate (1/s)" };
         let l_press = if is_ru { "Давление (бар)" } else { "Pressure (bar)" };
-        let l_time = if is_ru { "Время (мин)" } else { "Time (min)" };
+        let l_time = if is_ru {
+            format!("Время ({})", time_unit)
+        } else {
+            format!("Time ({})", time_unit)
+        };
         
         let n_visc = if is_ru { "Вязкость" } else { "Viscosity" };
         let n_temp = if is_ru { "Температура" } else { "Temperature" };
@@ -191,6 +209,7 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
             },
             line_styles,
             skip_downsample: true, // PDF needs full-precision data, no LTTB
+            time_format: time_fmt,
         };
 
         // Build a display-unit view of the data for rendering. LTTB is disabled

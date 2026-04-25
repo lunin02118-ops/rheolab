@@ -39,6 +39,14 @@ use uuid::Uuid;
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+/// Millisecond-precision ISO 8601 timestamp with an explicit `Z` suffix.
+///
+/// Intentionally **different** from [`crate::utils::time::now_rfc3339`]:
+/// the delta-file wire format (`_exportedAt`, `_sinceTimestamp`) is parsed
+/// by external consumers that expect a fixed three-digit millisecond
+/// fraction and a `Z` (UTC) suffix — not the default RFC 3339 offset
+/// notation (`+00:00`).  Do not replace with the shared helper without
+/// also migrating every delta file produced so far.
 fn now_iso() -> String {
     Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string()
 }

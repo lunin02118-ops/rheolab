@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Experiment, ColumnarData } from '@/types';
@@ -19,6 +18,12 @@ function toColumnarExperiment(exp: Experiment): Experiment {
     const columnarData: ColumnarData = tauriRawRecordsToColumnar(raw as Array<Record<string, unknown>>);
     const { rawPoints: _dropped, ...rest } = exp as Experiment & { rawPoints?: unknown };
     return { ...rest, columnarData, rawPoints: [] } as Experiment;
+}
+
+function isValidHashId(id: string): boolean {
+    if (!id) return false;
+    if (id.length < 3 || id.length > 64) return false;
+    return /^[A-Za-z0-9_-]+$/.test(id);
 }
 
 export interface ComparisonDisplaySettings {
@@ -138,7 +143,9 @@ export const useComparisonStore = create<ComparisonState>()(
 
                     // No data — schedule for batch DB fetch
                     resolved[i] = null; // placeholder
-                    needsDb.push({ index: i, id: exp.id });
+                    if (isValidHashId(exp.id)) {
+                        needsDb.push({ index: i, id: exp.id });
+                    }
                 }
 
                 // Phase 2: single batch IPC instead of N individual calls
@@ -175,10 +182,16 @@ export const useComparisonStore = create<ComparisonState>()(
                             .map((experiment) => [experiment.id, experiment]),
                     );
 
+                    const invalidIds = new Set(
+                        baseExperiments
+                            .filter((e) => !e.id.startsWith('file-') && !isValidHashId(e.id))
+                            .map((e) => e.id),
+                    );
+
                     return {
-                        experiments: currentState.experiments.map((experiment) =>
-                            resolvedById.get(experiment.id) ?? experiment,
-                        ),
+                        experiments: currentState.experiments
+                            .filter((experiment) => !invalidIds.has(experiment.id))
+                            .map((experiment) => resolvedById.get(experiment.id) ?? experiment),
                         _isRehydrating: false,
                     };
                 });

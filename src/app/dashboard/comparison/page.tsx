@@ -1,13 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { ComparisonSelector } from '@/components/comparison/comparison-selector';
 import { ComparisonChartUPlot as ComparisonChart } from '@/components/comparison/comparison-chart-uplot';
 import { ChartErrorBoundary } from '@/components/shared/ChartErrorBoundary';
 import { AxisSelector, LegendToggle, ExperimentChip, ViscosityThresholdControl } from '@/components/comparison/comparison-controls';
-import { Layers, Plus, Settings2, AlertCircle } from 'lucide-react';
+import { Layers, Plus, AlertCircle, BarChart3, FileText } from 'lucide-react';
 import type { Experiment } from '@/types';
 import { useComparisonStore } from '@/lib/store/comparison-store';
 import { checkExperimentsExist } from '@/lib/experiments/client';
 import { useShallow } from 'zustand/react/shallow';
+
+// Lazy-loaded: report tab is only rendered on explicit tab switch
+const ComparisonReportTab = lazy(() => import('@/components/comparison/reports/ComparisonReportTab').then(m => ({ default: m.ComparisonReportTab })));
 
 const METRICS = [
     { value: 'viscosity_cp', label: 'Вязкость' },
@@ -113,7 +116,6 @@ export default function ComparisonPage() {
         secondaryMetric,
         tertiaryMetric,
         showLegend,
-        showControls,
         showTouchPoints,
         viscosityThreshold,
         showTargetTime,
@@ -126,6 +128,7 @@ export default function ComparisonPage() {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [limitWarning, setLimitWarning] = useState(false);
     const [duplicateWarning, setDuplicateWarning] = useState(false);
+    const [activeTab, setActiveTab] = useState<'chart' | 'report'>('chart');
     const warningTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     // Clean up warning timer on unmount
     useEffect(() => () => clearTimeout(warningTimerRef.current), []);
@@ -153,24 +156,38 @@ export default function ComparisonPage() {
 
     return (
         <div data-testid="ComparisonPageRoot" className="flex flex-col h-[calc(100vh-6rem)] bg-transparent text-foreground">
-            <main className="flex-1 min-h-0 w-full mx-auto px-2 py-2 flex flex-col gap-2">
-                {/* Header & Controls */}
-                <div className="flex-none flex flex-col gap-4 px-5">
-                    <div className="flex items-center justify-between">
+            {/* Sticky header bar — mirrors library page style */}
+            <div className="border-b border-border bg-background sticky top-16 z-40">
+                <div className="w-full mx-auto px-6">
+                    <div className="flex items-center justify-between gap-6">
+                        {/* Tab buttons */}
                         <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-medium text-foreground tracking-tight">Сравнение экспериментов</h2>
                             <button
-                                onClick={() => update({ showControls: !showControls })}
-                                className={`p-1.5 rounded-lg transition-colors ${showControls ? 'bg-blue-500/20 text-blue-400' : 'text-muted-foreground hover:text-muted-foreground'}`}
-                                title="Настройки осей"
+                                onClick={() => setActiveTab('chart')}
+                                data-testid="ComparisonChartTabTrigger"
+                                className={`py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'chart'
+                                    ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                                }`}
                             >
-                                <Settings2 className="w-4 h-4" />
+                                <BarChart3 className="w-4 h-4" />
+                                График
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('report')}
+                                data-testid="ComparisonReportTabTrigger"
+                                className={`py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'report'
+                                    ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                                }`}
+                            >
+                                <FileText className="w-4 h-4" />
+                                Отчёт
                             </button>
                         </div>
 
                         {/* Experiment Chips */}
                         <div data-testid="SelectedExperimentsChips" className="flex flex-wrap items-center gap-2 justify-end">
-                            {/* Counter Badge */}
                             <span className={`text-xs px-2 py-0.5 rounded-full ${isAtLimit ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-secondary text-muted-foreground'}`}>
                                 {experiments.length}/{maxExperiments}
                             </span>
@@ -179,7 +196,6 @@ export default function ComparisonPage() {
                                 <ExperimentChip key={exp.id} name={exp.name} onRemove={() => removeExperiment(exp.id)} />
                             ))}
 
-                            {/* Limit Warning Toast */}
                             {limitWarning && (
                                 <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 text-amber-400 rounded-full text-xs font-medium border border-amber-500/30 animate-pulse">
                                     <AlertCircle className="w-3.5 h-3.5" />
@@ -187,7 +203,6 @@ export default function ComparisonPage() {
                                 </div>
                             )}
 
-                            {/* Duplicate Warning Toast */}
                             {duplicateWarning && (
                                 <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium border border-blue-500/30 animate-pulse">
                                     <AlertCircle className="w-3.5 h-3.5" />
@@ -202,7 +217,7 @@ export default function ComparisonPage() {
                                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors border ${isAtLimit
                                     ? 'bg-secondary/50 text-muted-foreground border-border cursor-not-allowed'
                                     : 'bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border-blue-500/20 hover:border-blue-500/30'
-                                    }`}
+                                }`}
                                 title={isAtLimit ? `Лимит: ${maxExperiments} графиков` : 'Добавить тест'}
                             >
                                 <Plus className="w-3.5 h-3.5" />
@@ -210,155 +225,177 @@ export default function ComparisonPage() {
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    {/* Axis Toolbar */}
-                    <div className={`border-b border-border/50 pb-2 transition-[max-height,opacity] duration-300 ease-in-out overflow-hidden ${showControls ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}>
-                        <div className="flex items-center gap-6 overflow-x-auto py-1">
-                            <AxisSelector
-                                label="Слева 1"
-                                value={primaryMetric}
-                                onChange={(val) => {
-                                    const patch: Record<string, string> = { primaryMetric: val };
-                                    if (leftSecondaryMetric === val) patch.leftSecondaryMetric = 'none';
-                                    if (secondaryMetric === val) patch.secondaryMetric = 'none';
-                                    if (tertiaryMetric === val) patch.tertiaryMetric = 'none';
-                                    update(patch);
-                                }}
-                                options={METRICS}
-                                color="blue"
-                            />
-                            <AxisSelector
-                                label="Слева 2"
-                                value={leftSecondaryMetric}
-                                onChange={(val) => {
-                                    const patch: Record<string, string> = { leftSecondaryMetric: val };
-                                    if (secondaryMetric === val) patch.secondaryMetric = 'none';
-                                    if (tertiaryMetric === val) patch.tertiaryMetric = 'none';
-                                    update(patch);
-                                }}
-                                options={METRICS}
-                                excludeValues={[primaryMetric]}
-                                color="purple"
-                                allowNone
-                            />
+            <main className="flex-1 min-h-0 w-full mx-auto px-2 py-2 flex flex-col gap-2">
+                {/* Chart tab */}
+                {activeTab === 'chart' && (
+                    <div className="flex-1 min-h-0 flex flex-col gap-2">
+                        <div className="flex-none px-5">
+                            <div className="border-b border-border/50 pb-2">
+                                <div className="flex items-center gap-6 overflow-x-auto py-1">
+                                    <AxisSelector
+                                        label="Слева 1"
+                                        value={primaryMetric}
+                                        onChange={(val) => {
+                                            const patch: Record<string, string> = { primaryMetric: val };
+                                            if (leftSecondaryMetric === val) patch.leftSecondaryMetric = 'none';
+                                            if (secondaryMetric === val) patch.secondaryMetric = 'none';
+                                            if (tertiaryMetric === val) patch.tertiaryMetric = 'none';
+                                            update(patch);
+                                        }}
+                                        options={METRICS}
+                                        color="blue"
+                                    />
+                                    <AxisSelector
+                                        label="Слева 2"
+                                        value={leftSecondaryMetric}
+                                        onChange={(val) => {
+                                            const patch: Record<string, string> = { leftSecondaryMetric: val };
+                                            if (secondaryMetric === val) patch.secondaryMetric = 'none';
+                                            if (tertiaryMetric === val) patch.tertiaryMetric = 'none';
+                                            update(patch);
+                                        }}
+                                        options={METRICS}
+                                        excludeValues={[primaryMetric]}
+                                        color="purple"
+                                        allowNone
+                                    />
 
-                            <div className="h-8 w-px bg-secondary mx-2"></div>
+                                    <div className="h-8 w-px bg-secondary mx-2" />
 
-                            <AxisSelector
-                                label="Справа 1"
-                                value={secondaryMetric}
-                                onChange={(val) => {
-                                    const patch: Record<string, string> = { secondaryMetric: val };
-                                    if (leftSecondaryMetric === val) patch.leftSecondaryMetric = 'none';
-                                    if (tertiaryMetric === val) patch.tertiaryMetric = 'none';
-                                    update(patch);
-                                }}
-                                options={METRICS}
-                                excludeValues={[primaryMetric, leftSecondaryMetric]}
-                                color="slate"
-                                allowNone
-                            />
-                            <AxisSelector
-                                label="Справа 2"
-                                value={tertiaryMetric}
-                                onChange={(val) => {
-                                    const patch: Record<string, string> = { tertiaryMetric: val };
-                                    if (leftSecondaryMetric === val) patch.leftSecondaryMetric = 'none';
-                                    if (secondaryMetric === val) patch.secondaryMetric = 'none';
-                                    update(patch);
-                                }}
-                                options={METRICS}
-                                excludeValues={[primaryMetric, leftSecondaryMetric, secondaryMetric]}
-                                color="amber"
-                                allowNone
-                            />
+                                    <AxisSelector
+                                        label="Справа 1"
+                                        value={secondaryMetric}
+                                        onChange={(val) => {
+                                            const patch: Record<string, string> = { secondaryMetric: val };
+                                            if (leftSecondaryMetric === val) patch.leftSecondaryMetric = 'none';
+                                            if (tertiaryMetric === val) patch.tertiaryMetric = 'none';
+                                            update(patch);
+                                        }}
+                                        options={METRICS}
+                                        excludeValues={[primaryMetric, leftSecondaryMetric]}
+                                        color="slate"
+                                        allowNone
+                                    />
+                                    <AxisSelector
+                                        label="Справа 2"
+                                        value={tertiaryMetric}
+                                        onChange={(val) => {
+                                            const patch: Record<string, string> = { tertiaryMetric: val };
+                                            if (leftSecondaryMetric === val) patch.leftSecondaryMetric = 'none';
+                                            if (secondaryMetric === val) patch.secondaryMetric = 'none';
+                                            update(patch);
+                                        }}
+                                        options={METRICS}
+                                        excludeValues={[primaryMetric, leftSecondaryMetric, secondaryMetric]}
+                                        color="amber"
+                                        allowNone
+                                    />
 
-                            <div className="h-8 w-px bg-secondary mx-2"></div>
+                                    <div className="h-8 w-px bg-secondary mx-2" />
 
-                            <ViscosityThresholdControl
-                                enabled={showTouchPoints}
-                                onEnabledChange={(v) => update({ showTouchPoints: v })}
-                                threshold={viscosityThreshold}
-                                onThresholdChange={(v) => update({ viscosityThreshold: v })}
-                                showTargetTime={showTargetTime}
-                                onShowTargetTimeChange={(v) => update({ showTargetTime: v })}
-                                targetTime={targetTime}
-                                onTargetTimeChange={(v) => update({ targetTime: v })}
-                            />
+                                    <ViscosityThresholdControl
+                                        enabled={showTouchPoints}
+                                        onEnabledChange={(v) => update({ showTouchPoints: v })}
+                                        threshold={viscosityThreshold}
+                                        onThresholdChange={(v) => update({ viscosityThreshold: v })}
+                                        showTargetTime={showTargetTime}
+                                        onShowTargetTimeChange={(v) => update({ showTargetTime: v })}
+                                        targetTime={targetTime}
+                                        onTargetTimeChange={(v) => update({ targetTime: v })}
+                                    />
 
-                            <div className="flex-1"></div>
+                                    <div className="flex-1" />
 
-                            <LegendToggle checked={showLegend} onChange={(v) => update({ showLegend: v })} />
+                                    <LegendToggle checked={showLegend} onChange={(v) => update({ showLegend: v })} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Chart Area */}
+                        <div data-testid="ComparisonChartContainer" className="flex-1 relative bg-card/50 border border-border/60 rounded-2xl shadow-xl overflow-hidden p-1">
+                            {experiments.length > 0 && isRehydrating ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                                    <svg className="w-8 h-8 animate-spin text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                                    </svg>
+                                    <span className="text-sm">Загрузка данных экспериментов…</span>
+                                </div>
+                            ) : experiments.length > 0 && rehydrationFailed ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                                    <AlertCircle className="w-10 h-10 text-amber-400" />
+                                    <p className="text-sm text-foreground/80">Не удалось загрузить данные</p>
+                                    <button
+                                        onClick={() => {
+                                            setRehydrationFailed(false);
+                                            setIsRehydrating(true);
+                                            rehydrateIfNeeded()
+                                                .then(() => {
+                                                    const hasData = useComparisonStore.getState().experiments.some(e => {
+                                                        const c = (e as Record<string, unknown>).columnarData as { timeSec?: ArrayLike<unknown> } | undefined;
+                                                        return c && c.timeSec && c.timeSec.length > 0;
+                                                    });
+                                                    if (!hasData && useComparisonStore.getState().experiments.length > 0) setRehydrationFailed(true);
+                                                })
+                                                .catch(() => setRehydrationFailed(true))
+                                                .finally(() => setIsRehydrating(false));
+                                        }}
+                                        className="px-3 py-1.5 text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition-colors"
+                                    >
+                                        Повторить
+                                    </button>
+                                </div>
+                            ) : experiments.length > 0 ? (
+                                <div className="w-full h-full">
+                                    <ChartErrorBoundary height={500}>
+                                        <ComparisonChart
+                                            experiments={experiments}
+                                            primaryMetric={primaryMetric}
+                                            leftSecondaryMetric={leftSecondaryMetric}
+                                            secondaryMetric={secondaryMetric}
+                                            tertiaryMetric={tertiaryMetric}
+                                            showLegend={showLegend}
+                                            showTouchPoints={showTouchPoints}
+                                            viscosityThreshold={viscosityThreshold}
+                                            showTargetTime={showTargetTime}
+                                            targetTime={targetTime}
+                                        />
+                                    </ChartErrorBoundary>
+                                </div>
+                            ) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-card/20">
+                                    <Layers className="w-16 h-16 mb-4 opacity-20" />
+                                    <p className="text-base font-medium text-muted-foreground">Выберите тесты для сравнения</p>
+                                    <p className="text-sm text-muted-foreground mt-1">Добавьте хотя бы один эксперимент</p>
+                                    <button
+                                        onClick={() => setIsSelectorOpen(true)}
+                                        data-testid="OpenExperimentSelectorButtonEmpty"
+                                        className="mt-6 px-4 py-2 bg-blue-600 text-foreground rounded-lg hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
+                                    >
+                                        Открыть библиотеку
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>
+                )}
 
-                {/* Chart Area */}
-                <div data-testid="ComparisonChartContainer" className="flex-1 relative bg-card/50 border border-border/60 rounded-2xl shadow-xl overflow-hidden p-1">
-                    {experiments.length > 0 && isRehydrating ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                            <svg className="w-8 h-8 animate-spin text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                            </svg>
-                            <span className="text-sm">Загрузка данных экспериментов…</span>
+                {/* Report tab */}
+                {activeTab === 'report' && (
+                    <Suspense fallback={<div className="flex h-48 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /></div>}>
+                        {/*
+                         * NOTE: no `overflow-auto` here — it breaks `h-full`
+                         * height resolution on the tab's grid root.  The tab
+                         * manages its own overflow internally.
+                         */}
+                        <div className="flex-1 min-h-0 px-5 pb-5">
+                            <ComparisonReportTab />
                         </div>
-                    ) : experiments.length > 0 && rehydrationFailed ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                            <AlertCircle className="w-10 h-10 text-amber-400" />
-                            <p className="text-sm text-foreground/80">Не удалось загрузить данные</p>
-                            <button
-                                onClick={() => {
-                                    setRehydrationFailed(false);
-                                    setIsRehydrating(true);
-                                    rehydrateIfNeeded()
-                                        .then(() => {
-                                            const hasData = useComparisonStore.getState().experiments.some(e => {
-                                                const c = (e as Record<string, unknown>).columnarData as { timeSec?: ArrayLike<unknown> } | undefined;
-                                                return c && c.timeSec && c.timeSec.length > 0;
-                                            });
-                                            if (!hasData && useComparisonStore.getState().experiments.length > 0) setRehydrationFailed(true);
-                                        })
-                                        .catch(() => setRehydrationFailed(true))
-                                        .finally(() => setIsRehydrating(false));
-                                }}
-                                className="px-3 py-1.5 text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition-colors"
-                            >
-                                Повторить
-                            </button>
-                        </div>
-                    ) : experiments.length > 0 ? (
-                        <div className="w-full h-full">
-                            <ChartErrorBoundary height={500}>
-                                <ComparisonChart
-                                    experiments={experiments}
-                                    primaryMetric={primaryMetric}
-                                    leftSecondaryMetric={leftSecondaryMetric}
-                                    secondaryMetric={secondaryMetric}
-                                    tertiaryMetric={tertiaryMetric}
-                                    showLegend={showLegend}
-                                    showTouchPoints={showTouchPoints}
-                                    viscosityThreshold={viscosityThreshold}
-                                    showTargetTime={showTargetTime}
-                                    targetTime={targetTime}
-                                />
-                            </ChartErrorBoundary>
-                        </div>
-                    ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-card/20">
-                            <Layers className="w-16 h-16 mb-4 opacity-20" />
-                            <p className="text-base font-medium text-muted-foreground">Выберите тесты для сравнения</p>
-                            <p className="text-sm text-muted-foreground mt-1">Добавьте хотя бы один эксперимент</p>
-                            <button
-                                onClick={() => setIsSelectorOpen(true)}
-                                data-testid="OpenExperimentSelectorButtonEmpty"
-                                className="mt-6 px-4 py-2 bg-blue-600 text-foreground rounded-lg hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
-                            >
-                                Открыть библиотеку
-                            </button>
-                        </div>
-                    )}
-                </div>
+                    </Suspense>
+                )}
             </main>
 
             <ComparisonSelector isOpen={isSelectorOpen} onClose={() => setIsSelectorOpen(false)} onSelect={handleAddExperiment} />

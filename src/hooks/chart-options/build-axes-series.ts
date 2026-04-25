@@ -78,7 +78,16 @@ export function buildAxes({
         if (showPressure && effectivePressureAxis !== 'right') leftLabels.push(t.pressureAxis);
         if (showRpm && activeSettings.lines.rpm.axis !== 'right') leftLabels.push(t.rpmAxis);
         const rightLabels: string[] = [];
-        if (showTemperature) rightLabels.push(t.temperatureAxis);
+        // Sample temperature and bath temperature share the same °C scale
+        // and always live on the right axis — combine them into a single
+        // label to match the individual-mode axis title.
+        if (showTemperature && showBathTemperature) {
+            rightLabels.push(t.tempBathCombinedAxis);
+        } else if (showTemperature) {
+            rightLabels.push(t.temperatureAxis);
+        } else if (showBathTemperature) {
+            rightLabels.push(t.bathTempAxis);
+        }
         if (showShearRate && effectiveShearRateAxis === 'right') rightLabels.push(t.shearRateAxis);
         if (showPressure && effectivePressureAxis === 'right') rightLabels.push(t.pressureAxis);
         if (showRpm && activeSettings.lines.rpm.axis === 'right') rightLabels.push(t.rpmAxis);

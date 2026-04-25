@@ -146,7 +146,8 @@ fn insert_experiment(conn: &Connection, exp_id: &str, user_id: &str, name: &str)
     conn.execute(
         "INSERT OR IGNORE INTO User (id, name, email, role) VALUES (?1, 'Test', ?2, 'operator')",
         rusqlite::params![user_id, format!("{}@test.com", user_id)],
-    ).unwrap();
+    )
+    .unwrap();
     conn.execute(
         "INSERT INTO Experiment (id, originalFilename, testDate, instrumentType, name, waterSource, fluidType, testGroup, metrics, rawPoints, userId)
          VALUES (?1, 'file.txt', '2026-01-01', 'Grace', ?2, 'tap', 'fluid', 'group', '{}', '[]', ?3)",
@@ -156,7 +157,8 @@ fn insert_experiment(conn: &Connection, exp_id: &str, user_id: &str, name: &str)
 
 /// Helper: count experiments in a DB
 fn count_experiments(conn: &Connection) -> u64 {
-    conn.query_row("SELECT COUNT(*) FROM Experiment", [], |row| row.get(0)).unwrap()
+    conn.query_row("SELECT COUNT(*) FROM Experiment", [], |row| row.get(0))
+        .unwrap()
 }
 
 /// Setup: create main and source DBs in a temp dir, attach src, and return (conn, dir)
@@ -183,7 +185,8 @@ fn setup_merge(main_ddl: &str, src_ddl: &str) -> (Connection, PathBuf) {
     // Create main DB, attach source
     let conn = create_db(&main_path, main_ddl);
     let src_str = src_path.to_string_lossy().replace('\'', "''");
-    conn.execute_batch(&format!("ATTACH DATABASE '{}' AS src", src_str)).unwrap();
+    conn.execute_batch(&format!("ATTACH DATABASE '{}' AS src", src_str))
+        .unwrap();
 
     (conn, dir)
 }
@@ -192,11 +195,34 @@ fn setup_merge(main_ddl: &str, src_ddl: &str) -> (Connection, PathBuf) {
 fn reattach(conn: &Connection, dir: &std::path::Path) {
     let _ = conn.execute_batch("DETACH DATABASE src");
     let src_str = dir.join("source.db").to_string_lossy().replace('\'', "''");
-    conn.execute_batch(&format!("ATTACH DATABASE '{}' AS src", src_str)).unwrap();
+    conn.execute_batch(&format!("ATTACH DATABASE '{}' AS src", src_str))
+        .unwrap();
 }
 
 fn cleanup(dir: &std::path::Path) {
     let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn temp_dir_guard_removes_temp_directory_on_drop() {
+    let dir = std::env::temp_dir().join(format!(
+        "rheolab_temp_guard_{}_{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(dir.join("import.db"), b"temporary import copy").unwrap();
+
+    {
+        let _guard = TempDirGuard::new(dir.clone());
+        assert!(dir.exists());
+    }
+
+    assert!(!dir.exists());
 }
 
 // ─── get_common_columns ──────────────────────────────────────────────────────
@@ -236,10 +262,7 @@ fn common_columns_source_has_extra() {
 
 #[test]
 fn common_columns_no_overlap() {
-    let (conn, dir) = setup_merge(
-        "CREATE TABLE Baz (x TEXT);",
-        "CREATE TABLE Baz (y TEXT);",
-    );
+    let (conn, dir) = setup_merge("CREATE TABLE Baz (x TEXT);", "CREATE TABLE Baz (y TEXT);");
     let cols = get_common_columns(&conn, "Baz");
     assert!(cols.is_empty());
     cleanup(&dir);
@@ -340,7 +363,10 @@ fn merge_handles_schema_mismatch() {
 
     reattach(&conn, &dir);
     let (imported, _) = merge_attached_databases(&conn, false).unwrap();
-    assert_eq!(imported, 1, "Old-schema experiment imported via column intersection");
+    assert_eq!(
+        imported, 1,
+        "Old-schema experiment imported via column intersection"
+    );
     cleanup(&dir);
 }
 
@@ -382,7 +408,10 @@ fn merge_missing_source_table_is_skipped() {
 
     reattach(&conn, &dir);
     let (imported, _) = merge_attached_databases(&conn, false).unwrap();
-    assert_eq!(imported, 1, "Experiment imported even when catalogs missing from source");
+    assert_eq!(
+        imported, 1,
+        "Experiment imported even when catalogs missing from source"
+    );
     cleanup(&dir);
 }
 
@@ -411,7 +440,11 @@ fn merge_fk_collision_does_not_fail() {
 
     reattach(&conn, &dir);
     let result = merge_attached_databases(&conn, false);
-    assert!(result.is_ok(), "Merge must not fail on FK collision: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "Merge must not fail on FK collision: {:?}",
+        result
+    );
     let (imported, _) = result.unwrap();
     assert_eq!(imported, 1);
     cleanup(&dir);
@@ -436,16 +469,22 @@ fn merge_with_experiment_data() {
     let (imported, _) = merge_attached_databases(&conn, false).unwrap();
     assert_eq!(imported, 1);
 
-    let data_count: u64 = conn.query_row(
-        "SELECT COUNT(*) FROM ExperimentData WHERE experimentId = 'exp-d'",
-        [], |row| row.get(0),
-    ).unwrap();
+    let data_count: u64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM ExperimentData WHERE experimentId = 'exp-d'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(data_count, 1, "ExperimentData blob imported");
 
-    let point_count: u64 = conn.query_row(
-        "SELECT pointCount FROM ExperimentData WHERE experimentId = 'exp-d'",
-        [], |row| row.get(0),
-    ).unwrap();
+    let point_count: u64 = conn
+        .query_row(
+            "SELECT pointCount FROM ExperimentData WHERE experimentId = 'exp-d'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(point_count, 100);
     cleanup(&dir);
 }
@@ -461,7 +500,8 @@ fn merge_with_reagents_and_calibration() {
         src.execute(
             "INSERT INTO ReagentCatalog (id, name, category) VALUES ('r1', 'CMC HV', 'polymer')",
             [],
-        ).unwrap();
+        )
+        .unwrap();
         insert_experiment(&src, "exp-rc", "user-rc", "With Reagent+Cal");
         src.execute(
             "INSERT INTO ExperimentReagent (id, experimentId, reagentId, reagentName, category, concentration, unit)
@@ -479,22 +519,31 @@ fn merge_with_reagents_and_calibration() {
     let (imported, _) = merge_attached_databases(&conn, false).unwrap();
     assert_eq!(imported, 1);
 
-    let reagent: u64 = conn.query_row(
-        "SELECT COUNT(*) FROM ExperimentReagent WHERE experimentId = 'exp-rc'",
-        [], |row| row.get(0),
-    ).unwrap();
+    let reagent: u64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM ExperimentReagent WHERE experimentId = 'exp-rc'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(reagent, 1, "ExperimentReagent imported");
 
-    let cal: u64 = conn.query_row(
-        "SELECT COUNT(*) FROM Calibration WHERE experimentId = 'exp-rc'",
-        [], |row| row.get(0),
-    ).unwrap();
+    let cal: u64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM Calibration WHERE experimentId = 'exp-rc'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(cal, 1, "Calibration imported");
 
-    let catalog: u64 = conn.query_row(
-        "SELECT COUNT(*) FROM ReagentCatalog WHERE name = 'CMC HV'",
-        [], |row| row.get(0),
-    ).unwrap();
+    let catalog: u64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM ReagentCatalog WHERE name = 'CMC HV'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(catalog, 1, "ReagentCatalog imported");
     cleanup(&dir);
 }
@@ -531,17 +580,20 @@ fn merge_laboratory_and_water_source() {
             "INSERT INTO Laboratory (id, name, description, createdAt, updatedAt)
              VALUES ('lab-1', 'Тест Лаб', 'Описание', datetime('now'), datetime('now'))",
             [],
-        ).unwrap();
+        )
+        .unwrap();
         src.execute(
             "INSERT INTO WaterSourceCatalog (id, name, location, createdAt, updatedAt)
              VALUES ('ws-1', 'Речная вода', 'Москва', datetime('now'), datetime('now'))",
             [],
-        ).unwrap();
+        )
+        .unwrap();
         src.execute(
             "INSERT INTO User (id, name, email, role, laboratoryId)
              VALUES ('user-lab', 'Lab User', 'lab@test.com', 'operator', 'lab-1')",
             [],
-        ).unwrap();
+        )
+        .unwrap();
         src.execute(
             "INSERT INTO Experiment (id, originalFilename, testDate, instrumentType, name, waterSource, fluidType, testGroup, metrics, rawPoints, userId, laboratoryId, waterSourceId)
              VALUES ('exp-lab', 'lab.txt', '2026-01-01', 'Grace', 'Lab Exp', 'Речная вода', 'fluid', 'group', '{}', '[]', 'user-lab', 'lab-1', 'ws-1')",
@@ -553,14 +605,22 @@ fn merge_laboratory_and_water_source() {
     let (imported, _) = merge_attached_databases(&conn, false).unwrap();
     assert_eq!(imported, 1);
 
-    let lab: String = conn.query_row(
-        "SELECT name FROM Laboratory WHERE id = 'lab-1'", [], |row| row.get(0),
-    ).unwrap();
+    let lab: String = conn
+        .query_row(
+            "SELECT name FROM Laboratory WHERE id = 'lab-1'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(lab, "Тест Лаб");
 
-    let ws: String = conn.query_row(
-        "SELECT name FROM WaterSourceCatalog WHERE id = 'ws-1'", [], |row| row.get(0),
-    ).unwrap();
+    let ws: String = conn
+        .query_row(
+            "SELECT name FROM WaterSourceCatalog WHERE id = 'ws-1'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(ws, "Речная вода");
     cleanup(&dir);
 }
@@ -596,7 +656,12 @@ fn merge_large_batch() {
         let src = Connection::open(dir.join("source.db")).unwrap();
         src.execute_batch("PRAGMA foreign_keys = OFF").unwrap();
         for i in 0..50 {
-            insert_experiment(&src, &format!("exp-{}", i), "user-bulk", &format!("Bulk {}", i));
+            insert_experiment(
+                &src,
+                &format!("exp-{}", i),
+                "user-bulk",
+                &format!("Bulk {}", i),
+            );
         }
     }
 
@@ -627,9 +692,13 @@ fn merge_preserves_existing_data() {
     assert_eq!(imported, 1, "Only 1 new experiment");
     assert_eq!(count_experiments(&conn), 4, "3 existing + 1 new");
 
-    let name: String = conn.query_row(
-        "SELECT name FROM Experiment WHERE id = 'main-2'", [], |row| row.get(0),
-    ).unwrap();
+    let name: String = conn
+        .query_row(
+            "SELECT name FROM Experiment WHERE id = 'main-2'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(name, "Main 2", "Existing data preserved");
     cleanup(&dir);
 }
@@ -646,7 +715,8 @@ fn merge_import_batch_and_payloads() {
             "INSERT INTO ImportBatch (id, experimentsImported, status)
              VALUES ('ib-1', 1, 'completed')",
             [],
-        ).unwrap();
+        )
+        .unwrap();
         src.execute(
             "INSERT INTO ExperimentPayload (id, experimentId, importBatchId, payloadFormat, payloadJson, contentFingerprint)
              VALUES ('ep-1', 'exp-ib', 'ib-1', 'json', '{}', 'abc123')",
@@ -658,16 +728,22 @@ fn merge_import_batch_and_payloads() {
     let (imported, _) = merge_attached_databases(&conn, false).unwrap();
     assert_eq!(imported, 1);
 
-    let batch: u64 = conn.query_row(
-        "SELECT COUNT(*) FROM ImportBatch WHERE id = 'ib-1'",
-        [], |row| row.get(0),
-    ).unwrap();
+    let batch: u64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM ImportBatch WHERE id = 'ib-1'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(batch, 1, "ImportBatch imported");
 
-    let payload: u64 = conn.query_row(
-        "SELECT COUNT(*) FROM ExperimentPayload WHERE experimentId = 'exp-ib'",
-        [], |row| row.get(0),
-    ).unwrap();
+    let payload: u64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM ExperimentPayload WHERE experimentId = 'exp-ib'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(payload, 1, "ExperimentPayload imported");
     cleanup(&dir);
 }

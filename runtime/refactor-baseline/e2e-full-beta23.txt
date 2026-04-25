@@ -1,0 +1,134 @@
+
+> rheolab-enterprise@0.2.0-beta.23 test:e2e:full
+> node scripts/test/run-e2e-matrix.js full
+
+
+[e2e] C:\Program Files\nodejs\node.exe D:\Development\Rheolab\node_modules\playwright\cli.js install chromium
+
+[e2e:full] C:\Program Files\nodejs\node.exe D:\Development\Rheolab\node_modules\playwright\cli.js test --workers=1 tests/e2e/parser/file-loading.spec.ts tests/e2e/database/save-load.spec.ts tests/e2e/library/library-ui.spec.ts tests/e2e/chart/chart-rendering.spec.ts tests/e2e/comparison/comparison-ui.spec.ts tests/e2e/reports/reports-export.spec.ts
+[WebServer] [plugin vite:resolve] Module "crypto" has been externalized for browser compatibility, imported by "D:/Development/Rheolab/src/lib/utils/encryption.ts". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+
+Running 55 tests using 1 worker
+
+[E2E] Test license configured
+  тЬУ   1 [chromium] тА║ tests\e2e\chart\chart-rendering.spec.ts:20:3 тА║ Chart тАФ Rendering тА║ chart_renders_svg_surface_after_analysis (2.2s)
+[E2E] Test license configured
+  тЬУ   2 [chromium] тА║ tests\e2e\chart\chart-rendering.spec.ts:31:3 тА║ Chart тАФ Rendering тА║ chart_has_x_axis (2.2s)
+[E2E] Test license configured
+  тЬУ   3 [chromium] тА║ tests\e2e\chart\chart-rendering.spec.ts:42:3 тА║ Chart тАФ Rendering тА║ chart_has_y_axes (2.2s)
+[E2E] Test license configured
+  тЬУ   4 [chromium] тА║ tests\e2e\chart\chart-rendering.spec.ts:52:3 тА║ Chart тАФ Rendering тА║ chart_has_data_lines (2.2s)
+[E2E] Test license configured
+  тЬУ   5 [chromium] тА║ tests\e2e\chart\chart-rendering.spec.ts:64:3 тА║ Chart тАФ Rendering тА║ chart_has_axis_ticks (2.2s)
+[E2E] Test license configured
+  тЬУ   6 [chromium] тА║ tests\e2e\chart\chart-rendering.spec.ts:78:3 тА║ Chart тАФ Rendering тА║ chart_container_has_reasonable_dimensions (2.2s)
+[E2E] Test license configured
+  тЬУ   7 [chromium] тА║ tests\e2e\chart\chart-rendering.spec.ts:92:3 тА║ Chart тАФ Comparison chart тА║ comparison_chart_renders_with_experiments (2.8s)
+[E2E] Test license configured
+  тЬУ   8 [chromium] тА║ tests\e2e\comparison\comparison-ui.spec.ts:23:3 тА║ Comparison тАФ Selector dialog тА║ comparison_selector_opens_and_closes (2.3s)
+[E2E] Test license configured
+  тЬУ   9 [chromium] тА║ tests\e2e\comparison\comparison-ui.spec.ts:37:3 тА║ Comparison тАФ Selector dialog тА║ comparison_selector_search_filters_list (3.4s)
+[E2E] Test license configured
+  тЬУ  10 [chromium] тА║ tests\e2e\comparison\comparison-ui.spec.ts:55:3 тА║ Comparison тАФ Add & remove experiments тА║ comparison_add_experiment_shows_chip_and_chart (6.8s)
+[E2E] Test license configured
+  тЬУ  11 [chromium] тА║ tests\e2e\comparison\comparison-ui.spec.ts:91:3 тА║ Comparison тАФ Add & remove experiments тА║ comparison_remove_experiment_chip (2.9s)
+[E2E] Test license configured
+  тЬУ  12 [chromium] тА║ tests\e2e\comparison\comparison-ui.spec.ts:117:3 тА║ Comparison тАФ From library тА║ comparison_add_from_library_card_navigates_to_comparison (5.5s)
+[E2E] Test license configured
+  тЬУ  13 [chromium] тА║ tests\e2e\database\save-load.spec.ts:18:3 тА║ Database тАФ Save experiment тА║ database_save_experiment_opens_dialog_and_saves (2.5s)
+[E2E] Test license configured
+  тЬУ  14 [chromium] тА║ tests\e2e\database\save-load.spec.ts:33:3 тА║ Database тАФ Save experiment тА║ database_save_dialog_validation_blocks_empty_fields (2.6s)
+[E2E] Test license configured
+  тЬУ  15 [chromium] тА║ tests\e2e\database\save-load.spec.ts:72:3 тА║ Database тАФ Load experiment from library тА║ database_save_and_load_preserves_metadata (3.3s)
+[E2E] Test license configured
+  тЬУ  16 [chromium] тА║ tests\e2e\database\save-load.spec.ts:109:3 тА║ Database тАФ Recipe & water persistence тА║ database_save_with_reagent_and_load_preserves_recipe (3.6s)
+[E2E] Test license configured
+  тЬУ  17 [chromium] тА║ tests\e2e\database\save-load.spec.ts:164:3 тА║ Database тАФ Classification selects in save dialog тА║ database_save_dialog_shows_classification_selects (2.6s)
+[E2E] Test license configured
+  тЬУ  18 [chromium] тА║ tests\e2e\database\save-load.spec.ts:192:3 тА║ Database тАФ Classification selects in save dialog тА║ database_save_dialog_fluid_type_select_has_all_9_options (3.0s)
+[E2E] Test license configured
+  тЬУ  19 [chromium] тА║ tests\e2e\database\save-load.spec.ts:221:3 тА║ Database тАФ Classification selects in save dialog тА║ database_save_dialog_manual_fluid_type_removes_auto_badge (3.4s)
+[E2E] Test license configured
+  тЬУ  20 [chromium] тА║ tests\e2e\database\save-load.spec.ts:249:3 тА║ Database тАФ Classification selects in save dialog тА║ database_save_dialog_test_category_select_has_3_options (3.1s)
+[E2E] Test license configured
+  тЬУ  21 [chromium] тА║ tests\e2e\database\save-load.spec.ts:278:3 тА║ Database тАФ Classification selects in save dialog тА║ database_save_dialog_test_type_cascades_with_category (3.7s)
+[E2E] Test license configured
+  тЬУ  22 [chromium] тА║ tests\e2e\database\save-load.spec.ts:316:3 тА║ Database тАФ Classification selects in save dialog тА║ database_save_with_classification_persists_to_library (5.2s)
+[E2E] Test license configured
+  тЬУ  23 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:24:3 тА║ Library тАФ View modes тА║ library_grid_view_shows_experiment_cards (2.3s)
+[E2E] Test license configured
+  тЬУ  24 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:36:3 тА║ Library тАФ View modes тА║ library_list_view_shows_experiment_rows (2.3s)
+[E2E] Test license configured
+  тЬУ  25 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:46:3 тА║ Library тАФ View modes тА║ library_view_mode_persists_across_navigation (2.4s)
+[E2E] Test license configured
+  тЬУ  26 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:74:3 тА║ Library тАФ Filters тА║ library_all_filter_inputs_visible (2.3s)
+[E2E] Test license configured
+  тЬУ  27 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:89:3 тА║ Library тАФ Filters тА║ library_search_filters_experiments (3.8s)
+[E2E] Test license configured
+  тЬУ  28 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:105:3 тА║ Library тАФ Filters тА║ library_clear_filters_resets_all (3.1s)
+[E2E] Test license configured
+  тЬУ  29 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:119:3 тА║ Library тАФ Filters тА║ library_field_filter_narrows_results (3.8s)
+[E2E] Test license configured
+  тЬУ  30 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:136:3 тА║ Library тАФ Reagents tab тА║ library_reagents_tab_loads (2.3s)
+[E2E] Test license configured
+  тЬУ  31 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:149:3 тА║ Library тАФ Reagents tab тА║ library_reagents_search_works (3.1s)
+[E2E] Test license configured
+  тЬУ  32 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:166:3 тА║ Library тАФ Table sorting тА║ library_table_column_headers_have_sort_icons (2.3s)
+[E2E] Test license configured
+  тЬУ  33 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:185:3 тА║ Library тАФ Fluid type filter тА║ library_fluid_type_filter_visible_and_has_9_options (2.7s)
+[E2E] Test license configured
+  тЬУ  34 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:214:3 тА║ Library тАФ Fluid type filter тА║ library_fluid_type_filter_narrows_results_without_crash (3.5s)
+[E2E] Test license configured
+  тЬУ  35 [chromium] тА║ tests\e2e\library\library-ui.spec.ts:242:3 тА║ Library тАФ Fluid type filter тА║ library_instrument_type_filter_visible (2.3s)
+[E2E] Test license configured
+  тЬУ  36 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_Chandler SST_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  37 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_Chandler SWB_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  38 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_Grace Report_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  39 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_Brookfield 4_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  40 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_BSL Report_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  41 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_Ofite 1100_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  42 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_Chandler 5610_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  43 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_Chandler Report_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  44 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_Brookfield Report_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  45 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_Grace November 2008_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  46 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:19:5 тА║ Parser тАФ Upload all fixture formats (real WASM) тА║ upload_SWB 90_produces_valid_analysis (2.3s)
+[E2E] Test license configured
+  тЬУ  47 [chromium] тА║ tests\e2e\parser\file-loading.spec.ts:41:3 тА║ Parser тАФ Error handling тА║ upload_invalid_file_shows_error_state (7.1s)
+[E2E] Test license configured
+PDF: 8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv_2026-04-21.pdf, 6000 bytes
+  тЬУ  48 [chromium] тА║ tests\e2e\reports\reports-export.spec.ts:22:3 тА║ Reports тАФ PDF generation тА║ reports_pdf_download_chandler_valid_file (2.5s)
+[E2E] Test license configured
+PDF: ╨Ю╤В╤З╤С╤В Grace.xlsx_2026-04-21.pdf, 6000 bytes
+  тЬУ  49 [chromium] тА║ tests\e2e\reports\reports-export.spec.ts:39:3 тА║ Reports тАФ PDF generation тА║ reports_pdf_download_grace_valid_file (2.4s)
+[E2E] Test license configured
+Excel: 8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv_2026-04-21.xlsx, 6000 bytes
+  тЬУ  50 [chromium] тА║ tests\e2e\reports\reports-export.spec.ts:57:3 тА║ Reports тАФ Excel generation тА║ reports_excel_download_chandler_valid_file (2.3s)
+[E2E] Test license configured
+  тЬУ  51 [chromium] тА║ tests\e2e\reports\reports-export.spec.ts:75:3 тА║ Reports тАФ UI controls тА║ reports_download_button_visible_after_analysis (2.2s)
+[E2E] Test license configured
+  тЬУ  52 [chromium] тА║ tests\e2e\reports\reports-export.spec.ts:85:3 тА║ Reports тАФ UI controls тА║ reports_calibration_toggle_exists (2.2s)
+[E2E] Test license configured
+  тЬУ  53 [chromium] тА║ tests\e2e\reports\reports-export.spec.ts:96:3 тА║ Reports тАФ UI controls тА║ reports_raw_data_toggle_exists (2.3s)
+[E2E] Test license configured
+  тЬУ  54 [chromium] тА║ tests\e2e\reports\reports-export.spec.ts:107:3 тА║ Reports тАФ UI controls тА║ reports_raw_data_toggle_changes_state (2.3s)
+[E2E] Test license configured
+PDF with raw data: 8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv_2026-04-21.pdf, 6000 bytes
+  тЬУ  55 [chromium] тА║ tests\e2e\reports\reports-export.spec.ts:131:3 тА║ Reports тАФ UI controls тА║ reports_pdf_with_raw_data_enabled_downloads_valid_file (2.5s)
+
+  55 passed (2.9m)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m
+[e2e:full] passed

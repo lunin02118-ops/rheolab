@@ -11,7 +11,7 @@ import { tooltipPlugin } from '@/components/charts/plugins/tooltip';
 import { zoomPlugin } from '@/components/charts/plugins/zoom';
 import { touchPointsPlugin, type TouchPointsPluginOptions } from '@/components/charts/plugins/touchPoints';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
-import type { TimeDisplayFormat } from '@/lib/store/chart-settings-types';
+import type { TimeDisplayFormat, ViscosityUnit } from '@/lib/store/chart-settings-types';
 import type { TouchPointMarker } from './useRheologyData';
 import { useTheme } from '@/contexts/theme-context';
 import { buildAxes, buildChartTranslations, buildSeries } from './chart-options';
@@ -30,7 +30,15 @@ interface UseRheologyChartOptionsParams {
     effectiveShearRateAxis: 'left' | 'right';
     effectivePressureAxis: 'left' | 'right';
     axisMode: 'shared' | 'individual';
+    /**
+     * Viscosity threshold in **cP** (algorithm canonical unit).  The
+     * touch-points plugin converts this to the chart's current display
+     * unit before calling `valToPos`, so the horizontal guide always
+     * lines up with the correct pixel regardless of the Y-scale unit.
+     */
     viscosityThreshold: number;
+    /** Chart display unit of the viscosity Y axis. */
+    viscosityDisplayUnit: ViscosityUnit;
     showTouchPoints: boolean;
     targetTime: number;
     language?: 'ru' | 'en';
@@ -51,6 +59,7 @@ export function useRheologyChartOptions({
     effectivePressureAxis,
     axisMode,
     viscosityThreshold,
+    viscosityDisplayUnit,
     showTouchPoints,
     targetTime,
     language = 'ru',
@@ -67,6 +76,7 @@ export function useRheologyChartOptions({
     const touchPointsRef = useRef<TouchPointsPluginOptions>({
         touchPoints,
         viscosityThreshold,
+        displayUnit: viscosityDisplayUnit,
         showTouchPoints,
         targetTime,
         pdfMode,
@@ -77,6 +87,7 @@ export function useRheologyChartOptions({
     touchPointsRef.current = {
         touchPoints,
         viscosityThreshold,
+        displayUnit: viscosityDisplayUnit,
         showTouchPoints,
         targetTime,
         pdfMode,

@@ -196,12 +196,22 @@ export function useComparisonChartData(params: UseComparisonChartDataParams): Us
                     targetTime,
                 });
 
+                // Comparison chart Y-scale is always cP (primary metric =
+                // `viscosity_cp`), so the algorithm output can flow through
+                // unchanged.  Populate the display-unit aliases so the
+                // touch-points plugin can render labels correctly without
+                // assuming legacy field semantics.
                 for (const r of smartResults) {
                     tps.push({
                         time: r.time,
                         viscosity: r.viscosity,
+                        viscosityCp: r.viscosity,
+                        viscosityDisplay: r.viscosity,
+                        displayUnit: 'cP',
                         type: r.type,
                         color: expColor,
+                        snappedToSeries: false,
+                        anomaly: r.anomaly,
                     });
                 }
             }

@@ -33,12 +33,21 @@ pub fn create_pool(db_path: &Path) -> Result<DbPool, Box<dyn std::error::Error>>
             Ok(())
         });
 
-    // Single-user desktop app: 4 connections are sufficient.
-    // Each connection reserves up to mmap_size (256 MB) of address space and
-    // up to cache_size (20 MB) of page cache, so total resident footprint is
-    // bounded well under 1 GB in practice.
+    // Single-user desktop app but concurrent IPC is common: the UI can
+    // easily issue 3-4 commands in parallel (list + filter_metadata +
+    // count + licensing background check), and the library's slow-path
+    // touch-point filter can hold one connection for several seconds
+    // while decoding ~10 k columnar blobs.  We bump `max_size` from 4 to
+    // 8 so legitimate concurrency never surfaces as the generic
+    // "Database temporarily unavailable" error the user hit when
+    // toggling the viscosity-threshold filter on a large library.
+    //
+    // Each connection reserves up to mmap_size (256 MB) of address space
+    // and up to cache_size (20 MB) of page cache.  Windows is generous
+    // with address space, and actual resident memory stays well under
+    // 1 GB because the page cache only grows as pages are touched.
     let pool = Pool::builder()
-        .max_size(4)
+        .max_size(8)
         .min_idle(Some(1))
         .connection_timeout(Duration::from_secs(10))
         .build(manager)?;

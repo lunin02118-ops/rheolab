@@ -92,6 +92,19 @@ interface RangeFilterProps {
     type?: 'number' | 'date';
     minPlaceholder?: string;
     maxPlaceholder?: string;
+    /** Optional stable test identifiers for Playwright / Vitest. */
+    minTestId?: string;
+    maxTestId?: string;
+    /**
+     * Optional context hint rendered beneath the inputs — used by the
+     * touch-point filters to surface the actual min/max observed in the
+     * library so users pick sensible values instead of filtering to zero.
+     * Keep hints short: one line, <~50 chars.  Pass `null` / omit to
+     * render nothing (same layout cost as before).
+     */
+    hint?: string | null;
+    /** data-testid for the hint element, when present. */
+    hintTestId?: string;
 }
 
 export function RangeFilter({
@@ -102,19 +115,24 @@ export function RangeFilter({
     onMaxChange,
     type = 'number',
     minPlaceholder = 'От',
-    maxPlaceholder = 'До'
+    maxPlaceholder = 'До',
+    minTestId,
+    maxTestId,
+    hint,
+    hintTestId,
 }: RangeFilterProps) {
     return (
         <div className="pt-4 border-t border-border space-y-2">
             <Label className="text-xs text-muted-foreground font-medium">{label}</Label>
-            <div className={type === 'date' ? 'flex flex-col gap-2' : 'grid grid-cols-2 gap-2'}>
+            <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                     {type === 'date' && <span className="text-[10px] text-muted-foreground">От</span>}
                     <Input
                         type={type}
                         value={minValue || ''}
                         onChange={e => onMinChange(e.target.value)}
-                        className="bg-card border-border text-foreground text-xs h-8 w-full px-2 pr-8 focus-visible:ring-blue-500"
+                        data-testid={minTestId}
+                        className={`bg-card border-border text-foreground text-xs h-8 w-full px-2 focus-visible:ring-blue-500 ${type === 'date' ? 'pr-1 [&::-webkit-calendar-picker-indicator]:w-4 [&::-webkit-calendar-picker-indicator]:h-4 [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer dark:[&::-webkit-calendar-picker-indicator]:invert' : 'pr-8'}`}
                         placeholder={type === 'number' ? minPlaceholder : undefined}
                     />
                 </div>
@@ -124,11 +142,20 @@ export function RangeFilter({
                         type={type}
                         value={maxValue || ''}
                         onChange={e => onMaxChange(e.target.value)}
-                        className="bg-card border-border text-foreground text-xs h-8 w-full px-2 pr-8 focus-visible:ring-blue-500"
+                        data-testid={maxTestId}
+                        className={`bg-card border-border text-foreground text-xs h-8 w-full px-2 focus-visible:ring-blue-500 ${type === 'date' ? 'pr-1 [&::-webkit-calendar-picker-indicator]:w-4 [&::-webkit-calendar-picker-indicator]:h-4 [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer dark:[&::-webkit-calendar-picker-indicator]:invert' : 'pr-8'}`}
                         placeholder={type === 'number' ? maxPlaceholder : undefined}
                     />
                 </div>
             </div>
+            {hint && (
+                <p
+                    data-testid={hintTestId}
+                    className="text-[10px] leading-snug text-muted-foreground"
+                >
+                    {hint}
+                </p>
+            )}
         </div>
     );
 }

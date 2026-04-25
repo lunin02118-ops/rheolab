@@ -286,6 +286,22 @@ export function buildPdfReportInput(ctx: ReportBuildContext): PdfReportInput {
             pressureAxis: chartSettings.lines.pressure.axis,
             axisMode: chartSettings.comparisonAxisMode ?? 'individual',
             lineSettings: buildLineSettings(chartSettings),
+            // Mirror the UI's per-category unit preferences into the
+            // report input so the Rust backend can render stats with
+            // the exact same labels and numeric conversions the user
+            // sees on the Analysis tab.  Reading from `chartSettings`
+            // here (not from `ctx.unitSystem`) ensures mixed / custom
+            // presets like `{ viscosity: 'cP', consistency: 'Pa·s^n' }`
+            // survive the trip to PDF / Excel.
+            rheologyUnits: {
+                viscosity: chartSettings.rheologyUnits.viscosity,
+                temperature: chartSettings.rheologyUnits.temperature,
+                pressure: chartSettings.rheologyUnits.pressure,
+                consistency: chartSettings.rheologyUnits.consistency,
+                plasticViscosity: chartSettings.rheologyUnits.plasticViscosity,
+                yieldPoint: chartSettings.rheologyUnits.yieldPoint,
+                timeFormat: chartSettings.rheologyUnits.timeFormat,
+            },
         },
     };
 }
@@ -345,6 +361,18 @@ export function buildExcelReportInput(ctx: ReportBuildContext): ExcelReportInput
             pressureAxis: chartSettings.lines.pressure.axis,
             axisMode: chartSettings.comparisonAxisMode ?? 'individual',
             lineSettings: buildLineSettings(chartSettings),
+            // See rationale in buildPdfReportInput — the Excel report
+            // must use the same per-category targets so its column
+            // labels and cell values match the UI and the PDF.
+            rheologyUnits: {
+                viscosity: chartSettings.rheologyUnits.viscosity,
+                temperature: chartSettings.rheologyUnits.temperature,
+                pressure: chartSettings.rheologyUnits.pressure,
+                consistency: chartSettings.rheologyUnits.consistency,
+                plasticViscosity: chartSettings.rheologyUnits.plasticViscosity,
+                yieldPoint: chartSettings.rheologyUnits.yieldPoint,
+                timeFormat: chartSettings.rheologyUnits.timeFormat,
+            },
         },
         cycles: ctx.cycles?.map(c => ({
             type: c.type,

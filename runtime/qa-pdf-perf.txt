@@ -1,0 +1,39 @@
+    Finished `release` profile [optimized] target(s) in 1.08s
+     Running `src\rust\rheolab-core\target\release\examples\pdf_comparison_debug.exe`
+[pdf_debug] generating 16 variants ├Ч 2 PDFs (comparison + single)...
+
+[pdf_debug:multi ] A1_visc_only__shared                               70555 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_A1_visc_only__shared.pdf
+[pdf_debug:single] A1_visc_only__shared                               45963 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_A1_visc_only__shared.pdf
+[pdf_debug:multi ] A2_visc_only__indiv                                71496 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_A2_visc_only__indiv.pdf
+[pdf_debug:single] A2_visc_only__indiv                                46756 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_A2_visc_only__indiv.pdf
+[pdf_debug:multi ] B1_visc+shear_left__temp_right__shared             76778 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_B1_visc+shear_left__temp_right__shared.pdf
+[pdf_debug:single] B1_visc+shear_left__temp_right__shared             49765 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_B1_visc+shear_left__temp_right__shared.pdf
+[pdf_debug:multi ] B2_visc+shear_left__temp_right__indiv              81387 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_B2_visc+shear_left__temp_right__indiv.pdf
+[pdf_debug:single] B2_visc+shear_left__temp_right__indiv              52049 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_B2_visc+shear_left__temp_right__indiv.pdf
+[pdf_debug:multi ] B3_visc+shear_s1_left__off__indiv                  76772 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_B3_visc+shear_s1_left__off__indiv.pdf
+[pdf_debug:single] B3_visc+shear_s1_left__off__indiv                  49564 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_B3_visc+shear_s1_left__off__indiv.pdf
+[pdf_debug:multi ] B4_visc+shear_s1_left__temp_c_right__indiv         81387 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_B4_visc+shear_s1_left__temp_c_right__indiv.pdf
+[pdf_debug:single] B4_visc+shear_s1_left__temp_c_right__indiv         52049 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_B4_visc+shear_s1_left__temp_c_right__indiv.pdf
+[pdf_debug:multi ] C1_visc_left__bath+sample_right__shared            76896 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_C1_visc_left__bath+sample_right__shared.pdf
+[pdf_debug:single] C1_visc_left__bath+sample_right__shared            49505 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_C1_visc_left__bath+sample_right__shared.pdf
+[pdf_debug:multi ] C2_visc_left__bath+sample_right__indiv             77791 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_C2_visc_left__bath+sample_right__indiv.pdf
+[pdf_debug:single] C2_visc_left__bath+sample_right__indiv             50275 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_C2_visc_left__bath+sample_right__indiv.pdf
+[pdf_debug:multi ] D1_visc+shear_left__bath+sample_right__shared      78339 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_D1_visc+shear_left__bath+sample_right__shared.pdf
+[pdf_debug:single] D1_visc+shear_left__bath+sample_right__shared      50456 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_D1_visc+shear_left__bath+sample_right__shared.pdf
+[pdf_debug:multi ] D2_visc+shear_left__bath+sample_right__indiv       83300 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_D2_visc+shear_left__bath+sample_right__indiv.pdf
+[pdf_debug:single] D2_visc+shear_left__bath+sample_right__indiv       52755 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_D2_visc+shear_left__bath+sample_right__indiv.pdf
+[pdf_debug:multi ] E1_visc_left__pressure_right__shared               75707 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_E1_visc_left__pressure_right__shared.pdf
+[pdf_debug:single] E1_visc_left__pressure_right__shared               48517 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_E1_visc_left__pressure_right__shared.pdf
+[pdf_debug:multi ] E2_visc_left__pressure_right__indiv                76567 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_E2_visc_left__pressure_right__indiv.pdf
+[pdf_debug:single] E2_visc_left__pressure_right__indiv                49148 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_E2_visc_left__pressure_right__indiv.pdf
+[pdf_debug:multi ] F1_visc+shear_left__pressure+temp_right__shared    80306 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_F1_visc+shear_left__pressure+temp_right__shared.pdf
+[pdf_debug:single] F1_visc+shear_left__pressure+temp_right__shared    50868 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_F1_visc+shear_left__pressure+temp_right__shared.pdf
+[pdf_debug:multi ] F2_visc+shear_left__pressure+temp_right__indiv     87097 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_F2_visc+shear_left__pressure+temp_right__indiv.pdf
+[pdf_debug:single] F2_visc+shear_left__pressure+temp_right__indiv     54274 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_F2_visc+shear_left__pressure+temp_right__indiv.pdf
+[pdf_debug:multi ] G1_visc_left__pressure+bath_right__shared          77209 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_G1_visc_left__pressure+bath_right__shared.pdf
+[pdf_debug:single] G1_visc_left__pressure+bath_right__shared          49814 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_G1_visc_left__pressure+bath_right__shared.pdf
+[pdf_debug:multi ] G2_visc_left__pressure+bath_right__indiv           79496 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\comparison_G2_visc_left__pressure+bath_right__indiv.pdf
+[pdf_debug:single] G2_visc_left__pressure+bath_right__indiv           51488 bytes тЖТ D:\Development\Rheolab\runtime\pdf-debug\single_G2_visc_left__pressure+bath_right__indiv.pdf
+
+[pdf_debug] done тАФ 16 variants written (32 PDFs total)
+            output dir тЖТ D:\Development\Rheolab\runtime\pdf-debug

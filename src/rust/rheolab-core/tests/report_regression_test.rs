@@ -379,6 +379,7 @@ fn make_chart_config(axis_mode: &str, svg_h: u32) -> ChartConfig {
         viscosity_threshold: None,
         line_styles: None,
         skip_downsample: true,
+        time_format: String::new(),
     }
 }
 

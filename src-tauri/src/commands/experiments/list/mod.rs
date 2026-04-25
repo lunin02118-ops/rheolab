@@ -10,6 +10,7 @@ use tauri::State;
 use super::types::*;
 
 mod query;
+mod dynamic;
 pub(crate) use query::query_experiments_list_sql;
 
 /// 30-second TTL in-memory cache for `experiments_filter_metadata`.
@@ -28,9 +29,50 @@ pub(crate) fn invalidate_filter_metadata_cache() {
     }
 }
 
+/// Compute library-wide touch-point coverage / range stats.
+///
+/// Single aggregate scan of `Experiment` — cheap for any realistic library
+/// (the cost is proportional to row count and stays under ~10 ms at 10 k
+/// rows on a warm cache).  Results feed the UI's range hints and contextual
+/// empty state so users understand why a touch-point filter narrows to zero.
+///
+/// Extracted into a free function (rather than inlined into
+/// `experiments_filter_metadata`) so the unit-test harness can call it
+/// without spinning up a `tauri::State` — see `list_tests` for the
+/// corresponding assertions.
+pub(crate) fn query_touch_point_stats(
+    conn: &rusqlite::Connection,
+) -> Result<TouchPointLibraryStats> {
+    let stats = conn.query_row(
+        "SELECT \
+           COUNT(*) AS total, \
+           COALESCE(SUM(CASE WHEN touchHasCrossing = 1 THEN 1 ELSE 0 END), 0) AS with_crossing, \
+           COALESCE(SUM(CASE WHEN touchViscosityAtTargetCp IS NOT NULL THEN 1 ELSE 0 END), 0) AS with_target, \
+           MIN(touchCrossingTimeMin), MAX(touchCrossingTimeMin), \
+           MIN(touchCrossingViscosityCp), MAX(touchCrossingViscosityCp), \
+           MIN(touchViscosityAtTargetCp), MAX(touchViscosityAtTargetCp) \
+         FROM Experiment",
+        [],
+        |row| {
+            Ok(TouchPointLibraryStats {
+                total_experiments: row.get::<_, i64>(0)? as usize,
+                with_crossing_count: row.get::<_, i64>(1)? as usize,
+                with_target_viscosity_count: row.get::<_, i64>(2)? as usize,
+                crossing_time_min_minutes: row.get::<_, Option<f64>>(3)?,
+                crossing_time_max_minutes: row.get::<_, Option<f64>>(4)?,
+                crossing_viscosity_min_cp: row.get::<_, Option<f64>>(5)?,
+                crossing_viscosity_max_cp: row.get::<_, Option<f64>>(6)?,
+                viscosity_at_target_min_cp: row.get::<_, Option<f64>>(7)?,
+                viscosity_at_target_max_cp: row.get::<_, Option<f64>>(8)?,
+            })
+        },
+    )?;
+    Ok(stats)
+}
+
 #[tauri::command]
 pub async fn experiments_list(
-    state: State<'_, AppState>,
+    app: tauri::AppHandle,
     query: Option<ExperimentsListQuery>,
 ) -> Result<ExperimentsListResponse> {
     let query = query.unwrap_or(ExperimentsListQuery {
@@ -60,6 +102,14 @@ pub async fn experiments_list(
         viscosity_max: None,
         test_category: None,
         test_type: None,
+        crossing_time_min: None,
+        crossing_time_max: None,
+        crossing_viscosity_min: None,
+        crossing_viscosity_max: None,
+        viscosity_at_target_min: None,
+        viscosity_at_target_max: None,
+        has_crossing: None,
+        viscosity_threshold: None,
         after_id: None,
         sort_by: None,
         sort_dir: None,
@@ -68,7 +118,15 @@ pub async fn experiments_list(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(20).clamp(1, 500);
 
-    let (experiments, total) = query_experiments_list_sql(&state, &query)?;
+    // Move the potentially heavy query (especially the dynamic-threshold
+    // slow path with rayon blob decode) into a controlled blocking task
+    // so it never occupies a tokio worker thread.
+    let (experiments, total) = tokio::task::spawn_blocking(move || {
+        use tauri::Manager as _;
+        let state = app.state::<AppState>();
+        query_experiments_list_sql(&state, &query)
+    })
+    .await??;
 
     let total_pages = if total == 0 {
         0
@@ -276,6 +334,8 @@ pub async fn experiments_filter_metadata(
         "SELECT DISTINCT testType FROM Experiment WHERE testType IS NOT NULL AND TRIM(testType) != '' ORDER BY testType COLLATE NOCASE",
     )?;
 
+    let touch_point_stats = query_touch_point_stats(&conn)?;
+
     let result = ExperimentsFilterMetadataResponse {
         instrument_types,
         fluid_types,
@@ -286,6 +346,7 @@ pub async fn experiments_filter_metadata(
         water_sources,
         test_categories,
         test_types,
+        touch_point_stats,
     };
 
     // Populate cache for subsequent calls within the TTL window.

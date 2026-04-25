@@ -1,6 +1,6 @@
 {
   "name": "rheolab-enterprise",
-  "version": "0.2.0-beta.23",
+  "version": "0.2.0-beta.53",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,6 +19,7 @@
     "test:e2e:full": "node scripts/test/run-e2e-matrix.js full",
     "test:e2e:slow": "node scripts/test/run-e2e-matrix.js slow",
     "test:e2e:all": "node scripts/test/run-e2e-matrix.js all",
+    "test:release-gate": "node scripts/test/run-release-gate.js",
     "perf:memory": "node scripts/test/run-memory-perf-report.js --source tauri-soak",
     "perf:benchmark": "node scripts/test/run-perf-benchmark.js",
     "perf:benchmark:tauri": "npx playwright test --config playwright.tauri.config.ts tests/e2e/perf-benchmark.tauri.spec.ts",
@@ -33,7 +34,7 @@
     "perf:db:compare": "node scripts/test/compare-db-scale.js",
     "perf:website:scroll": "node scripts/test/profile-website-scroll-perf.mjs",
     "audit:enterprise": "node scripts/audit/run-enterprise-deep-audit.js",
-    "audit:bundle": "cross-env ANALYZE=true vite build --mode production",
+    "audit:bundle": "node scripts/test/run-bundle-audit.js",
     "audit:enterprise:quick": "node scripts/audit/run-enterprise-deep-audit.js --quick",
     "audit:frontend-ipc": "node scripts/audit/run-frontend-ipc-deep-audit.js",
     "qa:autonomous": "node scripts/dev/run-autonomous-cycle.js",

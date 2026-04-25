@@ -1,15 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { ExperimentFilters as FilterState } from '@/types/experiment-filters';
 import { EMPTY_FILTERS } from '@/types/experiment-filters';
-import { Filter, X, Ruler } from 'lucide-react';
+import { Filter, X, Ruler, Waypoints, Search as SearchIcon, MapPin, FlaskConical, CalendarDays, Beaker } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ReagentAutocomplete } from '@/components/ui/reagent-autocomplete';
 import { FieldCombobox } from '@/components/ui/field-combobox';
 import { TextFilter, SelectFilter, RangeFilter } from './filter-components';
-import { getExperimentFilterMetadata } from '@/lib/experiments/client';
-import { logger } from '@/lib/logger';
+import { FilterGroup } from './filter-group';
+import { ViscosityThresholdSelector } from './viscosity-threshold-selector';
 import { FLUID_TYPES, FLUID_TYPE_LABELS } from '@/lib/constants/fluid-types';
 import { TEST_CATEGORY_LABELS, TEST_TYPE_LABELS, TEST_TYPES_BY_CATEGORY, type TestCategory, type TestType } from '@/lib/constants/test-types';
+import { useExperimentFilterMetadata } from '@/hooks/useExperimentFilterMetadata';
+import {
+    crossingCoverageHint,
+    crossingTimeHint,
+    viscosityAtTargetHint,
+} from '@/lib/library/touch-point-hints';
 
 interface ExperimentFiltersProps {
     filters: FilterState;
@@ -39,53 +45,51 @@ const GEOMETRY_OPTIONS = [
 ];
 
 export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps) {
-    const [metadataError, setMetadataError] = useState<string | null>(null);
-    const [metadataOptions, setMetadataOptions] = useState<{
-        instrumentTypes: string[];
-        fluidTypes: string[];
-        geometries: string[];
-        waterSources: string[];
-        fieldNames: string[];
-        testCategories: string[];
-        testTypes: string[];
-    }>({
-        instrumentTypes: [],
-        fluidTypes: [],
-        geometries: [],
-        waterSources: [],
-        fieldNames: [],
-        testCategories: [],
-        testTypes: [],
-    });
+    // Shared module-level cache — both this panel and the ExperimentList
+    // empty state derive hints from the same metadata payload, so we only
+    // round-trip to Rust once per session (plus the backend's 30s TTL).
+    const { metadata, error: metadataError } = useExperimentFilterMetadata();
 
-    useEffect(() => {
-        let mounted = true;
+    const metadataOptions = useMemo(
+        () => ({
+            instrumentTypes: metadata?.instrumentTypes ?? [],
+            fluidTypes: metadata?.fluidTypes ?? [],
+            geometries: metadata?.geometries ?? [],
+            waterSources: metadata?.waterSources ?? [],
+            fieldNames: metadata?.fieldNames ?? [],
+            testCategories: metadata?.testCategories ?? [],
+            testTypes: metadata?.testTypes ?? [],
+        }),
+        [metadata],
+    );
 
-        getExperimentFilterMetadata()
-            .then((metadata) => {
-                if (!mounted) {
-                    return;
-                }
+    // Touch-point hints — precomputed lazily so the touch-point sidebar
+    // section renders with captions as soon as the metadata fetch resolves.
+    const touchPointStats = metadata?.touchPointStats ?? null;
+    const hasCrossingHint = useMemo(
+        () => crossingCoverageHint(touchPointStats),
+        [touchPointStats],
+    );
+    const crossingTimeHintText = useMemo(
+        () => crossingTimeHint(touchPointStats),
+        [touchPointStats],
+    );
+    const viscosityAtTargetHintText = useMemo(
+        () => viscosityAtTargetHint(touchPointStats),
+        [touchPointStats],
+    );
 
-                setMetadataOptions({
-                    instrumentTypes: metadata.instrumentTypes ?? [],
-                    fluidTypes: metadata.fluidTypes ?? [],
-                    geometries: metadata.geometries ?? [],
-                    waterSources: metadata.waterSources ?? [],
-                    fieldNames: metadata.fieldNames ?? [],
-                    testCategories: metadata.testCategories ?? [],
-                    testTypes: metadata.testTypes ?? [],
-                });
-            })
-            .catch((error) => {
-                logger.warn('Failed to load filter metadata, using fallback options', error);
-                if (mounted) setMetadataError('Не удалось загрузить параметры фильтрации');
-            });
-
-        return () => {
-            mounted = false;
-        };
-    }, []);
+    // "Достигнут порог X сП" label — reflects whichever threshold the
+    // user has dialled in (or the default 50 cP) so the selector's
+    // question stays honest about what crossing is being tested.
+    const thresholdLabel = useMemo(() => {
+        const trimmed = filters.viscosityThreshold.trim();
+        const parsed = Number(trimmed);
+        if (trimmed !== '' && Number.isFinite(parsed) && parsed > 0) {
+            return `${trimmed} сП`;
+        }
+        return '50 сП';
+    }, [filters.viscosityThreshold]);
 
     const fluidOptions = useMemo(() => {
         if (metadataOptions.fluidTypes.length === 0) {
@@ -164,6 +168,60 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
         onChange({ ...filters, [key]: value });
     };
 
+    // `hasCrossing` is stored as the literal union `'' | 'yes' | 'no'` for
+    // backend compatibility (the IPC contract and E2E tests still exercise
+    // the 'no' branch directly).  The sidebar surfaces only the binary
+    // toggle — OFF (`''`, default) and ON (`'yes'`) — because the inverse
+    // case ("only experiments that did NOT cross") has no documented user
+    // workflow and the three-state selector was reported as confusing.
+    const isHasCrossingOn = filters.hasCrossing === 'yes';
+    const toggleHasCrossing = () => {
+        onChange({
+            ...filters,
+            hasCrossing: isHasCrossingOn ? '' : 'yes',
+        });
+    };
+
+    // `viscosityThreshold === ''` is the "filter OFF" sentinel: when the
+    // user clicks the "выкл" pill we MUST also clear all downstream
+    // touch-point subfilters.  Otherwise the UI would claim the filter
+    // is off while the backend still received a `hasCrossing`/range
+    // value from a prior session and quietly kept filtering under the
+    // default 50 cP contract.  Switching to an actual threshold is
+    // non-destructive — existing `hasCrossing` / range values carry
+    // over so users can iterate on the threshold without retyping.
+    const handleThresholdChange = (value: string) => {
+        if (value.trim() === '') {
+            onChange({
+                ...filters,
+                viscosityThreshold: '',
+                hasCrossing: '',
+                crossingTimeMin: '',
+                crossingTimeMax: '',
+                viscosityAtTargetMin: '',
+                viscosityAtTargetMax: '',
+            });
+            return;
+        }
+        // Auto-activate `hasCrossing = 'yes'` when switching from OFF to a
+        // concrete threshold.  Without this the user sees ALL experiments
+        // (no WHERE on tpp.hasCrossing) — which looks like "wrong results"
+        // because experiments that never crossed the threshold still appear.
+        // The auto-set only fires when hasCrossing was previously empty
+        // (the user hasn't actively chosen 'no'), so manual toggling is
+        // preserved on threshold-to-threshold changes.
+        const wasOff = filters.viscosityThreshold.trim() === '';
+        const autoHasCrossing =
+            wasOff && filters.hasCrossing === '' ? 'yes' : filters.hasCrossing;
+        onChange({ ...filters, viscosityThreshold: value, hasCrossing: autoHasCrossing });
+    };
+
+    // Mirror of the selector's OFF sentinel — used to collapse the
+    // downstream touch-point controls (toggle + ranges + hints) when
+    // the filter is disabled.  Keeps the sidebar quiet in the common
+    // case where the user doesn't care about crossing.
+    const isTouchPointFilterActive = filters.viscosityThreshold.trim() !== '';
+
     const clearFilters = () => {
         onChange({ ...EMPTY_FILTERS });
     };
@@ -182,6 +240,13 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
         onChange({ ...filters, reagentNames: filters.reagentNames.filter(r => r !== name) });
     };
 
+    // ── Active-filter counts per group (drives badge numbers) ──────
+    const searchCount = [filters.searchQuery, filters.testName].filter(Boolean).length;
+    const locationCount = [filters.laboratoryName, filters.fieldName, filters.wellNumber, filters.waterSource, filters.dateFrom, filters.dateTo].filter(Boolean).length;
+    const testParamsCount = [filters.fluidType, filters.instrumentType, filters.geometry, filters.testCategory, filters.testType, filters.operatorName].filter(Boolean).length;
+    const rangeCount = [filters.durationMin, filters.durationMax, filters.tempMin, filters.tempMax, filters.viscosityMin, filters.viscosityMax, filters.viscosityThreshold, filters.hasCrossing, filters.crossingTimeMin, filters.crossingTimeMax, filters.viscosityAtTargetMin, filters.viscosityAtTargetMax].filter(Boolean).length;
+    const qaCount = [filters.batchNumber].filter(Boolean).length + filters.reagentNames.length;
+
     return (
         <div data-testid="ExperimentFiltersPanel" className="bg-secondary/50 rounded-xl border border-border p-3 sticky top-24 overflow-y-auto max-h-[calc(100vh-7rem)] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700">
             {metadataError && (
@@ -189,7 +254,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                     <span>⚠</span> {metadataError}
                 </div>
             )}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                     <Filter className="w-4 h-4 text-blue-400" />
                     Фильтры
@@ -207,17 +272,31 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                 </button>
             </div>
 
-            <div className="space-y-4">
+            {/* ── 1. Поиск (always open) ─────────────────────────── */}
+            <FilterGroup
+                title="Поиск"
+                icon={<SearchIcon className="w-3.5 h-3.5" />}
+                defaultOpen
+                activeCount={searchCount}
+            >
                 <TextFilter label="Общий поиск" value={filters.searchQuery}
                     onChange={v => handleChange('searchQuery', v)} placeholder="Имя, файл, реагент..." showSearch testId="ExperimentSearchInput" />
-
                 <TextFilter label="Название теста" value={filters.testName}
                     onChange={v => handleChange('testName', v)} placeholder="Название эксперимента..." testId="ExperimentNameFilterInput" />
+            </FilterGroup>
+
+            {/* ── 2. Локация и объект ──────────────────────────── */}
+            <FilterGroup
+                title="Локация и объект"
+                icon={<MapPin className="w-3.5 h-3.5" />}
+                activeCount={locationCount}
+            >
+                <RangeFilter label="Дата теста" minValue={filters.dateFrom} maxValue={filters.dateTo}
+                    onMinChange={v => handleChange('dateFrom', v)} onMaxChange={v => handleChange('dateTo', v)} type="date" />
 
                 <TextFilter label="Лаборатория" value={filters.laboratoryName}
                     onChange={v => handleChange('laboratoryName', v)} placeholder="Название лаб..." testId="ExperimentLaboratoryFilterInput" />
 
-                {/* Месторождение — combobox with static + DB-loaded suggestions */}
                 <div className="space-y-2">
                     <label className="text-xs text-muted-foreground block">Месторождение</label>
                     <FieldCombobox
@@ -230,9 +309,6 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                     />
                 </div>
 
-                <TextFilter label="Оператор" value={filters.operatorName}
-                    onChange={v => handleChange('operatorName', v)} placeholder="Фамилия..." testId="ExperimentOperatorFilterInput" />
-
                 <TextFilter label="Скважина / Куст" value={filters.wellNumber}
                     onChange={v => handleChange('wellNumber', v)} placeholder="Номер скважины..." testId="ExperimentWellFilterInput" />
 
@@ -243,6 +319,16 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                         : 'Источник воды...'}
                     testId="ExperimentWaterFilterInput"
                 />
+            </FilterGroup>
+
+            {/* ── 3. Параметры теста ──────────────────────────── */}
+            <FilterGroup
+                title="Параметры теста"
+                icon={<FlaskConical className="w-3.5 h-3.5" />}
+                activeCount={testParamsCount}
+            >
+                <TextFilter label="Оператор" value={filters.operatorName}
+                    onChange={v => handleChange('operatorName', v)} placeholder="Фамилия..." testId="ExperimentOperatorFilterInput" />
 
                 <SelectFilter label="Тип жидкости" value={filters.fluidType}
                     onChange={v => handleChange('fluidType', v)} options={fluidOptions} testId="FluidTypeFilterSelect" />
@@ -259,50 +345,148 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                     borderColor="emerald"
                 />
 
-                {/* Тип эксперимента (категория + метод) */}
-                <div className="pt-4 border-t border-border space-y-4">
-                    <SelectFilter
-                        label="Категория теста"
-                        value={filters.testCategory}
-                        onChange={v => {
-                            // When category changes, reset testType if it doesn't belong to the new category
-                            const newFilters = { ...filters, testCategory: v };
-                            if (v && filters.testType) {
-                                const byCategory = TEST_TYPES_BY_CATEGORY[v as TestCategory];
-                                if (byCategory && !(byCategory as readonly string[]).includes(filters.testType)) {
-                                    newFilters.testType = '';
-                                }
+                <SelectFilter
+                    label="Категория теста"
+                    value={filters.testCategory}
+                    onChange={v => {
+                        const newFilters = { ...filters, testCategory: v };
+                        if (v && filters.testType) {
+                            const byCategory = TEST_TYPES_BY_CATEGORY[v as TestCategory];
+                            if (byCategory && !(byCategory as readonly string[]).includes(filters.testType)) {
+                                newFilters.testType = '';
                             }
-                            onChange(newFilters);
-                        }}
-                        options={testCategoryOptions}
-                        testId="TestCategoryFilterSelect"
+                        }
+                        onChange(newFilters);
+                    }}
+                    options={testCategoryOptions}
+                    testId="TestCategoryFilterSelect"
+                />
+
+                <SelectFilter
+                    label="Тип испытания"
+                    value={filters.testType}
+                    onChange={v => handleChange('testType', v)}
+                    options={testTypeOptions}
+                    testId="TestTypeFilterSelect"
+                />
+            </FilterGroup>
+
+            {/* ── 4. Диапазоны ────────────────────────────────── */}
+            <FilterGroup
+                title="Диапазоны"
+                icon={<CalendarDays className="w-3.5 h-3.5" />}
+                activeCount={rangeCount}
+            >
+                <RangeFilter label="Длительность (мин)" minValue={filters.durationMin} maxValue={filters.durationMax}
+                    onMinChange={v => handleChange('durationMin', v)} onMaxChange={v => handleChange('durationMax', v)} />
+
+                <RangeFilter label="Температура (°C)" minValue={filters.tempMin} maxValue={filters.tempMax}
+                    onMinChange={v => handleChange('tempMin', v)} onMaxChange={v => handleChange('tempMax', v)} />
+
+                <RangeFilter label="Вязкость (сП)" minValue={filters.viscosityMin} maxValue={filters.viscosityMax}
+                    onMinChange={v => handleChange('viscosityMin', v)} onMaxChange={v => handleChange('viscosityMax', v)} />
+
+                {/* Touch-point sub-section inside Диапазоны */}
+                <div data-testid="TouchPointFiltersSection" className="pt-3 border-t border-border/40 space-y-3">
+                    <div className="flex items-center gap-1.5 text-xs text-cyan-400 font-medium">
+                        <Waypoints className="w-3.5 h-3.5" />
+                        <span>Точка касания</span>
+                    </div>
+                    <p className="text-[10px] leading-snug text-muted-foreground">
+                        Момент падения вязкости ниже выбранного порога (распад
+                        геля). Целевое время — 10 мин.
+                    </p>
+
+                    <ViscosityThresholdSelector
+                        value={filters.viscosityThreshold}
+                        onChange={handleThresholdChange}
                     />
 
-                    <SelectFilter
-                        label="Тип испытания"
-                        value={filters.testType}
-                        onChange={v => handleChange('testType', v)}
-                        options={testTypeOptions}
-                        testId="TestTypeFilterSelect"
-                    />
+                    {isTouchPointFilterActive && (
+                        <div data-testid="TouchPointSubfilters" className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={toggleHasCrossing}
+                                    id="has-crossing-toggle"
+                                    role="switch"
+                                    aria-checked={isHasCrossingOn}
+                                    aria-label={`Только достигшие порога ${thresholdLabel}`}
+                                    data-testid="HasCrossingFilterToggle"
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+                                        isHasCrossingOn ? 'bg-cyan-600' : 'bg-secondary'
+                                    }`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                                            isHasCrossingOn ? 'translate-x-4' : 'translate-x-0'
+                                        }`}
+                                    />
+                                </button>
+                                <label
+                                    htmlFor="has-crossing-toggle"
+                                    className="text-xs text-muted-foreground cursor-pointer select-none"
+                                >
+                                    Только достигшие порога {thresholdLabel}
+                                </label>
+                            </div>
+                            {hasCrossingHint && (
+                                <p
+                                    data-testid="HasCrossingCoverageHint"
+                                    className="text-[10px] leading-snug text-muted-foreground -mt-1"
+                                >
+                                    {hasCrossingHint}
+                                </p>
+                            )}
+
+                            <RangeFilter
+                                label="Время касания (мин)"
+                                minValue={filters.crossingTimeMin}
+                                maxValue={filters.crossingTimeMax}
+                                onMinChange={v => handleChange('crossingTimeMin', v)}
+                                onMaxChange={v => handleChange('crossingTimeMax', v)}
+                                minTestId="CrossingTimeMinInput"
+                                maxTestId="CrossingTimeMaxInput"
+                                hint={crossingTimeHintText}
+                                hintTestId="CrossingTimeRangeHint"
+                            />
+
+                            <RangeFilter
+                                label="Вязкость на 10 мин (сП)"
+                                minValue={filters.viscosityAtTargetMin}
+                                maxValue={filters.viscosityAtTargetMax}
+                                onMinChange={v => handleChange('viscosityAtTargetMin', v)}
+                                onMaxChange={v => handleChange('viscosityAtTargetMax', v)}
+                                minTestId="ViscosityAtTargetMinInput"
+                                maxTestId="ViscosityAtTargetMaxInput"
+                                hint={viscosityAtTargetHintText}
+                                hintTestId="ViscosityAtTargetRangeHint"
+                            />
+                        </div>
+                    )}
                 </div>
+            </FilterGroup>
 
-                {/* QA Search Section */}
-                <div className="pt-4 border-t border-border space-y-2">
-                    <label className="block text-xs text-purple-400 font-medium">QA Поиск по партии</label>
+            {/* ── 5. QA / Реагенты ────────────────────────────── */}
+            <FilterGroup
+                title="QA / Реагенты"
+                icon={<Beaker className="w-3.5 h-3.5" />}
+                activeCount={qaCount}
+            >
+                <div className="space-y-2">
+                    <label className="block text-xs text-purple-400 font-medium">Партия реагента</label>
                     <Input
                         type="text"
                         value={filters.batchNumber}
                         onChange={e => handleChange('batchNumber', e.target.value)}
                         data-testid="BatchNumberFilterInput"
                         className="bg-card border-purple-500/30 text-foreground focus-visible:ring-purple-500"
-                        placeholder="№ партии реагента..."
+                        placeholder="№ партии..."
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-purple-400 mb-1 font-medium">QA Поиск по реагенту</label>
+                    <label className="block text-xs text-purple-400 mb-1 font-medium">Реагент</label>
                     {filters.reagentNames.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                             {filters.reagentNames.map(name => (
@@ -329,20 +513,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                         placeholder={filters.reagentNames.length > 0 ? 'Добавить ещё...' : 'Выберите реагент...'}
                     />
                 </div>
-            </div>
-
-            {/* Range Filters */}
-            <RangeFilter label="Дата теста" minValue={filters.dateFrom} maxValue={filters.dateTo}
-                onMinChange={v => handleChange('dateFrom', v)} onMaxChange={v => handleChange('dateTo', v)} type="date" />
-
-            <RangeFilter label="Длительность (мин)" minValue={filters.durationMin} maxValue={filters.durationMax}
-                onMinChange={v => handleChange('durationMin', v)} onMaxChange={v => handleChange('durationMax', v)} />
-
-            <RangeFilter label="Температура (°C)" minValue={filters.tempMin} maxValue={filters.tempMax}
-                onMinChange={v => handleChange('tempMin', v)} onMaxChange={v => handleChange('tempMax', v)} />
-
-            <RangeFilter label="Вязкость (сП)" minValue={filters.viscosityMin} maxValue={filters.viscosityMax}
-                onMinChange={v => handleChange('viscosityMin', v)} onMaxChange={v => handleChange('viscosityMax', v)} />
+            </FilterGroup>
         </div>
     );
 }

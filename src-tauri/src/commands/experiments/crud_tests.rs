@@ -314,3 +314,204 @@ fn load_missing_experiment_returns_none() {
     let result = load_experiment_by_id(&conn, "no_such_id");
     assert!(matches!(result, Ok(None)), "missing experiment must return Ok(None)");
 }
+
+// ── Touch-point precompute (PR2 Phase B) ─────────────────────────────────
+
+/// Build a StoredExperiment whose raw_points form a declining curve that
+/// crosses the library 50 cP threshold around minute 8 at a constant
+/// shear rate of 511 s⁻¹.  Every field other than raw_points follows
+/// `make_experiment`, so this helper is a tight superset.
+fn make_experiment_with_crossing(id: &str) -> StoredExperiment {
+    let mut exp = make_experiment(id);
+    // 0..12 min, 1 s step, linear 200 → 10 cP at 511 s⁻¹.
+    exp.raw_points = (0..=720)
+        .map(|i| {
+            let t = i as f64;
+            let frac = (i as f64) / 720.0;
+            let visc = 200.0 + (10.0 - 200.0) * frac;
+            json!({
+                "timeSec": t,
+                "viscosityCp": visc,
+                "shearRate": 511.0,
+                "temperatureC": 70.0,
+            })
+        })
+        .collect();
+    exp
+}
+
+fn read_touch_columns(
+    conn: &Connection,
+    id: &str,
+) -> (Option<i64>, Option<f64>, Option<f64>, Option<f64>, Option<i64>) {
+    conn.query_row(
+        "SELECT touchHasCrossing, touchCrossingTimeMin, touchCrossingViscosityCp, \
+                touchViscosityAtTargetCp, touchPrecomputeVersion \
+         FROM Experiment WHERE id = ?1",
+        rusqlite::params![id],
+        |row| {
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+            ))
+        },
+    )
+    .unwrap()
+}
+
+/// PR2 Phase B: save-path must populate all five touch-point columns
+/// under the fixed library contract (50 cP / 10 min).
+#[test]
+fn persist_writes_touch_point_columns_for_crossing() {
+    let conn = open_db();
+    let exp = make_experiment_with_crossing("tp_cross_001");
+    persist_experiment(&conn, &exp).unwrap();
+
+    let (has, t_cross, v_cross, v_target, version) =
+        read_touch_columns(&conn, "tp_cross_001");
+
+    assert_eq!(has, Some(1), "linear decline to 10 cP must yield has_crossing = 1");
+    let t = t_cross.expect("crossing time must be written");
+    assert!(
+        (6.0..=10.0).contains(&t),
+        "crossing time must land inside the declining window, got {t}"
+    );
+    let v = v_cross.expect("crossing viscosity must be written");
+    assert!(v > 30.0 && v < 80.0, "crossing viscosity near 50 cP, got {v}");
+    let vt = v_target.expect("target-time viscosity must be written");
+    assert!(
+        vt > 20.0 && vt < 80.0,
+        "target-time viscosity should land near the threshold for this curve, got {vt}"
+    );
+    assert_eq!(
+        version,
+        Some(crate::db::touch_point_precompute::TOUCH_PRECOMPUTE_VERSION),
+        "precompute version tag must be stamped on every save"
+    );
+}
+
+/// Save-path still stamps `touchPrecomputeVersion` even when no crossing
+/// exists, so startup backfill never re-processes the row.
+#[test]
+fn persist_flat_curve_records_precompute_version_without_crossing() {
+    let conn = open_db();
+    let mut exp = make_experiment("tp_flat_001");
+    exp.raw_points = (0..=72)
+        .map(|i| {
+            json!({
+                "timeSec": (i as f64) * 10.0,
+                "viscosityCp": 120.0,
+                "shearRate": 511.0,
+                "temperatureC": 70.0,
+            })
+        })
+        .collect();
+    persist_experiment(&conn, &exp).unwrap();
+
+    let (has, t_cross, v_cross, v_target, version) =
+        read_touch_columns(&conn, "tp_flat_001");
+    assert_eq!(has, Some(0), "flat 120 cP curve must not cross 50 cP");
+    assert!(t_cross.is_none());
+    assert!(v_cross.is_none());
+    assert!(
+        v_target.is_some(),
+        "target-time viscosity must still be written for a flat curve past 10 min"
+    );
+    assert_eq!(
+        version,
+        Some(crate::db::touch_point_precompute::TOUCH_PRECOMPUTE_VERSION)
+    );
+}
+
+/// Re-saving an experiment (UPDATE path) must refresh the precomputed
+/// touch-point values rather than leaving stale ones from the previous
+/// version.
+#[test]
+fn resave_refreshes_touch_point_columns() {
+    let conn = open_db();
+
+    // First save — flat curve, no crossing.
+    let mut exp = make_experiment("tp_resave_001");
+    exp.raw_points = (0..=72)
+        .map(|i| {
+            json!({
+                "timeSec": (i as f64) * 10.0,
+                "viscosityCp": 200.0,
+                "shearRate": 511.0,
+                "temperatureC": 70.0,
+            })
+        })
+        .collect();
+    persist_experiment(&conn, &exp).unwrap();
+    assert_eq!(read_touch_columns(&conn, "tp_resave_001").0, Some(0));
+
+    // Re-save with a declining curve that DOES cross 50 cP.
+    let exp2 = make_experiment_with_crossing("tp_resave_001");
+    persist_experiment(&conn, &exp2).unwrap();
+    let (has, t_cross, _, _, _) = read_touch_columns(&conn, "tp_resave_001");
+    assert_eq!(has, Some(1), "re-save with declining curve must flip has_crossing");
+    assert!(t_cross.is_some());
+}
+
+/// Backfill path: rows persisted before v0002 (and therefore with
+/// `touchPrecomputeVersion IS NULL`) get picked up on the next run.
+#[test]
+fn backfill_fills_legacy_rows_with_null_precompute_version() {
+    let conn = open_db();
+
+    // Seed a real experiment and then simulate a pre-v0002 / pre-v0003
+    // state by clearing both the legacy touch columns on `Experiment`
+    // AND the v0003 `TouchPointPrecompute` side table — the backfill
+    // task must rebuild everything from the columnar blob on its own.
+    let exp = make_experiment_with_crossing("tp_backfill_001");
+    persist_experiment(&conn, &exp).unwrap();
+    conn.execute(
+        "UPDATE Experiment SET touchHasCrossing = NULL, touchCrossingTimeMin = NULL, \
+         touchCrossingViscosityCp = NULL, touchViscosityAtTargetCp = NULL, \
+         touchPrecomputeVersion = NULL WHERE id = 'tp_backfill_001'",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "DELETE FROM TouchPointPrecompute WHERE experimentId = 'tp_backfill_001'",
+        [],
+    )
+    .unwrap();
+    assert_eq!(
+        read_touch_columns(&conn, "tp_backfill_001").4,
+        None,
+        "precondition: row must be in 'pending' state"
+    );
+
+    // Run the backfill task — should locate this row and recompute.
+    let stats = crate::db::touch_point_precompute::run_touch_point_backfill(&conn).unwrap();
+    assert!(stats.processed >= 1, "backfill must process the pending row");
+
+    let (has, t_cross, _, _, version) = read_touch_columns(&conn, "tp_backfill_001");
+    assert_eq!(has, Some(1), "declining curve must have a crossing after backfill");
+    assert!(t_cross.is_some(), "crossing time must be set after backfill");
+    assert_eq!(
+        version,
+        Some(crate::db::touch_point_precompute::TOUCH_PRECOMPUTE_VERSION),
+        "backfill must stamp the precompute version"
+    );
+}
+
+/// Backfill must skip rows that already carry a precompute version —
+/// running the task a second time on a settled DB must be a no-op.
+#[test]
+fn backfill_skips_already_precomputed_rows() {
+    let conn = open_db();
+    let exp = make_experiment_with_crossing("tp_settled_001");
+    persist_experiment(&conn, &exp).unwrap();
+
+    let stats = crate::db::touch_point_precompute::run_touch_point_backfill(&conn).unwrap();
+    assert_eq!(
+        stats.processed, 0,
+        "row already precomputed at save time — backfill must skip it"
+    );
+    assert!(!stats.has_more);
+}

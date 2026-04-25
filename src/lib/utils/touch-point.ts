@@ -25,6 +25,16 @@ export interface TouchPointResult {
     time: number;
     viscosity: number;
     type: 'threshold' | 'target';
+    /**
+     * Optional hint for UI / reporting tooling when the raw algorithm
+     * output passes through a discontinuity in the underlying curve.
+     * Currently populated only for `type='target'` when the two points
+     * surrounding `targetTime` belong to different shear-rate plateaus —
+     * in that case linear interpolation gives a physically meaningless
+     * value, so the algorithm falls back to the nearest raw data point
+     * and flags the marker so the UI can draw a subtle warning glyph.
+     */
+    anomaly?: 'shear-rate-jump';
 }
 
 export interface SmartTouchPointOptions {
@@ -56,6 +66,15 @@ const MIN_DECLINING_WINDOWS = 2;
 /** Step size for sliding window (fraction of window) */
 const WINDOW_STEP_FRACTION = 0.5;
 /**
+ * Minimum *relative* drop between two consecutive sliding windows before
+ * the algorithm counts it as a decline.  Fixes BUG #7 from the audit:
+ * on noisy plateau data the old code treated even 0.01 % fluctuations as
+ * declines, which sometimes flagged the ramp-up itself as the peak.
+ * 1 % is conservative enough to filter noise but still detects every
+ * real peak observed in the fixture suite.
+ */
+const MIN_DECLINE_RATIO = 0.01;
+/**
  * Default time-based centred moving-average window (in minutes) applied to
  * viscosity before threshold comparison.  A time-based window gives consistent
  * behaviour regardless of sampling rate and handles long-period oscillations
@@ -71,66 +90,107 @@ const DEFAULT_SMOOTHING_WINDOW_MIN = 3.0;
 /**
  * Minimum number of consecutive *smoothed* viscosity values that must be
  * at-or-below the threshold before we accept the crossing as real.
- * Reduced from the previous value of 5 (with raw data) to 3, because the
- * smoothing pass already filters single-point noise.
+ *
+ * Since the audit, the confirmation window is expressed in SECONDS (see
+ * {@link MIN_CONSECUTIVE_BELOW_SECONDS}) and translated to points at
+ * runtime using the median sampling interval.  This legacy constant now
+ * only serves as the fallback when the sampling interval is unknown or
+ * zero (e.g. < 2 search points).
  */
 const MIN_CONSECUTIVE_BELOW = 3;
 /**
- * Number of smoothed data points to look back when verifying that a
- * threshold crossing is on a genuinely DESCENDING viscosity trend.
- * On the ascending recovery after a shear-rate ramp (e.g. 200→1000 cP)
- * smoothed values temporarily pass through the threshold from below —
- * these must be rejected.  With typical 2-second sampling this lookback
- * covers ~20 seconds, enough to distinguish ascending from descending.
+ * Time-based equivalent of {@link MIN_CONSECUTIVE_BELOW} (BUG #6 fix).
+ * 30 seconds of sustained below-threshold readings confirm a real
+ * crossing regardless of whether the logger samples every 1 s or every
+ * 60 s, making detection robust to sampling-rate changes.
+ */
+const MIN_CONSECUTIVE_BELOW_SECONDS = 30;
+/**
+ * Legacy point-based slope-guard lookback.  Retained only as a fallback
+ * when the median sampling interval cannot be determined — see
+ * {@link SLOPE_LOOKBACK_SECONDS} for the modern time-based value.
  */
 const SLOPE_LOOKBACK_POINTS = 10;
+/**
+ * Time-based slope-guard lookback (BUG #9 fix).  At 2 s sampling this
+ * resolves to ~15 points, at 60 s sampling to 1 point — both match the
+ * original algorithm's intent of looking ~30 s back into the smoothed
+ * curve to reject ascending-trend crossings reliably.
+ */
+const SLOPE_LOOKBACK_SECONDS = 30;
 
 // ─── Core algorithm ──────────────────────────────────────────────────────────
 
 /**
  * Determine the dominant (most frequent) shear rate in the dataset.
  *
- * Groups shear rates into buckets of ±tolerance and returns the centre of the
- * largest bucket.  Ignores zero / absent shear rates.
+ * For each observed rate `r` the function counts how many rates fall
+ * inside the **symmetric** window `[r·(1−t), r·(1+t)]` and returns the
+ * median of the largest such window.
+ *
+ * Why symmetric? The previous greedy implementation grew each cluster
+ * only UPWARDS from its start (bounded by `centre·(1+tolerance)`), which
+ * biased the choice of cluster centre and occasionally picked an outlier
+ * at the boundary between two real clusters — see BUG #8 in the audit.
+ * The new approach is O(n log n) (sort + two binary searches per centre)
+ * and symmetric around the probe rate, matching the physical intuition
+ * of a ±tolerance band.
+ *
+ * Ignores zero / absent shear rates.
  */
 export function findDominantShearRate(
     points: TouchPointInput[],
     tolerance: number = DEFAULT_SHEAR_RATE_TOLERANCE,
 ): number | null {
-    // Collect non-zero shear rates
     const rates: number[] = [];
     for (const p of points) {
         if (p.shear_rate > 0) rates.push(p.shear_rate);
     }
     if (rates.length === 0) return null;
 
-    // Sort ascending
     rates.sort((a, b) => a - b);
 
-    // Greedy clustering: walk sorted list, group values within ±tolerance of
-    // the cluster centre (first element of cluster).
-    let bestStart = 0;
-    let bestCount = 0;
-
-    let clusterStart = 0;
-    while (clusterStart < rates.length) {
-        const centre = rates[clusterStart];
-        const hi = centre * (1 + tolerance);
-        let clusterEnd = clusterStart;
-        while (clusterEnd < rates.length && rates[clusterEnd] <= hi) {
-            clusterEnd++;
+    // lower_bound: first index where arr[i] >= value
+    const lowerBound = (arr: number[], value: number) => {
+        let l = 0;
+        let r = arr.length;
+        while (l < r) {
+            const m = (l + r) >> 1;
+            if (arr[m] < value) l = m + 1;
+            else r = m;
         }
-        const count = clusterEnd - clusterStart;
+        return l;
+    };
+    // upper_bound: first index where arr[i] > value
+    const upperBound = (arr: number[], value: number) => {
+        let l = 0;
+        let r = arr.length;
+        while (l < r) {
+            const m = (l + r) >> 1;
+            if (arr[m] <= value) l = m + 1;
+            else r = m;
+        }
+        return l;
+    };
+
+    let bestCount = 0;
+    let bestCentre = rates[0];
+
+    for (let i = 0; i < rates.length; i++) {
+        const centre = rates[i];
+        const lo = centre * (1 - tolerance);
+        const hi = centre * (1 + tolerance);
+        const loIdx = lowerBound(rates, lo);
+        const hiIdx = upperBound(rates, hi);
+        const count = hiIdx - loIdx;
         if (count > bestCount) {
             bestCount = count;
-            bestStart = clusterStart;
+            // Median of the cluster is representative of the rate plateau
+            bestCentre = rates[loIdx + (count >> 1)];
         }
-        clusterStart = clusterEnd;
     }
 
-    // Return median of largest cluster as dominant rate
-    const clusterMid = bestStart + Math.floor(bestCount / 2);
-    return rates[clusterMid];
+    return bestCentre;
 }
 
 /**
@@ -224,7 +284,15 @@ export function findViscosityPeak(
             decliningCount = 0;
             continue;
         }
-        if (windows[i].avg < windows[i - 1].avg) {
+        // BUG #7: require at least MIN_DECLINE_RATIO (1 %) relative drop
+        // so that micro-oscillations of the sliding-window average on a
+        // noisy plateau are not counted as a genuine decline.  Zero-valued
+        // plateau averages (windows[i-1].avg = 0) are treated as equal to
+        // protect against divide-by-zero edge cases.
+        const prev = windows[i - 1].avg;
+        const curr = windows[i].avg;
+        const threshold = prev > 0 ? prev * (1 - MIN_DECLINE_RATIO) : prev;
+        if (curr < threshold) {
             decliningCount++;
             if (decliningCount >= MIN_DECLINING_WINDOWS) {
                 // Peak is at the window just before the decline started
@@ -240,6 +308,29 @@ export function findViscosityPeak(
     // In this case there's no "end of ramp-up", so we return null (search
     // from the beginning, using the classic behaviour).
     return null;
+}
+
+/**
+ * Filter out points whose `time_min` or `viscosity_cp` is NaN / ±Infinity
+ * (BUG #10 fix).  Such values sneak in from malformed source files, broken
+ * sensor channels, or division-by-zero in upstream unit conversions and
+ * poison every downstream statistic — sorts turn non-deterministic,
+ * medians pick the outlier, and the sliding-window loops can hang.
+ * Non-finite shear rates are clamped to 0 (which means "no rate info"
+ * for the clustering helper) instead of dropping the whole point.
+ */
+function sanitizeTouchPointInputs(points: TouchPointInput[]): TouchPointInput[] {
+    const clean: TouchPointInput[] = [];
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        if (!Number.isFinite(p.time_min) || !Number.isFinite(p.viscosity_cp)) continue;
+        if (Number.isFinite(p.shear_rate) && p.shear_rate >= 0) {
+            clean.push(p);
+        } else {
+            clean.push({ ...p, shear_rate: 0 });
+        }
+    }
+    return clean;
 }
 
 /**
@@ -262,15 +353,20 @@ export function calculateSmartTouchPoints(
 
     if (points.length === 0) return [];
 
+    // Drop NaN / ±Infinity points BEFORE any downstream statistic can
+    // pick them up — see {@link sanitizeTouchPointInputs}.
+    const cleanPoints = sanitizeTouchPointInputs(points);
+    if (cleanPoints.length === 0) return [];
+
     const results: TouchPointResult[] = [];
 
     // ── Step 1: determine dominant shear rate ────────────────────────────
-    const dominantRate = findDominantShearRate(points, shearRateTolerance);
+    const dominantRate = findDominantShearRate(cleanPoints, shearRateTolerance);
 
     // If no shear-rate data available, fall back: use all points
     const filtered = dominantRate != null
-        ? filterByShearRate(points, dominantRate, shearRateTolerance)
-        : points;
+        ? filterByShearRate(cleanPoints, dominantRate, shearRateTolerance)
+        : cleanPoints;
 
     if (filtered.length === 0) return [];
 
@@ -349,6 +445,27 @@ export function calculateSmartTouchPoints(
             ? Math.max(2, Math.round(halfWindow / medianInterval))
             : SLOPE_LOOKBACK_POINTS;
 
+        // ── BUG #6 & #9 fix: derive the confirmation window and the
+        // slope-guard lookback from absolute TIME on top of a minimum
+        // point-count floor.  Pure point-based thresholds misbehave at
+        // either sampling extreme (30-point confirmation = 30 s at 1 s
+        // sampling but 30 min at 60 s sampling).  Pure time-based ones
+        // collapse to 1–2 points on sparse data, which is too lax —
+        // transient 1-point dips become false crossings.
+        // Formula: requiredBelow = max(legacy point-floor, ceil(seconds /
+        // medianIntervalSec)).  At dense sampling the seconds budget
+        // dominates (30 pts at 1 s sampling ≈ 30 s); at sparse sampling
+        // the 3-point floor dominates (3 min at 60 s sampling).
+        const medianIntervalMin = medianInterval; // already minutes
+        const MIN_BELOW_MIN = MIN_CONSECUTIVE_BELOW_SECONDS / 60;
+        const SLOPE_LOOKBACK_MIN = SLOPE_LOOKBACK_SECONDS / 60;
+        const requiredBelow = medianIntervalMin > 0
+            ? Math.max(MIN_CONSECUTIVE_BELOW, Math.ceil(MIN_BELOW_MIN / medianIntervalMin))
+            : MIN_CONSECUTIVE_BELOW;
+        const slopeLookbackPoints = medianIntervalMin > 0
+            ? Math.max(SLOPE_LOOKBACK_POINTS, Math.ceil(SLOPE_LOOKBACK_MIN / medianIntervalMin))
+            : SLOPE_LOOKBACK_POINTS;
+
         let runStart = -1;  // index where the current below-threshold run began
         let runLength = 0;
 
@@ -357,14 +474,14 @@ export function calculateSmartTouchPoints(
                 if (runLength === 0) runStart = i;
                 runLength++;
 
-                if (runLength >= MIN_CONSECUTIVE_BELOW) {
+                if (runLength >= requiredBelow) {
                     // ── Slope guard: accept only DESCENDING-trend crossings ──
                     // Walk backwards from runStart checking for time gaps.
                     // Cover both the slope lookback range AND the smoothing
                     // half-window in points so the smoothed value at the
                     // lookback index is guaranteed gap-free.
                     if (runStart > 0) {
-                        const totalLookback = SLOPE_LOOKBACK_POINTS + smoothingHalfPoints;
+                        const totalLookback = slopeLookbackPoints + smoothingHalfPoints;
                         let walkIdx = runStart;
                         let gapFound = false;
                         for (let k = 0; k < totalLookback && walkIdx > 0; k++) {
@@ -380,7 +497,7 @@ export function calculateSmartTouchPoints(
                         }
 
                         // No gap — smoothed values are clean.  Check slope.
-                        const effectiveLookback = Math.min(runStart, SLOPE_LOOKBACK_POINTS);
+                        const effectiveLookback = Math.min(runStart, slopeLookbackPoints);
                         if (smoothed[runStart] > smoothed[runStart - effectiveLookback]) {
                             // Viscosity is RISING into this crossing — reject it
                             runLength = 0;
@@ -389,13 +506,14 @@ export function calculateSmartTouchPoints(
                     }
 
                     // Confirmed sustained crossing on descending trend.
-                    // Find the first RAW point at-or-below threshold in the run.
+                    // Walk BACKWARD from runStart to find where the RAW data
+                    // actually first crossed below the threshold.  Smoothed
+                    // detection confirmed the crossing is genuine (not noise);
+                    // the marker should sit at the actual raw crossing, not at
+                    // the delayed smoothed-curve crossing.
                     let firstIdx = runStart;
-                    for (let j = runStart; j <= i; j++) {
-                        if (searchPoints[j].viscosity_cp <= viscosityThreshold) {
-                            firstIdx = j;
-                            break;
-                        }
+                    while (firstIdx > 0 && searchPoints[firstIdx - 1].viscosity_cp <= viscosityThreshold) {
+                        firstIdx--;
                     }
 
                     const first = searchPoints[firstIdx];
@@ -417,26 +535,64 @@ export function calculateSmartTouchPoints(
     // shear-rate-filtered points, which gave wrong results for SST experiments
     // where different shear-rate phases alternate — the filtered set would skip
     // the phase the experiment is actually in at `targetTime`.
+    //
+    // Shear-rate-jump guard (BUG #4 from the audit): when the two points
+    // bracketing `targetTime` belong to different shear-rate plateaus
+    // (rel. difference > SHEAR_RATE_JUMP_RATIO), linear interpolation
+    // between them produces a viscosity value that doesn't exist on the
+    // rendered curve — the line effectively jumps vertically at the
+    // boundary.  In that case we snap the marker to the *nearest* raw
+    // data point and flag it with `anomaly='shear-rate-jump'` so callers
+    // can surface the caveat in the UI / report.
     if (showTargetTime) {
-        let targetTimeFound = false;
-        for (let i = 0; i < points.length; i++) {
-            const p = points[i];
-            if (!targetTimeFound && p.time_min >= targetTime) {
-                targetTimeFound = true;
+        for (let i = 0; i < cleanPoints.length; i++) {
+            const p = cleanPoints[i];
+            if (p.time_min >= targetTime) {
                 let exactViscosity = p.viscosity_cp;
+                let exactTime = targetTime;
+                let anomaly: TouchPointResult['anomaly'] | undefined;
+
                 if (i > 0 && p.time_min > targetTime) {
-                    const prev = points[i - 1];
+                    const prev = cleanPoints[i - 1];
                     const dt = p.time_min - prev.time_min;
-                    if (Math.abs(dt) > 0.001) {
+                    const jump = isShearRateJump(prev.shear_rate, p.shear_rate);
+                    if (jump) {
+                        // Pick the neighbour closest to `targetTime` in time
+                        // and anchor the marker there rather than at an
+                        // interpolated y-value that sits in the vertical gap.
+                        const pickPrev = Math.abs(targetTime - prev.time_min)
+                            <= Math.abs(p.time_min - targetTime);
+                        const chosen = pickPrev ? prev : p;
+                        exactTime = chosen.time_min;
+                        exactViscosity = chosen.viscosity_cp;
+                        anomaly = 'shear-rate-jump';
+                    } else if (Math.abs(dt) > 0.001) {
                         const fraction = (targetTime - prev.time_min) / dt;
                         exactViscosity = prev.viscosity_cp + fraction * (p.viscosity_cp - prev.viscosity_cp);
                     }
                 }
-                results.push({ time: targetTime, viscosity: exactViscosity, type: 'target' });
+                const res: TouchPointResult = { time: exactTime, viscosity: exactViscosity, type: 'target' };
+                if (anomaly) res.anomaly = anomaly;
+                results.push(res);
                 break;
             }
         }
     }
 
     return results;
+}
+
+/**
+ * Relative shear-rate jump threshold (5 %) used by the target-time
+ * interpolation guard.  Two consecutive points whose shear rates differ
+ * by more than this ratio are considered to straddle a ramp boundary
+ * rather than share the same plateau — linear interpolation across such
+ * a boundary gives a physically meaningless viscosity.
+ */
+const SHEAR_RATE_JUMP_RATIO = 0.05;
+
+function isShearRateJump(a: number, b: number): boolean {
+    if (a <= 0 || b <= 0) return false; // missing rate → skip guard
+    const denom = Math.max(Math.abs(a), Math.abs(b));
+    return Math.abs(a - b) / denom > SHEAR_RATE_JUMP_RATIO;
 }

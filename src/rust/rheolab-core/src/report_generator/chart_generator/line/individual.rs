@@ -70,12 +70,21 @@ pub(super) fn render(
         color_hex: rgb_str(styles.viscosity.color),
     });
 
-    // Temperature axis: right. Covers both temperature and bath_temperature — they share
-    // the same °C scale. The axis appears whenever either series is visible.
+    // Temperature axis: right. Covers both temperature and bath_temperature
+    // — they share the same °C scale. The `metric` tag picks which title
+    // the Typst overlay prints above the axis column:
+    //   "temperature"          → "Температура (°C)"               (sample only)
+    //   "bath_temperature"     → "Темп. бани (°C)"                 (bath only)
+    //   "temperature_and_bath" → "Темп. образца / Темп. бани (°C)" (both)
     if (config.show_temperature || config.show_bath_temperature) && !temp_and_bt_vals.is_empty() {
+        let metric_tag = match (config.show_temperature, config.show_bath_temperature) {
+            (true, true)  => "temperature_and_bath",
+            (false, true) => "bath_temperature",
+            _             => "temperature",
+        };
         right_axes.push(IndividualAxisInfo {
             min: temp_min, max: temp_max, step: temp_step, minor_step: temp_minor,
-            metric: "temperature".to_string(), side: "right".to_string(), side_idx: 0,
+            metric: metric_tag.to_string(), side: "right".to_string(), side_idx: 0,
             color_hex: rgb_str(styles.temperature.color),
         });
     }
@@ -267,7 +276,12 @@ pub(super) fn render(
             draw_series(&d, temp_min, temp_max, styles.bath_temperature.color, styles.bath_temperature.width, &styles.bath_temperature.style.clone());
         }
 
-        // Touch points — circle markers + labels (individual mode)
+        // Touch points — circle markers + labels (individual mode).
+        //
+        // Marker uses the touch-point's configured colour; the numeric
+        // **label is always black** for readability (matches the shared
+        // branch in `shared.rs` and the user's requirement "цифры точек
+        // касания чёрным цветом").
         for tp in &config.touch_points {
             let px = px_x(tp.time);
             let py = px_y(tp.viscosity, visc_min, visc_max);
@@ -276,7 +290,8 @@ pub(super) fn render(
             {
                 root.draw(&Circle::new((px, py), 5, tp.color.filled())).ok();
                 root.draw(&Circle::new((px, py), 5, WHITE.stroke_width(1))).ok();
-                let label_style = TextStyle::from(("sans-serif", 10).into_font().color(&tp.color))
+                let label_color = RGBColor(0, 0, 0);
+                let label_style = TextStyle::from(("sans-serif", 10).into_font().color(&label_color))
                     .pos(Pos::new(HPos::Center, VPos::Bottom));
                 root.draw_text(&tp.label, &label_style, (px, py - 7)).ok();
             }

@@ -10,6 +10,9 @@
 //! [`super::common`].
 mod shared;
 mod individual;
+pub mod multi_experiment;
+
+pub use multi_experiment::{generate_multi_experiment_chart_svg, ExperimentSeries};
 
 use super::common::*;
 

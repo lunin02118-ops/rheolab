@@ -1,11 +1,15 @@
 pub mod error;
 pub mod r#trait;
 pub mod v0001_initial;
+pub mod v0002_touch_point_metrics;
+pub mod v0003_multi_threshold_touch_point;
 
 pub use error::MigrationError;
 pub use r#trait::Migration;
 
 use v0001_initial::V0001Initial;
+use v0002_touch_point_metrics::V0002TouchPointMetrics;
+use v0003_multi_threshold_touch_point::V0003MultiThresholdTouchPoint;
 
 /// Ordered registry of all schema migrations, applied oldest-first on startup.
 ///
@@ -16,7 +20,11 @@ use v0001_initial::V0001Initial;
 /// 4. Bump `CURRENT_SCHEMA_VERSION` in `db/migration.rs` to match the new
 ///    trailing version. Tests enforce `latest_registered_version()` equals
 ///    `CURRENT_SCHEMA_VERSION`.
-pub static MIGRATIONS: &[&dyn Migration] = &[&V0001Initial];
+pub static MIGRATIONS: &[&dyn Migration] = &[
+    &V0001Initial,
+    &V0002TouchPointMetrics,
+    &V0003MultiThresholdTouchPoint,
+];
 
 /// Returns the version of the last registered migration, or `0` if the
 /// registry is empty (should never happen in release builds).

@@ -12,10 +12,22 @@ pub struct TouchPointInput {
     pub shear_rate: f64, // 0.0 means absent
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TouchPointType {
     Threshold,
     Target,
+}
+
+/// Optional hint describing why a touch-point coordinate was adjusted.
+/// Mirrors the TS `TouchPointResult.anomaly` string literal union so the
+/// 1:1 parity between frontend and report generator is preserved.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TouchPointAnomaly {
+    /// `target`-type only: the two points bracketing `targetTime` belong
+    /// to different shear-rate plateaus, so the algorithm anchored the
+    /// marker to the nearest raw data point instead of interpolating
+    /// across the vertical jump.
+    ShearRateJump,
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +35,9 @@ pub struct TouchPointResult {
     pub time: f64,
     pub viscosity: f64,
     pub tp_type: TouchPointType,
+    /// Set only when the algorithm had to work around a curve
+    /// discontinuity; `None` for the common case.
+    pub anomaly: Option<TouchPointAnomaly>,
 }
 
 pub struct SmartTouchPointOptions {

@@ -8,10 +8,7 @@ use tauri::State;
 use uuid::Uuid;
 
 use super::types::*;
-
-fn now_rfc3339() -> String {
-    chrono::Utc::now().to_rfc3339()
-}
+use crate::utils::time::now_rfc3339;
 
 fn get_operator(conn: &rusqlite::Connection, id: &str) -> Result<Option<StoredOperator>> {
     conn.query_row(

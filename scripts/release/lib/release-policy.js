@@ -10,10 +10,17 @@ const UPDATER_PUBKEY_PLACEHOLDERS = [
   'CHANGEME',
 ];
 
+// Default release channel when neither `--channel` nor `RHEOLAB_RELEASE_CHANNEL`
+// is provided.  Set to `alpha` so that any unqualified build lands on the
+// owner's personal tier first and is never accidentally pushed to external
+// users.  Promotion to `beta` or `stable` is an explicit, deliberate action
+// (pass `--channel beta` / `--channel stable`).
+const DEFAULT_RELEASE_CHANNEL = 'alpha';
+
 function resolveReleaseChannel(argv, envChannel) {
   const channelFlagIndex = argv.findIndex((arg) => arg === '--channel');
   const channelFlagValue = channelFlagIndex >= 0 ? argv[channelFlagIndex + 1] : undefined;
-  const resolved = (channelFlagValue || envChannel || 'stable').toLowerCase();
+  const resolved = (channelFlagValue || envChannel || DEFAULT_RELEASE_CHANNEL).toLowerCase();
 
   if (!RELEASE_CHANNELS.has(resolved)) {
     throw new Error(
@@ -146,6 +153,7 @@ function formatUpdaterIssues(issues) {
 
 module.exports = {
   RELEASE_CHANNELS,
+  DEFAULT_RELEASE_CHANNEL,
   resolveReleaseChannel,
   shouldRequireSignedArtifacts,
   shouldRequireUpdaterPubkey,

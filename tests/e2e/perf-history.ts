@@ -43,6 +43,13 @@ export interface PerfEntry {
         baselineHeapMb: number;
         finalHeapMb: number;
     };
+    /** Report generation timing (optional — added in v0.2.0-beta) */
+    reportGeneration?: Array<{
+        type: string;
+        wallMs: number;
+        sizeBytes: number;
+        heapDeltaMb: number;
+    }>;
 }
 
 /** Append a single entry as a JSON line. */
@@ -141,6 +148,23 @@ export function printComparison(current: PerfEntry, history: PerfEntry[]): void 
             console.log(
                 `│  ${pad(e.version, 20)} ${pad(num(e.navLeak.slopeMbPerCycle, 3), 10)} ${pad(num(e.navLeak.peakHeapMb), 10)} ${pad(num(chandler?.analysisMs ?? null, 0), 12)}`
             );
+        }
+    }
+
+    // Report generation
+    if (current.reportGeneration && current.reportGeneration.length > 0) {
+        console.log('│');
+        console.log('│  REPORT GENERATION:');
+        console.log(`│  ${pad('Type', 28)} ${pad('Wall ms', 10)} ${pad('Prev', 10)} ${pad('Delta', 20)} ${pad('Size KB', 10)}`);
+        for (const cr of current.reportGeneration) {
+            const pr = prev.reportGeneration?.find(r => r.type === cr.type);
+            if (pr) {
+                console.log(
+                    `│  ${pad(cr.type, 28)} ${pad(num(cr.wallMs, 0), 10)} ${pad(num(pr.wallMs, 0), 10)} ${pad(delta(cr.wallMs, pr.wallMs), 20)} ${pad(num(cr.sizeBytes / 1024, 1), 10)}`
+                );
+            } else {
+                console.log(`│  ${pad(cr.type, 28)} ${pad(num(cr.wallMs, 0), 10)} (new)       ${pad(num(cr.sizeBytes / 1024, 1), 10)}`);
+            }
         }
     }
 

@@ -1,7 +1,7 @@
 use chrono::Utc;
 use serde_json::Value;
 
-use super::super::crypto::{delete_system_state, get_system_state, upsert_system_state, verify_server_signature, verify_signature};
+use super::super::crypto::{delete_system_state, get_system_state, sign_data, upsert_system_state, verify_server_signature, verify_signature};
 use super::super::features::{expired_features, features_for_type};
 use super::super::online::{migrate_machine_online, validate_online};
 use super::super::security::{is_clock_tampered, is_offline_overdue};
@@ -24,6 +24,15 @@ impl LicenseEngine {
     ///    Requires `signedPayload` + `serverSignature` to be present in the
     ///    stored record.  Records without these fields are rejected — the
     ///    time-limited legacy grace period has been closed (S-2).
+    ///
+    /// Automatic HMAC-rescue (S-3): when the HMAC check fails but the RSA
+    /// proof is intact, the record is re-signed under the current
+    /// `INTEGRITY_SECRET_KEY` instead of being discarded.  This covers the
+    /// real-world case where the build-time integrity key rotated between
+    /// releases — RSA is the authoritative server-side proof, HMAC is only
+    /// a local tamper-detection layer, so as long as RSA verifies the
+    /// payload the record is trustworthy.  Without RSA proof we cannot
+    /// distinguish a stale-key record from a forged one and still reject.
     pub(super) fn load_verified_license(
         &self,
         conn: &rusqlite::Connection,
@@ -36,12 +45,11 @@ impl LicenseEngine {
                 return None;
             }
         };
-        if !verify_signature(&value, &signature) {
-            self.diag("load_verified_license: HMAC FAILED — DB record tampered or key changed");
-            return None;
-        }
 
-        // Level 2: RSA server-signature verification
+        let hmac_ok = verify_signature(&value, &signature);
+
+        // Parse JSON once — every downstream branch (HMAC-rescue, RSA verify,
+        // legacy-reject) needs to inspect `signedPayload` / `serverSignature`.
         let data = match serde_json::from_str::<Value>(&value) {
             Ok(data) => data,
             Err(e) => {
@@ -55,6 +63,45 @@ impl LicenseEngine {
         let has_signed_payload = data["signedPayload"].is_string();
         let has_server_sig = data["serverSignature"].is_string();
 
+        if !hmac_ok {
+            // Rescue path: HMAC mismatch is almost always caused by the
+            // build-time `INTEGRITY_SECRET_KEY` rotating between releases,
+            // not by genuine tampering.  If the server's RSA proof is
+            // present and valid we re-sign the record under the current
+            // key instead of dropping the user back into demo mode.
+            if !has_signed_payload || !has_server_sig {
+                self.diag(
+                    "load_verified_license: HMAC FAILED and no RSA proof — \
+                     DB record tampered or key changed, re-activation required.",
+                );
+                return None;
+            }
+            let payload = data["signedPayload"].as_str().unwrap_or("");
+            let server_sig = data["serverSignature"].as_str().unwrap_or("");
+            if !verify_server_signature(payload, server_sig) {
+                self.diag(
+                    "load_verified_license: HMAC FAILED and RSA invalid — \
+                     rejecting record (likely tampered).",
+                );
+                return None;
+            }
+            self.diag(
+                "load_verified_license: HMAC FAILED but RSA PASSED — \
+                 integrity key rotated, re-signing record under current key.",
+            );
+            if let Err(e) = upsert_system_state(conn, DB_KEY_LICENSE, &value) {
+                self.diag(&format!(
+                    "load_verified_license: HMAC re-sign failed ({e}) — rejecting record."
+                ));
+                return None;
+            }
+            // Return the fresh signature so callers see a consistent view
+            // of the DB after the rescue write.
+            let new_signature = sign_data(&value);
+            return Some((value, new_signature));
+        }
+
+        // Level 2: RSA server-signature verification (HMAC already passed).
         self.diag(&format!(
             "load_verified_license: has_signedPayload={has_signed_payload}, has_serverSignature={has_server_sig}"
         ));

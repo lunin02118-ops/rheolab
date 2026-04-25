@@ -9,7 +9,7 @@
 //! of the `dx` / `dy` formulas used for rotated titles.
 use super::super::super::types::ReportInput;
 use super::super::super::chart_generator::{ChartConfig, ChartLineStyle, ChartRanges};
-use super::super::super::formatters::get_viscosity_unit;
+use super::super::super::formatters::{format_time_value, get_viscosity_unit};
 use super::helpers::{escape_typst, hex_to_typst};
 
 /// Render the entire “chart page” block, or `String::new()` when `has_chart`
@@ -140,6 +140,13 @@ pub(super) fn build_chart_page(
     // ── make_ticks ───────────────────────────────────────────────────────
     // Generate tick labels for one axis.  See doc comments in the original
     // monolithic template for the derivation of the dx/dy formulas.
+    //
+    // The bottom (time) axis honours `config.time_format`:
+    //   * `"minutes"` (default / empty) — the legacy numeric formatter below.
+    //   * `"seconds"` / `"hh:mm:ss"`   — delegated to `format_time_value`,
+    //                                    which is unit-tested to match the
+    //                                    dashboard's display byte-for-byte.
+    let time_fmt = config.time_format.as_str();
     let make_ticks = |min: f64, max: f64, step: f64, side: &str,
                        axis_px_side: f64, color_typst_override: &str| -> String {
         let color_str = if color_typst_override.is_empty() {
@@ -162,7 +169,12 @@ pub(super) fn build_chart_page(
         while val <= max + 1e-6 {
             let frac = (val - min) / (max - min).max(1e-6);
 
-            let val_str = if (val.fract()).abs() < 1e-6 {
+            // Bottom (time) axis ticks: override numeric formatting when the
+            // resolved time_format is "seconds" or "hh:mm:ss".  Y-axis ticks
+            // and the fallback "minutes" path keep the legacy formatter.
+            let val_str = if side == "bottom" && (time_fmt == "seconds" || time_fmt == "hh:mm:ss") {
+                format_time_value(val, time_fmt)
+            } else if (val.fract()).abs() < 1e-6 {
                 format!("{:.0}", val)
             } else if val.abs() < 10.0 {
                 format!("{:.1}", val)
@@ -312,6 +324,9 @@ pub(super) fn build_chart_page(
                 let title = match axis.metric.as_str() {
                     "viscosity"                        => format!("{} ({})", l_visc, visc_unit),
                     "temperature"                      => format!("{} (°C)",  l_temp),
+                    // Sample + bath share the same °C axis; combine names
+                    // so the user sees both metrics labelled.
+                    "temperature_and_bath"             => format!("{} / {} (°C)", l_temp, l_bath_temp),
                     "shear_rate" | "shearRate"         => format!("{} (1/s)", l_shear),
                     "bath_temperature" | "bathTemperature" => format!("{} (°C)", l_bath_temp),
                     "pressure"                         => format!("{} (bar)", l_press),

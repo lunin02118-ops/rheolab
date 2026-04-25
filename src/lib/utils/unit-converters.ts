@@ -30,6 +30,23 @@ export function convertViscosity(v: number, unit: ViscosityUnit): number {
     }
 }
 
+/**
+ * Inverse of {@link convertViscosity}: convert a value expressed in `unit`
+ * back to the base cP / mPa·s viscosity (1 cP = 1 mPa·s).
+ *
+ * Used by the touch-point pipeline to recover the canonical cP value from
+ * a snapped display-unit coordinate so the DB-persisted touch-points and
+ * PDF / Excel text stay consistent with what the user sees on the chart.
+ */
+export function viscosityToCp(displayValue: number, unit: ViscosityUnit): number {
+    switch (unit) {
+        case 'Pa·s':  return displayValue * 1000;
+        case 'cP':    return displayValue;
+        case 'mPa·s': return displayValue;
+        default:       return displayValue;
+    }
+}
+
 export function viscosityDecimals(unit: ViscosityUnit): number {
     return unit === 'Pa·s' ? 4 : 1;
 }

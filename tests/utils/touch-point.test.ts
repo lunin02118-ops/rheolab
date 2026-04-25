@@ -649,4 +649,91 @@ describe('calculateSmartTouchPoints', () => {
         expect(threshold!.time).toBeGreaterThanOrEqual(9);
         expect(threshold!.time).toBeLessThanOrEqual(14);
     });
+
+    // ── BUG #4 regression: target-time straddling a shear-rate jump ──────────
+    it('target-time anchors to nearest raw point when it falls on a shear-rate jump', () => {
+        // A classic SST cycle: steady 100 s⁻¹ plateau at ~400 cP up to t=9.5,
+        // then a 300 s⁻¹ ramp pulse at t=10.0 where viscosity leaps to 900 cP,
+        // then back to 100 s⁻¹ at ~420 cP from t=10.5 onwards.  A naive
+        // linear interpolation at targetTime=10.0 gives (400+900)/2 ≈ 650 cP,
+        // which does not exist on the rendered curve — it lives in the
+        // vertical gap between the two plateaus.
+        const points: TouchPointInput[] = [];
+        for (let t = 0; t <= 9.5; t += 0.25) points.push(pt(t, 400, 100));
+        points.push(pt(10.0, 900, 300)); // shear-rate pulse (jump)
+        for (let t = 10.5; t <= 20; t += 0.25) points.push(pt(t, 420, 100));
+
+        const result = calculateSmartTouchPoints(points, {
+            viscosityThreshold: 100,
+            showTargetTime: true,
+            targetTime: 9.9,
+        });
+        const target = result.find(r => r.type === 'target');
+        expect(target).toBeDefined();
+        expect(target!.anomaly).toBe('shear-rate-jump');
+        // Should snap to one of the two raw neighbours, NOT interpolate to ~650.
+        expect([400, 900]).toContain(target!.viscosity);
+    });
+
+    it('target-time interpolates normally within a single shear-rate plateau', () => {
+        // Same plateau (shear_rate = 100) → plain linear interpolation, no anomaly.
+        const points: TouchPointInput[] = [];
+        for (let t = 0; t <= 20; t += 1) points.push(pt(t, 1000 - t * 40, 100));
+
+        const result = calculateSmartTouchPoints(points, {
+            viscosityThreshold: 100,
+            showTargetTime: true,
+            targetTime: 5.5,
+        });
+        const target = result.find(r => r.type === 'target');
+        expect(target).toBeDefined();
+        expect(target!.anomaly).toBeUndefined();
+        // Linear interpolation between (5,800) and (6,760) → 780.
+        expect(target!.viscosity).toBeCloseTo(780, 3);
+    });
+
+    // ── BUG #10 regression: NaN / ±Infinity sanitation ─────────────────────
+    it('ignores NaN / Infinity points without losing valid neighbours', () => {
+        const points: TouchPointInput[] = [];
+        for (let t = 0; t <= 20; t += 1) {
+            // Inject a NaN viscosity every 5 points and one +Inf viscosity.
+            if (t === 5) points.push(pt(t, NaN, 100));
+            else if (t === 12) points.push(pt(t, Number.POSITIVE_INFINITY, 100));
+            else if (t === 15) points.push(pt(t, 0, NaN)); // non-finite rate — kept, rate clamped
+            else points.push(pt(t, 1000 - t * 40, 100));
+        }
+
+        const result = calculateSmartTouchPoints(points, {
+            viscosityThreshold: 300,
+            showTargetTime: true,
+            targetTime: 10,
+        });
+        // Result must be finite on both axes — no NaN / Infinity leakage.
+        for (const r of result) {
+            expect(Number.isFinite(r.time)).toBe(true);
+            expect(Number.isFinite(r.viscosity)).toBe(true);
+        }
+        // Target-time marker near the plateau at t=10 should be ~600 cP
+        // (linear interp between 1000-10*40=600 at t=10 and its neighbour).
+        const target = result.find(r => r.type === 'target');
+        expect(target).toBeDefined();
+        expect(target!.viscosity).toBeGreaterThan(500);
+        expect(target!.viscosity).toBeLessThan(700);
+    });
+
+    it('returns empty array when every input is non-finite', () => {
+        const points: TouchPointInput[] = [
+            pt(NaN, 500, 100),
+            pt(1, NaN, 100),
+            pt(2, 500, NaN), // viscosity OK but rate NaN — kept, rate clamped to 0
+        ];
+        // The point with valid time+viscosity survives, but no crossing
+        // can be detected on a single-point plateau.
+        const result = calculateSmartTouchPoints(points, {
+            viscosityThreshold: 1000,
+            showTargetTime: false,
+            targetTime: 0,
+        });
+        expect(result).toHaveLength(0);
+    });
 });

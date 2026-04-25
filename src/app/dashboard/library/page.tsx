@@ -94,7 +94,11 @@ function LibraryContent() {
 
                         {/* Results List */}
                         <div className="min-w-0">
-                            <ExperimentList filters={filters} viewMode={viewMode} />
+                            <ExperimentList
+                                filters={filters}
+                                viewMode={viewMode}
+                                onFiltersChange={setFilters}
+                            />
                         </div>
                     </div>
                 ) : (

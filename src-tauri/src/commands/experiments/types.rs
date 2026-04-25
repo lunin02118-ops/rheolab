@@ -11,6 +11,7 @@ pub(crate) const LOCAL_USER_ID: &str = "desktop-local-admin";
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+#[derive(Default)]
 pub struct ExperimentsListQuery {
     #[serde(default)]
     pub page: Option<usize>,
@@ -64,6 +65,52 @@ pub struct ExperimentsListQuery {
     pub test_category: Option<String>,
     #[serde(default)]
     pub test_type: Option<String>,
+    // ── Touch-point filters (PR2) ───────────────────────────────────────────
+    // Precomputed at save time under FIXED defaults (threshold = 50 cP,
+    // targetTime = 10 min).  The UI is explicit about this so the user
+    // never confuses the library filter with their current Analysis-tab
+    // threshold.  Values are sent as strings from the UI (minutes / cP);
+    // an empty / whitespace string means "no filter" and is dropped
+    // inside the query builder, identical to the existing range filters.
+    /// Lower bound for `touchCrossingTimeMin` (minutes).
+    #[serde(default)]
+    pub crossing_time_min: Option<String>,
+    /// Upper bound for `touchCrossingTimeMin` (minutes).
+    #[serde(default)]
+    pub crossing_time_max: Option<String>,
+    /// Lower bound for `touchCrossingViscosityCp` (centipoise, cP).
+    #[serde(default)]
+    pub crossing_viscosity_min: Option<String>,
+    /// Upper bound for `touchCrossingViscosityCp` (centipoise, cP).
+    #[serde(default)]
+    pub crossing_viscosity_max: Option<String>,
+    /// Lower bound for `touchViscosityAtTargetCp` (centipoise, cP).
+    #[serde(default)]
+    pub viscosity_at_target_min: Option<String>,
+    /// Upper bound for `touchViscosityAtTargetCp` (centipoise, cP).
+    #[serde(default)]
+    pub viscosity_at_target_max: Option<String>,
+    /// Tri-state selector over the precomputed `touchHasCrossing` flag.
+    /// Accepts `"yes"`, `"no"`, or empty / missing (= no filter).  Any other
+    /// value is ignored by the query builder rather than producing an error,
+    /// matching the permissive string-based contract of the other filters.
+    #[serde(default)]
+    pub has_crossing: Option<String>,
+    /// Viscosity threshold (cP) for the touch-point filter — user input.
+    ///
+    /// When **set** to a positive number, the query builder leaves the
+    /// precomputed `touchHasCrossing` / `touchCrossingTimeMin` columns
+    /// alone and instead re-runs the smart-touch-point algorithm against
+    /// each candidate experiment with this threshold.  This unlocks lab
+    /// workflows where the "gel break-point" isn't the default 50 cP
+    /// (e.g. crosslinked fluids often break at 500 cP).  Computation is
+    /// O(N·points) per query but coarse-pruned by `maxViscosity >= threshold`
+    /// so only plausibly-crossing rows hit the algorithm.
+    ///
+    /// When **omitted / empty / non-numeric**, the fast precomputed path
+    /// for the library-fixed 50 cP threshold is used.
+    #[serde(default)]
+    pub viscosity_threshold: Option<String>,
     /// Keyset cursor: when set, skip OFFSET and instead use WHERE e.createdAt < cursor_date
     /// OR (e.createdAt = cursor_date AND e.id > cursor_id). Takes priority over `page`.
     #[serde(default)]
@@ -382,6 +429,22 @@ pub struct ExperimentListItem {
     pub duration_seconds: Option<f64>,
     pub avg_temperature_c: Option<f64>,
     pub max_temperature_c: Option<f64>,
+    // ── Precomputed touch-point metrics (PR2) ───────────────────────────
+    // Populated by the save-path / backfill described in
+    // `db::touch_point_precompute`.  All fields are `Option` so list items
+    // for experiments that have not yet been precomputed (pending backfill)
+    // serialise without the fields, keeping the payload identical to the
+    // pre-v0002 shape for those rows.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub touch_has_crossing: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub touch_crossing_time_min: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub touch_crossing_viscosity_cp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub touch_viscosity_at_target_cp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub touch_precompute_version: Option<i64>,
     pub reagents: Vec<StoredExperimentReagent>,
     pub user: Option<StoredExperimentUser>,
     pub laboratory: Option<StoredExperimentLaboratory>,
@@ -425,4 +488,51 @@ pub struct ExperimentsFilterMetadataResponse {
     pub water_sources: Vec<String>,
     pub test_categories: Vec<String>,
     pub test_types: Vec<String>,
+    /// Library-wide coverage / range stats for the touch-point precomputed
+    /// columns.  Used by the UI to:
+    ///   * Show "в БД: X..Y" hints beneath each touch-point range filter so
+    ///     users pick sensible values instead of filtering to zero rows.
+    ///   * Render a contextual empty-state when a touch-point filter hides
+    ///     everything ("из 220 эксп. только 1 достиг порога 50 сП…").
+    /// Computed against the WHOLE library — independent of the current
+    /// filter panel selections — so the hints remain stable while the user
+    /// is editing filter values.
+    pub touch_point_stats: TouchPointLibraryStats,
+}
+
+/// Library-wide touch-point coverage snapshot.
+///
+/// All range bounds are `Option` because they're only defined when at
+/// least one row has a non-NULL value for the underlying column:
+///   * `crossing_*`  — populated only for rows where the smoothed
+///     viscosity actually crossed the library threshold (50 cP).
+///   * `viscosity_at_target_*` — populated when the experiment runs
+///     long enough to have a sample at / past the 10-min target.
+///
+/// When the library is empty these are all `None` and
+/// `total_experiments == 0`; the UI treats that as "скрыть подсказки".
+#[derive(Debug, Clone, Default, Serialize, Deserialize, specta::Type, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TouchPointLibraryStats {
+    /// Total experiments in the library (same as `experiments_count`).
+    pub total_experiments: usize,
+    /// Number of experiments whose smoothed viscosity crossed the
+    /// library-fixed threshold (50 cP) — i.e. `touchHasCrossing = 1`.
+    pub with_crossing_count: usize,
+    /// Number of experiments that have a non-NULL
+    /// `touchViscosityAtTargetCp` (i.e. the curve extends to / past
+    /// the 10-min target).
+    pub with_target_viscosity_count: usize,
+    /// Observed minimum of `touchCrossingTimeMin` in minutes.
+    pub crossing_time_min_minutes: Option<f64>,
+    /// Observed maximum of `touchCrossingTimeMin` in minutes.
+    pub crossing_time_max_minutes: Option<f64>,
+    /// Observed minimum of `touchCrossingViscosityCp` in centipoise.
+    pub crossing_viscosity_min_cp: Option<f64>,
+    /// Observed maximum of `touchCrossingViscosityCp` in centipoise.
+    pub crossing_viscosity_max_cp: Option<f64>,
+    /// Observed minimum of `touchViscosityAtTargetCp` in centipoise.
+    pub viscosity_at_target_min_cp: Option<f64>,
+    /// Observed maximum of `touchViscosityAtTargetCp` in centipoise.
+    pub viscosity_at_target_max_cp: Option<f64>,
 }

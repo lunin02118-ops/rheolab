@@ -26,6 +26,11 @@ pub async fn experiments_get(
     }
 }
 
+/// Hard cap on how many experiments can be loaded in a single batch request.
+/// Prevents OOM from unconstrained payloads — callers that need more should
+/// paginate via multiple IPC calls.
+const BATCH_GET_MAX: usize = 50;
+
 #[tauri::command]
 pub async fn experiments_get_batch(
     state: State<'_, AppState>,
@@ -33,6 +38,12 @@ pub async fn experiments_get_batch(
 ) -> Result<ExperimentGetBatchResponse> {
     // WP-1.5: validate each hash ID
     for id in &ids { validate_hash_id(id, "ids[]")?; }
+
+    if ids.len() > BATCH_GET_MAX {
+        return Err(crate::error::AppError::BadRequest(
+            format!("Batch size {} exceeds maximum of {BATCH_GET_MAX}", ids.len()),
+        ));
+    }
 
     let conn = state.pool_conn()?;
     match load_experiments_batch(&conn, &ids) {

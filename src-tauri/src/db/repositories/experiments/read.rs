@@ -52,7 +52,10 @@ pub(crate) fn load_experiment_by_id(
 
                 let metrics_str: String = row.get(18)?;
                 let metrics = serde_json::from_str::<Value>(&metrics_str)
-                    .unwrap_or_else(|_| json!({}));
+                    .unwrap_or_else(|e| {
+                        tracing::warn!("malformed metrics JSON (single-read): {}", e);
+                        json!({})
+                    });
 
                 // P0 refactoring: defer raw_points parsing — columnar blob is preferred.
                 // Only parse inline JSON as fallback for legacy rows (pre-V2 migration).
@@ -61,7 +64,10 @@ pub(crate) fn load_experiment_by_id(
                     vec![]
                 } else {
                     serde_json::from_str::<Vec<Value>>(&raw_points_str)
-                        .unwrap_or_default()
+                        .unwrap_or_else(|e| {
+                            tracing::warn!("malformed rawPoints JSON (single-read): {}", e);
+                            vec![]
+                        })
                 };
 
                 let calibration_str: Option<String> = row.get(20)?;
@@ -127,7 +133,10 @@ pub(crate) fn load_experiment_by_id(
             .optional()
             .ok()
             .flatten()
-            .and_then(|blob| crate::db::columnar::decode(&blob).ok())
+            .and_then(|blob| crate::db::columnar::decode(&blob).map_err(|e| {
+                tracing::warn!("columnar decode failed for {}: {}", exp.id, e);
+                e
+            }).ok())
             .filter(|pts: &Vec<Value>| !pts.is_empty());
 
         // Load reagents for this experiment
@@ -247,13 +256,19 @@ pub(crate) fn load_experiments_batch(
 
             let metrics_str: String = row.get(18)?;
             let metrics =
-                serde_json::from_str::<Value>(&metrics_str).unwrap_or_else(|_| json!({}));
+                serde_json::from_str::<Value>(&metrics_str).unwrap_or_else(|e| {
+                    tracing::warn!("malformed metrics JSON (batch-read): {}", e);
+                    json!({})
+                });
 
             let raw_points_str: String = row.get(19)?;
             let raw_points = if raw_points_str == "[]" || raw_points_str.is_empty() {
                 vec![]
             } else {
-                serde_json::from_str::<Vec<Value>>(&raw_points_str).unwrap_or_default()
+                serde_json::from_str::<Vec<Value>>(&raw_points_str).unwrap_or_else(|e| {
+                    tracing::warn!("malformed rawPoints JSON (batch-read): {}", e);
+                    vec![]
+                })
             };
 
             let calibration_str: Option<String> = row.get(20)?;
@@ -332,9 +347,13 @@ pub(crate) fn load_experiments_batch(
         .map_err(|e| format!("SQL blob row error: {}", e))?;
     for (exp_id, blob) in blob_rows {
         if let Some(exp) = experiments.get_mut(&exp_id) {
-            if let Ok(pts) = crate::db::columnar::decode(&blob) {
-                if !pts.is_empty() {
+            match crate::db::columnar::decode(&blob) {
+                Ok(pts) if !pts.is_empty() => {
                     exp.raw_points = pts;
+                }
+                Ok(_) => {} // empty decoded result — use inline fallback
+                Err(e) => {
+                    tracing::warn!("columnar decode failed for {} (batch): {}", exp_id, e);
                 }
             }
         }

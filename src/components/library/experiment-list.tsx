@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import { listen } from '@tauri-apps/api/event';
 
 import { useState, useEffect, useCallback, useLayoutEffect, useRef, useMemo } from 'react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
@@ -10,14 +11,42 @@ import { Button } from '@/components/ui/button';
 import { useLicense } from '@/hooks/useLicense';
 import { listExperiments, deleteExperiment } from '@/lib/experiments/client';
 import type { ExperimentFilters } from '@/types/experiment-filters';
+import { EMPTY_FILTERS } from '@/types/experiment-filters';
 import type { ExperimentCardItem } from '@/types/experiment-list-item';
+import { useExperimentFilterMetadata } from '@/hooks/useExperimentFilterMetadata';
+import { touchPointEmptyStateMessage } from '@/lib/library/touch-point-hints';
+
+/**
+ * Touch-point RANGE filter keys (not `hasCrossing` — that's a tri-state
+ * selector with explicit "no" semantics that doesn't benefit from the
+ * "here's why everything disappeared" coaching message).
+ *
+ * Kept as a module-level tuple so both the active-filter detector and
+ * the "reset touch-point filters" handler stay perfectly in sync — a
+ * missing entry in one list would otherwise silently reintroduce the
+ * bug we're trying to fix.
+ */
+const TOUCH_POINT_RANGE_KEYS = [
+    'crossingTimeMin',
+    'crossingTimeMax',
+    'viscosityAtTargetMin',
+    'viscosityAtTargetMax',
+] as const satisfies readonly (keyof ExperimentFilters)[];
 
 interface ExperimentListProps {
     filters: ExperimentFilters;
     viewMode: 'grid' | 'list';
+    /**
+     * Optional filter mutator — when provided, the empty-state panel can
+     * offer a "Reset touch-point filters" shortcut so users aren't stuck
+     * in a zero-result state they don't know how to escape.  When omitted
+     * (e.g. a read-only preview), the shortcut renders as plain text
+     * guidance instead of a clickable button.
+     */
+    onFiltersChange?: (filters: ExperimentFilters) => void;
 }
 
-export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
+export function ExperimentList({ filters, viewMode, onFiltersChange }: ExperimentListProps) {
     const [experiments, setExperiments] = useState<ExperimentCardItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -27,6 +56,30 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
     const [sortBy, setSortBy] = useState<string | null>(null);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const { refreshExperimentsCount, isDemo } = useLicense();
+    // Shared metadata cache — powers the "here's why you got zero results"
+    // empty-state explanation below.  Returns null while the first fetch is
+    // in flight; we just fall back to the generic "не найдено" text in that
+    // window so the message never flashes stale numbers.
+    const { metadata } = useExperimentFilterMetadata();
+
+    const hasActiveTouchPointRangeFilter = useMemo(
+        () => TOUCH_POINT_RANGE_KEYS.some((k) => filters[k] !== ''),
+        [filters],
+    );
+
+    const clearTouchPointFilters = useCallback(() => {
+        if (!onFiltersChange) return;
+        const cleared: ExperimentFilters = { ...filters };
+        for (const k of TOUCH_POINT_RANGE_KEYS) {
+            cleared[k] = EMPTY_FILTERS[k];
+        }
+        // Reset the hasCrossing selector and the custom threshold too —
+        // otherwise a stale "Да" / "Нет" or a non-default threshold
+        // could keep the list empty even after ranges are cleared.
+        cleared.hasCrossing = EMPTY_FILTERS.hasCrossing;
+        cleared.viscosityThreshold = EMPTY_FILTERS.viscosityThreshold;
+        onFiltersChange(cleared);
+    }, [filters, onFiltersChange]);
 
     const handleSortChange = useCallback((field: string, dir: 'asc' | 'desc') => {
         setSortBy(field);
@@ -116,12 +169,14 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
         }
     };
 
+    const pageLimit = viewMode === 'list' ? 30 : 12;
+
     const fetchExperiments = useCallback(async (pageNum: number, reset: boolean = false) => {
         setIsLoading(true);
         try {
             const data = await listExperiments({
                 page: pageNum,
-                limit: 12,
+                limit: pageLimit,
                 ...filters,
                 ...(sortBy ? { sortBy, sortDir } : {}),
             });
@@ -137,7 +192,7 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
         } finally {
             setIsLoading(false);
         }
-    }, [filters, sortBy, sortDir]);
+    }, [filters, sortBy, sortDir, pageLimit]);
 
     // Debounce filters — abort stale responses so a slow query
     // doesn't overwrite results from a newer filter change.
@@ -146,7 +201,7 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
         const timer = setTimeout(() => {
             setPage(1);
             setIsLoading(true);
-            listExperiments({ page: 1, limit: 12, ...filters, ...(sortBy ? { sortBy, sortDir } : {}) })
+            listExperiments({ page: 1, limit: pageLimit, ...filters, ...(sortBy ? { sortBy, sortDir } : {}) })
                 .then((data) => {
                     if (aborted) return;
                     setFetchError(null);
@@ -166,7 +221,24 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
                 });
         }, 200);
         return () => { aborted = true; clearTimeout(timer); };
-    }, [filters, sortBy, sortDir]);
+    }, [filters, sortBy, sortDir, pageLimit]);
+
+    // When the backend's startup backfill finishes precomputing missing
+    // touch-point values, refresh the list so the user sees accurate
+    // filtering data without a manual reload.
+    useEffect(() => {
+        let cancelled = false;
+        const unlisten = listen('touch_point_backfill_complete', () => {
+            if (!cancelled) {
+                logger.info('Touch-point backfill complete — refreshing library');
+                void fetchExperiments(1, true);
+            }
+        });
+        return () => {
+            cancelled = true;
+            void unlisten.then((fn) => fn());
+        };
+    }, [fetchExperiments]);
 
     const loadMore = () => {
         const nextPage = page + 1;
@@ -191,10 +263,49 @@ export function ExperimentList({ filters, viewMode }: ExperimentListProps) {
     }
 
     if (experiments.length === 0) {
+        // When the user is stuck in a 0-result state because of an active
+        // touch-point RANGE filter, swap the generic message for a focused
+        // explanation plus a one-click escape hatch.  The stats come from
+        // the shared metadata cache so this runs against the WHOLE library
+        // — not the current filter's pre-applied subset — which is exactly
+        // what the user needs to know ("from N total, only M crossed").
+        const touchPointMessage =
+            hasActiveTouchPointRangeFilter && metadata
+                ? touchPointEmptyStateMessage(metadata.touchPointStats)
+                : null;
         return (
-            <div className="text-center py-20 bg-secondary/30 rounded-xl border border-border">
+            <div
+                data-testid="ExperimentListEmptyState"
+                className="text-center py-20 bg-secondary/30 rounded-xl border border-border px-6"
+            >
                 <p className="text-muted-foreground">Эксперименты не найдены</p>
-                <p className="text-xs text-muted-foreground mt-2">Попробуйте изменить параметры фильтрации</p>
+                {touchPointMessage ? (
+                    <>
+                        <p
+                            data-testid="TouchPointEmptyStateHint"
+                            className="text-xs text-muted-foreground mt-2 max-w-xl mx-auto leading-snug"
+                        >
+                            {touchPointMessage}
+                        </p>
+                        {onFiltersChange && (
+                            <div className="mt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={clearTouchPointFilters}
+                                    data-testid="ClearTouchPointFiltersButton"
+                                >
+                                    Сбросить фильтры точки касания
+                                </Button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <p className="text-xs text-muted-foreground mt-2">
+                        Попробуйте изменить параметры фильтрации
+                    </p>
+                )}
             </div>
         );
     }

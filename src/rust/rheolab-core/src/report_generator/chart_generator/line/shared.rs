@@ -69,7 +69,8 @@ pub(super) fn render(
     // Nice values are still used for tick mark positions (independent of domain).
     let x_min = t_min_raw;
     let x_max = t_max_raw;
-    let y_left_min = y_left_min_nice;
+    // Viscosity scale must never go negative
+    let y_left_min = y_left_min_nice.max(0.0);
     let y_left_max = y_left_max_nice;
     let y_right_min = y_right_min_nice;
     let y_right_max = y_right_max_nice;
@@ -399,7 +400,8 @@ pub(super) fn render(
             {
                 root.draw(&Circle::new((px, py), 5, tp.color.filled())).ok();
                 root.draw(&Circle::new((px, py), 5, WHITE.stroke_width(1))).ok();
-                let label_style = TextStyle::from(("sans-serif", 10).into_font().color(&tp.color))
+                let label_color = RGBColor(0, 0, 0);
+                let label_style = TextStyle::from(("sans-serif", 10).into_font().color(&label_color))
                     .pos(Pos::new(HPos::Center, VPos::Bottom));
                 root.draw_text(&tp.label, &label_style, (px, py - 7)).ok();
             }

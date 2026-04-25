@@ -6,14 +6,15 @@
  * can detect and deliver it.
  *
  * Modes:
- *   Normal publish — stable channel (all users):
- *     node scripts/deploy/publish-update.js
+ *   Default publish — alpha channel (Superuser / project owner personal tier).
+ *     This is the default so unqualified publishes never leak to external users:
+ *       node scripts/deploy/publish-update.js
  *
  *   Beta publish — Developer license users only:
  *     node scripts/deploy/publish-update.js --channel beta
  *
- *   Alpha publish — Superuser license users only (project owner's personal tier):
- *     node scripts/deploy/publish-update.js --channel alpha
+ *   Stable publish — all users (Standard / Enterprise / Trial / Demo):
+ *     node scripts/deploy/publish-update.js --channel stable
  *
  *   Rollback / re-publish from existing release manifest:
  *     node scripts/deploy/publish-update.js --from-manifest outputs/release/stable.json
@@ -30,7 +31,7 @@
  *      tmp → {channel}.json so clients never see a partial write.
  *
  * Options:
- *   --channel <stable|beta|alpha>  Update channel to publish (default: stable)
+ *   --channel <alpha|beta|stable>  Update channel to publish (default: alpha)
  *   --host <user@host>           VPS host (default: root@license.vizbuka.ru)
  *   --key  <path>                SSH identity file
  *   --from-manifest <path>       Path to a local release manifest JSON (rollback / re-deploy)
@@ -60,12 +61,15 @@ const SSH_KEY      = flag('--key');
 const DRY_RUN      = hasFlag('--dry-run') || hasFlag('-n');
 const FROM_MANIFEST = flag('--from-manifest');
 
-const CHANNEL_RAW = (flag('--channel') ?? 'stable').toLowerCase();
+// Default channel mirrors release-policy.js DEFAULT_RELEASE_CHANNEL —
+// the owner's personal `alpha` tier, so unqualified publishes never
+// leak to external users.  Promotion to beta/stable is deliberate.
+const CHANNEL_RAW = (flag('--channel') ?? 'alpha').toLowerCase();
 if (!['stable', 'beta', 'alpha'].includes(CHANNEL_RAW)) {
-    console.error(`\n❌  Invalid --channel value: "${CHANNEL_RAW}". Must be "stable", "beta", or "alpha".`);
+    console.error(`\n❌  Invalid --channel value: "${CHANNEL_RAW}". Must be "alpha", "beta", or "stable".`);
     process.exit(1);
 }
-const CHANNEL = CHANNEL_RAW; // 'stable' | 'beta' | 'alpha'
+const CHANNEL = CHANNEL_RAW; // 'alpha' | 'beta' | 'stable'
 
 const KNOWN_HOSTS_FILE = join(REPO_ROOT, 'scripts', 'deploy', 'known_hosts');
 const knownHostsPopulated = existsSync(KNOWN_HOSTS_FILE) &&

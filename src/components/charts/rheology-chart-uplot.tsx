@@ -8,6 +8,7 @@ import { useRheologyVisibility } from '@/hooks/useRheologyVisibility';
 import { useRheologyData, type RheoPoint } from '@/hooks/useRheologyData';
 import type { ColumnarData } from '@/types';
 import { useRheologyChartOptions } from '@/hooks/useRheologyChartOptions';
+import { convertViscosity } from '@/lib/utils/unit-converters';
 
 // Re-export for callers who import RheoPoint from this module.
 export type { RheoPoint };
@@ -103,9 +104,17 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
         showTemperature, showShearRate, showPressure, showRpm, showBathTemperature,
         pdfMode, captureMode,
         touchPoints, effectiveShearRateAxis, effectivePressureAxis, axisMode,
-        viscosityThreshold, showTouchPoints, targetTime,
+        viscosityThreshold, viscosityDisplayUnit: chartUnits.viscosityUnit,
+        showTouchPoints, targetTime,
         language,
     });
+
+    // Threshold value converted to the current display unit for use in the
+    // info panel; keeps the free-text line consistent with the chart's
+    // Y axis, which the plugin already renders in display units.
+    const thresholdDisplay = convertViscosity(viscosityThreshold, chartUnits.viscosityUnit);
+    const thresholdDecimals = chartUnits.viscosityUnit === 'Pa·s' ? 3 : 0;
+    const viscosityUnitLabel = chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit;
 
     if (!hasData) {
         return (
@@ -147,13 +156,13 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
                                     <>
                                         {targetPoint && (
                                             language === 'en'
-                                                ? <span>At minute <b>{targetTime}</b>, viscosity was <b>{Math.round(targetPoint.viscosity)}</b> {chartUnits.viscosityUnit}. </span>
-                                                : <span>На <b>{targetTime}</b> минуте вязкость составила <b>{Math.round(targetPoint.viscosity)}</b> {chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit}. </span>
+                                                ? <span>At minute <b>{targetTime}</b>, viscosity was <b>{targetPoint.viscosityDisplay.toFixed(thresholdDecimals)}</b> {chartUnits.viscosityUnit}. </span>
+                                                : <span>На <b>{targetTime}</b> минуте вязкость составила <b>{targetPoint.viscosityDisplay.toFixed(thresholdDecimals)}</b> {viscosityUnitLabel}. </span>
                                         )}
                                         {thresholdPoint && (
                                             language === 'en'
-                                                ? <span>Viscosity dropped to <b>{viscosityThreshold}</b> {chartUnits.viscosityUnit} at minute <b>{thresholdPoint.time}</b>.</span>
-                                                : <span>Вязкость упала до <b>{viscosityThreshold}</b> {chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit} на <b>{thresholdPoint.time}</b> минуте.</span>
+                                                ? <span>Viscosity dropped to <b>{thresholdDisplay.toFixed(thresholdDecimals)}</b> {chartUnits.viscosityUnit} at minute <b>{thresholdPoint.time.toFixed(1)}</b>.</span>
+                                                : <span>Вязкость упала до <b>{thresholdDisplay.toFixed(thresholdDecimals)}</b> {viscosityUnitLabel} на <b>{thresholdPoint.time.toFixed(1)}</b> минуте.</span>
                                         )}
                                     </>
                                 );
@@ -166,12 +175,12 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
                                 <span className="text-foreground/80">
                                     {tp.type === 'threshold' ? (
                                         language === 'en'
-                                            ? <>Threshold {viscosityThreshold}{chartUnits.viscosityUnit}: <b>{tp.time.toFixed(1)} min</b></>
-                                            : <>Порог {viscosityThreshold}{chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit}: <b>{tp.time.toFixed(1)} мин</b></>
+                                            ? <>Threshold {thresholdDisplay.toFixed(thresholdDecimals)} {chartUnits.viscosityUnit}: <b>{tp.time.toFixed(1)} min</b></>
+                                            : <>Порог {thresholdDisplay.toFixed(thresholdDecimals)} {viscosityUnitLabel}: <b>{tp.time.toFixed(1)} мин</b></>
                                     ) : (
                                         language === 'en'
-                                            ? <>@{targetTime}min: <b>{tp.viscosity.toFixed(1)} {chartUnits.viscosityUnit}</b></>
-                                            : <>@{targetTime}мин: <b>{tp.viscosity.toFixed(1)} {chartUnits.viscosityUnit === 'cP' ? 'сП' : chartUnits.viscosityUnit}</b></>
+                                            ? <>@{targetTime}min: <b>{tp.viscosityDisplay.toFixed(thresholdDecimals)} {chartUnits.viscosityUnit}</b></>
+                                            : <>@{targetTime}мин: <b>{tp.viscosityDisplay.toFixed(thresholdDecimals)} {viscosityUnitLabel}</b></>
                                     )}
                                 </span>
                             </div>

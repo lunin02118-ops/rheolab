@@ -254,6 +254,22 @@ describe('tauriRawRecordsToColumnar()', () => {
         const col = tauriRawRecordsToColumnar([]);
         expect(col.timeSec).toHaveLength(0);
     });
+
+    it('accepts camelCase records (legacy / WASM-parser shape)', () => {
+        // Mirror of the Rust-side slow-path fix: before the alias fallback
+        // was in place a record using camelCase keys would materialise as
+        // all-zero columns and the chart drew a flat line at 0.
+        const records = [
+            { timeSec: 0,  viscosityCp: 800, temperatureC: 70, shearRate: 511, shearStress: 2, pressureBar: 1, speedRpm: 30 },
+            { timeSec: 60, viscosityCp: 450, temperatureC: 70, shearRate: 511, shearStress: 2, pressureBar: 1, speedRpm: 30 },
+        ];
+        const col = tauriRawRecordsToColumnar(records);
+        expect(col.timeSec).toEqual([0, 60]);
+        expect(col.viscosityCp).toEqual([800, 450]);
+        expect(col.temperatureC).toEqual([70, 70]);
+        expect(col.shearRate).toEqual([511, 511]);
+        expect(col.speedRpm).toEqual([30, 30]);
+    });
 });
 
 // ── rawPointsFromParseResult ──────────────────────────────────────────────────

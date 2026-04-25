@@ -1,0 +1,222 @@
+
+> rheolab-enterprise@0.2.0-beta.23 perf:soak:tauri
+> npx playwright test --config playwright.tauri-soak.config.ts
+
+[tauri-e2e] ╨Ш╤Б╤В╨╛╤З╨╜╨╕╨║╨╕ ╨╜╨╛╨▓╨╡╨╡ ╨▒╨╕╨╜╨░╤А╨╜╨╕╨║╨░ тАФ ╨╖╨░╨┐╤Г╤Б╨║╨░╨╡╨╝ tauri build --debug --no-bundle...
+[tauri-e2e] $ npx tauri build --debug --no-bundle --config src-tauri/tauri.e2e.conf.json
+        Info Looking up installed tauri packages to check mismatched versions...
+     Running beforeBuildCommand `npm run build`
+
+> rheolab-enterprise@0.2.0-beta.23 build
+> vite build
+
+[36mvite v6.4.2 [32mbuilding for production...[36m[39m
+transforming...
+[plugin vite:resolve] Module "crypto" has been externalized for browser compatibility, imported by "D:/Development/Rheolab/src/lib/utils/encryption.ts". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+[32mтЬУ[39m 2925 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                                  [39m[1m[2m  1.70 kB[22m[1m[22m[2m тФВ gzip:  0.86 kB[22m
+[2mdist/[22m[35massets/ChartErrorBoundary-Saz_VHki.css      [39m[1m[2m  1.63 kB[22m[1m[22m[2m тФВ gzip:  0.70 kB[22m
+[2mdist/[22m[35massets/main-z-DOP7n4.css                    [39m[1m[2m142.36 kB[22m[1m[22m[2m тФВ gzip: 20.59 kB[22m
+[2mdist/[22m[36massets/__vite-browser-external-BIHI7g3E.js  [39m[1m[2m  0.09 kB[22m[1m[22m[2m тФВ gzip:  0.11 kB[22m[2m тФВ map:     0.21 kB[22m
+[2mdist/[22m[36massets/encryption-C6DBOrNH.js               [39m[1m[2m  0.19 kB[22m[1m[22m[2m тФВ gzip:  0.19 kB[22m[2m тФВ map:     6.56 kB[22m
+[2mdist/[22m[36massets/page-ag22mqCL.js                     [39m[1m[2m  0.22 kB[22m[1m[22m[2m тФВ gzip:  0.19 kB[22m[2m тФВ map:     0.36 kB[22m
+[2mdist/[22m[36massets/page-CdAzp9Ph.js                     [39m[1m[2m  0.24 kB[22m[1m[22m[2m тФВ gzip:  0.21 kB[22m[2m тФВ map:     0.42 kB[22m
+[2mdist/[22m[36massets/tauri-bridge-CmPdgmXs.js             [39m[1m[2m  0.32 kB[22m[1m[22m[2m тФВ gzip:  0.24 kB[22m[2m тФВ map:     1.57 kB[22m
+[2mdist/[22m[36massets/check-kPGuEaEH.js                    [39m[1m[2m  0.33 kB[22m[1m[22m[2m тФВ gzip:  0.27 kB[22m[2m тФВ map:     0.80 kB[22m
+[2mdist/[22m[36massets/chevron-up-C_C6AQdu.js               [39m[1m[2m  0.35 kB[22m[1m[22m[2m тФВ gzip:  0.28 kB[22m[2m тФВ map:     0.83 kB[22m
+[2mdist/[22m[36massets/chevron-down-CsbZ53CD.js             [39m[1m[2m  0.35 kB[22m[1m[22m[2m тФВ gzip:  0.28 kB[22m[2m тФВ map:     0.85 kB[22m
+[2mdist/[22m[36massets/plus-BoHewPWq.js                     [39m[1m[2m  0.37 kB[22m[1m[22m[2m тФВ gzip:  0.29 kB[22m[2m тФВ map:     0.89 kB[22m
+[2mdist/[22m[36massets/circle-check-Df8wAaJF.js             [39m[1m[2m  0.40 kB[22m[1m[22m[2m тФВ gzip:  0.31 kB[22m[2m тФВ map:     0.99 kB[22m
+[2mdist/[22m[36massets/rotate-ccw-B2kmwlfL.js               [39m[1m[2m  0.42 kB[22m[1m[22m[2m тФВ gzip:  0.32 kB[22m[2m тФВ map:     0.98 kB[22m
+[2mdist/[22m[36massets/upload-DIA5wf7t.js                   [39m[1m[2m  0.45 kB[22m[1m[22m[2m тФВ gzip:  0.33 kB[22m[2m тФВ map:     1.05 kB[22m
+[2mdist/[22m[36massets/settings-2-Bl4PiVK_.js               [39m[1m[2m  0.47 kB[22m[1m[22m[2m тФВ gzip:  0.33 kB[22m[2m тФВ map:     1.20 kB[22m
+[2mdist/[22m[36massets/key-aKDJGt9Q.js                      [39m[1m[2m  0.47 kB[22m[1m[22m[2m тФВ gzip:  0.35 kB[22m[2m тФВ map:     1.09 kB[22m
+[2mdist/[22m[36massets/circle-alert-7BDkUQbT.js             [39m[1m[2m  0.47 kB[22m[1m[22m[2m тФВ gzip:  0.33 kB[22m[2m тФВ map:     1.21 kB[22m
+[2mdist/[22m[36massets/pencil-BI2rz30X.js                   [39m[1m[2m  0.49 kB[22m[1m[22m[2m тФВ gzip:  0.36 kB[22m[2m тФВ map:     1.06 kB[22m
+[2mdist/[22m[36massets/flask-conical-BjUgxwv0.js            [39m[1m[2m  0.53 kB[22m[1m[22m[2m тФВ gzip:  0.37 kB[22m[2m тФВ map:     1.19 kB[22m
+[2mdist/[22m[36massets/trash-2-CQU0FFJY.js                  [39m[1m[2m  0.55 kB[22m[1m[22m[2m тФВ gzip:  0.35 kB[22m[2m тФВ map:     1.27 kB[22m
+[2mdist/[22m[36massets/branding-store-aq1b_R7P.js           [39m[1m[2m  0.59 kB[22m[1m[22m[2m тФВ gzip:  0.32 kB[22m[2m тФВ map:     2.27 kB[22m
+[2mdist/[22m[36massets/building-2-ClXMqGNG.js               [39m[1m[2m  0.60 kB[22m[1m[22m[2m тФВ gzip:  0.37 kB[22m[2m тФВ map:     1.38 kB[22m
+[2mdist/[22m[36massets/input-CYuqbMe7.js                    [39m[1m[2m  0.65 kB[22m[1m[22m[2m тФВ gzip:  0.41 kB[22m[2m тФВ map:     1.30 kB[22m
+[2mdist/[22m[36massets/circle-x-9E3w2Uyy.js                 [39m[1m[2m  0.74 kB[22m[1m[22m[2m тФВ gzip:  0.39 kB[22m[2m тФВ map:     1.90 kB[22m
+[2mdist/[22m[36massets/user-DXfzd0d2.js                     [39m[1m[2m  0.78 kB[22m[1m[22m[2m тФВ gzip:  0.41 kB[22m[2m тФВ map:     1.93 kB[22m
+[2mdist/[22m[36massets/client-DXAkQhgc.js                   [39m[1m[2m  0.80 kB[22m[1m[22m[2m тФВ gzip:  0.44 kB[22m[2m тФВ map:     2.83 kB[22m
+[2mdist/[22m[36massets/calendar-DSAG-5AB.js                 [39m[1m[2m  0.83 kB[22m[1m[22m[2m тФВ gzip:  0.44 kB[22m[2m тФВ map:     2.02 kB[22m
+[2mdist/[22m[36massets/useFocusTrap-DBIo29X4.js             [39m[1m[2m  0.89 kB[22m[1m[22m[2m тФВ gzip:  0.48 kB[22m[2m тФВ map:     3.73 kB[22m
+[2mdist/[22m[36massets/search-BaudHNDW.js                   [39m[1m[2m  0.94 kB[22m[1m[22m[2m тФВ gzip:  0.45 kB[22m[2m тФВ map:     2.14 kB[22m
+[2mdist/[22m[36massets/update-install-G_7hT1RN.js           [39m[1m[2m  1.17 kB[22m[1m[22m[2m тФВ gzip:  0.66 kB[22m[2m тФВ map:     5.88 kB[22m
+[2mdist/[22m[36massets/settings-BGtf-H8v.js                 [39m[1m[2m  1.47 kB[22m[1m[22m[2m тФВ gzip:  0.57 kB[22m[2m тФВ map:     3.38 kB[22m
+[2mdist/[22m[36massets/card-B7rOq3aH.js                     [39m[1m[2m  1.63 kB[22m[1m[22m[2m тФВ gzip:  0.71 kB[22m[2m тФВ map:     4.63 kB[22m
+[2mdist/[22m[36massets/index-DyGHDHCL.js                    [39m[1m[2m  1.93 kB[22m[1m[22m[2m тФВ gzip:  0.96 kB[22m[2m тФВ map:     9.73 kB[22m
+[2mdist/[22m[36massets/button-DjupqL1T.js                   [39m[1m[2m  1.98 kB[22m[1m[22m[2m тФВ gzip:  1.00 kB[22m[2m тФВ map:     7.68 kB[22m
+[2mdist/[22m[36massets/PrecisionSettingsCard-DmWEsQAh.js    [39m[1m[2m  2.11 kB[22m[1m[22m[2m тФВ gzip:  1.02 kB[22m[2m тФВ map:     5.81 kB[22m
+[2mdist/[22m[36massets/alert-dialog-CIC6S_MN.js             [39m[1m[2m  2.17 kB[22m[1m[22m[2m тФВ gzip:  0.81 kB[22m[2m тФВ map:     7.12 kB[22m
+[2mdist/[22m[36massets/TrialBanner-CLNQoavw.js              [39m[1m[2m  2.31 kB[22m[1m[22m[2m тФВ gzip:  1.26 kB[22m[2m тФВ map:     9.09 kB[22m
+[2mdist/[22m[36massets/label-ph3cHPHo.js                    [39m[1m[2m  2.56 kB[22m[1m[22m[2m тФВ gzip:  0.99 kB[22m[2m тФВ map:     7.38 kB[22m
+[2mdist/[22m[36massets/BrandingManager-DeadrB8L.js          [39m[1m[2m  2.61 kB[22m[1m[22m[2m тФВ gzip:  1.20 kB[22m[2m тФВ map:     6.06 kB[22m
+[2mdist/[22m[36massets/UpdateChecker-bPBVHoLt.js            [39m[1m[2m  3.43 kB[22m[1m[22m[2m тФВ gzip:  1.49 kB[22m[2m тФВ map:    15.33 kB[22m
+[2mdist/[22m[36massets/index-Deybedb6.js                    [39m[1m[2m  3.71 kB[22m[1m[22m[2m тФВ gzip:  1.38 kB[22m[2m тФВ map:    67.44 kB[22m
+[2mdist/[22m[36massets/expert-settings-panel-CAJDsPgX.js    [39m[1m[2m  3.95 kB[22m[1m[22m[2m тФВ gzip:  1.43 kB[22m[2m тФВ map:     9.51 kB[22m
+[2mdist/[22m[36massets/UnitSystemCard-CW9qVRpJ.js           [39m[1m[2m  4.28 kB[22m[1m[22m[2m тФВ gzip:  1.79 kB[22m[2m тФВ map:    11.67 kB[22m
+[2mdist/[22m[36massets/settings-shared-Cjk_IZEw.js          [39m[1m[2m  4.56 kB[22m[1m[22m[2m тФВ gzip:  1.80 kB[22m[2m тФВ map:    15.07 kB[22m
+[2mdist/[22m[36massets/LicenseActivationDialog-CqQdn272.js  [39m[1m[2m  5.44 kB[22m[1m[22m[2m тФВ gzip:  2.18 kB[22m[2m тФВ map:    16.65 kB[22m
+[2mdist/[22m[36massets/LaboratoryManager-C-X_nSBA.js        [39m[1m[2m  5.67 kB[22m[1m[22m[2m тФВ gzip:  2.00 kB[22m[2m тФВ map:    16.07 kB[22m
+[2mdist/[22m[36massets/LogViewer-cYPBH8e-.js                [39m[1m[2m  5.80 kB[22m[1m[22m[2m тФВ gzip:  2.47 kB[22m[2m тФВ map:    17.96 kB[22m
+[2mdist/[22m[36massets/BackupManager-dTCsmcQ3.js            [39m[1m[2m  5.85 kB[22m[1m[22m[2m тФВ gzip:  2.27 kB[22m[2m тФВ map:    17.13 kB[22m
+[2mdist/[22m[36massets/OperatorManager-CnBSXpX_.js          [39m[1m[2m  5.96 kB[22m[1m[22m[2m тФВ gzip:  2.18 kB[22m[2m тФВ map:    17.07 kB[22m
+[2mdist/[22m[36massets/chart-settings-store-Blru91Ev.js     [39m[1m[2m  6.00 kB[22m[1m[22m[2m тФВ gzip:  2.11 kB[22m[2m тФВ map:    32.56 kB[22m
+[2mdist/[22m[36massets/ChartSettingsManager-DOO5Y0kq.js     [39m[1m[2m  7.92 kB[22m[1m[22m[2m тФВ gzip:  2.67 kB[22m[2m тФВ map:    20.37 kB[22m
+[2mdist/[22m[36massets/ExperimentExportImport-jVLGjaNh.js   [39m[1m[2m  8.46 kB[22m[1m[22m[2m тФВ gzip:  3.01 kB[22m[2m тФВ map:    23.66 kB[22m
+[2mdist/[22m[36massets/APIKeyManager-Cx1bmsYU.js            [39m[1m[2m  8.84 kB[22m[1m[22m[2m тФВ gzip:  3.10 kB[22m[2m тФВ map:    25.47 kB[22m
+[2mdist/[22m[36massets/client-B_K1_5LK.js                   [39m[1m[2m  9.17 kB[22m[1m[22m[2m тФВ gzip:  3.68 kB[22m[2m тФВ map:    39.25 kB[22m
+[2mdist/[22m[36massets/AppSettingsExporter-YduMWSem.js      [39m[1m[2m 11.14 kB[22m[1m[22m[2m тФВ gzip:  3.70 kB[22m[2m тФВ map:    35.40 kB[22m
+[2mdist/[22m[36massets/ru-C8Cx8G0_.js                       [39m[1m[2m 12.62 kB[22m[1m[22m[2m тФВ gzip:  3.18 kB[22m[2m тФВ map:    30.33 kB[22m
+[2mdist/[22m[36massets/useToast-B3FX0iqe.js                 [39m[1m[2m 14.20 kB[22m[1m[22m[2m тФВ gzip:  5.67 kB[22m[2m тФВ map:    46.83 kB[22m
+[2mdist/[22m[36massets/ChartErrorBoundary--O5SIXjC.js       [39m[1m[2m 16.19 kB[22m[1m[22m[2m тФВ gzip:  6.78 kB[22m[2m тФВ map:   104.07 kB[22m
+[2mdist/[22m[36massets/vendor-date-B1cgXEfA.js              [39m[1m[2m 20.05 kB[22m[1m[22m[2m тФВ gzip:  5.77 kB[22m[2m тФВ map:   135.90 kB[22m
+[2mdist/[22m[36massets/page-uRYBpM7X.js                     [39m[1m[2m 27.68 kB[22m[1m[22m[2m тФВ gzip:  7.49 kB[22m[2m тФВ map:    65.30 kB[22m
+[2mdist/[22m[36massets/page-DETOib3I.js                     [39m[1m[2m 41.37 kB[22m[1m[22m[2m тФВ gzip: 13.28 kB[22m[2m тФВ map:   174.12 kB[22m
+[2mdist/[22m[36massets/vendor-react-VsJEmFiX.js             [39m[1m[2m 48.81 kB[22m[1m[22m[2m тФВ gzip: 17.32 kB[22m[2m тФВ map:   464.84 kB[22m
+[2mdist/[22m[36massets/vendor-charts-CziCK5UB.js            [39m[1m[2m 52.32 kB[22m[1m[22m[2m тФВ gzip: 23.33 kB[22m[2m тФВ map:   284.34 kB[22m
+[2mdist/[22m[36massets/page-DjAnQT3F.js                     [39m[1m[2m 92.43 kB[22m[1m[22m[2m тФВ gzip: 23.28 kB[22m[2m тФВ map:   286.19 kB[22m
+[2mdist/[22m[36massets/vendor-radix-wOjfjdRn.js             [39m[1m[2m113.55 kB[22m[1m[22m[2m тФВ gzip: 36.50 kB[22m[2m тФВ map:   584.32 kB[22m
+[2mdist/[22m[36massets/DashboardContent-BjY0gmz3.js         [39m[1m[2m128.75 kB[22m[1m[22m[2m тФВ gzip: 33.24 kB[22m[2m тФВ map:   425.92 kB[22m
+[2mdist/[22m[36massets/page-DnDmUZWP.js                     [39m[1m[2m136.78 kB[22m[1m[22m[2m тФВ gzip: 39.56 kB[22m[2m тФВ map:   617.57 kB[22m
+[2mdist/[22m[36massets/main-B9jSwqOU.js                     [39m[1m[2m271.04 kB[22m[1m[22m[2m тФВ gzip: 85.92 kB[22m[2m тФВ map: 1,284.94 kB[22m
+[32mтЬУ built in 12.20s[39m
+   Compiling rheolab-enterprise v0.2.0-beta.23 (D:\Development\Rheolab\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.83s
+       Built application at: D:\Development\Rheolab\src-tauri\target\debug\rheolab-enterprise.exe
+[tauri-e2e] ╨Ч╨░╨┐╤Г╤Б╨║╨░╨╡╨╝ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╨╡ ╤Б CDP ╨╜╨░ ╨┐╨╛╤А╤В╤Г 9222...
+[tauri-e2e] ╨Ю╨╢╨╕╨┤╨░╨╡╨╝ CDP ╨╜╨░ http://127.0.0.1:9222/json/version ...
+[tauri-e2e] тЬУ CDP ╨│╨╛╤В╨╛╨▓ тАФ http://127.0.0.1:9222
+[tauri-e2e] Native memory sampler PID=13856
+[tauri-e2e] Native memory output: D:\Development\Rheolab\outputs\e2e\perf\native-memory-1776804327180.jsonl
+
+Running 2 tests using 1 worker
+
+[tauri] [2026-04-21][20:45:32][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:32][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:32][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[E2E] Tauri IPC proxy patch result: invoke-patched
+[tauri] [2026-04-21][20:45:32][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[tauri] [2026-04-21][20:45:32][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:32][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:32][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-21][20:45:32][reqwest::retry][TRACE] shouldn't retry!
+[E2E] License store overridden with developer license
+
+[soak] upload round 1/8
+  heap=7.17 MB  nodes=590  cpu=856.7 ms  task=182.4 ms  layouts=5  recalc=87
+
+[soak] upload round 2/8
+  heap=7 MB  nodes=582  cpu=1146.9 ms  task=349.6 ms  layouts=11  recalc=202
+
+[soak] upload round 3/8
+  heap=7.55 MB  nodes=591  cpu=1385.0 ms  task=487.6 ms  layouts=17  recalc=293
+
+[soak] upload round 4/8
+  heap=7.6 MB  nodes=591  cpu=1596.1 ms  task=611.0 ms  layouts=23  recalc=385
+
+[soak] upload round 5/8
+  heap=7.25 MB  nodes=583  cpu=1838.2 ms  task=752.2 ms  layouts=29  recalc=492
+
+[soak] upload round 6/8
+  heap=7.67 MB  nodes=590  cpu=2070.9 ms  task=882.7 ms  layouts=35  recalc=600
+
+[soak] upload round 7/8
+  heap=7.81 MB  nodes=591  cpu=2292.1 ms  task=1007.1 ms  layouts=41  recalc=693
+
+[soak] upload round 8/8
+  heap=7.89 MB  nodes=591  cpu=2509.7 ms  task=1131.5 ms  layouts=46  recalc=784
+
+[soak-upload] тФАтФАтФА Summary тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
+  Heap samples (MB): 7.17, 7, 7.55, 7.6, 7.25, 7.67, 7.81, 7.89
+  Nodes samples:     590, 582, 591, 591, 583, 590, 591, 591
+  Heap slope:        0.108 MB/round (╨┐╨╛╤А╨╛╨│: 2)
+  Nodes ratio:       1.00├Ч (╨┐╨╛╤А╨╛╨│: 2)
+  ╨Т╨╡╤А╨┤╨╕╨║╤В:           тЬУ OK
+[soak] Output: D:\Development\Rheolab\outputs\e2e\perf\soak-upload-analyze-1776804339271.json
+  тЬУ  1 tests\e2e\memory-leak-soak.tauri.spec.ts:51:3 тА║ [LeakSoak/Tauri] Memory leak detection тА║ memory_leak_upload_analyze (9.2s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+[tauri] [2026-04-21][20:45:39][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:39][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:39][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[E2E] License store overridden with developer license
+
+[soak] comparison baseline: heap=7.66 MB, nodes=1017
+
+[soak] comparison round 1/6
+[tauri] [2026-04-21][20:45:41][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:41][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:41][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-21][20:45:41][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:41][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:41][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  heap=7.92 MB (╬Ф+0.26)  nodes=1029 (╬Ф+12)
+
+[soak] comparison round 2/6
+[tauri] [2026-04-21][20:45:42][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:42][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:42][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-21][20:45:42][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:42][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:42][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  heap=7.99 MB (╬Ф+0.33)  nodes=1029 (╬Ф+12)
+
+[soak] comparison round 3/6
+[tauri] [2026-04-21][20:45:43][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:43][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:43][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-21][20:45:43][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:43][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:43][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  heap=8.03 MB (╬Ф+0.37)  nodes=1029 (╬Ф+12)
+
+[soak] comparison round 4/6
+[tauri] [2026-04-21][20:45:44][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:44][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:44][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-21][20:45:44][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:44][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:44][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  heap=8.08 MB (╬Ф+0.42)  nodes=1029 (╬Ф+12)
+
+[soak] comparison round 5/6
+[tauri] [2026-04-21][20:45:45][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:45][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:45][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-21][20:45:45][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:45][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:45][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  heap=8.13 MB (╬Ф+0.47)  nodes=1029 (╬Ф+12)
+
+[soak] comparison round 6/6
+[tauri] [2026-04-21][20:45:46][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:46][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:46][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-21][20:45:46][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-21][20:45:46][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-21][20:45:46][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  heap=8.14 MB (╬Ф+0.48)  nodes=1029 (╬Ф+12)
+
+[soak-comparison] тФАтФАтФА Summary тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
+  Heap samples (MB): 7.92, 7.99, 8.03, 8.08, 8.13, 8.14
+  Nodes samples:     1029, 1029, 1029, 1029, 1029, 1029
+  Heap slope:        0.045 MB/round (╨┐╨╛╤А╨╛╨│: 2)
+  Nodes ratio:       1.00├Ч (╨┐╨╛╤А╨╛╨│: 2)
+  ╨Т╨╡╤А╨┤╨╕╨║╤В:           тЬУ OK
+[soak] Output: D:\Development\Rheolab\outputs\e2e\perf\soak-comparison-nav-1776804347025.json
+  тЬУ  2 tests\e2e\memory-leak-soak.tauri.spec.ts:92:3 тА║ [LeakSoak/Tauri] Memory leak detection тА║ memory_leak_comparison_open_close (7.7s)
+[tauri-e2e] тЬУ Native memory sampler (PID=13856) ╨╛╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜.
+[tauri-e2e] ╨Ч╨░╨▓╨╡╤А╤И╨░╨╡╨╝ Tauri-╨┐╤А╨╛╤Ж╨╡╤Б╤Б (PID=7172)...
+[tauri-e2e] тЬУ Tauri-╨┐╤А╨╛╤Ж╨╡╤Б╤Б ╨╖╨░╨▓╨╡╤А╤И╤С╨╜.
+
+  2 passed (48.0s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report playwright-report-tauri-soak[39m
+[36m[39m

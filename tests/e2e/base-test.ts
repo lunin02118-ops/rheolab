@@ -19,13 +19,21 @@
 
 import { test as base, expect } from '@playwright/test';
 import { setupTestLicense } from './utils';
-import { DashboardPage, LibraryPage, ComparisonPage, ReportsPage, SettingsPage } from './pages';
+import {
+  DashboardPage,
+  LibraryPage,
+  ComparisonPage,
+  ComparisonReportsPage,
+  ReportsPage,
+  SettingsPage,
+} from './pages';
 
 /** Extended test context with page objects */
 type RheoTestFixtures = {
   dashboard: DashboardPage;
   library: LibraryPage;
   comparison: ComparisonPage;
+  comparisonReports: ComparisonReportsPage;
   reports: ReportsPage;
   settings: SettingsPage;
 };
@@ -39,6 +47,9 @@ export const test = base.extend<RheoTestFixtures>({
   },
   comparison: async ({ page }, use) => {
     await use(new ComparisonPage(page));
+  },
+  comparisonReports: async ({ page }, use) => {
+    await use(new ComparisonReportsPage(page));
   },
   reports: async ({ page }, use) => {
     await use(new ReportsPage(page));
@@ -279,6 +290,18 @@ async function mockTauriIPC(page: import('@playwright/test').Page) {
           }
           if (cmd === 'reports_generate_excel') {
             const fakeXlsx = new Uint8Array(6000);
+            fakeXlsx[0] = 0x50; fakeXlsx[1] = 0x4B; fakeXlsx[2] = 0x03; fakeXlsx[3] = 0x04; // PK (ZIP)
+            return Promise.resolve(fakeXlsx);
+          }
+          // Multi-experiment comparison reports — use distinct size markers so
+          // accidental single↔multi wiring regressions show up in byte asserts.
+          if (cmd === 'reports_generate_comparison_pdf') {
+            const fakePdf = new Uint8Array(8000);
+            fakePdf[0] = 0x25; fakePdf[1] = 0x50; fakePdf[2] = 0x44; fakePdf[3] = 0x46; // %PDF
+            return Promise.resolve(fakePdf);
+          }
+          if (cmd === 'reports_generate_comparison_excel') {
+            const fakeXlsx = new Uint8Array(8000);
             fakeXlsx[0] = 0x50; fakeXlsx[1] = 0x4B; fakeXlsx[2] = 0x03; fakeXlsx[3] = 0x04; // PK (ZIP)
             return Promise.resolve(fakeXlsx);
           }

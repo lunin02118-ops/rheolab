@@ -2,8 +2,8 @@ import { defineConfig } from '@playwright/test';
 import path from 'path';
 
 export default defineConfig({
-    testDir: './tests/e2e/_archived',
-    testMatch: ['workflow-critical.spec.ts'],
+    testDir: './tests/e2e',
+    testMatch: ['full-workflow.tauri.spec.ts'],
 
     fullyParallel: false,
     forbidOnly: !!process.env.CI,

@@ -1,0 +1,46 @@
+
+> rheolab-enterprise@0.2.0-beta.23 test:e2e:smoke
+> node scripts/test/run-e2e-matrix.js smoke
+
+
+[e2e] C:\Program Files\nodejs\node.exe D:\Development\Rheolab\node_modules\playwright\cli.js install chromium
+
+[e2e:smoke] C:\Program Files\nodejs\node.exe D:\Development\Rheolab\node_modules\playwright\cli.js test --workers=1 tests/e2e/auth/auth-login.spec.ts tests/e2e/dashboard/dashboard-ui.spec.ts tests/e2e/settings/settings-ui.spec.ts
+[WebServer] [plugin vite:resolve] Module "crypto" has been externalized for browser compatibility, imported by "D:/Development/Rheolab/src/lib/utils/encryption.ts". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+
+Running 13 tests using 1 worker
+
+[E2E] Test license configured
+  тЬУ   1 [chromium] тА║ tests\e2e\dashboard\dashboard-ui.spec.ts:17:3 тА║ Dashboard тАФ Navigation тА║ dashboard_nav_buttons_navigate_correctly (2.6s)
+[E2E] Test license configured
+  тЬУ   2 [chromium] тА║ tests\e2e\dashboard\dashboard-ui.spec.ts:50:3 тА║ Dashboard тАФ Navigation тА║ dashboard_settings_accessible_from_nav (2.3s)
+[E2E] Test license configured
+  тЬУ   3 [chromium] тА║ tests\e2e\dashboard\dashboard-ui.spec.ts:64:3 тА║ Dashboard тАФ Upload & Analysis (real WASM) тА║ dashboard_idle_state_shows_upload_card (2.1s)
+[E2E] Test license configured
+  тЬУ   4 [chromium] тА║ tests\e2e\dashboard\dashboard-ui.spec.ts:75:3 тА║ Dashboard тАФ Upload & Analysis (real WASM) тА║ dashboard_upload_file_produces_chart_and_table (2.3s)
+[E2E] Test license configured
+  тЬУ   5 [chromium] тА║ tests\e2e\dashboard\dashboard-ui.spec.ts:93:3 тА║ Dashboard тАФ Upload & Analysis (real WASM) тА║ dashboard_tab_switching_works (2.4s)
+[E2E] Test license configured
+  тЬУ   6 [chromium] тА║ tests\e2e\dashboard\dashboard-ui.spec.ts:118:3 тА║ Dashboard тАФ Upload & Analysis (real WASM) тА║ dashboard_analysis_produces_cycles (2.3s)
+[E2E] Test license configured
+  тЬУ   7 [chromium] тА║ tests\e2e\dashboard\dashboard-ui.spec.ts:130:3 тА║ Dashboard тАФ Upload & Analysis (real WASM) тА║ dashboard_upload_reset_allows_new_file (2.2s)
+[E2E] Test license configured
+  тЬУ   8 [chromium] тА║ tests\e2e\dashboard\dashboard-ui.spec.ts:147:3 тА║ Dashboard тАФ Recipe & Water tabs тА║ dashboard_recipe_tab_add_and_remove_reagent (2.3s)
+[E2E] Test license configured
+  тЬУ   9 [chromium] тА║ tests\e2e\dashboard\dashboard-ui.spec.ts:172:3 тА║ Dashboard тАФ Recipe & Water tabs тА║ dashboard_water_tab_displays_content (3.3s)
+[E2E] Test license configured
+  тЬУ  10 [chromium] тА║ tests\e2e\settings\settings-ui.spec.ts:18:3 тА║ Settings тАФ Tab navigation тА║ settings_all_tabs_present (2.5s)
+[E2E] Test license configured
+  тЬУ  11 [chromium] тА║ tests\e2e\settings\settings-ui.spec.ts:25:3 тА║ Settings тАФ Tab navigation тА║ settings_switch_between_tabs (5.1s)
+[E2E] Test license configured
+  тЬУ  12 [chromium] тА║ tests\e2e\settings\settings-ui.spec.ts:44:3 тА║ Settings тАФ Tab navigation тА║ settings_url_driven_tab (2.5s)
+[E2E] Test license configured
+  тЬУ  13 [chromium] тА║ tests\e2e\settings\settings-ui.spec.ts:53:3 тА║ Settings тАФ Tab navigation тА║ settings_accessible_from_nav_button (2.6s)
+
+  13 passed (48.1s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m
+[e2e:smoke] passed

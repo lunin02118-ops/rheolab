@@ -11,7 +11,13 @@ use super::super::formatters::excel_formats;
 ///
 /// Constructed once by [`Styles::new`] at the start of every report and
 /// passed by reference to each section writer.
-pub(super) struct Styles {
+///
+/// Visibility is `pub(crate)` so the comparison assembler
+/// (`report_generator::comparison`) can build a shared style cache for
+/// multi-sheet workbooks; field visibility stays `pub(super)` because
+/// section writers in sibling modules inside `excel/` are the only
+/// legitimate consumers.
+pub(crate) struct Styles {
     pub(super) header:             Format,
     pub(super) section_title:      Format,
     pub(super) cell:               Format,
@@ -31,13 +37,19 @@ pub(super) struct Styles {
 }
 
 impl Styles {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let header = Format::new()
             .set_bold()
             .set_background_color(Color::RGB(0xF1F5F9))
             .set_border(FormatBorder::Thin)
             .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
+            .set_align(FormatAlign::VerticalCenter)
+            // Wrap long table headers onto multiple lines.  Headers like
+            // `η@40\n(mPa·s)` or `Время\n(чч:мм:сс)` are emitted by the
+            // section writers with an explicit `\n`; without `text_wrap`
+            // Excel would render them as a single line with a literal
+            // newline character stripped.
+            .set_text_wrap();
 
         let section_title = Format::new()
             .set_bold()

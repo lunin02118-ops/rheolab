@@ -193,6 +193,23 @@ pub(crate) fn persist_experiment(
         .map_err(|e| format!("SQL error (experiment data insert): {}", e))?;
     }
 
+    // PR2: Precompute touch-point metrics under the fixed library contract
+    // (threshold = 50 cP, target_time = 10 min) so the experiment-library
+    // filter sidebar can answer range queries without rescanning the
+    // columnar blob. Failure is logged but non-fatal: the backfill task
+    // will retry on next startup.
+    if let Err(e) = crate::db::touch_point_precompute::update_touch_point_row(
+        conn,
+        &exp.id,
+        &exp.raw_points,
+    ) {
+        tracing::warn!(
+            "touch-point precompute (save-path) failed for {}: {}",
+            exp.id,
+            e
+        );
+    }
+
     // Delete old reagents and insert new ones
     conn.execute(
         "DELETE FROM ExperimentReagent WHERE experimentId = ?1",

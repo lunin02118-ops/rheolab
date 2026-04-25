@@ -13,3 +13,4 @@
 
 export * from './wasm-models';
 export * from './report-inputs';
+export * from './comparison-report-inputs';

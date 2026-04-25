@@ -11,7 +11,7 @@
 //!
 //! The top-level `generate_typst_template` composes these fragments and
 //! then emits the final `#grid(...)` page-1 layout + supporting `#let` rules.
-mod helpers;
+pub(crate) mod helpers;
 mod stats;
 mod chart_page;
 mod raw_data;
@@ -31,7 +31,142 @@ pub(super) fn generate_typst_template(
     chart_config: Option<&ChartConfig>,
     chart_ranges: Option<&ChartRanges>,
 ) -> String {
+    // Byte-identical wrapper: delegate to the two pub(crate) helpers used
+    // by the comparison assembler (Phase 1.E) so both paths share the same
+    // Typst output.  A `generate_typst_template_is_stable` test pins this.
     let is_ru = input.settings.language == "ru";
+    let total_pages = if has_chart { 2 } else { 1 };
+    let globals = build_typst_globals(input, total_pages);
+    let body = build_single_experiment_body(input, has_chart, chart_config, chart_ranges, is_ru);
+    format!("{}{}", globals, body)
+}
+
+/// Build the document-wide Typst prelude: `#set page`/`#set text`,
+/// `#let section_header`/`#let label`/… helpers, `#let report_header`,
+/// `#let report_footer`, and the final `#set page(... header, footer)`.
+///
+/// Emits **everything that must appear once per Typst document**.  For the
+/// comparison report (Phase 1.E), the assembler calls this with the first
+/// experiment's metadata to drive the document-wide header (company name,
+/// date, page counter).  Per-experiment bodies are then concatenated with
+/// `#pagebreak()` separators — they must NOT re-emit this prelude.
+///
+/// `total_pages` is inlined into the footer's `"Page N / TOTAL"` counter.
+pub(crate) fn build_typst_globals(
+    input: &ReportInput,
+    total_pages: usize,
+) -> String {
+    let is_ru = input.settings.language == "ru";
+    let date_str = format_date(&input.metadata.test_date, &input.settings.language);
+
+    let company_name = input.metadata.company_name.as_deref().unwrap_or("RheoLab");
+    let report_title_right = if is_ru { "Отчет о тестировании жидкости ГРП" } else { "Frac Fluid Test Report" };
+    let test_id = input.metadata.test_id.as_deref().unwrap_or(input.metadata.filename.as_str());
+
+    let f_generated = if is_ru { "Сгенерировано:" } else { "Generated:" };
+    let f_page = if is_ru { "Страница" } else { "Page" };
+
+    let logo_block = if input.metadata.company_logo_base64.is_some() {
+        r#"image("logo.png", width: 40pt)"#.to_string()
+    } else {
+        "none".to_string()
+    };
+
+    format!(r##"
+#set page(paper: "a4", margin: (x: 28pt, y: 30pt))
+#set text(font: "Roboto", size: 7pt, fill: rgb("#334155"))
+
+// --- Styles ---
+#let section_header(title) = block(
+  fill: rgb("#F1F5F9"),
+  width: 100%,
+  inset: 6pt,
+  radius: 2pt,
+  text(weight: "bold", fill: rgb("#1E293B"), size: 9pt)[#title]
+)
+
+#let label(content) = text(fill: rgb("#64748B"), size: 8pt)[#content]
+#let val(content) = text(fill: rgb("#0F172A"), size: 8pt, weight: "medium")[#content]
+
+#let header_cell(content) = block(
+  width: 100%,
+  inset: (x: 4pt, y: 8pt),
+  align(center + horizon)[
+    #text(weight: "bold", size: 8pt, fill: rgb("#1E293B"))[#content]
+  ]
+)
+
+// Smaller muted text for unit labels inside header cells
+#let unit_text(u) = text(size: 6pt, weight: "regular", fill: rgb("#64748B"))[#u]
+
+#let cell(content) = block(
+  inset: 4pt,
+  align(left + horizon)[
+    #text(size: 7.5pt, weight: "regular", fill: rgb("#334155"))[#content]
+  ]
+)
+
+// --- Global Layout & Definitions ---
+#let report_header = {{
+  v(15pt)
+  grid(
+    columns: (1fr, auto),
+    align: (left, right),
+    stack(dir: ltr, spacing: 10pt,
+      {logo_block},
+      align(horizon)[#text(size: 18pt, weight: "bold", fill: rgb("#0F172A"))[{company_name}]]
+    ),
+    align(right)[
+      #text(size: 8pt, fill: rgb("#64748B"))[{report_title_right}]\
+      #text(size: 8pt, fill: rgb("#64748B"))[ID: {test_id}]
+    ]
+  )
+  v(8pt)
+  line(length: 100%, stroke: 1pt + rgb("#CBD5E1"))
+  v(7pt)
+}}
+
+#let report_footer = grid(
+  columns: (1fr, 1fr, 1fr),
+  align: (left, center, right),
+  text(size: 7pt, fill: rgb("#94a3b8"))[{company_name}],
+  text(size: 7pt, fill: rgb("#94a3b8"))[{f_generated} {date_str}],
+  text(size: 7pt, fill: rgb("#94a3b8"))[{f_page} #counter(page).display() / {total_pages}]
+)
+
+#set page(
+  paper: "a4",
+  margin: (top: 3.5cm, bottom: 2cm, x: 1cm),
+  header: report_header,
+  footer: report_footer
+)
+"##,
+        company_name = escape_typst(company_name),
+        report_title_right = report_title_right,
+        test_id = escape_typst(test_id),
+        logo_block = logo_block,
+        f_generated = f_generated,
+        f_page = f_page,
+        date_str = date_str,
+        total_pages = total_pages,
+    )
+}
+
+/// Build the per-experiment content body: passport + recipe + water +
+/// touch-points + stats + chart page + optional raw-data page.
+///
+/// Does **not** emit a page-break at the start; callers in the comparison
+/// assembler must prepend `#pagebreak()` between experiments.
+///
+/// Does **not** emit any `#set page`, `#let`, or header/footer — those come
+/// from [`build_typst_globals`] once per document.
+pub(crate) fn build_single_experiment_body(
+    input: &ReportInput,
+    has_chart: bool,
+    chart_config: Option<&ChartConfig>,
+    chart_ranges: Option<&ChartRanges>,
+    is_ru: bool,
+) -> String {
     let date_str = format_date(&input.metadata.test_date, &input.settings.language);
 
     // ── Translations ─────────────────────────────────────────────────────
@@ -63,11 +198,6 @@ pub(super) fn generate_typst_template(
     let h_type = if is_ru { "Тип\\ реагента" } else { "Type" };
     let h_unit = if is_ru { "ЕИ" } else { "Unit" };
     let h_conc = if is_ru { "Конц." } else { "Conc." };
-
-    // Header info
-    let company_name = input.metadata.company_name.as_deref().unwrap_or("RheoLab");
-    let report_title_right = if is_ru { "Отчет о тестировании жидкости ГРП" } else { "Frac Fluid Test Report" };
-    let test_id = input.metadata.test_id.as_deref().unwrap_or(input.metadata.filename.as_str());
 
     // ── 1. Passport Data ─────────────────────────────────────────────────
     let p_file = &input.metadata.filename;
@@ -174,88 +304,8 @@ pub(super) fn generate_typst_template(
         String::new()
     };
 
-    // ── 9. Footer bits + logo ────────────────────────────────────────────
-    let f_generated = if is_ru { "Сгенерировано:" } else { "Generated:" };
-    let f_page = if is_ru { "Страница" } else { "Page" };
-
-    let logo_block = if input.metadata.company_logo_base64.is_some() {
-        r#"image("logo.png", width: 40pt)"#.to_string()
-    } else {
-        "none".to_string()
-    };
-
-    let total_pages = if has_chart { 2 } else { 1 };
-
-    // ── 10. Assemble full template ───────────────────────────────────────
+    // ── 9. Assemble body (globals emitted separately) ────────────────────
     format!(r##"
-#set page(paper: "a4", margin: (x: 28pt, y: 30pt))
-#set text(font: "Roboto", size: 7pt, fill: rgb("#334155"))
-
-// --- Styles ---
-#let section_header(title) = block(
-  fill: rgb("#F1F5F9"),
-  width: 100%,
-  inset: 6pt,
-  radius: 2pt,
-  text(weight: "bold", fill: rgb("#1E293B"), size: 9pt)[#title]
-)
-
-#let label(content) = text(fill: rgb("#64748B"), size: 8pt)[#content]
-#let val(content) = text(fill: rgb("#0F172A"), size: 8pt, weight: "medium")[#content]
-
-#let header_cell(content) = block(
-  width: 100%,
-  inset: (x: 4pt, y: 8pt),
-  align(center + horizon)[
-    #text(weight: "bold", size: 8pt, fill: rgb("#1E293B"))[#content]
-  ]
-)
-
-// Smaller muted text for unit labels inside header cells
-#let unit_text(u) = text(size: 6pt, weight: "regular", fill: rgb("#64748B"))[#u]
-
-#let cell(content) = block(
-  inset: 4pt,
-  align(left + horizon)[
-    #text(size: 7.5pt, weight: "regular", fill: rgb("#334155"))[#content]
-  ]
-)
-
-// --- Global Layout & Definitions ---
-#let report_header = {{
-  v(15pt)
-  grid(
-    columns: (1fr, auto),
-    align: (left, right),
-    stack(dir: ltr, spacing: 10pt,
-      {logo_block},
-      align(horizon)[#text(size: 18pt, weight: "bold", fill: rgb("#0F172A"))[{company_name}]]
-    ),
-    align(right)[
-      #text(size: 8pt, fill: rgb("#64748B"))[{report_title_right}]\
-      #text(size: 8pt, fill: rgb("#64748B"))[ID: {test_id}]
-    ]
-  )
-  v(8pt)
-  line(length: 100%, stroke: 1pt + rgb("#CBD5E1"))
-  v(7pt)
-}}
-
-#let report_footer = grid(
-  columns: (1fr, 1fr, 1fr),
-  align: (left, center, right),
-  text(size: 7pt, fill: rgb("#94a3b8"))[{company_name}],
-  text(size: 7pt, fill: rgb("#94a3b8"))[{f_generated} {date_str}],
-  text(size: 7pt, fill: rgb("#94a3b8"))[{f_page} #counter(page).display() / {total_pages}]
-)
-
-#set page(
-  paper: "a4",
-  margin: (top: 3.5cm, bottom: 2cm, x: 1cm),
-  header: report_header,
-  footer: report_footer
-)
-
 // --- Page 1 Content ---
 #v(-20pt)
 #grid(
@@ -353,11 +403,6 @@ pub(super) fn generate_typst_template(
 
 {raw_data_page}
 "##,
-        // Args
-        company_name=escape_typst(company_name), report_title_right=report_title_right, test_id=escape_typst(test_id),
-        logo_block=logo_block,
-        total_pages = total_pages,
-
         t_passport=t_passport, t_water=t_water, t_recipe=t_recipe, t_stats=t_stats,
         l_file=l_file, p_file=escape_typst(p_file),
         l_date=l_date, date_str=date_str,
@@ -380,11 +425,110 @@ pub(super) fn generate_typst_template(
         stats_headers=stats.headers,
         stats_rows=stats.rows,
 
-        f_generated=f_generated, f_page=f_page,
         chart_page=chart_page,
         raw_data_page=raw_data_page,
         ramp_block=ramp_block
     )
+}
+
+// ── Tests ───────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::super::super::types::{DataPoint, ReportMetadata, ReportSettings};
+
+    fn minimal_report_input() -> ReportInput {
+        ReportInput {
+            raw_data: vec![
+                DataPoint { time_sec: 0.0, viscosity_cp: 100.0, temperature_c: Some(25.0), shear_rate: Some(100.0), shear_stress_pa: None, speed_rpm: None, pressure_bar: None, bath_temperature_c: None },
+                DataPoint { time_sec: 60.0, viscosity_cp: 150.0, temperature_c: Some(50.0), shear_rate: Some(75.0), shear_stress_pa: None, speed_rpm: None, pressure_bar: None, bath_temperature_c: None },
+            ],
+            metadata: ReportMetadata {
+                filename: "test.pdf".to_string(),
+                test_id: Some("T-1".to_string()),
+                ..Default::default()
+            },
+            cycle_results: vec![],
+            recipe: vec![],
+            water_params: None,
+            cycles: vec![],
+            settings: ReportSettings::default(),
+            chart_image_base64: None,
+            axis_values: None,
+        }
+    }
+
+    /// Determinism: running `generate_typst_template` twice must produce
+    /// byte-identical Typst source — no wall-clock values, no HashMap
+    /// iteration order, nothing else that could leak non-determinism.
+    #[test]
+    fn generate_typst_template_is_deterministic() {
+        let input = minimal_report_input();
+        let files = std::collections::HashMap::new();
+        let a = generate_typst_template(&input, &files, false, None, None);
+        let b = generate_typst_template(&input, &files, false, None, None);
+        assert_eq!(a.len(), b.len(), "length drift: {} vs {}", a.len(), b.len());
+        assert_eq!(a, b, "non-deterministic template output");
+    }
+
+    /// Refactor guarantee: the splitting of `generate_typst_template` into
+    /// `build_typst_globals + build_single_experiment_body` must be a pure
+    /// concat — the final string must match character-for-character what the
+    /// single monolithic function used to produce.
+    ///
+    /// This test pins the Phase 1.D refactor against drift: if a future
+    /// change to the globals block or body block diverges, we want a hard
+    /// failure before anyone ships a regressed PDF.
+    #[test]
+    fn generate_typst_template_equals_globals_plus_body_concat() {
+        let input = minimal_report_input();
+        let files = std::collections::HashMap::new();
+        let has_chart = false;
+        let total_pages = if has_chart { 2 } else { 1 };
+        let is_ru = input.settings.language == "ru";
+
+        let expected = generate_typst_template(&input, &files, has_chart, None, None);
+        let reassembled = format!(
+            "{}{}",
+            build_typst_globals(&input, total_pages),
+            build_single_experiment_body(&input, has_chart, None, None, is_ru),
+        );
+        assert_eq!(
+            expected, reassembled,
+            "globals + body concat diverges from generate_typst_template output"
+        );
+    }
+
+    /// The body must never emit globals: no `#set page`, no `#let
+    /// section_header`, no `#let report_header` / `#let report_footer`.
+    /// These belong to [`build_typst_globals`] and get emitted once per
+    /// document by the comparison assembler.
+    #[test]
+    fn body_does_not_emit_globals() {
+        let input = minimal_report_input();
+        let body = build_single_experiment_body(&input, false, None, None, false);
+        // Tokens that must live in globals, not body.
+        assert!(!body.contains("#set page("),   "body leaks '#set page('");
+        assert!(!body.contains("#let section_header"),   "body leaks section_header");
+        assert!(!body.contains("#let report_header"),    "body leaks report_header");
+        assert!(!body.contains("#let report_footer"),    "body leaks report_footer");
+        assert!(!body.contains("#let label(content)"),   "body leaks label helper");
+    }
+
+    /// Globals must contain exactly the expected tokens so comparison
+    /// report can rely on them.
+    #[test]
+    fn globals_contain_required_tokens() {
+        let input = minimal_report_input();
+        let globals = build_typst_globals(&input, 2);
+        assert!(globals.contains("#set page(paper: \"a4\""), "missing base page set");
+        assert!(globals.contains("#let section_header"), "missing section_header helper");
+        assert!(globals.contains("#let label(content)"), "missing label helper");
+        assert!(globals.contains("#let report_header"), "missing report_header");
+        assert!(globals.contains("#let report_footer"), "missing report_footer");
+        assert!(globals.contains("header: report_header"), "missing header binding on page");
+    }
 }
 
 /// Right-side “Control Points” table on page 1.

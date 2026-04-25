@@ -1,9 +1,11 @@
 import { getBridge } from '@/lib/tauri/bridge';
 import {
   convertReportInputToWasm,
+  convertComparisonReportInputToWasm,
   type ExcelReportInput,
   type PdfReportInput,
 } from '@/lib/analysis/report-types/converters';
+import type { ComparisonReportInput } from '@/lib/analysis/report-types/comparison-report-inputs';
 
 const TAURI_REPORT_RETRY_DELAY_MS = 150;
 
@@ -80,6 +82,68 @@ export async function generateExcelReportBlob(input: ExcelReportInput): Promise<
     if (isTauriRuntimeUnavailable(error)) {
       await delay(TAURI_REPORT_RETRY_DELAY_MS);
       return await tryGenerateExcelNative(input);
+    }
+    throw error;
+  }
+}
+
+// ── Comparison (multi-experiment) report generation ───────────────────────
+
+async function tryGenerateComparisonPdfNative(input: ComparisonReportInput): Promise<Blob> {
+  const bridge = getBridge();
+  if (!bridge.reports?.generateComparisonPdf) {
+    throw new Error('Unknown IPC command reports_generate_comparison_pdf');
+  }
+  const payload = convertComparisonReportInputToWasm(input);
+  const bytes = await bridge.reports.generateComparisonPdf(payload);
+  return new Blob([toArrayBuffer(bytes)], { type: 'application/pdf' });
+}
+
+async function tryGenerateComparisonExcelNative(input: ComparisonReportInput): Promise<Blob> {
+  const bridge = getBridge();
+  if (!bridge.reports?.generateComparisonExcel) {
+    throw new Error('Unknown IPC command reports_generate_comparison_excel');
+  }
+  const payload = convertComparisonReportInputToWasm(input);
+  const bytes = await bridge.reports.generateComparisonExcel(payload);
+  return new Blob([toArrayBuffer(bytes)], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+}
+
+/**
+ * Generate a multi-experiment **comparison** PDF blob via native Tauri IPC.
+ *
+ * Page 1 is the summary chart + summary table; pages 2..N+1 are one compact
+ * per-experiment report each.  See
+ * `docs/adr/ADR-0010-comparison-report-generation.md` for the data contract.
+ */
+export async function generateComparisonPdfReportBlob(input: ComparisonReportInput): Promise<Blob> {
+  try {
+    return await tryGenerateComparisonPdfNative(input);
+  } catch (error) {
+    if (isTauriRuntimeUnavailable(error)) {
+      await delay(TAURI_REPORT_RETRY_DELAY_MS);
+      return await tryGenerateComparisonPdfNative(input);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Generate a multi-experiment **comparison** XLSX blob via native Tauri IPC.
+ *
+ * Workbook layout: Summary sheet (sheet 0), one sheet per experiment
+ * (sheets 1..N), plus a hidden DebugInfo sheet.  Proposed sheet names are
+ * sanitised and deduplicated on the Rust side.
+ */
+export async function generateComparisonExcelReportBlob(input: ComparisonReportInput): Promise<Blob> {
+  try {
+    return await tryGenerateComparisonExcelNative(input);
+  } catch (error) {
+    if (isTauriRuntimeUnavailable(error)) {
+      await delay(TAURI_REPORT_RETRY_DELAY_MS);
+      return await tryGenerateComparisonExcelNative(input);
     }
     throw error;
   }

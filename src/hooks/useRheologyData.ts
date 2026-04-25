@@ -8,11 +8,12 @@
 import { useMemo } from 'react';
 import type uPlot from 'uplot';
 import { downsampleRheoPointsSmart, downsampleRheoPointsMultiChannel } from '@/lib/utils/downsample';
-import { calculateSmartTouchPoints, type TouchPointInput } from '@/lib/utils/touch-point';
+import { calculateSmartTouchPoints, type TouchPointInput, type TouchPointResult } from '@/lib/utils/touch-point';
 import { columnarToRawPoints } from '@/lib/utils/columnar';
 import type { ColumnarData } from '@/types';
 import type { ViscosityUnit, TemperatureUnit, PressureUnit } from '@/lib/store/chart-settings-types';
-import { convertViscosity, convertTemperature, convertPressure, viscosityDecimals, pressureDecimals } from '@/lib/utils/unit-converters';
+import { convertViscosity, convertTemperature, convertPressure, viscosityDecimals, pressureDecimals, viscosityToCp } from '@/lib/utils/unit-converters';
+import { medianSamplingInterval, snapToSeries } from '@/lib/utils/series-snap';
 
 /** Single raw measurement point from the Rust parser / DB. */
 export interface RheoPoint {
@@ -39,9 +40,34 @@ export interface RheoStats {
     duration: number;
 }
 
+/**
+ * A touch-point marker prepared for rendering on the uPlot chart.
+ *
+ * Unit contract (fixed in the touch-point audit):
+ *  - `viscosityCp` — canonical viscosity value in cP (the algorithm's native
+ *    unit, matches PDF / Excel reports and the DB-persisted touch-points).
+ *  - `viscosityDisplay` — same value converted to the chart's current display
+ *    unit; this is what the uPlot plugin passes to `valToPos` so the marker
+ *    sits exactly on the drawn curve regardless of the unit switch.
+ *  - `viscosity` — kept as an alias of `viscosityDisplay` for backwards
+ *    compatibility with existing call sites (info panel, tooltip).
+ *  - `time` — X coordinate in minutes, matching `uPlotData[0]` after any
+ *    snap-to-visible-series adjustment.
+ */
 export interface TouchPointMarker {
     time: number;
+    /** Viscosity in the current display unit (direct chart Y coordinate). */
     viscosity: number;
+    /** Viscosity in cP — algorithm canonical unit, safe for persistence. */
+    viscosityCp: number;
+    /** Viscosity converted to `displayUnit`; equals `viscosity`. */
+    viscosityDisplay: number;
+    /** Current chart display unit of `viscosityDisplay`. */
+    displayUnit: ViscosityUnit;
+    /** True when the marker coordinates coincide with a visible vertex. */
+    snappedToSeries: boolean;
+    /** Non-undefined → UI anomaly hint for tooltips. */
+    anomaly?: 'shear-rate-jump';
     type: 'threshold' | 'target';
     color: string;
 }
@@ -118,7 +144,12 @@ function computeFromAoS(
     const shearRates = new Float64Array(sampledData.length);
     const pressures = new Float64Array(sampledData.length);
     const rpms = new Float64Array(sampledData.length);
-    const bathTemperatures = new Float64Array(sampledData.length);
+    // bathTemperatures: regular array because uPlot uses `null` to render
+    // gaps; Float64Array cannot hold null and would force a 0-fallback that
+    // drags the line down to the X-axis at every missing point (happens
+    // when a parser merges two tables and only one carries bath temp
+    // — e.g. OFITE 1100 Sweep Data + Log Data). See useRheologyData tests.
+    const bathTemperatures: Array<number | null> = new Array(sampledData.length);
 
     const vDec = Math.pow(10, viscosityDecimals(units.viscosityUnit));
     const pDec = Math.pow(10, pressureDecimals(units.pressureUnit));
@@ -132,7 +163,9 @@ function computeFromAoS(
         shearRates[i] = shearRate ? Math.round(shearRate * 10) / 10 : 0;
         pressures[i] = p.pressure_bar ? Math.round(convertPressure(p.pressure_bar, units.pressureUnit) * pDec) / pDec : 0;
         rpms[i] = (p.speed_rpm ?? p.rpm) || 0;
-        bathTemperatures[i] = p.bath_temperature_c ? Math.round(convertTemperature(p.bath_temperature_c, units.bathTemperatureUnit) * 10) / 10 : 0;
+        bathTemperatures[i] = p.bath_temperature_c != null
+            ? Math.round(convertTemperature(p.bath_temperature_c, units.bathTemperatureUnit) * 10) / 10
+            : null;
     }
 
     let maxVisc = -Infinity, minVisc = Infinity, sumVisc = 0;
@@ -211,7 +244,9 @@ export function useRheologyData({
                 const shearRates = new Float64Array(n);
                 const pressures = new Float64Array(n);
                 const rpms = new Float64Array(n);
-                const bathTemperatures = new Float64Array(n);
+                // See AoS path for the rationale — bath temp may be missing
+                // on a subset of rows and must render as a uPlot gap, not 0.
+                const bathTemperatures: Array<number | null> = new Array(n);
                 let maxVisc = -Infinity, minVisc = Infinity, sumVisc = 0;
                 let maxTemp = -Infinity, minTemp = Infinity, sumTemp = 0;
                 let sumShearRate = 0, shearRateCount = 0;
@@ -228,7 +263,9 @@ export function useRheologyData({
                     pressures[i] = pb != null ? Math.round(convertPressure(pb, units.pressureUnit) * cpDec) / cpDec : 0;
                     rpms[i] = col.speedRpm[i] ?? 0;
                     const bath = col.bathTemperatureC?.[i];
-                    bathTemperatures[i] = bath != null ? Math.round(convertTemperature(bath, units.bathTemperatureUnit) * 10) / 10 : 0;
+                    bathTemperatures[i] = bath != null
+                        ? Math.round(convertTemperature(bath, units.bathTemperatureUnit) * 10) / 10
+                        : null;
                     const cv = convertViscosity(col.viscosityCp[i], units.viscosityUnit);
                     if (cv > maxVisc) maxVisc = cv;
                     if (cv < minVisc) minVisc = cv;
@@ -278,6 +315,12 @@ export function useRheologyData({
     // Uses RAW (non-downsampled) data so that the crossing-area density is
     // preserved — downsampled data may drop critical oscillating points near
     // the threshold, causing detection hundreds of minutes late.
+    //
+    // The raw algorithm output (in cP) is then re-anchored to the *visible*
+    // uPlot series (display-unit Y values) so the marker always renders
+    // exactly on the drawn curve — even when the series is downsampled
+    // (LTTB → marker between two visible points) or filtered by shear rate
+    // (algorithm considers only dominant rate, chart shows all).
     const touchPoints = useMemo<TouchPointMarker[]>(() => {
         if (!showTouchPoints) return [];
 
@@ -320,19 +363,47 @@ export function useRheologyData({
             }
         }
 
-        const smartResults = calculateSmartTouchPoints(tpInputs, {
+        const smartResults: TouchPointResult[] = calculateSmartTouchPoints(tpInputs, {
             viscosityThreshold,
             showTargetTime,
             targetTime,
         });
 
-        return smartResults.map(r => ({
-            time: r.time,
-            viscosity: r.viscosity,
-            type: r.type,
-            color: r.type === 'threshold' ? '#ef4444' : '#f59e0b',
-        } as TouchPointMarker));
-    }, [data, columnarData, timeShiftEnabled, showTouchPoints, viscosityThreshold, showTargetTime, targetTime]);
+        // Pre-compute the median sampling interval of the **visible** series
+        // once per memo so the per-marker snap is O(log n) instead of O(n).
+        const samplingInterval = _times.length > 1 ? medianSamplingInterval(_times) : 0;
+        const displayUnit = units.viscosityUnit;
+
+        return smartResults.map(r => {
+            const viscosityCpRaw = r.viscosity;
+            const rawDisplay = convertViscosity(viscosityCpRaw, displayUnit);
+
+            const snap = _times.length > 0
+                ? snapToSeries(r.time, rawDisplay, _times, _viscosities, samplingInterval)
+                : { time: r.time, viscosityDisplay: rawDisplay, snapped: false };
+
+            // When the marker was snapped to a visible vertex, recover the
+            // exact cP value from the display-unit coordinate so downstream
+            // consumers (persisted touch-points, PDF text) stay consistent
+            // with what the user sees on screen.
+            const viscosityCp = snap.snapped
+                ? viscosityToCp(snap.viscosityDisplay, displayUnit)
+                : viscosityCpRaw;
+
+            const marker: TouchPointMarker = {
+                time: snap.time,
+                viscosity: snap.viscosityDisplay,
+                viscosityDisplay: snap.viscosityDisplay,
+                viscosityCp,
+                displayUnit,
+                snappedToSeries: snap.snapped,
+                anomaly: r.anomaly,
+                type: r.type,
+                color: r.type === 'threshold' ? '#ef4444' : '#f59e0b',
+            };
+            return marker;
+        });
+    }, [data, columnarData, timeShiftEnabled, showTouchPoints, viscosityThreshold, showTargetTime, targetTime, _times, _viscosities, units.viscosityUnit]);
 
     return { uPlotData, stats, touchPoints };
 }

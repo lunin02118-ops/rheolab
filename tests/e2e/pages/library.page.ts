@@ -37,6 +37,21 @@ export class LibraryPage {
   readonly fluidTypeFilter: Locator;
   readonly instrumentTypeFilter: Locator;
 
+  // — Touch-point filters —
+  readonly touchPointSection: Locator;
+  readonly viscosityThresholdSelector: Locator;
+  readonly viscosityThresholdPresetOff: Locator;
+  readonly viscosityThresholdPreset500: Locator;
+  readonly viscosityThresholdPreset300: Locator;
+  readonly viscosityThresholdCustomInput: Locator;
+  readonly hasCrossingToggle: Locator;
+  readonly crossingTimeMin: Locator;
+  readonly crossingTimeMax: Locator;
+  readonly viscosityAtTargetMin: Locator;
+  readonly viscosityAtTargetMax: Locator;
+  readonly clearTouchPointFiltersButton: Locator;
+  readonly touchPointEmptyStateHint: Locator;
+
   // — Experiment list —
   readonly experimentListContainer: Locator;
 
@@ -72,6 +87,23 @@ export class LibraryPage {
     this.batchFilter = page.getByTestId('BatchNumberFilterInput');
     this.fluidTypeFilter = page.getByTestId('FluidTypeFilterSelect');
     this.instrumentTypeFilter = page.getByTestId('InstrumentTypeFilterSelect');
+
+    // Touch-point filters — default fast path uses 50 cP precomputed
+    // columns; dynamic threshold (via `ViscosityThresholdSelector` presets
+    // or custom input) switches the backend to per-query recompute.
+    this.touchPointSection = page.getByTestId('TouchPointFiltersSection');
+    this.viscosityThresholdSelector = page.getByTestId('ViscosityThresholdSelector');
+    this.viscosityThresholdPresetOff = page.getByTestId('ViscosityThresholdPreset-off');
+    this.viscosityThresholdPreset500 = page.getByTestId('ViscosityThresholdPreset-500');
+    this.viscosityThresholdPreset300 = page.getByTestId('ViscosityThresholdPreset-300');
+    this.viscosityThresholdCustomInput = page.getByTestId('ViscosityThresholdCustomInput');
+    this.hasCrossingToggle = page.getByTestId('HasCrossingFilterToggle');
+    this.crossingTimeMin = page.getByTestId('CrossingTimeMinInput');
+    this.crossingTimeMax = page.getByTestId('CrossingTimeMaxInput');
+    this.viscosityAtTargetMin = page.getByTestId('ViscosityAtTargetMinInput');
+    this.viscosityAtTargetMax = page.getByTestId('ViscosityAtTargetMaxInput');
+    this.clearTouchPointFiltersButton = page.getByTestId('ClearTouchPointFiltersButton');
+    this.touchPointEmptyStateHint = page.getByTestId('TouchPointEmptyStateHint');
 
     // Experiment list
     this.experimentListContainer = page.getByTestId('ExperimentListContainer');

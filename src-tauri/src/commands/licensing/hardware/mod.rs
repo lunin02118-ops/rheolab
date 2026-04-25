@@ -45,6 +45,47 @@ mod machine_id;
 pub use legacy::{all_legacy_ids, delete_legacy_cache};
 pub use machine_id::get_or_create_machine_id;
 
+/// Debug snapshot of the v2 machine-ID inputs.  Used by the
+/// `licensing_debug_fingerprint` Tauri command so the user (or support) can
+/// verify that two launches on the *same hardware* produce the same
+/// fingerprint — critical for diagnosing "license didn't recover after OS
+/// reinstall" complaints.
+///
+/// Raw component values are returned in lowercase, after the standard OEM
+/// bogus-value filter (so a genuine blank field shows as empty string rather
+/// than "to be filled by o.e.m.").  The final `id` is the canonical 32-hex
+/// fingerprint actually used for licensing.
+#[derive(Debug, serde::Serialize)]
+pub struct FingerprintDebugInfo {
+    /// Final v2 machine ID (SHA-256[0..32] of salted cpu|mobo|bios).
+    pub id: String,
+    /// Raw CPU `ProcessorId` from `Win32_Processor`, sanitized + lowercased.
+    pub cpu_id: String,
+    /// Raw motherboard UUID from `Win32_ComputerSystemProduct`, sanitized.
+    pub motherboard_uuid: String,
+    /// Raw BIOS `SerialNumber` from `Win32_BIOS`, sanitized.
+    pub bios_serial: String,
+    /// Legacy v1 IDs that may still be on the server (for activation migration).
+    pub legacy_ids: Vec<String>,
+}
+
+/// Gather the three hardware components + the derived machine ID so a Tauri
+/// command can surface them to the UI for diagnostics.
+pub fn debug_fingerprint_info(app_data_dir: &std::path::Path) -> FingerprintDebugInfo {
+    let cpu_id = collectors::get_cpu_id_pub();
+    let motherboard_uuid = collectors::get_motherboard_uuid_pub();
+    let bios_serial = collectors::get_bios_serial_pub();
+    let id = get_or_create_machine_id(app_data_dir);
+    let legacy_ids = all_legacy_ids(app_data_dir);
+    FingerprintDebugInfo {
+        id,
+        cpu_id,
+        motherboard_uuid,
+        bios_serial,
+        legacy_ids,
+    }
+}
+
 // Items re-exported at this module level so that the existing test file
 // (`hardware_tests.rs`) can continue to use `use super::*;`.
 #[cfg(test)]

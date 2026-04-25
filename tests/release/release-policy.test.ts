@@ -20,6 +20,15 @@ describe('release-policy', () => {
     expect(resolveReleaseChannel([], 'internal')).toBe('internal');
   });
 
+  it('defaults to alpha when neither --channel nor env is provided', () => {
+    // Regression guard: unqualified builds must land on the owner's personal
+    // `alpha` tier first, never on stable. This prevents a casual
+    // `npm run release:prepare` from accidentally publishing to every
+    // external user before the author has had a chance to validate.
+    expect(resolveReleaseChannel([], undefined)).toBe('alpha');
+    expect(resolveReleaseChannel([], '')).toBe('alpha');
+  });
+
   it('rejects unknown channels', () => {
     expect(() => resolveReleaseChannel(['--channel', 'nightly'], undefined)).toThrow(
       /Unknown release channel/i,

@@ -273,7 +273,11 @@ export function sanitiseAndNormaliseColumnarDirect(
         shearStress[i]  = col.shearStress?.[idx] ?? 0;
         pressureBar[i]  = col.pressureBar[idx] ?? 0;
         speedRpm[i]     = col.speedRpm[idx] ?? 0;
-        bathTempC[i]    = col.bathTemperatureC?.[idx] ?? 0;
+        // NaN (not 0) for missing bath temp so alignSeriesFromColumnar* emits
+        // `null` into the uPlot series — otherwise the bath-temp line would
+        // drop to the X-axis at every point coming from a merged table that
+        // lacks bath temperature (e.g. OFITE 1100 Sweep Data rows).
+        bathTempC[i]    = col.bathTemperatureC?.[idx] ?? NaN;
     }
 
     return {

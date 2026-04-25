@@ -210,6 +210,20 @@ export function convertReportInputToWasm(input: PdfReportInput | ExcelReportInpu
                     },
                 } : {}),
             } : null,
+            // Per-category target units — passed through unchanged.
+            // When present this takes precedence over `unit_system` on
+            // the Rust side for stats-table labels AND conversions, so
+            // the UI's mixed / custom unit presets survive the round
+            // trip.  Absent → legacy `unit_system` path.
+            rheology_units: input.settings.rheologyUnits ? {
+                viscosity: input.settings.rheologyUnits.viscosity,
+                temperature: input.settings.rheologyUnits.temperature,
+                pressure: input.settings.rheologyUnits.pressure,
+                consistency: input.settings.rheologyUnits.consistency,
+                plastic_viscosity: input.settings.rheologyUnits.plasticViscosity,
+                yield_point: input.settings.rheologyUnits.yieldPoint,
+                time_format: input.settings.rheologyUnits.timeFormat,
+            } : null,
         },
     };
 }

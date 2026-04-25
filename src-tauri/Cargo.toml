@@ -1,6 +1,6 @@
 [package]
 name = "rheolab-enterprise"
-version = "0.2.0-beta.23"
+version = "0.2.0-beta.53"
 description = "RheoLab Enterprise - Professional Rheology Analysis Software"
 authors = ["RheoLab Team"]
 license = "Proprietary"
@@ -52,6 +52,10 @@ uuid = { version = "1", features = ["v4"] }
 zstd = "0.13"
 byteorder = "1"
 lru = "0.17"
+# Data-parallel decode+recompute on the library slow-path filter.
+# Scales the per-blob work across all physical cores; on a 6-core laptop
+# the 11 k-row dynamic-threshold scan drops from ~100 s to ~15-20 s.
+rayon = "1"
 rheolab-core = { path = "../src/rust/rheolab-core", default-features = false, features = ["pdf", "excel", "charts"] }
 specta = { version = "2.0.0-rc.22", features = ["derive", "export", "serde_json"] }
 specta-typescript = "0.0.9"
@@ -116,6 +120,14 @@ opt-level = 2
 opt-level = 1
 [profile.dev.package.rheolab-core]
 opt-level = 1
+
+
+
+
+
+
+
+
 
 
 

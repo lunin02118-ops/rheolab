@@ -94,7 +94,7 @@ impl AppError {
             Self::Join(_) => "Internal processing error",
             Self::Serde(_) => "Data format error",
             Self::Http(_) => "Network error",
-            Self::Other(_) => "Internal error",
+            Self::Other(msg) => msg.as_str(),
             // Domain errors — their messages are intentionally user-visible.
             Self::BadRequest(msg) | Self::License(msg) | Self::Parse(msg) => msg.as_str(),
         }

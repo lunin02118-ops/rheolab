@@ -238,13 +238,22 @@ fn test_parser_parity_ofite_1100() {
     // the read, so a renamed / missing fixture fails the suite loudly.
     //
     // Structure of the real file (see tests/fixtures/Ofite 1100.dat):
-    //   L1-L12  metadata (Experiment, Date, Time, Units …)
-    //   L13     "Analyzed Data:"   — NOT raw, computed Kv/K/Kf/r/r² rows
-    //   L30     "Sweep Data:"      — raw detail: per-sweep E.T./Rate/Stress/Viscosity/RPM/Temp/Press
+    //   L1-L12   metadata (Experiment, Date, Time, Units …)
+    //   L13      "Analyzed Data:"   — NOT raw, computed Kv/K/Kf/r/r² rows
+    //   L30      "Sweep Data:"      — per-step ramp averages
+    //                                 (E.T./Rate/Stress/Viscosity/RPM/Temp/Press),
+    //                                 14 sweeps × 8 rate points ≈ 112 rows.
+    //   L145     "Log Data:"        — 1-min time-series (≈ 328 rows):
+    //                                 Temperature/Shear Stress/Viscosity/
+    //                                 RPM/Shear Rate/Pressure/Bath Temp.
     //
-    // find_raw_data_sections() has priority markers for "Log Data" and
-    // fallback markers for "Sweep Data". This fixture only carries
-    // "Sweep Data:", so fallback wins — but 328 raw points still extract.
+    // `find_raw_data_sections()` must return BOTH section starts when
+    // both are present — cycle detection needs the clean per-step rows
+    // from "Sweep Data:" AND the heat-up / recovery context from
+    // "Log Data:".  Returning priority-only used to drop Sweep Data
+    // silently; the resulting step stream from Log Data alone produced
+    // 120+ noisy mixing rows and weirdly-merged cycles (reproducer:
+    // user screenshot 2026-04-22).
 
     let path = fixtures_dir().join("Ofite 1100.dat");
     let data = fs::read(&path)
@@ -261,12 +270,15 @@ fn test_parser_parity_ofite_1100() {
 
     println!("[PARITY] Ofite Parsing: {} points", result.data.len());
 
-    // The file has at least 100+ rows of raw sweep data across 15 Records × 8 RPM steps.
-    // A broken parser (wrong section, only the Analyzed Data header, etc.) returns < 50.
+    // Regression guard: the combined Log Data + Sweep Data extraction
+    // must yield ≳ 400 rows.  If the single-section (priority XOR
+    // fallback) logic ever comes back, this number drops to ~328 — and
+    // the user-visible "noisy cycle #1" regression returns.
     assert!(
-        result.data.len() > 50,
-        "Ofite 1100: expected > 50 raw points from the Sweep Data section, got {}. \
-         Likely find_raw_data_sections() or detect_header() regressed.",
+        result.data.len() >= 400,
+        "Ofite 1100: expected ≥ 400 raw points (Sweep Data + Log Data \
+         combined), got {}. `find_raw_data_sections()` likely regressed \
+         back to priority-XOR-fallback, dropping Sweep Data rows.",
         result.data.len(),
     );
 
