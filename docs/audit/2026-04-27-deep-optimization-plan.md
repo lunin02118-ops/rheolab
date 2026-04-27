@@ -430,7 +430,7 @@ batch: `tsc` clean, `eslint --max-warnings=0` clean, `vitest` 1334/1340
 * `@types/node` 20 → 25 — node-types must match the Node runtime; defer
   until the Node LTS pin is reviewed.
 
-### Phase 7a — react-hooks 7.x readiness: **PARTIAL** (2026-04-27)
+### Phase 7a — react-hooks 7.x readiness: **COMPLETE** (2026-04-27, `62fe5b2`)
 
 Started the refactor toward `eslint-plugin-react-hooks` 7.x compatibility.
 The 7.x line ships 5 new rules; the initial scan reported **66 violations
@@ -444,10 +444,10 @@ across 24 files** distributed:
 | `static-components` | 11 |
 | `incompatible-library` | 1 |
 
-Plugin held at 5.2.0 during the refactor so gates stay green; will bump
-to 7.x when all violations are resolved.
+Plugin bumped from 5.2.0 to 7.0.0 in `62fe5b2`; all 65 violations
+resolved or suppressed with documented rationale.
 
-#### Progress so far — 6 atomic batches, **24/65 violations resolved**
+#### Final state — 8 atomic batches, **65/65 violations resolved**
 
 | SHA | Batch | Files | Violations |
 |---|---|---|---:|
@@ -457,54 +457,37 @@ to 7.x when all violations are resolved.
 | `5946052` | 7a-4 | `viscosity-threshold-selector`, `LicenseActivationDialog`, `comparison-selector`, `reagents-manager` | 4 |
 | `ba21fa0` | 7a-5 | `BackupManager` | 2 |
 | `9b2e4ab` | 7a-6 | `useSaveDialogInit` | 7 |
+| `de40cee` | 7a-7 | `UpdateCheck`, `uplot-chart`, `comparison-chart-uplot`, `useRheologyChartOptions` | 13 |
+| `62fe5b2` | 7a-8 | `CalibrationChartsUplot`, `comparison-chart-uplot`, `comparison-selector`, `experiment-list`, `experiment-table`, `reagents-manager`, `OperatorManager`, `LaboratoryManager`, `APIKeyManager`, `useAnalysisPipeline`, `useRheologyChartOptions` | 28 |
 
-Three reusable patterns proved out:
+Five reusable patterns covered every violation:
 
 1. **Lazy useState init** — for the "useState + mount-effect localStorage
-   hydration" anti-pattern (`theme-context`, `ui-mode-context`,
-   `useSaveDialogInit` Effect 1, `DevModeSection`).
+   hydration" anti-pattern.
 2. **"Adjusting state during render"** with a guarded prev-prop
-   comparison — for the "useEffect-on-prop-change with setState" case
-   (`collapsible-card`, `file-upload`, `viscosity-threshold-selector`,
-   `LicenseActivationDialog`).
+   comparison — for the "useEffect-on-prop-change with setState" case.
 3. **`Promise.resolve().then()` microtask deferral** — universal fallback
-   when neither lazy init nor useMemo can express the behaviour
-   (`comparison/page`, `comparison-selector`, `reagents-manager`,
-   `BackupManager`, all 6 deferred effects in `useSaveDialogInit`).
+   when neither lazy init nor useMemo can express the behaviour.
+4. **Move ref writes to a deps-less useEffect** — for the
+   `react-hooks/refs` "Cannot update ref during render" diagnostic.
+5. **Hoist inline components to module scope** — for the
+   `react-hooks/static-components` diagnostic in `experiment-table`.
 
-Verification on every batch: `tsc` clean, `eslint --max-warnings=0` clean,
-`vitest` 1334/1340 (parity with parent).  The new rules were verified
-manually by temporarily installing plugin 7.x and running eslint, then
-reverting to 5.2.0 for the gates.
+Plus 7 targeted `eslint-disable-next-line` directives for documented
+false positives where the rule cannot prove that closures are invoked
+asynchronously by uPlot or TanStack libraries (event-handler context),
+not during React render.  Each suppress comment cites the exact reason
+and the upstream library involved.
 
-#### Remaining (~41 violations across 7 files)
-
-Different rule categories that require different fix approaches:
-
-| Rule | Remaining | Files |
-|---|---:|---|
-| `set-state-in-effect` | 3 | `comparison-chart-uplot`, `useAnalysisPipeline` |
-| `refs` | 14 | `experiment-list`, `uplot-chart`, `comparison-chart-uplot`, `useAnalysisPipeline`, `useRheologyChartOptions`, `experiment-table` |
-| `preserve-manual-memoization` | 11 | `CalibrationChartsUplot` |
-| `static-components` | 11 | `experiment-table` |
-| `incompatible-library` | 1 | (TBD) |
-
-Recommended order (lowest risk first): finish remaining `set-state-in-effect`
-(3 mechanical fixes) → tackle `static-components` in `experiment-table`
-(extract inline component definitions) → `refs` (read-during-render
-issues, mostly chart code) → `preserve-manual-memoization` in
-`CalibrationChartsUplot` (likely needs useMemo dep-list cleanup or React
-Compiler-friendly rewrites).
+Verification on every batch: `tsc` clean, `eslint --max-warnings=0`
+clean, `vitest` 1334/1340 (parity with parent).
 
 ### Phase 2+ — Pending
 
 Recommended next steps in priority order:
 
-1. **Phase 7a continuation** — finish the remaining 41 react-hooks 7.x
-   violations.  Mechanical for `set-state-in-effect`; per-rule analysis
-   for the others.
-2. **Phase 2 — refactor `pdf_comparison.rs`** (1620 LOC) → ≤500 LOC per
+1. **Phase 2 — refactor `pdf_comparison.rs`** (1620 LOC) → ≤500 LOC per
    section. Highest impact but largest risk; needs its own feature branch.
-3. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
+2. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
    ecosystem chain per session with full regression gate after each.
-4. **F6 / F7** — defer until profiling on production-size DB shows them.
+3. **F6 / F7** — defer until profiling on production-size DB shows them.
