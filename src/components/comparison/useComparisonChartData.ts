@@ -7,8 +7,10 @@
  *   - uPlot series + axes config
  *   - smart touch-point calculation
  *
- * Pure helpers (getScaleName, getIsRight, getAxisLabel) are also exported so
- * that unit tests can import them directly rather than duplicating the logic.
+ * Pure helpers (getScaleName, getIsRight, getAxisLabel) live inline as
+ * file-private functions; the matching unit tests in
+ * tests/components/comparison-chart-scales.test.ts mirror them locally
+ * (see the comment there) because they need an injectable label table.
  */
 
 import { useMemo } from 'react';
@@ -38,13 +40,10 @@ import {
 } from './comparison-chart-constants';
 import type { ComparisonChartProps } from './comparison-chart-constants';
 
-// ── Re-exported pure helpers ─────────────────────────────────────────────────
-// Unit tests in tests/components/comparison-chart-scales.test.ts mirror these
-// functions locally (see comment there).  Exporting them here allows future
-// tests to import directly instead of duplicating.
+// ── File-private pure helpers ───────────────────────────────────────────
 
 /** Returns the uPlot scale name for a given metric in the current axis mode. */
-export function getScaleName(
+function getScaleName(
     metric: string,
     isShared: boolean,
     leftMetrics: string[],
@@ -58,7 +57,7 @@ export function getScaleName(
  * Returns true when the axis for `metric` should be placed on the right side.
  * Works for both shared and individual axis modes.
  */
-export function getIsRight(
+function getIsRight(
     metric: string,
     activeMetrics: string[],
     rightMetrics: string[],
@@ -70,7 +69,7 @@ export function getIsRight(
 }
 
 /** Builds the combined axis label for all metrics sharing the same scale. */
-export function getAxisLabel(
+function getAxisLabel(
     metric: string,
     activeMetrics: string[],
     isShared: boolean,
