@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -21,11 +21,16 @@ export function CollapsibleCard({
     const [isOpen, setIsOpen] = useState(defaultOpen);
     const toggle = useCallback(() => setIsOpen(v => !v), []);
 
-    // Sync: when defaultOpen transitions to true (e.g. async data loaded), open the card.
-    // Only opens, never force-closes, so manual user collapse is preserved.
-    useEffect(() => {
+    // Sync: when defaultOpen transitions from false → true (e.g. async data
+    // loaded), open the card.  Only opens, never force-closes, so manual user
+    // collapse is preserved.  Uses the React 19 "adjusting state on prop
+    // change during render" pattern (setState during render with a guard) —
+    // see https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen);
+    if (prevDefaultOpen !== defaultOpen) {
+        setPrevDefaultOpen(defaultOpen);
         if (defaultOpen) setIsOpen(true);
-    }, [defaultOpen]);
+    }
 
     return (
         <div className={cn("w-full", className)}>

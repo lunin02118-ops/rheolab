@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 
 type UIMode = 'beginner' | 'expert';
@@ -12,20 +12,22 @@ interface UIModeContextType {
 
 const UIModeContext = createContext<UIModeContextType | undefined>(undefined);
 
-export function UIModeProvider({ children }: { children: React.ReactNode }) {
-    const [mode, setModeState] = useState<UIMode>('beginner');
+const STORAGE_KEY = 'rheolab-ui-mode';
 
-    // Persist to localStorage
-    useEffect(() => {
-        const saved = localStorage.getItem('rheolab-ui-mode');
-        if (saved === 'expert' || saved === 'beginner') {
-            setModeState(saved);
-        }
-    }, []);
+function readSavedMode(): UIMode {
+    if (typeof window === 'undefined') return 'beginner';
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved === 'expert' || saved === 'beginner' ? saved : 'beginner';
+}
+
+export function UIModeProvider({ children }: { children: React.ReactNode }) {
+    // Lazy init reads localStorage once during mount — no setState-in-effect
+    // round-trip and no first-paint flash with the wrong mode.
+    const [mode, setModeState] = useState<UIMode>(readSavedMode);
 
     const setMode = useCallback((newMode: UIMode) => {
         setModeState(newMode);
-        localStorage.setItem('rheolab-ui-mode', newMode);
+        localStorage.setItem(STORAGE_KEY, newMode);
         // When switching to basic mode, reset analysis settings to safe defaults
         // so beginners always get a predictable configuration
         if (newMode === 'beginner') {

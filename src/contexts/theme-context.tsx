@@ -27,17 +27,27 @@ function applyTheme(theme: Theme): 'light' | 'dark' {
     return resolved;
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setThemeState] = useState<Theme>('system');
-    const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark');
+function readSavedTheme(): Theme {
+    if (typeof window === 'undefined') return 'system';
+    const saved = localStorage.getItem(STORAGE_KEY) as Theme | null;
+    return (saved === 'light' || saved === 'dark' || saved === 'system') ? saved : 'system';
+}
 
-    // Read saved preference on mount and apply
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+    // Lazy init reads localStorage once during mount — no setState-in-effect
+    // round-trip and no first-paint flicker on the wrong theme.
+    const [theme, setThemeState] = useState<Theme>(readSavedTheme);
+    const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
+        const initial = readSavedTheme();
+        return initial === 'system' ? getSystemTheme() : initial;
+    });
+
+    // DOM mutation only — apply the html.dark class whenever theme changes.
+    // Effects exist for exactly this kind of "sync React state to the DOM"
+    // job; we do NOT call setState here.
     useEffect(() => {
-        const saved = localStorage.getItem(STORAGE_KEY) as Theme | null;
-        const initial: Theme = (saved === 'light' || saved === 'dark' || saved === 'system') ? saved : 'system';
-        setThemeState(initial);
-        setResolvedTheme(applyTheme(initial));
-    }, []);
+        applyTheme(theme);
+    }, [theme]);
 
     // Listen for OS-level changes when in system mode
     useEffect(() => {
