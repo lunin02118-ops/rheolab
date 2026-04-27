@@ -304,7 +304,7 @@ Key findings:
 * **0 high-severity** issues. Hot path is solidly indexed (PK / composite / partial indexes).
 * **0 circular FKs**, all hot-path FKs are index-backed.
 * **Schema is well-engineered**: 45 indexes across 23 tables, every index justified by a documented `WHERE`-path. `Experiment` carries 17 (12 base + 5 partial v0002), `TouchPointPrecompute` 4 partial indexes (v0003).
-* 4 low / informational findings tracked for Phase 7 fine-tune (`LOWER(name)` footgun, 3 missing FK indexes on artifact tables, filter-metadata `DISTINCT`-fan-out, write-amplification monitoring).
+* 4 low / informational findings tracked for Phase 7 fine-tune (`LOWER(name)` footgun → F1 done; 3 missing FK indexes on artifact tables → F2 done; filter-metadata `DISTINCT`-fan-out → F3 done; write-amplification monitoring → F4 informational, no action).
 
 ### Phase 4 follow-up — F1 + F3 applied: **DONE** (2026-04-27)
 
@@ -380,6 +380,47 @@ Verification: `cargo test --lib src-tauri` **332/332** (328 + 4
 new), `cargo test --features pdf,excel rheolab-core` 189/189,
 `tsc --noEmit` 0 errors, `eslint --max-warnings=0` clean, `vitest`
 1334/1340, `npm run build` 7.35 s.
+
+### Phase 4d / F2 v0006 migration — **DONE** (2026-04-28)
+
+Final closure of the Phase 4 deep-dive findings.  F2 (3 missing FK
+indexes on `importBatchId` for `ExperimentPayload` / `ParserArtifact`
+/ `ReportArtifact`) was deferred at audit time as "add three partial
+indexes if cleanup-by-batch becomes a pain-point".  Same cost-benefit
+shape as F6/F7: one `CREATE INDEX` statement each, partial on
+`WHERE importBatchId IS NOT NULL` so the B-tree only carries imported
+rows.
+
+New migration `v0006_artifact_import_batch_indexes` adds:
+
+```sql
+CREATE INDEX idx_payload_import
+    ON ExperimentPayload(importBatchId)
+    WHERE importBatchId IS NOT NULL;
+CREATE INDEX idx_parser_import
+    ON ParserArtifact(importBatchId)
+    WHERE importBatchId IS NOT NULL;
+CREATE INDEX idx_report_import
+    ON ReportArtifact(importBatchId)
+    WHERE importBatchId IS NOT NULL;
+```
+
+No repository SQL changes were needed — cleanup-by-batch queries
+(`WHERE importBatchId = ?`) already use the natural shape that picks
+up the new indexes.
+
+`CURRENT_SCHEMA_VERSION` bumped 5 → 6.  Six migration tests:
+`creates_all_three_indexes`, three plan checks (one per table) that
+verify cleanup queries pick up the new index, `indexes_are_partial`
+(a structural assertion that all three carry the
+`WHERE importBatchId IS NOT NULL` clause via
+`sqlite_master.sql`), and `up_is_idempotent`.
+`migration_tests::schema_identity_with_raw_ddl` extended for v0006.
+
+Verification: `cargo test --lib src-tauri` **338/338** (332 + 6
+new), `cargo test --features pdf,excel rheolab-core` 189/189,
+`tsc --noEmit` 0 errors, `eslint --max-warnings=0` clean, `vitest`
+1334/1340.  No frontend touched.
 
 ### Phase 5 — Dead-code (TS/JS surface): **DONE** (2026-04-27)
 
@@ -743,7 +784,10 @@ src-tauri` 328/328.
 
 ### Phase 3+ — Pending
 
-With Phase 3 + Phase 4c complete, the remaining priorities are:
+With Phase 3 + Phase 4c + Phase 4d complete, every actionable Phase 4
+deep-dive finding (F1–F3, F5–F7) is closed.  F4 stays informational
+(over-indexing observation, no action).  The remaining priorities are
+all reactive watchpoints:
 
 1. **Phase 4 / new oversized files** — if any new Rust file crosses
    the ~500 LOC budget in future work, give it the same split-on-merge

@@ -5,6 +5,7 @@ pub mod v0002_touch_point_metrics;
 pub mod v0003_multi_threshold_touch_point;
 pub mod v0004_experiment_list_default_index;
 pub mod v0005_reagent_and_testtype_indexes;
+pub mod v0006_artifact_import_batch_indexes;
 
 pub use error::MigrationError;
 pub use r#trait::Migration;
@@ -14,6 +15,7 @@ use v0002_touch_point_metrics::V0002TouchPointMetrics;
 use v0003_multi_threshold_touch_point::V0003MultiThresholdTouchPoint;
 use v0004_experiment_list_default_index::V0004ExperimentListDefaultIndex;
 use v0005_reagent_and_testtype_indexes::V0005ReagentAndTestTypeIndexes;
+use v0006_artifact_import_batch_indexes::V0006ArtifactImportBatchIndexes;
 
 /// Ordered registry of all schema migrations, applied oldest-first on startup.
 ///
@@ -30,6 +32,7 @@ pub static MIGRATIONS: &[&dyn Migration] = &[
     &V0003MultiThresholdTouchPoint,
     &V0004ExperimentListDefaultIndex,
     &V0005ReagentAndTestTypeIndexes,
+    &V0006ArtifactImportBatchIndexes,
 ];
 
 /// Returns the version of the last registered migration, or `0` if the

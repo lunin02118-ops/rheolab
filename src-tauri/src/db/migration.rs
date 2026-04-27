@@ -25,7 +25,7 @@ use serde::Serialize;
 /// `ALTER TABLE`, dropping a column, changing a column type).
 /// Pure additions (new tables / indexes) are safe to add directly to V1_DDL
 /// using `IF NOT EXISTS` without bumping the version.
-pub const CURRENT_SCHEMA_VERSION: i64 = 5;
+pub const CURRENT_SCHEMA_VERSION: i64 = 6;
 
 /// Information returned after a successful migration run.
 ///
