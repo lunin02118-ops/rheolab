@@ -47,7 +47,10 @@ export function APIKeyManager() {
     const selectedModel = expertSettings.aiModel;
 
     const fetchKeys = async () => {
-        setIsLoading(true);
+        // setIsLoading(true) is intentionally omitted: the initial state is
+        // already true (covers mount), and post-action refetches have their
+        // own per-operation flags (isAdding, deletingId) for visual feedback.
+        // Avoids react-hooks/set-state-in-effect via the mount useEffect.
         try {
             const data = await listApiKeys();
             setKeys(Array.isArray(data) ? data : []);

@@ -1,10 +1,40 @@
 import { logger } from '@/lib/logger';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { X, Check, RotateCcw, AlertCircle, CheckCircle2, Copy } from 'lucide-react';
 import type { RheoStep, RheoCycle } from '@/lib/analysis/types';
 import type { GraceCycleResult } from '@/lib/analysis/types';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+
+/**
+ * Compute the initial set of selected step IDs for the editor dialog.
+ *
+ *   1. If `overriddenStepIds` is set (user previously edited this cycle),
+ *      use that.
+ *   2. Otherwise match by start-time tolerance (the C# WPF reference impl):
+ *          cycle.Steps.Any(cs => Math.Abs(cs.StartTime - s.StartTime) < 0.1)
+ *   3. Fallback to direct ID match if no time-based match.
+ *
+ * Pure function so it can run inside a `useState` lazy initialiser.
+ */
+function computeInitialSelectedIds(
+    cycle: RheoCycle | null,
+    allSteps: RheoStep[],
+    overriddenStepIds: number[] | null,
+): Set<number> {
+    if (!cycle || allSteps.length === 0) return new Set();
+    if (overriddenStepIds && overriddenStepIds.length > 0) {
+        return new Set(overriddenStepIds);
+    }
+    const cycleStepTimes = cycle.steps.map(s => s.startTime);
+    const matchedIds = allSteps
+        .filter(s => cycleStepTimes.some(t => Math.abs(t - s.startTime) < 0.1))
+        .map(s => s.id);
+    if (matchedIds.length > 0) return new Set(matchedIds);
+    // Fallback: try direct ID match
+    const cycleIds = new Set(cycle.steps.map(s => s.id));
+    return new Set(allSteps.filter(s => cycleIds.has(s.id)).map(s => s.id));
+}
 
 interface CycleEditorDialogProps {
     isOpen: boolean;
@@ -27,41 +57,14 @@ export function CycleEditorDialog({
     onApply,
     onApplyPatternToAll
 }: CycleEditorDialogProps) {
-    // Initialize selectedIds: match cycle steps to allSteps by startTime (like C# WPF),
-    // because step IDs may not survive WASM round-trips consistently.
+    // Initialize selectedIds via lazy initialiser — the parent only mounts
+    // this dialog when cycle/allSteps are ready (per the original
+    // "conditional rendering" comment), so the initial render values are the
+    // ones we want to compute from.  No useEffect / no manual init guard.
     const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
-    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-    const initializedRef = useRef(false);
-
-    useEffect(() => {
-        if (!cycle || allSteps.length === 0) return;
-
-        // Only initialize once per dialog open (relies on conditional rendering to unmount/remount)
-        if (initializedRef.current) return;
-        initializedRef.current = true;
-
-        // Priority 1: Use previously overridden step IDs
-        if (overriddenStepIds && overriddenStepIds.length > 0) {
-            setSelectedIds(new Set(overriddenStepIds));
-            return;
-        }
-
-        // Priority 2: Match cycle's steps to allSteps by startTime (C# pattern)
-        // The C# WPF version uses: cycle.Steps.Any(cs => Math.Abs(cs.StartTime - s.StartTime) < 0.1)
-        const cycleStepTimes = cycle.steps.map(s => s.startTime);
-        const matchedIds = allSteps
-            .filter(s => cycleStepTimes.some(t => Math.abs(t - s.startTime) < 0.1))
-            .map(s => s.id);
-
-        if (matchedIds.length > 0) {
-            setSelectedIds(new Set(matchedIds));
-        } else {
-            // Fallback: try direct ID match
-            const cycleIds = new Set(cycle.steps.map(s => s.id));
-            const directMatch = allSteps.filter(s => cycleIds.has(s.id)).map(s => s.id);
-            setSelectedIds(new Set(directMatch));
-        }
-    }, [cycle, allSteps, overriddenStepIds]);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(
+        () => computeInitialSelectedIds(cycle, allSteps, overriddenStepIds),
+    );
 
     const toggleStep = (stepId: number) => {
         setSelectedIds(prev => {
