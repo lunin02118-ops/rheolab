@@ -603,10 +603,10 @@ One ecosystem chain per session with a full regression gate after each.
 | SHA | Chain | Before | After | Status |
 |---|---|---|---|---|
 | `700edbf` | `vite` + `@vitejs/plugin-react` | 6.3.5 + 4.6.0 | 7.3.2 + 5.2.0 | DONE |
-| — | `vite` + `@vitejs/plugin-react` (v8 wave) | 7.3.2 + 5.2.0 | 8.0.10 + 6.0.1 | pending |
+| `c2f6c66` | `typescript` | 5.9.3 | 6.0.3 | DONE |
 | — | `eslint` + `typescript-eslint` | 9.39.4 + 8.59.0 | 10.2.1 + 8.x | pending |
-| — | `typescript` | 5.9.3 | 6.0.3 | pending |
 | — | `@types/node` | 20.19.39 | 25.6.0 (Node 22 LTS API surface) | pending |
+| — | `vite` + `@vitejs/plugin-react` (v8 wave) | 7.3.2 + 5.2.0 | 8.0.10 + 6.0.1 | pending |
 
 **Vite 7 bump** (`700edbf`).  Vite 6 → 7 breaking changes audited and
 none affect this codebase: Node 18 was already unsupported (we run
@@ -622,14 +622,28 @@ splitting, `tsc` 0 errors, `eslint --max-warnings=0` clean, `vitest`
 1334/1340, `cargo test --features pdf,excel rheolab-core` 189/189,
 `cargo test --lib src-tauri` 328/328.
 
+**TypeScript 6 bump** (`c2f6c66`).  Last release on the JS codebase
+before the v7 Go port; well-defined breaking changes.  None affected
+this codebase: `noEmit: true` makes `rootDir` default change
+irrelevant; `@types/node` still auto-loaded under TS 6 defaults
+(verified with `tsc --listFiles`: 76 `@types` entries present); no
+`baseUrl` usage; `moduleResolution: bundler` already.  Per AGENTS.md
+"minimal upstream fix" rule, no `tsconfig.json` changes were applied
+— defending against hypothetical surprises adds noise to history.
+
+Verification: `tsc --noEmit` 0 errors, `eslint --max-warnings=0` clean,
+`vitest` 1334/1340, `npm run build` 11.28 s, `cargo test --features
+pdf,excel rheolab-core` 189/189, `cargo test --lib src-tauri`
+328/328.
+
 ### Phase 3+ — Pending
 
 Recommended next steps in priority order:
 
 1. **Phase 3 continuation** — bump the remaining ecosystem chains one
-   at a time (`typescript` 5 → 6, `eslint` 9 → 10, `@types/node` 20 →
-   25, then `vite` 7 → 8 last as the Rolldown wave).  Each must pass
-   the full gate (`tsc`, `eslint`, `vitest`, `cargo test --lib`,
+   at a time: `eslint` 9 → 10 + `typescript-eslint`, `@types/node`
+   20 → 25, then `vite` 7 → 8 last as the Rolldown wave.  Each must
+   pass the full gate (`tsc`, `eslint`, `vitest`, `cargo test --lib`,
    `npm run build`) before merging.
 2. **F6 / F7** — defer until profiling on production-size DB shows them.
 3. **Phase 4 / new oversized files** — if any new Rust file crosses
