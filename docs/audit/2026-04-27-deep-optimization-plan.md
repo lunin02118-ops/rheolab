@@ -496,7 +496,7 @@ Progress:
 | `06708df` | `pdf_comparison.rs` | 1620 LOC (1 file) | 5 files, max 583 LOC; production max 270 LOC | DONE |
 | `a794057` | `list_tests.rs` | 1586 LOC (1 file) | 9 files, max 302 LOC | DONE |
 | `497c3e1` | `multi_experiment.rs` (chart_generator) | 1363 LOC (1 file) | 5 files, max 463 LOC | DONE |
-| — | `excel_comparison.rs` | 1243 LOC | — | pending |
+| `7e84268` | `excel_comparison.rs` | 1242 LOC (1 file) | 5 files, max 489 LOC | DONE |
 | — | `formatters.rs` | 875 LOC | — | pending |
 
 `pdf_comparison` split layout:
@@ -551,13 +551,30 @@ unchanged — `line/mod.rs` still re-exports
 `{ExperimentSeries, generate_multi_experiment_chart_svg}` from
 `multi_experiment`.
 
+`excel_comparison` split layout (`comparison`):
+
+| File | LOC | Responsibility |
+|---|---:|---|
+| `mod.rs` | 131 | Entry + orchestrator (sheet allocation, save) |
+| `helpers.rs` | 45 | Palette, key-normalisation, colour parsing |
+| `layout.rs` | 267 | In-memory chart-data layout computation |
+| `overlap_sheet.rs` | 489 | Overlap-chart worksheet + touch-point tables |
+| `tests.rs` | 357 | All 16 tests |
+
+Verification: `cargo test --lib --features pdf,excel` 189/189
+(rheolab-core), `cargo test --lib` 328/328 (src-tauri), `tsc` clean,
+`eslint --max-warnings=0` clean, `vitest` 1334/1340.  Public API
+unchanged — only `generate_comparison_excel` crosses the module
+boundary; all internal types (`ChartDataLayout`, `TouchPointResult`,
+`SecondaryMetricInfo`) are `pub(super)`.
+
 ### Phase 2+ — Pending
 
 Recommended next steps in priority order:
 
-1. **Phase 2 continuation** — split the 2 remaining oversized Rust
-   files (`excel_comparison.rs`, `formatters.rs`).
-   `excel_comparison.rs` is the next biggest target (1243 LOC).
+1. **Phase 2 continuation** — split the 1 remaining oversized Rust
+   file (`formatters.rs`, 875 LOC) — the smallest of the original
+   five and the only one left.
 2. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
    ecosystem chain per session with full regression gate after each.
 3. **F6 / F7** — defer until profiling on production-size DB shows them.
