@@ -1,4 +1,4 @@
-﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Online license validation — HTTP calls to the license server.
 //!
 //! Encapsulates `validate_online()` and `activate_online()` logic.
@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 
 use super::crypto::save_secure_last_check;
 use super::hardware::{all_legacy_ids, get_or_create_machine_id};
-use super::types::{LICENSE_SERVER_URL, APP_VERSION};
+use super::types::{APP_VERSION, LICENSE_SERVER_URL};
 
 // ── Internal result types ──────────────────────────────────────────────
 
@@ -203,10 +203,7 @@ pub(super) async fn validate_online(
 /// (v1 → v2 algorithm) and allow re-binding in a single roundtrip.
 ///
 /// Returns raw `serde_json::Value` from the server response.
-pub(super) async fn activate_online(
-    key: &str,
-    app_data_dir: &std::path::Path,
-) -> Result<Value> {
+pub(super) async fn activate_online(key: &str, app_data_dir: &std::path::Path) -> Result<Value> {
     let machine_id = get_or_create_machine_id(app_data_dir);
     let legacy_ids = all_legacy_ids(app_data_dir);
     let client = http_client()?;
@@ -229,13 +226,11 @@ pub(super) async fn activate_online(
             let status = resp.status();
             let data: Value = resp.json().await.unwrap_or(json!({}));
             if !status.is_success() {
-                return Err(
-                    data["error"]
-                        .as_str()
-                        .unwrap_or("Activation failed")
-                        .to_string()
-                        .into(),
-                );
+                return Err(data["error"]
+                    .as_str()
+                    .unwrap_or("Activation failed")
+                    .to_string()
+                    .into());
             }
             // Save the check date on successful activation
             let today = Utc::now().format("%Y-%m-%d").to_string();
@@ -345,7 +340,10 @@ pub(super) async fn register_demo_online(app_data_dir: &std::path::Path) -> Opti
         .ok()?;
 
     if !resp.status().is_success() {
-        tracing::debug!("register_demo_online: server returned HTTP {}", resp.status());
+        tracing::debug!(
+            "register_demo_online: server returned HTTP {}",
+            resp.status()
+        );
         return None;
     }
 
@@ -362,10 +360,7 @@ pub(super) async fn register_demo_online(app_data_dir: &std::path::Path) -> Opti
 }
 
 /// Deactivate (unbind) a license from this machine.
-pub(super) async fn deactivate_online(
-    key: &str,
-    app_data_dir: &std::path::Path,
-) -> Result<Value> {
+pub(super) async fn deactivate_online(key: &str, app_data_dir: &std::path::Path) -> Result<Value> {
     let machine_id = get_or_create_machine_id(app_data_dir);
     let client = http_client()?;
 
@@ -435,8 +430,8 @@ pub(super) async fn migrate_machine_online(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::crypto::get_secure_last_check;
+    use super::*;
 
     #[test]
     fn build_validation_result_persists_last_check_for_http_rejection() {

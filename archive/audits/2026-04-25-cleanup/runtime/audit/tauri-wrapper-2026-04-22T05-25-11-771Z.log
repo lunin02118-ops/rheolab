@@ -1,0 +1,112 @@
+[2026-04-22T05:25:11.772Z] wrapper start
+[2026-04-22T05:25:11.772Z] cwd=D:\Development\Rheolab
+[2026-04-22T05:25:11.772Z] command=npm.cmd exec tauri -- build --no-bundle
+[2026-04-22T05:25:11.772Z] RHEOLAB_SKIP_VERSION_BUMP=1
+[2026-04-22T05:25:11.772Z] INTEGRITY_SECRET_KEY present=true dev_sentinel=false
+[2026-04-22T05:25:11.773Z] TAURI_SIGNING_PRIVATE_KEY present=true len=348
+[2026-04-22T05:25:11.773Z] TAURI_SIGNING_PRIVATE_KEY_PASSWORD present=true
+[2026-04-22T05:25:11.774Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-22T05:25:11.774Z] using shell fallback: npm.cmd "exec" "tauri" "--" "build" "--no-bundle"
+[2026-04-22T05:25:12.435Z] [stderr]         Info Looking up installed tauri packages to check mismatched versions...
+[2026-04-22T05:25:13.134Z] [stderr]      Running beforeBuildCommand `npm run build`
+[2026-04-22T05:25:13.346Z] [stdout] 
+[2026-04-22T05:25:13.347Z] [stdout] > rheolab-enterprise@0.2.0-beta.24 build
+[2026-04-22T05:25:13.347Z] [stdout] > vite build
+[2026-04-22T05:25:13.347Z] [stdout] 
+[2026-04-22T05:25:13.675Z] [stdout] [36mvite v6.4.2 [32mbuilding for production...[36m[39m
+[2026-04-22T05:25:13.716Z] [stdout] transforming...
+[2026-04-22T05:25:23.019Z] [stderr] [33m[plugin vite:resolve] Module "crypto" has been externalized for browser compatibility, imported by "D:/Development/Rheolab/src/lib/utils/encryption.ts". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[2026-04-22T05:25:24.240Z] [stdout] [32m✓[39m 2931 modules transformed.
+[2026-04-22T05:25:24.446Z] [stdout] rendering chunks...
+[2026-04-22T05:25:24.558Z] [stdout] computing gzip size...
+[2026-04-22T05:25:24.571Z] [stdout] [2mdist/[22m[32mindex.html                                  [39m[1m[2m  1.70 kB[22m[1m[22m[2m │ gzip:  0.85 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[35massets/report-save-Saz_VHki.css             [39m[1m[2m  1.63 kB[22m[1m[22m[2m │ gzip:  0.70 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[35massets/main-0QJmqvms.css                    [39m[1m[2m142.52 kB[22m[1m[22m[2m │ gzip: 20.61 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[36massets/__vite-browser-external-BIHI7g3E.js  [39m[1m[2m  0.03 kB[22m[1m[22m[2m │ gzip:  0.05 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[36massets/encryption-C8zzori_.js               [39m[1m[2m  0.14 kB[22m[1m[22m[2m │ gzip:  0.15 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[36massets/page-ag22mqCL.js                     [39m[1m[2m  0.17 kB[22m[1m[22m[2m │ gzip:  0.16 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[36massets/page-CdAzp9Ph.js                     [39m[1m[2m  0.20 kB[22m[1m[22m[2m │ gzip:  0.17 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[36massets/tauri-bridge--aMsqyhd.js             [39m[1m[2m  0.27 kB[22m[1m[22m[2m │ gzip:  0.20 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[36massets/check-COkVY0Ny.js                    [39m[1m[2m  0.29 kB[22m[1m[22m[2m │ gzip:  0.24 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[36massets/chevron-up-CtotY3l0.js               [39m[1m[2m  0.30 kB[22m[1m[22m[2m │ gzip:  0.25 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[36massets/chevron-down-CH4WiWpV.js             [39m[1m[2m  0.30 kB[22m[1m[22m[2m │ gzip:  0.25 kB[22m
+[2026-04-22T05:25:24.572Z] [stdout] [2mdist/[22m[36massets/plus-NuX1jy7g.js                     [39m[1m[2m  0.33 kB[22m[1m[22m[2m │ gzip:  0.25 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/circle-check-BWY8kcrr.js             [39m[1m[2m  0.35 kB[22m[1m[22m[2m │ gzip:  0.27 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/rotate-ccw-CZhDfs4W.js               [39m[1m[2m  0.37 kB[22m[1m[22m[2m │ gzip:  0.29 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/upload-CIofs9PV.js                   [39m[1m[2m  0.40 kB[22m[1m[22m[2m │ gzip:  0.30 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/settings-2-CSU-OE1G.js               [39m[1m[2m  0.42 kB[22m[1m[22m[2m │ gzip:  0.30 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/circle-alert-CA0LqvaQ.js             [39m[1m[2m  0.42 kB[22m[1m[22m[2m │ gzip:  0.29 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/key-CVArBhsw.js                      [39m[1m[2m  0.43 kB[22m[1m[22m[2m │ gzip:  0.32 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/pencil-27zqBWJE.js                   [39m[1m[2m  0.45 kB[22m[1m[22m[2m │ gzip:  0.33 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/flask-conical-C8AXSNhx.js            [39m[1m[2m  0.47 kB[22m[1m[22m[2m │ gzip:  0.33 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/trash-2-uCIHRgRt.js                  [39m[1m[2m  0.50 kB[22m[1m[22m[2m │ gzip:  0.32 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/file-down-BPjXExr3.js                [39m[1m[2m  0.53 kB[22m[1m[22m[2m │ gzip:  0.35 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/branding-store-Cr9rRy9v.js           [39m[1m[2m  0.54 kB[22m[1m[22m[2m │ gzip:  0.28 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/building-2-BGDK4eB8.js               [39m[1m[2m  0.56 kB[22m[1m[22m[2m │ gzip:  0.34 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/input-gc-R8gga.js                    [39m[1m[2m  0.60 kB[22m[1m[22m[2m │ gzip:  0.38 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/circle-x-DTywmWic.js                 [39m[1m[2m  0.69 kB[22m[1m[22m[2m │ gzip:  0.36 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/user-C-1vnlS_.js                     [39m[1m[2m  0.74 kB[22m[1m[22m[2m │ gzip:  0.38 kB[22m
+[2026-04-22T05:25:24.573Z] [stdout] [2mdist/[22m[36massets/client-BDOfHwC-.js                   [39m[1m[2m  0.75 kB[22m[1m[22m[2m │ gzip:  0.40 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/calendar-Dhq_4QAA.js                 [39m[1m[2m  0.79 kB[22m[1m[22m[2m │ gzip:  0.41 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/useFocusTrap-DBIo29X4.js             [39m[1m[2m  0.84 kB[22m[1m[22m[2m │ gzip:  0.44 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/search-BWqEHaTJ.js                   [39m[1m[2m  0.89 kB[22m[1m[22m[2m │ gzip:  0.42 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/update-install-BwEj1CzN.js           [39m[1m[2m  1.11 kB[22m[1m[22m[2m │ gzip:  0.62 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/tabs-wWtYDTn7.js                     [39m[1m[2m  1.35 kB[22m[1m[22m[2m │ gzip:  0.51 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/settings-DmoMQsZ7.js                 [39m[1m[2m  1.43 kB[22m[1m[22m[2m │ gzip:  0.53 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/card-nQSvjniV.js                     [39m[1m[2m  1.58 kB[22m[1m[22m[2m │ gzip:  0.67 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/index-Bc3X3PJz.js                    [39m[1m[2m  1.89 kB[22m[1m[22m[2m │ gzip:  0.92 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/button-DnhwcNsv.js                   [39m[1m[2m  1.94 kB[22m[1m[22m[2m │ gzip:  0.96 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/PrecisionSettingsCard-DySj37ym.js    [39m[1m[2m  2.05 kB[22m[1m[22m[2m │ gzip:  0.98 kB[22m
+[2026-04-22T05:25:24.574Z] [stdout] [2mdist/[22m[36massets/alert-dialog-Bxj-mVBw.js             [39m[1m[2m  2.12 kB[22m[1m[22m[2m │ gzip:  0.76 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/TrialBanner-BNU-aT_y.js              [39m[1m[2m  2.26 kB[22m[1m[22m[2m │ gzip:  1.22 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/label-CwK8Tb3J.js                    [39m[1m[2m  2.52 kB[22m[1m[22m[2m │ gzip:  0.95 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/BrandingManager-dKuF0wXi.js          [39m[1m[2m  2.55 kB[22m[1m[22m[2m │ gzip:  1.16 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/UpdateChecker-BgZwRd1P.js            [39m[1m[2m  3.38 kB[22m[1m[22m[2m │ gzip:  1.46 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/index-AKivdHIZ.js                    [39m[1m[2m  3.66 kB[22m[1m[22m[2m │ gzip:  1.34 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/expert-settings-panel-B5AuaEWm.js    [39m[1m[2m  3.89 kB[22m[1m[22m[2m │ gzip:  1.38 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/UnitSystemCard-DM9r8-W6.js           [39m[1m[2m  4.22 kB[22m[1m[22m[2m │ gzip:  1.75 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/settings-shared-Cjk_IZEw.js          [39m[1m[2m  4.51 kB[22m[1m[22m[2m │ gzip:  1.75 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/LicenseActivationDialog-KUkjMWYb.js  [39m[1m[2m  5.38 kB[22m[1m[22m[2m │ gzip:  2.14 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/LaboratoryManager-BajoPGRG.js        [39m[1m[2m  5.61 kB[22m[1m[22m[2m │ gzip:  1.96 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/LogViewer-BJ4zDA_T.js                [39m[1m[2m  5.76 kB[22m[1m[22m[2m │ gzip:  2.43 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/BackupManager-BrI9TQvD.js            [39m[1m[2m  5.80 kB[22m[1m[22m[2m │ gzip:  2.23 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/OperatorManager-Cw0ECWyH.js          [39m[1m[2m  5.91 kB[22m[1m[22m[2m │ gzip:  2.15 kB[22m
+[2026-04-22T05:25:24.575Z] [stdout] [2mdist/[22m[36massets/chart-settings-store-CcMVClgA.js     [39m[1m[2m  5.94 kB[22m[1m[22m[2m │ gzip:  2.07 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/ExperimentExportImport-DhDHXECT.js   [39m[1m[2m  7.77 kB[22m[1m[22m[2m │ gzip:  2.85 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/ChartSettingsManager-DWI6kot3.js     [39m[1m[2m  7.89 kB[22m[1m[22m[2m │ gzip:  2.65 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/APIKeyManager-HM1Y_iBt.js            [39m[1m[2m  8.79 kB[22m[1m[22m[2m │ gzip:  3.06 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/client-DKmyY9dB.js                   [39m[1m[2m  9.69 kB[22m[1m[22m[2m │ gzip:  3.95 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/AppSettingsExporter-IJPDMPXn.js      [39m[1m[2m 11.11 kB[22m[1m[22m[2m │ gzip:  3.68 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/ru-C8Cx8G0_.js                       [39m[1m[2m 12.58 kB[22m[1m[22m[2m │ gzip:  3.14 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/useToast-CEc9j9mI.js                 [39m[1m[2m 14.15 kB[22m[1m[22m[2m │ gzip:  5.63 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/vendor-date-B1cgXEfA.js              [39m[1m[2m 20.00 kB[22m[1m[22m[2m │ gzip:  5.73 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/page-SJuwg-uA.js                     [39m[1m[2m 26.53 kB[22m[1m[22m[2m │ gzip:  7.20 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/report-save-u8yICy3k.js              [39m[1m[2m 32.00 kB[22m[1m[22m[2m │ gzip: 11.02 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/vendor-react-VsJEmFiX.js             [39m[1m[2m 48.76 kB[22m[1m[22m[2m │ gzip: 17.28 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/vendor-charts-CziCK5UB.js            [39m[1m[2m 52.27 kB[22m[1m[22m[2m │ gzip: 23.28 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/page-xXj7RPSX.js                     [39m[1m[2m 57.47 kB[22m[1m[22m[2m │ gzip: 17.24 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/page-D1xZhasN.js                     [39m[1m[2m 92.39 kB[22m[1m[22m[2m │ gzip: 23.24 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/vendor-radix-wOjfjdRn.js             [39m[1m[2m113.50 kB[22m[1m[22m[2m │ gzip: 36.46 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/DashboardContent-DajsvCAo.js         [39m[1m[2m115.48 kB[22m[1m[22m[2m │ gzip: 29.86 kB[22m
+[2026-04-22T05:25:24.576Z] [stdout] [2mdist/[22m[36massets/page-BiAqS-TO.js                     [39m[1m[2m136.17 kB[22m[1m[22m[2m │ gzip: 39.38 kB[22m
+[2026-04-22T05:25:24.577Z] [stdout] [2mdist/[22m[36massets/main-BcH2aGdk.js                     [39m[1m[2m271.47 kB[22m[1m[22m[2m │ gzip: 86.00 kB[22m
+[2026-04-22T05:25:24.577Z] [stdout] [32m✓ built in 10.89s[39m
+[2026-04-22T05:25:25.902Z] [stderr]    Compiling rheolab-enterprise v0.2.0-beta.24 (D:\Development\Rheolab\src-tauri)
+[2026-04-22T05:25:26.785Z] heartbeat: pid=512 elapsed=15.0s
+[2026-04-22T05:25:41.795Z] heartbeat: pid=512 elapsed=30.0s
+[2026-04-22T05:25:56.806Z] heartbeat: pid=512 elapsed=45.0s
+[2026-04-22T05:26:11.809Z] heartbeat: pid=512 elapsed=60.0s
+[2026-04-22T05:26:26.813Z] heartbeat: pid=512 elapsed=75.0s
+[2026-04-22T05:26:41.817Z] heartbeat: pid=512 elapsed=90.0s
+[2026-04-22T05:26:56.819Z] heartbeat: pid=512 elapsed=105.0s
+[2026-04-22T05:27:11.832Z] heartbeat: pid=512 elapsed=120.1s
+[2026-04-22T05:27:26.839Z] heartbeat: pid=512 elapsed=135.1s
+[2026-04-22T05:27:41.838Z] heartbeat: pid=512 elapsed=150.1s
+[2026-04-22T05:27:56.848Z] heartbeat: pid=512 elapsed=165.1s
+[2026-04-22T05:28:11.863Z] heartbeat: pid=512 elapsed=180.1s
+[2026-04-22T05:28:26.864Z] heartbeat: pid=512 elapsed=195.1s
+[2026-04-22T05:28:27.062Z] [stderr]     Finished `release` profile [optimized] target(s) in 3m 02s
+[2026-04-22T05:28:27.108Z] [stderr]        Built application at: D:\Development\Rheolab\src-tauri\target\release\rheolab-enterprise.exe
+[2026-04-22T05:28:27.126Z] wrapper exit: code=0 signal=null elapsed=195.4s
+[2026-04-22T05:28:27.127Z] post-build sign: signing RheoLab Enterprise_0.2.0-beta.10_x64-setup.exe
+[2026-04-22T05:28:27.800Z] post-build sign: success → RheoLab Enterprise_0.2.0-beta.10_x64-setup.exe.sig

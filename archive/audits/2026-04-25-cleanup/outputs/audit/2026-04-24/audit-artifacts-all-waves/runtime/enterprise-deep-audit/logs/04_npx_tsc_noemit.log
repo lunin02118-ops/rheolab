@@ -1,0 +1,8 @@
+[2026-04-24T02:21:16.763Z] $ npx tsc --noEmit
+tests/reports/comparison-experiment-adapter.test.ts(37,5): error TS2741: Property 'showRheology' is missing in type '{ language: "en"; unitSystem: "SI"; companyName: string; companyLogo: null; chartSettings: ChartSettings; showCalibration: true; showRawData: true; showRecipe: true; showWaterAnalysis: true; ... 5 more ...; isExpert: false; }' but required in type 'ComparisonExperimentContextOverrides'.
+tests/reports/useComparisonReportExport.test.ts(92,5): error TS2322: Type '{ experiments: Experiment[]; displaySettings: ComparisonDisplaySettings; chartSettings: ChartSettings; brushRange?: [number, number] | undefined; language: "ru" | "en"; unitSystem: "SI" | "SI_Pas" | "Imperial"; ... 8 more ...; isExpert: boolean; }' is not assignable to type 'UseComparisonReportExportOptions'.
+  Types of property 'showRheology' are incompatible.
+    Type 'boolean | undefined' is not assignable to type 'boolean'.
+      Type 'undefined' is not assignable to type 'boolean'.
+
+[2026-04-24T02:21:19.465Z] exit=1 signal=none timedOut=false

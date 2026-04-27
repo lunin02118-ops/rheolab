@@ -1,0 +1,39 @@
+[2026-04-24T02:24:00.449Z] wrapper start
+[2026-04-24T02:24:00.450Z] cwd=D:\Development\Rheolab
+[2026-04-24T02:24:00.450Z] command=npm.cmd exec tauri -- dev
+[2026-04-24T02:24:00.450Z] RHEOLAB_SKIP_VERSION_BUMP=
+[2026-04-24T02:24:00.453Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-24T02:24:00.454Z] using shell fallback: npm.cmd "exec" "tauri" "--" "dev"
+[2026-04-24T02:24:01.183Z] [stderr]      Running BeforeDevCommand (`npm run dev`)
+[2026-04-24T02:24:01.424Z] [stdout] 
+[2026-04-24T02:24:01.425Z] [stdout] > rheolab-enterprise@0.2.0-beta.39 dev
+[2026-04-24T02:24:01.425Z] [stdout] > vite
+[2026-04-24T02:24:01.425Z] [stdout] 
+[2026-04-24T02:24:01.785Z] [stdout] 
+[2026-04-24T02:24:01.785Z] [stdout]   [32m[1mVITE[22m v6.4.2[39m  [2mready in [0m[1m308[22m[2m[0m ms[22m
+[2026-04-24T02:24:01.785Z] [stdout] 
+[2026-04-24T02:24:01.786Z] [stdout]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m1420[22m/[39m
+[2026-04-24T02:24:05.209Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-24T02:24:05.273Z] [stderr]         Info Watching D:\Development\Rheolab\src-tauri for changes...
+[2026-04-24T02:24:05.991Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.73s
+[2026-04-24T02:24:06.029Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-24T02:24:11.867Z] [stdout] [2026-04-24][02:24:11][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-24T02:24:12.106Z] [stdout] [2026-04-24][02:24:12][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-24T02:24:15.474Z] heartbeat: pid=17556 elapsed=15.0s
+[2026-04-24T02:24:30.489Z] heartbeat: pid=17556 elapsed=30.0s
+[2026-04-24T02:24:45.502Z] heartbeat: pid=17556 elapsed=45.1s
+[2026-04-24T02:25:00.511Z] heartbeat: pid=17556 elapsed=60.1s
+[2026-04-24T02:25:15.513Z] heartbeat: pid=17556 elapsed=75.1s
+[2026-04-24T02:25:30.516Z] heartbeat: pid=17556 elapsed=90.1s
+[2026-04-24T02:25:45.522Z] heartbeat: pid=17556 elapsed=105.1s
+[2026-04-24T02:26:00.523Z] heartbeat: pid=17556 elapsed=120.1s
+[2026-04-24T02:26:15.530Z] heartbeat: pid=17556 elapsed=135.1s
+[2026-04-24T02:26:30.530Z] heartbeat: pid=17556 elapsed=150.1s
+[2026-04-24T02:26:45.532Z] heartbeat: pid=17556 elapsed=165.1s
+[2026-04-24T02:27:00.544Z] heartbeat: pid=17556 elapsed=180.1s
+[2026-04-24T02:27:15.550Z] heartbeat: pid=17556 elapsed=195.1s
+[2026-04-24T02:27:30.551Z] heartbeat: pid=17556 elapsed=210.1s
+[2026-04-24T02:27:45.560Z] heartbeat: pid=17556 elapsed=225.1s
+[2026-04-24T02:28:00.563Z] heartbeat: pid=17556 elapsed=240.1s
+[2026-04-24T02:28:15.570Z] heartbeat: pid=17556 elapsed=255.1s
+[2026-04-24T02:28:24.221Z] wrapper exit: code=0 signal=null elapsed=263.8s

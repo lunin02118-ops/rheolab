@@ -1,0 +1,193 @@
+
+> rheolab-enterprise@0.2.0-beta.53 perf:db:small
+> npx cross-env RHEOLAB_DB_SCALE=small npx playwright test --config playwright.db-scale.config.ts
+
+
+[db-scale] === DB-Scale Setup (scale=small) ===
+
+[db-scale] ╨У╨╡╨╜╨╡╤А╨╕╤А╤Г╨╡╨╝ small seed DB (1 ╨║╨╛╨┐╨╕╤П ├Ч ╨▓╤Б╨╡ ╤Д╨╕╨║╤Б╤В╤Г╤А╤Л)...
+[db-scale] $ cargo run --manifest-path tools/fixture_seed/Cargo.toml -- --copies 1 --db "D:\Development\Rheolab\outputs\seed\tmp-small-1777111715930.db"
+   Compiling rheolab-core v0.1.0 (D:\Development\Rheolab\src\rust\rheolab-core)
+   Compiling fixture-seed v0.1.0 (D:\Development\Rheolab\tools\fixture_seed)
+warning: function `smooth_viscosity` is never used
+   --> src\main.rs:776:4
+    |
+776 | fn smooth_viscosity(points: &[RheoPoint]) -> Vec<f64> {
+    |    ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `interp_viscosity_at_time_rheo` is never used
+   --> src\main.rs:854:4
+    |
+854 | fn interp_viscosity_at_time_rheo(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `fixture-seed` (bin "fixture-seed") generated 2 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.45s
+     Running `tools\fixture_seed\target\debug\fixture-seed.exe --copies 1 --db D:\Development\Rheolab\outputs\seed\tmp-small-1777111715930.db`
+тЬУ ╨б╤Е╨╡╨╝╨░ v3 ╨┐╤А╨╕╨╝╨╡╨╜╨╡╨╜╨░ (schema_version=3, ╨▓╨║╨╗╤О╤З╨░╤П V3 TouchPointPrecompute)
+тЬУ 3 ╨╗╨░╨▒╨╛╤А╨░╤В╨╛╤А╨╕╨╣
+тЬУ 10 ╨╛╨┐╨╡╤А╨░╤В╨╛╤А╨╛╨▓
+тЬУ 10 ╨╕╤Б╤В╨╛╤З╨╜╨╕╨║╨╛╨▓ ╨▓╨╛╨┤╤Л
+тЬУ 16 ╤А╨╡╨░╨│╨╡╨╜╤В╨╛╨▓ ╨▓ ╨║╨░╤В╨░╨╗╨╛╨│╨╡
+тЬУ ╨Э╨░╨╣╨┤╨╡╨╜╨╛ 19 ╤Д╨░╨╣╨╗╨╛╨▓ ╤Д╨╕╨║╤Б╤В╤Г╤А
+    3.8_2.0_0.2_41C(56 & 78).csv
+    3.8_2.0_0.2_41C(5610_56)23.04.csv
+    3.8_2.0_0.2_41C(5610_56)_2_23.04.csv
+    3.8_2.0_0.8_41C(7801_78)+18BorCat+RCP BorProp.csv
+    3.8_2.0_1.0_41C(7801_78)+18BorCat+RCP BorProp(con1000).csv
+    562@60C.xlsx
+    8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv
+    8958 SWB Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@96C 30.10.25.csv
+    90 ╨▓╤В╨╛╤А╨╛╨╣ 26.02.2024 1717.da.xlsx
+    Brookfeild 4.xlsx
+    n ╨╕ K ╤Б╤А╨░╨▓╨╜╨╕╤В╨╡╨╗╤М╨╜╤Л╨╣ ╤В╨╡╤Б╤В. 26.12.2023 1457 .xlsx
+    November102008-2.xls
+    Ofite 1100.dat
+    t-12.03.26-3BSL.xlsx
+    t-20.02.26-1  - 561)@110C.xls
+    ╨Ю╤В╤З╤С╤В brookfild.xls
+    ╨Ю╤В╤З╤С╤В BSL.xlsx
+    ╨Ю╤В╤З╤С╤В Chandler.xls
+    ╨Ю╤В╤З╤С╤В Grace.xlsx
+
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '3.8_2.0_0.2_41C(56 & 78).csv'... тЬУ 12314 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Chandler Engineering Model 5550 Rheometer
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '3.8_2.0_0.2_41C(5610_56)23.04.csv'... тЬУ 2074 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Chandler Engineering Model 5550 Rheometer
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '3.8_2.0_0.2_41C(5610_56)_2_23.04.csv'... тЬУ 13833 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Chandler Engineering Model 5550 Rheometer
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '3.8_2.0_0.8_41C(7801_78)+18BorCat+RCP BorProp.csv'... тЬУ 28442 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Chandler Engineering Model 5550 Rheometer
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '3.8_2.0_1.0_41C(7801_78)+18BorCat+RCP BorProp(con1000).csv'... тЬУ 21803 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Chandler Engineering Model 5550 Rheometer
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '562@60C.xlsx'... тЬУ 119 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: BSL Model R1
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv'... тЬУ 521 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Chandler Engineering Model 5550 Rheometer
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '8958 SWB Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@96C 30.10.25.csv'... тЬУ 1237 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Chandler Engineering Model 5550 Rheometer
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '90 ╨▓╤В╨╛╤А╨╛╨╣ 26.02.2024 1717.da.xlsx'... тЬУ 4840 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: BSL Model R1
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ 'Brookfeild 4.xlsx'... тЬУ 976 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Brookfield PVS
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ 'n ╨╕ K ╤Б╤А╨░╨▓╨╜╨╕╤В╨╡╨╗╤М╨╜╤Л╨╣ ╤В╨╡╤Б╤В. 26.12.2023 1457 .xlsx'... тЬУ 7149 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: BSL Model R1
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ 'November102008-2.xls'... тЬУ 140 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Unknown
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ 'Ofite 1100.dat'... тЬУ 440 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Ofite 1100 Rheometer
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ 't-12.03.26-3BSL.xlsx'... тЬУ 82 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: BSL Model R1
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ 't-20.02.26-1  - 561)@110C.xls'... тЬУ 670 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Brookfield PVS
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '╨Ю╤В╤З╤С╤В brookfild.xls'... тЬУ 1219 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Brookfield PVS
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '╨Ю╤В╤З╤С╤В BSL.xlsx'... тЬУ 2291 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: BSL Model R1
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '╨Ю╤В╤З╤С╤В Chandler.xls'... тЬУ 132 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Chandler Engineering Model 5550 Rheometer
+  ╨Я╨░╤А╤Б╨╕╨╜╨│ '╨Ю╤В╤З╤С╤В Grace.xlsx'... тЬУ 1219 ╤В╨╛╤З╨╡╨║, ╨┐╤А╨╕╨▒╨╛╤А: Grace M5600 HPHT Rheometer
+
+тЬУ ╨г╤Б╨┐╨╡╤И╨╜╨╛ ╤А╨░╨╖╨╛╨▒╤А╨░╨╜╨╛ 19 ╨╕╨╖ 19 ╤Д╨╕╨║╤Б╤В╤Г╤А
+  ╨У╨╡╨╜╨╡╤А╨░╤Ж╨╕╤П 1 ╨║╨╛╨┐╨╕╨╣ ├Ч 19 ╤Д╨╕╨║╤Б╤В╤Г╤А = 19 ╤Н╨║╤Б╨┐╨╡╤А╨╕╨╝╨╡╨╜╤В╨╛╨▓тАж
+
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '3.8_2.0_0.2_41C(56 & 78).csv': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '3.8_2.0_0.2_41C(5610_56)23.04.csv': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '3.8_2.0_0.2_41C(5610_56)_2_23.04.csv': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '3.8_2.0_0.8_41C(7801_78)+18BorCat+RCP BorProp.csv': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '3.8_2.0_1.0_41C(7801_78)+18BorCat+RCP BorProp(con1000).csv': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '562@60C.xlsx': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '8958 SWB Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@96C 30.10.25.csv': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '90 ╨▓╤В╨╛╤А╨╛╨╣ 26.02.2024 1717.da.xlsx': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ 'Brookfeild 4.xlsx': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ 'n ╨╕ K ╤Б╤А╨░╨▓╨╜╨╕╤В╨╡╨╗╤М╨╜╤Л╨╣ ╤В╨╡╤Б╤В. 26.12.2023 1457 .xlsx': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ 'November102008-2.xls': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ 'Ofite 1100.dat': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ 't-12.03.26-3BSL.xlsx': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ 't-20.02.26-1  - 561)@110C.xls': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '╨Ю╤В╤З╤С╤В brookfild.xls': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '╨Ю╤В╤З╤С╤В BSL.xlsx': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '╨Ю╤В╤З╤С╤В Chandler.xls': 1/1тАж тЬУ
+  ╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡ '╨Ю╤В╤З╤С╤В Grace.xlsx': 1/1тАж тЬУ
+
+тХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХР
+  ╨У╨╛╤В╨╛╨▓╨╛: D:\Development\Rheolab\outputs\seed\tmp-small-1777111715930.db
+  ╨д╨╕╨║╤Б╤В╤Г╤А ╤А╨░╨╖╨╛╨▒╤А╨░╨╜╨╛: 19
+  ╨н╨║╤Б╨┐╨╡╤А╨╕╨╝╨╡╨╜╤В╨╛╨▓ ╨▓╤Б╤В╨░╨▓╨╗╨╡╨╜╨╛: 19 (╨▓ ╨С╨Ф: 19)
+  ╨Ф╨╛╤Б╤В╨╕╨│╨╗╨╕ ╨┐╨╛╤А╨╛╨│╨░ 50 ╤Б╨Я: 4 (21.1%)
+  ╨С╨╗╨╛╨▒╨╛╨▓ ╨┤╨░╨╜╨╜╤Л╤Е:     19
+  ╨а╨╡╨░╨│╨╡╨╜╤В-╤Б╨▓╤П╨╖╨╡╨╣:    57
+  TPP-╤Б╤В╤А╨╛╨║:         152 (8 ╨┐╨╛╤А╨╛╨│╨╛╨▓ ├Ч 19 ╤Н╨║╤Б╨┐.)
+  TPP-╨┐╨╡╤А╨╡╤Б╨╡╤З╨╡╨╜╨╕╨╣:  55
+  ╨а╨░╨╖╨╝╨╡╤А ╨▒╨░╨╖╤Л ╨┤╨░╨╜╨╜╤Л╤Е:1.1 MB
+тХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХР
+
+╨Ф╨╗╤П ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╤П ╤Б╨║╨╛╨┐╨╕╤А╤Г╨╣╤В╨╡ ╤Д╨░╨╣╨╗ ╨▓ ╨┐╨░╨┐╨║╤Г ╨┤╨░╨╜╨╜╤Л╤Е ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╤П:
+  %APPDATA%\com.rheolab.enterprise\rheolab.db  (Windows)
+  ~/.local/share/com.rheolab.enterprise/rheolab.db  (Linux)
+[db-scale] тЬУ small tmp DB: D:\Development\Rheolab\outputs\seed\tmp-small-1777111715930.db (1.1 MB)
+[db-scale] RHEOLAB_E2E_DB_PATH = D:\Development\Rheolab\outputs\seed\tmp-small-1777111715930.db
+[db-scale] ╨С╨╕╨╜╨░╤А╨╜╨╕╨║ ╨░╨║╤В╤Г╨░╨╗╨╡╨╜.
+[db-scale] ╨Ч╨░╨┐╤Г╤Б╨║╨░╨╡╨╝ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╨╡ ╤Б CDP ╨╜╨░ ╨┐╨╛╤А╤В╤Г 9223...
+[db-scale] ╨Ю╨╢╨╕╨┤╨░╨╡╨╝ CDP ╨╜╨░ http://127.0.0.1:9223/json/version ...
+[db-scale] тЬУ CDP ╨│╨╛╤В╨╛╨▓ тАФ http://127.0.0.1:9223
+[tauri] [2026-04-25][10:09:23][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:09:23][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:09:23][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-25][10:09:23][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[2026-04-25][10:09:23][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[tauri] [2026-04-25][10:09:23][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[db-scale] === Setup complete (scale=small) ===
+
+
+Running 1 test using 1 worker
+
+[E2E] Tauri IPC proxy patch result: invoke-patched
+[tauri] [2026-04-25][10:09:25][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:09:25][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:09:25][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-25][10:09:26][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[tauri] [2026-04-25][10:09:26][reqwest::retry][TRACE] shouldn't retry!
+[E2E] License store overridden with developer license
+
+[db-scale/small] initial: heap=5.41 MB, nodes=215
+
+тФАтФА Step 1: library_open тФАтФА
+[tauri] [2026-04-25][10:09:27][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[2026-04-25][10:09:27][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[tauri] [2026-04-25][10:09:27][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  [db-scale/small] library_open: heap=6.93 MB (+1.52 MB), nodes=3270 (+3055), cpu=+247 ms, task=+143.7 ms, wall=1648 ms
+
+тФАтФА Step 2: library_scroll тФАтФА
+  [db-scale/small] library_scroll: heap=7 MB (+0.07 MB), nodes=3272 (+2), cpu=+48.5 ms, task=+20.1 ms, wall=1314 ms
+
+тФАтФА Step 3: search_by_name тФАтФА
+  [db-scale/small] search_by_name: heap=7.24 MB (+0.24 MB), nodes=5270 (+1998), cpu=+148.3 ms, task=+92.1 ms, wall=1842 ms
+
+тФАтФА Step 4: filter_fluid_type тФАтФА
+  [db-scale/small] filter_fluid_type: heap=7.22 MB (-0.02 MB), nodes=3278 (-1992), cpu=+136.6 ms, task=+72.3 ms, wall=1004 ms
+
+тФАтФА Step 5: filter_date_range тФАтФА
+  [db-scale/small] filter_date_range: heap=7.22 MB (0 MB), nodes=3278 (0), cpu=+42 ms, task=+14.9 ms, wall=488 ms
+
+тФАтФА Step 6: filter_reset тФАтФА
+  [db-scale] ClearFiltersButton disabled тАФ no active filters to reset, skipping
+  [db-scale/small] filter_reset: heap=7.22 MB (0 MB), nodes=3281 (+3), cpu=+41.1 ms, task=+15.4 ms, wall=1095 ms
+
+тФАтФА Step 7: open_experiment_card тФАтФА
+  [db-scale/small] open_experiment_card: heap=7.23 MB (+0.01 MB), nodes=3281 (0), cpu=+83.4 ms, task=+40.7 ms, wall=1310 ms
+
+тФАтФА Step 8: navigate_dashboard тФАтФА
+[tauri] [2026-04-25][10:09:36][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:09:36][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:09:36][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  [db-scale/small] navigate_dashboard: heap=7.03 MB (-0.2 MB), nodes=3353 (+72), cpu=+83.5 ms, task=+42.1 ms, wall=1355 ms
+
+тФАтФА Step 9: dashboard_back тФАтФА
+[tauri] [2026-04-25][10:09:37][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:09:37][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:09:37][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  [db-scale/small] dashboard_back: heap=7.74 MB (+0.71 MB), nodes=6395 (+3042), cpu=+198.4 ms, task=+104.8 ms, wall=1144 ms
+
+[db-scale/small] тФАтФАтФА Summary тФАтФАтФА
+  Scale:         small (~12 experiments)
+  Peak heap:     7.74 MB
+  Peak nodes:    6395
+  Total wall:    11.4 s
+  Output:        D:\Development\Rheolab\outputs\e2e\perf\db-scale-1777111767408-small-tauri.json
+  тЬУ  1 tests\e2e\db-scale-perf.tauri.spec.ts:44:3 тА║ [DBScale/SMALL] Library performance with small DB тА║ db_scale_library_perf_small (13.0s)
+[db-scale] ╨Ч╨░╨▓╨╡╤А╤И╨░╨╡╨╝ Tauri-╨┐╤А╨╛╤Ж╨╡╤Б╤Б (PID=17032)...
+[db-scale] тЬУ Tauri ╨┐╤А╨╛╤Ж╨╡╤Б╤Б (PID=17032) ╨╖╨░╨▓╨╡╤А╤И╤С╨╜.
+[db-scale] ╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╤Г╨┤╨░╨╗╨╕╤В╤М ╨▓╤А╨╡╨╝╨╡╨╜╨╜╤Г╤О ╨С╨Ф: EBUSY: resource busy or locked, unlink 'D:\Development\Rheolab\outputs\seed\tmp-small-1777111715930.db'
+
+  1 passed (1.1m)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report playwright-report-db-scale-small[39m
+[36m[39m

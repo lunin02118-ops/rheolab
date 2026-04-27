@@ -1,0 +1,6 @@
+[2026-04-24T02:21:39.557Z] $ cargo check --manifest-path "D:/Development/Rheolab/src-tauri/Cargo.toml"
+    Checking rheolab-core v0.1.0 (D:\Development\Rheolab\src\rust\rheolab-core)
+    Checking rheolab-enterprise v0.2.0-beta.39 (D:\Development\Rheolab\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.83s
+
+[2026-04-24T02:21:46.513Z] exit=0 signal=none timedOut=false

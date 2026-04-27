@@ -1,0 +1,28 @@
+[2026-04-24T02:40:27.079Z] wrapper start
+[2026-04-24T02:40:27.080Z] cwd=D:\Development\Rheolab
+[2026-04-24T02:40:27.080Z] command=npm.cmd exec tauri -- dev
+[2026-04-24T02:40:27.080Z] RHEOLAB_SKIP_VERSION_BUMP=
+[2026-04-24T02:40:27.083Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-24T02:40:27.083Z] using shell fallback: npm.cmd "exec" "tauri" "--" "dev"
+[2026-04-24T02:40:27.746Z] [stderr]      Running BeforeDevCommand (`npm run dev`)
+[2026-04-24T02:40:27.957Z] [stdout] 
+[2026-04-24T02:40:27.957Z] [stdout] > rheolab-enterprise@0.2.0-beta.39 dev
+[2026-04-24T02:40:27.957Z] [stdout] > vite
+[2026-04-24T02:40:27.957Z] [stdout] 
+[2026-04-24T02:40:28.297Z] [stdout] 
+[2026-04-24T02:40:28.298Z] [stdout]   [32m[1mVITE[22m v6.4.2[39m  [2mready in [0m[1m291[22m[2m[0m ms[22m
+[2026-04-24T02:40:28.298Z] [stdout] 
+[2026-04-24T02:40:28.298Z] [stdout]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m1420[22m/[39m
+[2026-04-24T02:40:31.784Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-24T02:40:31.848Z] [stderr]         Info Watching D:\Development\Rheolab\src-tauri for changes...
+[2026-04-24T02:40:32.790Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.95s
+[2026-04-24T02:40:32.831Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-24T02:40:39.288Z] [stdout] [2026-04-24][02:40:39][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-24T02:40:39.531Z] [stdout] [2026-04-24][02:40:39][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-24T02:40:42.103Z] heartbeat: pid=18912 elapsed=15.0s
+[2026-04-24T02:40:57.105Z] heartbeat: pid=18912 elapsed=30.0s
+[2026-04-24T02:41:12.110Z] heartbeat: pid=18912 elapsed=45.0s
+[2026-04-24T02:41:27.114Z] heartbeat: pid=18912 elapsed=60.0s
+[2026-04-24T02:41:42.121Z] heartbeat: pid=18912 elapsed=75.0s
+[2026-04-24T02:41:57.129Z] heartbeat: pid=18912 elapsed=90.0s
+[2026-04-24T02:42:12.133Z] heartbeat: pid=18912 elapsed=105.1s

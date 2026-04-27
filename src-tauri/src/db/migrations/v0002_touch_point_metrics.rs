@@ -1,7 +1,7 @@
-use rusqlite::Connection;
-use std::collections::HashSet;
 use super::error::MigrationError;
 use super::r#trait::Migration;
+use rusqlite::Connection;
+use std::collections::HashSet;
 
 /// Touch-point library-filter columns on `Experiment`.
 ///
@@ -175,7 +175,9 @@ mod tests {
         V0002TouchPointMetrics.up(&conn).unwrap();
 
         let mut stmt = conn
-            .prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'Experiment'")
+            .prepare(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'Experiment'",
+            )
             .unwrap();
         let names: HashSet<String> = stmt
             .query_map([], |row| row.get::<_, String>(0))

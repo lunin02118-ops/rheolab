@@ -1,0 +1,147 @@
+[
+  {
+    "id": "ENV-005",
+    "domain": "environment",
+    "severity": "high",
+    "likelihood": "high",
+    "impact": "Blocks syntax and API hardening checks for license-server",
+    "evidence": {
+      "command": "php -v",
+      "log_file": "runtime/audit/2026-04-24-enterprise-deep-audit/logs/03_php_v.log",
+      "tail": [
+        "[2026-04-24T02:21:16.057Z] $ php -v",
+        "'php' is not recognized as an internal or external command,",
+        "operable program or batch file.",
+        "[2026-04-24T02:21:16.071Z] exit=1 signal=none timedOut=false"
+      ]
+    },
+    "repro_steps": [
+      "Run `php -v`"
+    ],
+    "owner": "Platform Team",
+    "fix_strategy": "Install PHP runtime in audit environment or run dedicated php-enabled CI job",
+    "effort": "M",
+    "status": "open",
+    "title": "PHP runtime is unavailable for license-server checks",
+    "check_id": "03"
+  },
+  {
+    "id": "LIC-PHP-LINT",
+    "domain": "security",
+    "severity": "high",
+    "likelihood": "high",
+    "impact": "License API syntax/integrity cannot be validated",
+    "evidence": {
+      "command": "node scripts/audit/php-lint-license-server.js",
+      "log_file": "runtime/audit/2026-04-24-enterprise-deep-audit/logs/18_node_scripts_audit_php_lint_license_server_js.log",
+      "tail": [
+        "[2026-04-24T02:21:46.513Z] $ node scripts/audit/php-lint-license-server.js",
+        "[php-lint] php runtime is unavailable in PATH",
+        "[php-lint] spawnSync php ENOENT",
+        "[2026-04-24T02:21:46.583Z] exit=127 signal=none timedOut=false"
+      ]
+    },
+    "repro_steps": [
+      "Run `node scripts/audit/php-lint-license-server.js`"
+    ],
+    "owner": "License Server Team",
+    "fix_strategy": "Resolve PHP syntax/runtime issues and rerun php lint checks",
+    "effort": "M",
+    "status": "open",
+    "title": "License-server PHP lint failed",
+    "check_id": "18"
+  },
+  {
+    "id": "QG-ESLINT",
+    "domain": "code-quality",
+    "severity": "high",
+    "likelihood": "high",
+    "impact": "Lint policy enforcement is broken and CI signal is degraded",
+    "evidence": {
+      "command": "npx eslint .",
+      "log_file": "runtime/audit/2026-04-24-enterprise-deep-audit/logs/05_npx_eslint.log",
+      "tail": [
+        "  2:2897   error  '_dataColumn' is defined but never used  @typescript-eslint/no-unused-vars",
+        "D:\\Development\\Rheolab\\tests\\e2e\\licensing\\real-license-ipc.tauri.spec.ts",
+        "  159:68  error  The `Function` type accepts any function-like value.",
+        "Prefer explicitly defining any function parameters and return type  @typescript-eslint/no-unsafe-function-type",
+        "D:\\Development\\Rheolab\\tests\\e2e\\reports\\real-native-export.tauri.spec.ts",
+        "  106:55  error  'page' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars",
+        "  124:57  error  'page' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars",
+        "✖ 28 problems (27 errors, 1 warning)",
+        "  0 errors and 1 warning potentially fixable with the `--fix` option.",
+        "[2026-04-24T02:21:29.197Z] exit=1 signal=none timedOut=false"
+      ]
+    },
+    "repro_steps": [
+      "Run `npx eslint .`"
+    ],
+    "owner": "Platform Team",
+    "fix_strategy": "Fix lint errors and keep warning debt tracked in remediation backlog",
+    "effort": "M",
+    "status": "open",
+    "title": "ESLint gate is red",
+    "check_id": "05"
+  },
+  {
+    "id": "QG-TEST",
+    "domain": "correctness",
+    "severity": "high",
+    "likelihood": "high",
+    "impact": "Regression detection is unreliable",
+    "evidence": {
+      "command": "npm test",
+      "log_file": "runtime/audit/2026-04-24-enterprise-deep-audit/logs/06_npm_test.log",
+      "tail": [
+        "    \u001b[90m177| \u001b[39m        \u001b[34mexpect\u001b[39m(screen\u001b[33m.\u001b[39m\u001b[34mgetByTestId\u001b[39m(\u001b[32m'MockRawDataTable'\u001b[39m))\u001b[33m.\u001b[39m\u001b[34mtoBeDefined\u001b[39m()\u001b[33m;\u001b[39m",
+        "    \u001b[90m   | \u001b[39m                      \u001b[31m^\u001b[39m",
+        "    \u001b[90m178| \u001b[39m",
+        "    \u001b[90m179| \u001b[39m        \u001b[34mclickTab\u001b[39m(\u001b[32m'RecipeTabButton'\u001b[39m)\u001b[33m;\u001b[39m",
+        "\u001b[31m\u001b[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/16]⎯\u001b[22m\u001b[39m",
+        "\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[31m2 failed\u001b[39m\u001b[22m\u001b[2m | \u001b[22m\u001b[1m\u001b[32m88 passed\u001b[39m\u001b[22m\u001b[90m (90)\u001b[39m",
+        "\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[31m16 failed\u001b[39m\u001b[22m\u001b[2m | \u001b[22m\u001b[1m\u001b[32m1311 passed\u001b[39m\u001b[22m\u001b[2m | \u001b[22m\u001b[33m6 skipped\u001b[39m\u001b[90m (1333)\u001b[39m",
+        "\u001b[2m   Start at \u001b[22m 07:21:29",
+        "\u001b[2m   Duration \u001b[22m 9.51s\u001b[2m (transform 12.41s, setup 2.06s, import 27.81s, tests 19.53s, environment 28.12s)\u001b[22m",
+        "[2026-04-24T02:21:39.557Z] exit=1 signal=none timedOut=false"
+      ]
+    },
+    "repro_steps": [
+      "Run `npm test`"
+    ],
+    "owner": "Platform Team",
+    "fix_strategy": "Fix failing tests and restore deterministic test baseline",
+    "effort": "M",
+    "status": "open",
+    "title": "Unit/integration test gate is red",
+    "check_id": "06"
+  },
+  {
+    "id": "QG-TSC",
+    "domain": "correctness",
+    "severity": "high",
+    "likelihood": "high",
+    "impact": "Static type guarantees are broken",
+    "evidence": {
+      "command": "npx tsc --noEmit",
+      "log_file": "runtime/audit/2026-04-24-enterprise-deep-audit/logs/04_npx_tsc_noemit.log",
+      "tail": [
+        "[2026-04-24T02:21:16.763Z] $ npx tsc --noEmit",
+        "tests/reports/comparison-experiment-adapter.test.ts(37,5): error TS2741: Property 'showRheology' is missing in type '{ language: \"en\"; unitSystem: \"SI\"; companyName: string; companyLogo: null; chartSettings: ChartSettings; showCalibration: true; showRawData: true; showRecipe: true; showWaterAnalysis: true; ... 5 more ...; isExpert: false; }' but required in type 'ComparisonExperimentContextOverrides'.",
+        "tests/reports/useComparisonReportExport.test.ts(92,5): error TS2322: Type '{ experiments: Experiment[]; displaySettings: ComparisonDisplaySettings; chartSettings: ChartSettings; brushRange?: [number, number] | undefined; language: \"ru\" | \"en\"; unitSystem: \"SI\" | \"SI_Pas\" | \"Imperial\"; ... 8 more ...; isExpert: boolean; }' is not assignable to type 'UseComparisonReportExportOptions'.",
+        "  Types of property 'showRheology' are incompatible.",
+        "    Type 'boolean | undefined' is not assignable to type 'boolean'.",
+        "      Type 'undefined' is not assignable to type 'boolean'.",
+        "[2026-04-24T02:21:19.465Z] exit=1 signal=none timedOut=false"
+      ]
+    },
+    "repro_steps": [
+      "Run `npx tsc --noEmit`"
+    ],
+    "owner": "Platform Team",
+    "fix_strategy": "Resolve TypeScript errors before progressing to deep regression phases",
+    "effort": "M",
+    "status": "open",
+    "title": "TypeScript gate is red",
+    "check_id": "04"
+  }
+]

@@ -1,4 +1,4 @@
-﻿use crate::error::Result;
+use crate::error::Result;
 use rusqlite::params;
 
 use super::helpers::now_rfc3339;
@@ -467,9 +467,12 @@ pub fn seed_default_reagents(conn: &rusqlite::Connection) -> Result<usize> {
     let mut inserted = 0usize;
 
     for (name, category, manufacturer, country, form, active_substance, description) in defaults {
-        let id = format!("seed_{}", name.to_lowercase()
-            .replace(' ', "_")
-            .replace(['(', ')', '/', '.', '«', '»', '®', '™'], ""));
+        let id = format!(
+            "seed_{}",
+            name.to_lowercase()
+                .replace(' ', "_")
+                .replace(['(', ')', '/', '.', '«', '»', '®', '™'], "")
+        );
         // Map empty string to NULL so the column stays clean
         let active_sub_opt: Option<&str> = if active_substance.is_empty() {
             None

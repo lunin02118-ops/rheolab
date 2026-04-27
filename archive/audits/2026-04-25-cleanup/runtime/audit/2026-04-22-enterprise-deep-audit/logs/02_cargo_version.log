@@ -1,0 +1,4 @@
+[2026-04-22T20:11:29.857Z] $ cargo --version
+cargo 1.94.1 (29ea6fb6a 2026-03-24)
+
+[2026-04-22T20:11:29.988Z] exit=0 signal=none timedOut=false

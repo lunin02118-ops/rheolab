@@ -1,0 +1,333 @@
+   Compiling rheolab-core v0.1.0 (D:\Development\Rheolab\src\rust\rheolab-core)
+warning: use of deprecated function `base64::encode`: Use Engine::encode
+   --> tests\pdf_from_csv_test.rs:232:32
+    |
+232 |     let chart_base64 = base64::encode(&real_svg);
+    |                                ^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: `rheolab-core` (test "pdf_from_csv_test") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 27.80s
+     Running unittests src\lib.rs (src\rust\rheolab-core\target\debug\deps\rheolab_core-53646701632dc354.exe)
+
+running 189 tests
+test detectors::tests::test_is_mixing_step_by_duration ... ok
+test detectors::tests::test_is_mixing_step_by_edge_rate ... ok
+test grace::tests::test_linear_regression_horizontal ... ok
+test grace::tests::test_calc_power_law_basic ... ok
+test grace::tests::test_calc_bingham_basic ... ok
+test grace::tests::test_linear_regression_perfect_line ... ok
+test detectors::tests::test_is_sst_pattern_invalid_single_rate ... ok
+test detectors::tests::test_is_sst_pattern_invalid_ratio ... ok
+test detectors::tests::test_is_sst_pattern_valid ... ok
+test detectors::tests::test_is_repeating_sequence_pattern ... ok
+test grace::tests::test_calculate_grace_internal_integration ... ok
+test detectors::tests::test_create_cycle ... ok
+test parasitic_filter::tests::test_filter_sandwiched_step ... ok
+test parasitic_filter::tests::test_filter_lead_in_step ... ok
+test parasitic_filter::tests::test_filter_trailing_noise ... ok
+test parasitic_filter::tests::test_filter_very_short_steps ... ok
+test parasitic_filter::tests::test_no_filtering_for_valid_steps ... ok
+test parasitic_filter::tests::test_reasoning_messages ... ok
+test detectors::tests::test_iso_pattern_150_125_100_descending ... ok
+test detectors::tests::test_swb_pattern_150_125_100_repeated ... ok
+test parser::date_detector::tests::test_excel_serial ... ok
+test detectors::tests::test_real_swb_mamontovskoe_pattern ... ok
+test parser::filename_parser::tests::test_match_with_catalog ... ok
+test parser::header_detector::tests::find_sections_ignores_marker_lines_with_data_payload ... ok
+test parser::header_detector::tests::find_sections_falls_back_to_sweep_data_when_no_log_data ... ok
+test parser::header_detector::tests::find_sections_merges_multiple_log_data_headers ... ok
+test parser::header_detector::tests::find_sections_returns_empty_when_no_markers ... ok
+test parser::header_detector::tests::find_sections_returns_both_when_sweep_and_log_data_present ... ok
+test parser::physics_engine::tests::test_enforce_physics_calculates_sr_from_physics ... ok
+test parser::physics_engine::tests::test_enforce_physics_corrects_rpm ... ok
+test parser::physics_engine::tests::test_enforce_physics_uses_rpm_fallback ... ok
+test parser::header_detector::tests::test_detect_header_merged ... ok
+test parser::physics_engine::tests::test_infer_geometry ... ok
+test parser::physics_engine::tests::test_infer_k_factor ... ok
+test parser::header_detector::tests::test_detect_header_simple ... ok
+test parser::row_mapper::tests::test_detect_pressure_multiplier_from_data_no_pressure_col ... ok
+test parser::row_mapper::tests::test_detect_pressure_multiplier_from_data_bar_ok ... ok
+test parser::row_mapper::tests::test_detect_pressure_multiplier_from_data_psi ... ok
+test parser::row_mapper::tests::test_detect_excel_serial_time_for_time_only_fraction ... ok
+test parser::row_mapper::tests::test_detect_time_mode_from_data_bsl_mixed_dropped_decimal_minutes ... ok
+test parser::row_mapper::tests::test_detect_time_unit_from_data_bsl_fractional_minutes ... ok
+test parser::row_mapper::tests::test_detect_time_unit_from_data_no_false_positive_seconds ... ok
+test parser::row_mapper::tests::test_detect_units ... ok
+test parser::row_mapper::tests::test_is_time_too_large_for_minutes_by_max_value ... ok
+test parser::row_mapper::tests::test_map_row_basic ... ok
+test parser::row_mapper::tests::test_is_time_too_large_for_minutes_real_minutes_ok ... ok
+test parser::row_mapper::tests::test_map_row_bsl_dropped_decimal_mode ... ok
+test parser::row_mapper::tests::test_map_row_conversions ... ok
+test parser::row_mapper::tests::test_is_time_too_large_for_minutes_by_sampling_rate ... ok
+test parser::row_mapper::tests::test_map_row_time_format ... ok
+test physics::tests::test_linear_regression ... ok
+test processor::tests::test_api_cycle_filters_mixing ... ok
+test processor::tests::test_custom_cycle_body_extraction ... ok
+test processor::tests::test_empty_cycle ... ok
+test processor::tests::test_iso_cycle_ramp_down ... ok
+test processor::tests::test_sst_cycle_unchanged ... ok
+test report_generator::chart_generator::line::multi_experiment::tests::errors_on_empty_experiments ... ok
+test report_generator::chart_generator::line::multi_experiment::tests::errors_when_all_experiments_empty ... ok
+test report_generator::chart_generator::line::multi_experiment::tests::single_experiment_renders_like_shared_single ... ok
+test report_generator::chart_generator::line::multi_experiment::tests::renders_two_experiment_svg_with_expected_colours ... ok
+test parser::filename_parser::tests::test_has_recipe_format ... ok
+test report_generator::chart_generator::tests::test_generate_chart_svg ... ok
+test parser::row_mapper::tests::test_detect_time_unit_no_false_positive_from_rpm ... ok
+test report_generator::chart_generator::line::multi_experiment::tests::dashed_bath_temp_does_not_leak_to_same_coloured_viscosity ... ok
+test report_generator::chart_generator::tests::test_generate_chart_with_custom_styles ... ok
+test parser::date_detector::tests::test_extract_numeric ... ok
+test parser::date_detector::tests::test_extract_alpha ... ok
+test report_generator::chart_generator::tests::test_svg_stroke_format ... ok
+test parser::date_detector::tests::test_detect_from_rows ... ok
+test parser::date_detector::tests::test_extract_concat ... ok
+test report_generator::chart_generator::line::multi_experiment::tests::downsamples_when_skip_flag_false ... ok
+test parser::filename_parser::tests::test_detect_category ... ok
+test parser::filename_parser::tests::test_parse_filename_sst ... ok
+test parser::filename_parser::tests::test_parse_filename_full ... ok
+test report_generator::comparison::excel_comparison::tests::experiment_name_with_forbidden_chars_is_sanitised ... ok
+test report_generator::comparison::excel_comparison::tests::rejects_empty_experiments ... ok
+test report_generator::chart_generator::line::multi_experiment::tests::threshold_line_rendered_when_set ... ok
+test report_generator::comparison::excel_comparison::tests::duplicate_display_names_are_deduplicated ... ok
+test report_generator::comparison::excel_comparison::tests::individual_axis_mode_with_secondary_generates_successfully ... ok
+test report_generator::comparison::excel_comparison::tests::overlong_name_truncated_to_excel_31_char_limit ... ok
+test report_generator::comparison::excel_comparison::tests::produces_valid_xlsx_bytes ... ok
+test report_generator::comparison::pdf_comparison::tests::comparison_individual_axes_match_single_experiment ... ok
+test report_generator::comparison::pdf_comparison::tests::colors_cycle_through_palette_when_exp_count_exceeds_palette_size ... ok
+test report_generator::comparison::excel_comparison::tests::bath_temperature_secondary_produces_larger_file ... ok
+test report_generator::comparison::excel_comparison::tests::overlap_chart_sheet_has_chart_xml ... ok
+test report_generator::comparison::excel_comparison::tests::canonical_keys_are_normalised_for_excel ... ok
+test report_generator::comparison::pdf_comparison::tests::comparison_svg_dimensions_match_fixed_2cm_margin ... ok
+test report_generator::comparison::excel_comparison::tests::deterministic_across_runs ... ok
+test report_generator::comparison::pdf_comparison::tests::individual_mode_svg_draws_two_left_axis_lines ... ok
+test report_generator::comparison::pdf_comparison::tests::rejects_empty_experiments ... ok
+test report_generator::comparison::pdf_comparison::tests::individual_mode_with_shear_rate_s1_metric_key_draws_shear_rate_series ... ok
+test report_generator::comparison::excel_comparison::tests::multiple_secondary_metrics_all_present ... ok
+test report_generator::comparison::excel_comparison::tests::three_experiments_produce_workbook_with_six_sheets ... ok
+test report_generator::comparison::excel_comparison::tests::secondary_shear_rate_on_right_produces_larger_file ... ok
+test report_generator::comparison::excel_comparison::tests::overlap_chart_with_threshold_generates_successfully ... ok
+test report_generator::comparison::pdf_comparison::tests::russian_source_uses_cyrillic_labels ... ok
+test report_generator::comparison::pdf_comparison::tests::source_has_globals_once_and_pagebreak_per_experiment ... ok
+test report_generator::comparison::pdf_comparison::tests::summary_page_has_experiment_legend ... ok
+test report_generator::comparison::pdf_comparison::tests::summary_page_is_before_first_pagebreak ... ok
+test report_generator::comparison::pdf_comparison::tests::source_is_deterministic ... ok
+test report_generator::comparison::summary::tests::summary_computes_basic_metrics ... ok
+test report_generator::comparison::summary::tests::summary_falls_back_to_filename_when_test_id_missing ... ok
+test report_generator::comparison::excel_comparison::tests::secondary_temperature_on_left_produces_larger_file ... ok
+test report_generator::comparison::summary::tests::summary_handles_empty_data_gracefully ... ok
+test report_generator::comparison::summary::tests::summary_preserves_order ... ok
+test report_generator::comparison::pdf_comparison::tests::individual_mode_with_shear_rate_on_left_draws_shear_rate_series ... ok
+test report_generator::comparison::pdf_comparison::tests::summary_page_has_axis_labels_and_ticks ... ok
+test report_generator::comparison::pdf_comparison::tests::summary_page_is_landscape ... ok
+test report_generator::comparison::tests::deduplicates_with_underscore_suffix ... ok
+test report_generator::comparison::summary::tests::summary_skips_non_finite_viscosity ... ok
+test report_generator::comparison::tests::deduplication_respects_31_char_limit ... ok
+test report_generator::comparison::tests::forbidden_chars_removed_before_dedup ... ok
+test report_generator::comparison::tests::empty_after_sanitisation_falls_back_to_sheet ... ok
+test report_generator::comparison::tests::strips_forbidden_characters ... ok
+test report_generator::comparison::tests::truncates_to_thirty_one_chars ... ok
+test report_generator::comparison::types::tests::chart_config_defaults_when_optional_missing ... ok
+test report_generator::comparison::types::tests::chart_config_deserialises_snake_case ... ok
+test report_generator::comparison::types::tests::full_input_parses_with_two_experiments ... ok
+test report_generator::comparison::tests::handles_unicode_truncate_safely ... ok
+test report_generator::comparison::tests::identical_sanitised_names_collide_and_dedupe ... ok
+test report_generator::excel::touch_points::tests::threshold_label_ru_localized ... ok
+test report_generator::comparison::pdf_comparison::tests::touch_points_render_two_tables_for_threshold_and_target_time ... ok
+test report_generator::excel::touch_points::tests::threshold_label_uses_cp_for_imperial ... ok
+test report_generator::excel::touch_points::tests::threshold_label_uses_mpa_s_for_si ... ok
+test report_generator::comparison::excel_comparison::tests::touch_point_markers_generate_for_crossing_data ... ok
+test report_generator::formatters::tests::resolve_units_empty_fields_fall_back_per_category ... ok
+test report_generator::excel::touch_points::tests::touch_point_viscosity_kept_in_storage_unit ... ok
+test report_generator::formatters::tests::resolve_units_hhmmss_time_with_si_quantities ... ok
+test report_generator::formatters::tests::resolve_units_legacy_imperial_uses_new_labels ... ok
+test report_generator::comparison::pdf_comparison::tests::touch_points_table_appears_when_enabled ... ok
+test report_generator::formatters::tests::resolve_units_mixed_seconds_time_format ... ok
+test report_generator::formatters::tests::test_build_ramp_string ... ok
+test report_generator::excel::touch_points::tests::threshold_label_uses_pa_s_with_4_decimals_for_si_pas ... ok
+test report_generator::formatters::tests::test_convert_pv ... ok
+test report_generator::formatters::tests::test_convert_viscosity ... ok
+test report_generator::formatters::tests::test_convert_k_prime ... ok
+test report_generator::formatters::tests::test_build_ramp_string_empty ... ok
+test report_generator::formatters::tests::resolve_units_legacy_si ... ok
+test report_generator::formatters::tests::resolve_units_mixed_custom_preset_reproduces_user_ui ... ok
+test report_generator::excel::tests::write_single_experiment_to_sheet_is_reusable ... ok
+test report_generator::formatters::tests::test_convert_yp ... ok
+test report_generator::formatters::tests::test_format_date ... ok
+test report_generator::formatters::tests::test_format_time_value_default_falls_back_to_minutes ... ok
+test report_generator::formatters::tests::test_format_time_value_hhmmss ... ok
+test report_generator::formatters::tests::test_get_k_unit ... ok
+test report_generator::formatters::tests::test_get_pv_unit ... ok
+test report_generator::formatters::tests::test_format_time_value_minutes ... ok
+test report_generator::formatters::tests::test_format_time_value_seconds ... ok
+test report_generator::formatters::tests::test_format_number ... ok
+test report_generator::formatters::tests::test_format_number_direct ... ok
+test report_generator::formatters::tests::test_get_viscosity_unit ... ok
+test report_generator::formatters::tests::test_get_yp_unit ... ok
+test report_generator::formatters::tests::test_render_k_with_targets ... ok
+test report_generator::formatters::tests::test_time_axis_unit_all_formats ... ok
+test report_generator::formatters::tests::test_render_pv_with_targets ... ok
+test report_generator::formatters::tests::test_render_viscosity_with_targets ... ok
+test report_generator::formatters::tests::test_viscosity_decimals ... ok
+test report_generator::formatters::tests::test_viscosity_decimals_for_targets ... ok
+test report_generator::formatters::tests::test_render_yp_with_targets ... ok
+test report_generator::formatters::tests::test_viscosity_excel_format ... ok
+test report_generator::formatters::tests::test_viscosity_excel_format_for_targets ... ok
+test report_generator::touch_point::tests::test_dominant_shear_rate_no_data ... ok
+test report_generator::pdf::template::tests::generate_typst_template_equals_globals_plus_body_concat ... ok
+test report_generator::touch_point::tests::test_dominant_shear_rate_single_cluster ... ok
+test report_generator::touch_point::tests::test_filter_by_shear_rate ... ok
+test report_generator::touch_point::tests::test_no_peak_monotonically_falling ... ok
+test report_generator::pdf::template::tests::generate_typst_template_is_deterministic ... ok
+test report_generator::pdf::template::tests::body_does_not_emit_globals ... ok
+test report_generator::touch_point::tests::test_sanitises_non_finite_inputs ... ok
+test report_generator::touch_point::tests::test_all_non_finite_returns_empty ... ok
+test report_generator::pdf::template::tests::globals_contain_required_tokens ... ok
+test report_generator::touch_point::tests::test_smart_touch_points_basic ... ok
+test report_generator::touch_point::tests::test_smart_touch_points_filters_shear_ramps ... ok
+test report_generator::touch_point::tests::test_smart_touch_points_no_shear_data_falls_back ... ok
+test report_generator::touch_point::tests::test_target_time_plain_interpolation_on_single_plateau ... ok
+test report_generator::touch_point::tests::test_target_time_snaps_on_shear_rate_jump ... ok
+test schedule_detector::tests::test_detect_schedule_duration_nonzero ... ok
+test report_generator::touch_point::tests::test_viscosity_peak_detected ... ok
+test schedule_detector::tests::test_serde_roundtrip_duration ... ok
+test report_generator::excel::tests::test_generate_simple_excel ... ok
+test report_generator::excel::tests::single_exp_output_is_deterministic ... ok
+test report_generator::excel::tests::time_format_propagates_to_xlsx_output ... ok
+test report_generator::comparison::pdf_comparison::tests::full_pdf_compiles_en ... ok
+test report_generator::comparison::pdf_comparison::tests::full_pdf_compiles_with_touch_points ... ok
+test report_generator::comparison::pdf_comparison::tests::full_pdf_compiles_ru ... ok
+test report_generator::chart_generator::lttb_invariants::skip_downsample_returns_full_data ... ok
+test report_generator::chart_generator::lttb_invariants::lttb_length_equals_threshold ... ok
+test report_generator::chart_generator::lttb_invariants::lttb_preserves_endpoints ... ok
+test report_generator::chart_generator::lttb_invariants::lttb_max_retention_within_5_percent ... ok
+
+test result: ok. 189 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+
+     Running tests\axis_mode_test.rs (src\rust\rheolab-core\target\debug\deps\axis_mode_test-7d927f8b0ed622fa.exe)
+
+running 18 tests
+test settings_deserialization::axis_mode_does_not_affect_other_fields ... ok
+test settings_deserialization::default_axis_mode_is_individual ... ok
+test settings_deserialization::explicit_individual_axis_mode_is_preserved ... ok
+test settings_deserialization::shared_axis_mode_is_preserved ... ok
+test axis_mode_roundtrip_through_json ... ok
+test shear_rate_left_draws_valid_svg_without_right_axis_line ... ok
+test shear_rate_right_puts_values_on_right_scale ... ok
+test svg_chart_body_margins_match_between_modes ... ok
+test excel_generates_successfully_in_individual_axis_mode ... ok
+test excel_generates_successfully_in_shared_axis_mode ... ok
+test shear_rate_on_left_in_shared_mode_generates_valid_pdf ... ok
+test shear_rate_on_right_in_individual_mode_generates_valid_pdf ... ok
+test shear_rate_on_left_in_individual_mode_generates_valid_pdf ... ok
+test shear_rate_on_right_in_shared_mode_generates_valid_pdf ... ok
+test pdf_generates_successfully_without_axis_mode_field ... ok
+test pdf_generates_successfully_in_individual_axis_mode ... ok
+test pdf_generates_successfully_in_shared_axis_mode ... ok
+test chart_page_margins_identical_between_axis_modes ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests\bsl_pipeline_test.rs (src\rust\rheolab-core\target\debug\deps\bsl_pipeline_test-5db6b492190dfe10.exe)
+
+running 5 tests
+test test_bsl_swb_90_enforce_physics ... ok
+test test_bsl_swb_90_parse ... ok
+test test_bsl_swb_90_full_pipeline ... ok
+test test_bsl_swb_90_schedule_detection ... ok
+test test_bsl_swb_90_cycle_detection ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+
+     Running tests\gold_standard_test.rs (src\rust\rheolab-core\target\debug\deps\gold_standard_test-9055e518fe72516b.exe)
+
+running 7 tests
+test test_gold_chandler ... ok
+test test_gold_bsl_562_60c ... ok
+test test_gold_bsl_mixed_time_corruption ... ok
+test test_gold_sst_mamontovskoe_csv ... ok
+test test_gold_bsl ... ok
+test test_gold_brookfield4 ... ok
+test test_gold_grace ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+     Running tests\golden_tests.rs (src\rust\rheolab-core\target\debug\deps\golden_tests-9f62a07ab1d6d187.exe)
+
+running 9 tests
+test test_golden_sst_mamontovskoe ... ok
+test test_golden_chandler_iso_ramp ... ok
+test test_golden_swb_mamontovskoe ... ok
+test test_golden_brookfield_multi_cycle ... ok
+test test_golden_bsl_symmetric_api ... ok
+test test_golden_ofite_1100 ... ok
+test test_golden_grace_symmetric_api ... ok
+test test_parser_dat_support ... ok
+test test_parser_parity_ofite_1100 ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests\pdf_complex_svg_test.rs (src\rust\rheolab-core\target\debug\deps\pdf_complex_svg_test-ac890e6ce2c4874d.exe)
+
+running 1 test
+test test_pdf_with_recharts_like_svg ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests\pdf_from_csv_test.rs (src\rust\rheolab-core\target\debug\deps\pdf_from_csv_test-cf4165925ee869ad.exe)
+
+running 1 test
+test test_full_pipeline_simulation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests\pdf_generation_test.rs (src\rust\rheolab-core\target\debug\deps\pdf_generation_test-d697b7886d1fda1a.exe)
+
+running 1 test
+test test_pdf_generation_with_svg ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running tests\report_regression_test.rs (src\rust\rheolab-core\target\debug\deps\report_regression_test-aa13460063923ba8.exe)
+
+running 21 tests
+test chart_width_with_extra_viscosity_rates ... ok
+test chart_width_formula_beginner_mode ... ok
+test chart_width_formula_expert_mode ... ok
+test pdf_margin_all_axes_active ... ok
+test pdf_margin_default_settings ... ok
+test pdf_margin_visc_temp_only_clamped_to_min_extra ... ok
+test settings_defaults_work_when_fields_missing ... ok
+test show_advanced_stats_false_deserializes ... ok
+test touch_point_module_exists_and_works ... ok
+test fixture_json_deserializes_all_settings_fields ... ok
+test individual_mode_bath_temp_does_not_create_extra_axis_column ... ok
+test individual_and_shared_svg_dimensions_match_with_2_axes ... ok
+test excel_generates_with_show_advanced_stats_false ... ok
+test excel_generates_with_show_advanced_stats_true ... ok
+test excel_generates_with_touch_points_enabled ... ok
+test excel_generates_with_bath_temperature ... ok
+test excel_generates_from_fixture_json ... ok
+test pdf_generates_with_show_advanced_stats_false ... ok
+test pdf_generates_in_shared_axis_mode ... ok
+test pdf_generates_with_all_settings ... ok
+test pdf_generates_from_fixture_json ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests\touch_point_fixture_parity.rs (src\rust\rheolab-core\target\debug\deps\touch_point_fixture_parity-b654fae9821780a4.exe)
+
+running 2 tests
+test fixture_snapshot_is_well_formed ... ok
+test detects_threshold_crossing_in_the_180_220_min_window ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests rheolab_core
+
+running 2 tests
+test src\processor.rs - processor::process_cycle_for_calculation (line 91) ... ignored
+test src\report_generator\comparison\mod.rs - report_generator::comparison::deduplicate_sheet_name (line 77) ... ignored
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

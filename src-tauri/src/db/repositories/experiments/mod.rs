@@ -27,11 +27,8 @@ pub(crate) use write::persist_experiment;
 /// Repository interface for Experiment persistence operations.
 pub trait ExperimentRepository {
     fn save(&self, conn: &rusqlite::Connection, exp: &StoredExperiment) -> Result<()>;
-    fn find_by_id(
-        &self,
-        conn: &rusqlite::Connection,
-        id: &str,
-    ) -> Result<Option<StoredExperiment>>;
+    fn find_by_id(&self, conn: &rusqlite::Connection, id: &str)
+        -> Result<Option<StoredExperiment>>;
     fn find_duplicate(
         &self,
         conn: &rusqlite::Connection,

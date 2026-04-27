@@ -1,33 +1,33 @@
-﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]//! Licensing commands — native Rust implementation (V2).
+#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+//! Licensing commands — native Rust implementation (V2).
 //!
 //! All licensing logic runs exclusively in Rust via [`LicenseEngine`].
 //! Tauri commands: machine-id, was-ever-licensed, DB checkpoint,
 //! experiment reset, and the V2 engine commands (check, status,
 //! activate, deactivate, can-save, register-experiment).
 
-pub mod types;
-pub(super) mod hardware;
 pub(super) mod crypto;
-pub(super) mod features;
-pub(super) mod security;
-pub(super) mod online;
 pub(super) mod demo;
 pub mod engine;
+pub(super) mod features;
+pub(super) mod hardware;
+pub(super) mod online;
+pub(super) mod security;
+pub mod types;
 
-pub use types::assert_production_keys;
-pub use hardware::get_or_create_machine_id;
-pub use hardware::all_legacy_ids;
-pub use hardware::{debug_fingerprint_info, FingerprintDebugInfo};
 pub use engine::LicenseEngine;
+pub use hardware::all_legacy_ids;
+pub use hardware::get_or_create_machine_id;
+pub use hardware::{debug_fingerprint_info, FingerprintDebugInfo};
+pub use types::assert_production_keys;
 
-use crate::error::Result;
+use crate::error::{AppError, Result};
 use crate::state::AppState;
 use serde_json::{json, Value};
 use tauri::State;
 
 use self::crypto::{get_system_state, verify_signature};
-use self::types::
-    {SimpleResult, LicenseStatus, DB_KEY_WAS_LICENSED, LOCAL_USER_ID};
+use self::types::{LicenseStatus, SimpleResult, DB_KEY_WAS_LICENSED, LOCAL_USER_ID};
 
 // ── Async write-capability check (shared by all write/export commands) ──────
 
@@ -56,6 +56,18 @@ pub(crate) async fn can_write_via_engine(state: &AppState) -> bool {
     }
 }
 
+/// Fail closed unless the current license state allows writes/exports.
+///
+/// Use this at the start of every mutating or data-exporting IPC command,
+/// before acquiring a SQLite connection or doing file-system work.
+pub(crate) async fn require_write_license(state: &AppState) -> Result<()> {
+    if can_write_via_engine(state).await {
+        Ok(())
+    } else {
+        Err(AppError::License("required".into()))
+    }
+}
+
 // ── License gate for write/export commands (F-08) ──────────────────────
 
 /// Synchronous license gate used **only** from unit tests.
@@ -66,9 +78,9 @@ pub(crate) async fn can_write_via_engine(state: &AppState) -> bool {
 /// async AppState.
 #[cfg(test)]
 fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
-    use crate::error::AppError;
     use self::crypto::verify_server_signature;
     use self::types::DB_KEY_LICENSE;
+    use crate::error::AppError;
     // E2E test bypass: only available in debug (non-release) builds.
     // Prevents production binaries from being launched with the env var to skip licensing.
     #[cfg(debug_assertions)]
@@ -109,9 +121,9 @@ fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
             // Prevents forged HMAC-only records (extracted HMAC key) from bypassing the gate.
             // Legacy grace period closed (S-2): all licenses must now carry RSA proof.
             let has_signed_payload = data["signedPayload"].is_string();
-            let has_server_sig     = data["serverSignature"].is_string();
+            let has_server_sig = data["serverSignature"].is_string();
             if has_signed_payload && has_server_sig {
-                let payload    = data["signedPayload"].as_str().unwrap_or("");
+                let payload = data["signedPayload"].as_str().unwrap_or("");
                 let server_sig = data["serverSignature"].as_str().unwrap_or("");
                 if !verify_server_signature(payload, server_sig) {
                     tracing::warn!("[check_license_gate] RSA server-signature failed — treating as absent, falling through to demo check");
@@ -253,18 +265,19 @@ pub async fn licensing_reset_experiments(
     state: State<'_, AppState>,
     user_id: Option<String>,
 ) -> Result<SimpleResult> {
+    require_write_license(&state).await?;
+
     use rusqlite::params;
     let conn = state.pool_conn()?;
     let uid = user_id.unwrap_or_else(|| LOCAL_USER_ID.to_string());
 
     let tx = conn.unchecked_transaction()?;
 
-    let count: i64 = tx
-        .query_row(
-            "SELECT COUNT(*) FROM Experiment WHERE userId = ?1",
-            params![uid],
-            |row| row.get(0),
-        )?;
+    let count: i64 = tx.query_row(
+        "SELECT COUNT(*) FROM Experiment WHERE userId = ?1",
+        params![uid],
+        |row| row.get(0),
+    )?;
 
     // Delete reagents first (FK), then experiments — wrapped in RAII transaction
     tx.execute(
@@ -273,10 +286,7 @@ pub async fn licensing_reset_experiments(
         params![uid],
     )?;
 
-    tx.execute(
-        "DELETE FROM Experiment WHERE userId = ?1",
-        params![uid],
-    )?;
+    tx.execute("DELETE FROM Experiment WHERE userId = ?1", params![uid])?;
 
     tx.commit()?;
 
@@ -294,6 +304,8 @@ pub async fn licensing_reset_all_experiments(
     state: State<'_, AppState>,
     user_id: String,
 ) -> Result<SimpleResult> {
+    require_write_license(&state).await?;
+
     use rusqlite::params;
     let conn = state.pool_conn()?;
 
@@ -312,8 +324,7 @@ pub async fn licensing_reset_all_experiments(
 
     let tx = conn.unchecked_transaction()?;
 
-    let count: i64 = tx
-        .query_row("SELECT COUNT(*) FROM Experiment", [], |row| row.get(0))?;
+    let count: i64 = tx.query_row("SELECT COUNT(*) FROM Experiment", [], |row| row.get(0))?;
 
     // Transactional delete — RAII transaction guarantees rollback on error
     tx.execute("DELETE FROM ExperimentReagent", [])?;
@@ -337,7 +348,10 @@ pub async fn licensing_reset_all_experiments(
 /// The frontend should call this once on startup and then react to the result.
 #[tauri::command]
 pub async fn licensing_check(state: State<'_, AppState>) -> Result<types::LicenseCheckResult> {
-    let engine = state.license_engine.as_ref().ok_or("License engine not initialized")?;
+    let engine = state
+        .license_engine
+        .as_ref()
+        .ok_or("License engine not initialized")?;
     Ok(engine.check(&state.db_pool).await)
 }
 
@@ -347,7 +361,10 @@ pub async fn licensing_check(state: State<'_, AppState>) -> Result<types::Licens
 pub async fn licensing_get_status(
     state: State<'_, AppState>,
 ) -> Result<Option<types::LicenseCheckResult>> {
-    let engine = state.license_engine.as_ref().ok_or("License engine not initialized")?;
+    let engine = state
+        .license_engine
+        .as_ref()
+        .ok_or("License engine not initialized")?;
     Ok(engine.cached().await)
 }
 
@@ -357,23 +374,30 @@ pub async fn licensing_activate_full(
     state: State<'_, AppState>,
     key: String,
 ) -> Result<types::LicenseCheckResult> {
-    let engine = state.license_engine.as_ref().ok_or("License engine not initialized")?;
+    let engine = state
+        .license_engine
+        .as_ref()
+        .ok_or("License engine not initialized")?;
     engine.activate(&key, &state.db_pool).await
 }
 
 /// Deactivate the current license via the engine.
 #[tauri::command]
-pub async fn licensing_deactivate(
-    state: State<'_, AppState>,
-) -> Result<types::LicenseCheckResult> {
-    let engine = state.license_engine.as_ref().ok_or("License engine not initialized")?;
+pub async fn licensing_deactivate(state: State<'_, AppState>) -> Result<types::LicenseCheckResult> {
+    let engine = state
+        .license_engine
+        .as_ref()
+        .ok_or("License engine not initialized")?;
     engine.deactivate(&state.db_pool).await
 }
 
 /// Check if the current license allows saving/exporting (write gate).
 #[tauri::command]
 pub async fn licensing_can_save(state: State<'_, AppState>) -> Result<bool> {
-    let engine = state.license_engine.as_ref().ok_or("License engine not initialized")?;
+    let engine = state
+        .license_engine
+        .as_ref()
+        .ok_or("License engine not initialized")?;
     Ok(engine.can_write().await)
 }
 
@@ -383,7 +407,10 @@ pub async fn licensing_can_save(state: State<'_, AppState>) -> Result<bool> {
 pub async fn licensing_register_experiment(
     state: State<'_, AppState>,
 ) -> Result<types::LicenseCheckResult> {
-    let engine = state.license_engine.as_ref().ok_or("License engine not initialized")?;
+    let engine = state
+        .license_engine
+        .as_ref()
+        .ok_or("License engine not initialized")?;
     engine.register_experiment(&state.db_pool).await
 }
 
@@ -408,15 +435,14 @@ pub struct UpdateChannelInfo {
 /// `label` is the channel prefix that gets mixed into the MAC message so
 /// alpha / beta tokens cannot be reused interchangeably on the server.
 fn make_channel_token(label: &str, key: &str) -> String {
-    use hmac::Mac;
     use self::types::HmacSha256;
+    use hmac::Mac;
     // 5-minute rolling window — limits replay exposure while tolerating clock skew.
     let window = chrono::Utc::now().timestamp() / 300;
     let message = format!("{}:{}", label, window);
     // HMAC-SHA256 accepts any key length by design — new_from_slice is infallible here.
     #[allow(clippy::expect_used)]
-    let mut mac = HmacSha256::new_from_slice(key.as_bytes())
-        .expect("HMAC accepts any key size");
+    let mut mac = HmacSha256::new_from_slice(key.as_bytes()).expect("HMAC accepts any key size");
     mac.update(message.as_bytes());
     hex::encode(mac.finalize().into_bytes())
 }
@@ -442,7 +468,8 @@ fn make_alpha_channel_token() -> String {
 /// the server issues exactly one license_type string per licence key.
 #[tauri::command]
 pub async fn get_update_channel(state: State<'_, AppState>) -> Result<UpdateChannelInfo> {
-    let license_type: Option<self::types::LicenseType> = if let Some(engine) = &state.license_engine {
+    let license_type: Option<self::types::LicenseType> = if let Some(engine) = &state.license_engine
+    {
         if let Some(cached) = engine.cached().await {
             cached
                 .license_type
@@ -487,7 +514,6 @@ pub fn is_e2e_mode() -> bool {
 }
 
 // ── Security regression tests (P2-3 groups G, D) ──────────────────────
-
 
 #[cfg(test)]
 #[path = "licensing_tests.rs"]

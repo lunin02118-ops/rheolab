@@ -1,11 +1,12 @@
-﻿use crate::error::{AppError, Result};
+use crate::commands::licensing::require_write_license;
+use crate::error::{AppError, Result};
 use crate::state::AppState;
 use rusqlite::params;
 use serde_json::{json, Value};
 use tauri::State;
 
 use super::helpers::{new_id, now_iso};
-use super::types::{SyncStatusResponse, SyncOutboxItem, SyncInboxItem};
+use super::types::{SyncInboxItem, SyncOutboxItem, SyncStatusResponse};
 
 pub(super) const OUTBOX_STATUSES: &[&str] = &["pending", "failed", "synced"];
 pub(super) const INBOX_STATUSES: &[&str] = &["pending", "processed", "failed"];
@@ -124,6 +125,8 @@ pub async fn sync_outbox_mark_synced(
     state: State<'_, AppState>,
     ids: Vec<String>,
 ) -> Result<Value> {
+    require_write_license(&state).await?;
+
     if ids.is_empty() {
         return Err(AppError::BadRequest("ids must not be empty".into()));
     }
@@ -133,11 +136,10 @@ pub async fn sync_outbox_mark_synced(
 
     let tx = conn.unchecked_transaction()?;
     for id in &ids {
-        let updated = tx
-            .execute(
-                "UPDATE SyncOutbox SET status = 'synced', processedAt = ?1 WHERE id = ?2",
-                params![now, id],
-            )?;
+        let updated = tx.execute(
+            "UPDATE SyncOutbox SET status = 'synced', processedAt = ?1 WHERE id = ?2",
+            params![now, id],
+        )?;
         marked += updated as i64;
     }
     tx.commit()?;
@@ -147,10 +149,9 @@ pub async fn sync_outbox_mark_synced(
 
 /// Retry failed outbox entries (reset status to pending).
 #[tauri::command]
-pub async fn sync_outbox_retry(
-    state: State<'_, AppState>,
-    ids: Vec<String>,
-) -> Result<Value> {
+pub async fn sync_outbox_retry(state: State<'_, AppState>, ids: Vec<String>) -> Result<Value> {
+    require_write_license(&state).await?;
+
     if ids.is_empty() {
         return Err(AppError::BadRequest("ids must not be empty".into()));
     }
@@ -173,10 +174,9 @@ pub async fn sync_outbox_retry(
 
 /// Receive sync events into the inbox (typically from a cloud download).
 #[tauri::command]
-pub async fn sync_inbox_receive(
-    state: State<'_, AppState>,
-    events: Vec<Value>,
-) -> Result<Value> {
+pub async fn sync_inbox_receive(state: State<'_, AppState>, events: Vec<Value>) -> Result<Value> {
+    require_write_license(&state).await?;
+
     let conn = state.pool_conn()?;
     let mut received = 0i64;
     let mut duplicates = 0i64;
@@ -208,15 +208,9 @@ pub async fn sync_inbox_receive(
         }
 
         let id = new_id();
-        let source_lab_id = event
-            .get("sourceLabId")
-            .and_then(|v| v.as_str());
-        let source_system = event
-            .get("sourceSystem")
-            .and_then(|v| v.as_str());
-        let source_app_version = event
-            .get("sourceAppVersion")
-            .and_then(|v| v.as_str());
+        let source_lab_id = event.get("sourceLabId").and_then(|v| v.as_str());
+        let source_system = event.get("sourceSystem").and_then(|v| v.as_str());
+        let source_app_version = event.get("sourceAppVersion").and_then(|v| v.as_str());
         let payload_json = serde_json::to_string(event).unwrap_or_default();
 
         tx.execute(

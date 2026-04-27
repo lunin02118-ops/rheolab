@@ -1,0 +1,79 @@
+[2026-04-24T02:21:46.583Z] $ npm --prefix website ci && npm --prefix website run build
+
+added 295 packages, and audited 296 packages in 7s
+
+158 packages are looking for funding
+  run `npm fund` for details
+
+10 vulnerabilities (1 low, 2 moderate, 7 high)
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+
+> website@0.0.1 build
+> astro build
+
+[2m07:21:55[22m [34m[content][39m Syncing content
+[2m07:21:55[22m [34m[content][39m Synced content
+[2m07:21:55[22m [34m[types][39m Generated [2m255ms[22m
+[2m07:21:55[22m [34m[build][39m output: [34m"static"[39m
+[2m07:21:55[22m [34m[build][39m mode: [34m"static"[39m
+[2m07:21:55[22m [34m[build][39m directory: [34mD:\Development\Rheolab\website\dist\[39m
+[2m07:21:55[22m [34m[build][39m Collecting build info...
+[2m07:21:55[22m [34m[build][39m [32m✓ Completed in 279ms.[39m
+[2m07:21:55[22m [34m[build][39m Building static entrypoints...
+[2m07:21:56[22m [34m[vite][39m [32m✓ built in 1.25s[39m
+[2m07:21:56[22m [34m[build][39m [32m✓ Completed in 1.28s.[39m
+
+[42m[30m building client (vite) [39m[49m
+[2m07:21:56[22m [34m[vite][39m transforming...
+[2m07:21:56[22m [34m[vite][39m [32m✓[39m 2 modules transformed.
+[2m07:21:56[22m [34m[vite][39m rendering chunks...
+[2m07:21:56[22m [34m[vite][39m [32m✓ built in 22ms[39m
+
+[42m[30m generating static routes [39m[49m
+[2m07:21:56[22m [32m▶[39m src/pages/about.astro
+[2m07:21:56[22m   [34m└─[39m [2m/about/index.html[22m [2m(+13ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/comparison.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/comparison/index.html[22m [2m(+4ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/data-management.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/data-management/index.html[22m [2m(+3ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/faq.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/faq/index.html[22m [2m(+4ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/interface.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/interface/index.html[22m [2m(+3ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/library.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/library/index.html[22m [2m(+3ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/models.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/models/index.html[22m [2m(+3ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/parsing.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/parsing/index.html[22m [2m(+3ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/quick-start.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/quick-start/index.html[22m [2m(+3ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/reports.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/reports/index.html[22m [2m(+4ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/troubleshooting.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/troubleshooting/index.html[22m [2m(+3ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/docs/index.md
+[2m07:21:56[22m   [34m└─[39m [2m/docs/index.html[22m [2m(+2ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/download/latest.astro
+[2m07:21:56[22m   [34m└─[39m [2m/download/latest/index.html[22m [2m(+2ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/faq.astro
+[2m07:21:56[22m   [34m└─[39m [2m/faq/index.html[22m [2m(+3ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/privacy.astro
+[2m07:21:56[22m   [34m└─[39m [2m/privacy/index.html[22m [2m(+2ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/team.astro
+[2m07:21:56[22m   [34m└─[39m [2m/team/index.html[22m [2m(+2ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/terms.astro
+[2m07:21:56[22m   [34m└─[39m [2m/terms/index.html[22m [2m(+2ms)[22m 
+[2m07:21:56[22m [32m▶[39m src/pages/index.astro
+[2m07:21:56[22m   [34m└─[39m [2m/index.html[22m [2m(+7ms)[22m 
+[2m07:21:56[22m [32m✓ Completed in 152ms.
+[39m
+[2m07:21:56[22m [34m[@astrojs/sitemap][39m `sitemap-index.xml` created at `dist`
+[2m07:21:56[22m [34m[build][39m 18 page(s) built in [1m1.78s[22m
+[2m07:21:56[22m [34m[build][39m [1mComplete![22m
+
+[2026-04-24T02:21:57.018Z] exit=0 signal=none timedOut=false

@@ -55,7 +55,10 @@ fn cache_does_not_store_machine_id() {
         let envelope: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert_eq!(envelope["v"], 3u8, "Cache must use encrypted format v3");
         assert!(envelope["n"].is_string(), "Cache must have a nonce field");
-        assert!(envelope["c"].is_string(), "Cache must have a ciphertext field");
+        assert!(
+            envelope["c"].is_string(),
+            "Cache must have a ciphertext field"
+        );
         // Verify the decrypted cache has the expected structure
         let decrypted = read_cache(&tmp).expect("Encrypted cache must be readable by read_cache");
         assert_eq!(decrypted.version, 2);

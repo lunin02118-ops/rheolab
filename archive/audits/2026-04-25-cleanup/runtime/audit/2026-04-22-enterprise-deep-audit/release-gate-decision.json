@@ -1,0 +1,65 @@
+{
+  "decision": "NO-GO",
+  "policy": {
+    "blocking_severities": [
+      "critical",
+      "high"
+    ],
+    "blocker_on_failed_blocking_checks": true
+  },
+  "generated_at": "2026-04-22T20:14:31.474Z",
+  "mode": "quick",
+  "baseline_ref": null,
+  "stats": {
+    "total_checks_executed": 13,
+    "total_checks_passed": 10,
+    "total_checks_failed": 3,
+    "total_blocking_checks": 12,
+    "failed_blocking_checks": 3,
+    "severity_blockers": 3,
+    "open_medium_findings": 0
+  },
+  "failed_blocking_checks": [
+    {
+      "id": "03",
+      "name": "PHP version",
+      "command": "php -v",
+      "log_file": "runtime/audit/2026-04-22-enterprise-deep-audit/logs/03_php_v.log",
+      "exit_code": 1
+    },
+    {
+      "id": "05",
+      "name": "ESLint gate",
+      "command": "npx eslint .",
+      "log_file": "runtime/audit/2026-04-22-enterprise-deep-audit/logs/05_npx_eslint.log",
+      "exit_code": 1
+    },
+    {
+      "id": "18",
+      "name": "License-server PHP lint",
+      "command": "node scripts/audit/php-lint-license-server.js",
+      "log_file": "runtime/audit/2026-04-22-enterprise-deep-audit/logs/18_node_scripts_audit_php_lint_license_server_js.log",
+      "exit_code": 127
+    }
+  ],
+  "severity_blockers": [
+    {
+      "id": "ENV-005",
+      "title": "PHP runtime is unavailable for license-server checks",
+      "severity": "high",
+      "status": "open"
+    },
+    {
+      "id": "LIC-PHP-LINT",
+      "title": "License-server PHP lint failed",
+      "severity": "high",
+      "status": "open"
+    },
+    {
+      "id": "QG-ESLINT",
+      "title": "ESLint gate is red",
+      "severity": "high",
+      "status": "open"
+    }
+  ]
+}

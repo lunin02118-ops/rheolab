@@ -108,84 +108,83 @@ pub(super) fn query_with_dynamic_threshold(
     //
     // Shape: (list_item_shell_without_touch_points, dataBlob).
     let candidates: Vec<(ExperimentListItem, Option<Vec<u8>>)> = {
-        let params_ref: Vec<&dyn rusqlite::ToSql> =
-            params.iter().map(|p| p.as_ref()).collect();
+        let params_ref: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
         let mut stmt = conn.prepare(&data_sql)?;
         // Bind the result to a local so `stmt` drops in the right order
         // (otherwise the query_map iterator's borrow of stmt outlives it
         // at the end of the block and borrowck rejects the expression).
         let rows: Vec<(ExperimentListItem, Option<Vec<u8>>)> = stmt
             .query_map(params_ref.as_slice(), |row| {
-            let experiment_id: String = row.get(0)?;
-            let user_id: Option<String> = row.get(23)?;
-            let user_name: Option<String> = row.get(25)?;
-            let user_email: Option<String> = row.get(26)?;
-            let lab_id: Option<String> = row.get(27)?;
-            let lab_name: Option<String> = row.get(28)?;
+                let experiment_id: String = row.get(0)?;
+                let user_id: Option<String> = row.get(23)?;
+                let user_name: Option<String> = row.get(25)?;
+                let user_email: Option<String> = row.get(26)?;
+                let lab_id: Option<String> = row.get(27)?;
+                let lab_name: Option<String> = row.get(28)?;
 
-            let user = match (user_id, user_name) {
-                (Some(id), Some(name)) => Some(StoredExperimentUser {
-                    id,
-                    name,
-                    email: user_email,
-                }),
-                _ => None,
-            };
-            let laboratory = match (lab_id, lab_name) {
-                (Some(id), Some(name)) => Some(StoredExperimentLaboratory { id, name }),
-                _ => None,
-            };
+                let user = match (user_id, user_name) {
+                    (Some(id), Some(name)) => Some(StoredExperimentUser {
+                        id,
+                        name,
+                        email: user_email,
+                    }),
+                    _ => None,
+                };
+                let laboratory = match (lab_id, lab_name) {
+                    (Some(id), Some(name)) => Some(StoredExperimentLaboratory { id, name }),
+                    _ => None,
+                };
 
-            let water_params_str: Option<String> = row.get(14)?;
-            let water_params =
-                water_params_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
+                let water_params_str: Option<String> = row.get(14)?;
+                let water_params =
+                    water_params_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
 
-            let blob: Option<Vec<u8>> = row.get(33)?;
+                let blob: Option<Vec<u8>> = row.get(33)?;
 
-            Ok((
-                ExperimentListItem {
-                    id: experiment_id,
-                    created_at: row.get(1)?,
-                    updated_at: row.get(2)?,
-                    name: row.get(3)?,
-                    field_name: row.get(4)?,
-                    operator_name: row.get(5)?,
-                    well_number: row.get(6)?,
-                    test_id: row.get(7)?,
-                    original_filename: row.get(8)?,
-                    test_date: row.get(9)?,
-                    instrument_type: row.get(10)?,
-                    geometry: row.get(11)?,
-                    geometry_source: row.get(12)?,
-                    water_source: row.get(13)?,
-                    water_params,
-                    fluid_type: row.get(15)?,
-                    test_group: row.get(16)?,
-                    test_sub_group: row.get(17)?,
-                    max_viscosity: row.get(18)?,
-                    duration_seconds: row.get(19)?,
-                    avg_temperature_c: row.get(20)?,
-                    max_temperature_c: row.get(21)?,
-                    avg_viscosity: row.get(22)?,
-                    test_category: row.get(29)?,
-                    test_type: row.get(30)?,
-                    dominant_pattern: row.get(31)?,
-                    // Touch-point fields are overwritten below after the
-                    // on-the-fly algorithm runs — any value here would be
-                    // for the wrong threshold anyway.
-                    touch_has_crossing: None,
-                    touch_crossing_time_min: None,
-                    touch_crossing_viscosity_cp: None,
-                    touch_viscosity_at_target_cp: None,
-                    touch_precompute_version: row.get(32)?,
-                    reagents: vec![],
-                    user,
-                    laboratory,
-                },
-                blob,
-            ))
-        })?
-        .collect::<rusqlite::Result<Vec<_>>>()?;
+                Ok((
+                    ExperimentListItem {
+                        id: experiment_id,
+                        created_at: row.get(1)?,
+                        updated_at: row.get(2)?,
+                        name: row.get(3)?,
+                        field_name: row.get(4)?,
+                        operator_name: row.get(5)?,
+                        well_number: row.get(6)?,
+                        test_id: row.get(7)?,
+                        original_filename: row.get(8)?,
+                        test_date: row.get(9)?,
+                        instrument_type: row.get(10)?,
+                        geometry: row.get(11)?,
+                        geometry_source: row.get(12)?,
+                        water_source: row.get(13)?,
+                        water_params,
+                        fluid_type: row.get(15)?,
+                        test_group: row.get(16)?,
+                        test_sub_group: row.get(17)?,
+                        max_viscosity: row.get(18)?,
+                        duration_seconds: row.get(19)?,
+                        avg_temperature_c: row.get(20)?,
+                        max_temperature_c: row.get(21)?,
+                        avg_viscosity: row.get(22)?,
+                        test_category: row.get(29)?,
+                        test_type: row.get(30)?,
+                        dominant_pattern: row.get(31)?,
+                        // Touch-point fields are overwritten below after the
+                        // on-the-fly algorithm runs — any value here would be
+                        // for the wrong threshold anyway.
+                        touch_has_crossing: None,
+                        touch_crossing_time_min: None,
+                        touch_crossing_viscosity_cp: None,
+                        touch_viscosity_at_target_cp: None,
+                        touch_precompute_version: row.get(32)?,
+                        reagents: vec![],
+                        user,
+                        laboratory,
+                    },
+                    blob,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
         rows
     };
 
@@ -416,6 +415,10 @@ fn sort_items(items: &mut [ExperimentListItem], query: &ExperimentsListQuery) {
             }
             _ => b.test_date.cmp(&a.test_date), // default: DESC by testDate
         };
-        if ascending { ord } else { ord.reverse() }
+        if ascending {
+            ord
+        } else {
+            ord.reverse()
+        }
     });
 }

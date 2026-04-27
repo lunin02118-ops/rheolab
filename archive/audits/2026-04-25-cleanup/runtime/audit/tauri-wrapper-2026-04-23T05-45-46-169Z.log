@@ -1,0 +1,17 @@
+[2026-04-23T05:45:46.170Z] wrapper start
+[2026-04-23T05:45:46.170Z] cwd=D:\Development\Rheolab
+[2026-04-23T05:45:46.170Z] command=npm.cmd exec tauri -- build --config D:\Development\Rheolab\runtime\release\tmp\tauri.release.1776923146128.json
+[2026-04-23T05:45:46.171Z] RHEOLAB_SKIP_VERSION_BUMP=1
+[2026-04-23T05:45:46.171Z] INTEGRITY_SECRET_KEY present=true dev_sentinel=false
+[2026-04-23T05:45:46.171Z] TAURI_SIGNING_PRIVATE_KEY present=true len=348
+[2026-04-23T05:45:46.171Z] TAURI_SIGNING_PRIVATE_KEY_PASSWORD present=true
+[2026-04-23T05:45:46.173Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-23T05:45:46.173Z] using shell fallback: npm.cmd "exec" "tauri" "--" "build" "--config" "D:\Development\Rheolab\runtime\release\tmp\tauri.release.1776923146128.json"
+[2026-04-23T05:45:47.179Z] [stderr]         Info Looking up installed tauri packages to check mismatched versions...
+[2026-04-23T05:45:48.221Z] [stderr]      Running beforeBuildCommand `npm run build`
+[2026-04-23T05:45:48.506Z] [stdout] 
+[2026-04-23T05:45:48.506Z] [stdout] > rheolab-enterprise@0.2.0-beta.32 build
+[2026-04-23T05:45:48.506Z] [stdout] > vite build
+[2026-04-23T05:45:48.506Z] [stdout] 
+[2026-04-23T05:45:48.883Z] [stdout] [36mvite v6.4.2 [32mbuilding for production...[36m[39m
+[2026-04-23T05:45:48.932Z] [stdout] transforming...

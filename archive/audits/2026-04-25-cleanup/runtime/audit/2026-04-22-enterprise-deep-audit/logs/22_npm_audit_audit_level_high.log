@@ -1,0 +1,4 @@
+[2026-04-22T20:14:29.821Z] $ npm audit --audit-level=high
+found 0 vulnerabilities
+
+[2026-04-22T20:14:31.461Z] exit=0 signal=none timedOut=false

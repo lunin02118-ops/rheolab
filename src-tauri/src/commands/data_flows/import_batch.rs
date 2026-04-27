@@ -1,43 +1,39 @@
-﻿use crate::error::{AppError, Result};
+use crate::error::{AppError, Result};
 use crate::state::AppState;
 use rusqlite::{params, OptionalExtension};
 use serde_json::{json, Value};
 use tauri::State;
 
-use super::types::{ImportBatchItem, ExperimentPayloadItem};
+use super::types::{ExperimentPayloadItem, ImportBatchItem};
 
 #[tauri::command]
-pub async fn import_batches_list(
-    state: State<'_, AppState>,
-) -> Result<Vec<ImportBatchItem>> {
+pub async fn import_batches_list(state: State<'_, AppState>) -> Result<Vec<ImportBatchItem>> {
     let conn = state.pool_conn()?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, sourceLabId, sourceSystem, sourceAppVersion, \
+    let mut stmt = conn.prepare(
+        "SELECT id, sourceLabId, sourceSystem, sourceAppVersion, \
                     importedByUserId, fileName, checksum, notes, \
                     experimentsImported, duplicatesDetected, status, \
                     createdAt, updatedAt \
              FROM ImportBatch ORDER BY createdAt DESC",
-        )?;
+    )?;
 
-    let rows = stmt
-        .query_map([], |row| {
-            Ok(ImportBatchItem {
-                id: row.get(0)?,
-                source_lab_id: row.get(1)?,
-                source_system: row.get(2)?,
-                source_app_version: row.get(3)?,
-                imported_by_user_id: row.get(4)?,
-                file_name: row.get(5)?,
-                checksum: row.get(6)?,
-                notes: row.get(7)?,
-                experiments_imported: row.get(8)?,
-                duplicates_detected: row.get(9)?,
-                status: row.get(10)?,
-                created_at: row.get(11)?,
-                updated_at: row.get(12)?,
-            })
-        })?;
+    let rows = stmt.query_map([], |row| {
+        Ok(ImportBatchItem {
+            id: row.get(0)?,
+            source_lab_id: row.get(1)?,
+            source_system: row.get(2)?,
+            source_app_version: row.get(3)?,
+            imported_by_user_id: row.get(4)?,
+            file_name: row.get(5)?,
+            checksum: row.get(6)?,
+            notes: row.get(7)?,
+            experiments_imported: row.get(8)?,
+            duplicates_detected: row.get(9)?,
+            status: row.get(10)?,
+            created_at: row.get(11)?,
+            updated_at: row.get(12)?,
+        })
+    })?;
 
     let mut items = Vec::new();
     for row in rows {
@@ -47,10 +43,7 @@ pub async fn import_batches_list(
 }
 
 #[tauri::command]
-pub async fn import_batches_get(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<Value> {
+pub async fn import_batches_get(state: State<'_, AppState>, id: String) -> Result<Value> {
     if id.is_empty() {
         return Err(AppError::BadRequest("id must not be empty".into()));
     }
@@ -89,14 +82,13 @@ pub async fn import_batches_get(
     };
 
     // Load associated payloads
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, experimentId, importBatchId, payloadVersion, \
+    let mut stmt = conn.prepare(
+        "SELECT id, experimentId, importBatchId, payloadVersion, \
                     payloadFormat, contentFingerprint, sourceLabId, \
                     isCanonical, createdAt \
              FROM ExperimentPayload WHERE importBatchId = ?1 \
              ORDER BY createdAt",
-        )?;
+    )?;
 
     let payloads = stmt
         .query_map(params![id], |row| {

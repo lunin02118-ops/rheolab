@@ -1,0 +1,89 @@
+
+> rheolab-enterprise@0.2.0-beta.53 perf:db:large
+> npx cross-env RHEOLAB_DB_SCALE=large npx playwright test --config playwright.db-scale.config.ts
+
+
+[db-scale] === DB-Scale Setup (scale=large) ===
+
+[db-scale] ╨Ш╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╨╝ ╨│╨╛╤В╨╛╨▓╤Г╤О large seed DB: D:\Development\Rheolab\outputs\seed\rheolab-fixture-seed.db
+[db-scale] тЬУ large tmp DB: D:\Development\Rheolab\outputs\seed\tmp-large-1777111787380.db (97.3 MB)
+[db-scale] RHEOLAB_E2E_DB_PATH = D:\Development\Rheolab\outputs\seed\tmp-large-1777111787380.db
+[db-scale] ╨С╨╕╨╜╨░╤А╨╜╨╕╨║ ╨░╨║╤В╤Г╨░╨╗╨╡╨╜.
+[db-scale] ╨Ч╨░╨┐╤Г╤Б╨║╨░╨╡╨╝ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╨╡ ╤Б CDP ╨╜╨░ ╨┐╨╛╤А╤В╤Г 9223...
+[db-scale] ╨Ю╨╢╨╕╨┤╨░╨╡╨╝ CDP ╨╜╨░ http://127.0.0.1:9223/json/version ...
+[tauri] [2026-04-25][10:09:48][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:09:48][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:09:48][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[tauri] [2026-04-25][10:09:49][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:09:49][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:09:49][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[db-scale] тЬУ CDP ╨│╨╛╤В╨╛╨▓ тАФ http://127.0.0.1:9223
+[db-scale] === Setup complete (scale=large) ===
+
+
+Running 1 test using 1 worker
+
+[tauri] [2026-04-25][10:09:51][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[tauri] [2026-04-25][10:09:51][reqwest::retry][TRACE] shouldn't retry!
+[E2E] Tauri IPC proxy patch result: invoke-patched
+[tauri] [2026-04-25][10:09:52][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:09:52][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:09:52][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+[E2E] License store overridden with developer license
+
+[db-scale/large] initial: heap=5.44 MB, nodes=215
+
+тФАтФА Step 1: library_open тФАтФА
+[tauri] [2026-04-25][10:09:53][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:09:53][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:09:53][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  [db-scale/large] library_open: heap=6.97 MB (+1.53 MB), nodes=3258 (+3043), cpu=+248.5 ms, task=+141.7 ms, wall=1555 ms
+
+тФАтФА Step 2: library_scroll тФАтФА
+  [db-scale/large] library_scroll: heap=7.04 MB (+0.07 MB), nodes=3260 (+2), cpu=+58.6 ms, task=+23.3 ms, wall=1318 ms
+
+тФАтФА Step 3: search_by_name тФАтФА
+  [db-scale/large] search_by_name: heap=7.18 MB (+0.14 MB), nodes=3279 (+19), cpu=+199.2 ms, task=+111.3 ms, wall=1824 ms
+
+тФАтФА Step 4: filter_fluid_type тФАтФА
+  [db-scale/large] filter_fluid_type: heap=7.27 MB (+0.09 MB), nodes=3266 (-13), cpu=+176.4 ms, task=+103.9 ms, wall=1034 ms
+
+тФАтФА Step 5: filter_date_range тФАтФА
+  [db-scale/large] filter_date_range: heap=7.27 MB (0 MB), nodes=3266 (0), cpu=+65.1 ms, task=+23.9 ms, wall=495 ms
+
+тФАтФА Step 6: filter_reset тФАтФА
+  [db-scale] ClearFiltersButton disabled тАФ no active filters to reset, skipping
+  [db-scale/large] filter_reset: heap=7.28 MB (+0.01 MB), nodes=3269 (+3), cpu=+43.3 ms, task=+16.6 ms, wall=1097 ms
+
+тФАтФА Step 7: open_experiment_card тФАтФА
+  [db-scale/large] open_experiment_card: heap=7.29 MB (+0.01 MB), nodes=3269 (0), cpu=+83.1 ms, task=+40.4 ms, wall=1319 ms
+
+тФАтФА Step 8: navigate_dashboard тФАтФА
+[tauri] [2026-04-25][10:10:02][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:10:02][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:10:02][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  [db-scale/large] navigate_dashboard: heap=7.04 MB (-0.25 MB), nodes=3341 (+72), cpu=+110.5 ms, task=+56.5 ms, wall=1357 ms
+
+тФАтФА Step 9: dashboard_back тФАтФА
+[tauri] [2026-04-25][10:10:03][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico.html
+[tauri] [2026-04-25][10:10:03][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to favicon.ico/index.html
+[2026-04-25][10:10:03][tauri::manager][DEBUG] Asset `favicon.ico` not found; fallback to index.html
+  [db-scale/large] dashboard_back: heap=7.74 MB (+0.7 MB), nodes=6371 (+3030), cpu=+178.7 ms, task=+90.8 ms, wall=1123 ms
+
+[db-scale/large] тФАтФАтФА Summary тФАтФАтФА
+  Scale:         large (~7056 experiments)
+  Peak heap:     7.74 MB
+  Peak nodes:    6371
+  Total wall:    11.3 s
+  Output:        D:\Development\Rheolab\outputs\e2e\perf\db-scale-1777111793637-large-tauri.json
+  тЬУ  1 tests\e2e\db-scale-perf.tauri.spec.ts:44:3 тА║ [DBScale/LARGE] Library performance with large DB тА║ db_scale_library_perf_large (12.9s)
+[db-scale] ╨Ч╨░╨▓╨╡╤А╤И╨░╨╡╨╝ Tauri-╨┐╤А╨╛╤Ж╨╡╤Б╤Б (PID=9512)...
+[db-scale] тЬУ Tauri ╨┐╤А╨╛╤Ж╨╡╤Б╤Б (PID=9512) ╨╖╨░╨▓╨╡╤А╤И╤С╨╜.
+[db-scale] ╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╤Г╨┤╨░╨╗╨╕╤В╤М ╨▓╤А╨╡╨╝╨╡╨╜╨╜╤Г╤О ╨С╨Ф: EBUSY: resource busy or locked, unlink 'D:\Development\Rheolab\outputs\seed\tmp-large-1777111787380.db'
+
+  1 passed (17.7s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report playwright-report-db-scale-large[39m
+[36m[39m

@@ -225,6 +225,47 @@ fn temp_dir_guard_removes_temp_directory_on_drop() {
     assert!(!dir.exists());
 }
 
+#[test]
+fn restore_integrity_accepts_valid_rheolab_db() {
+    let dir = std::env::temp_dir().join(format!(
+        "rheolab_restore_integrity_valid_{}_{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("backup.db");
+    {
+        let conn = create_db(&path, MAIN_SCHEMA);
+        drop(conn);
+    }
+
+    assert!(validate_restore_backup_integrity(&path).is_ok());
+    cleanup(&dir);
+}
+
+#[test]
+fn restore_integrity_rejects_non_database_file() {
+    let dir = std::env::temp_dir().join(format!(
+        "rheolab_restore_integrity_bad_{}_{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("backup.db");
+    fs::write(&path, b"not sqlite").unwrap();
+
+    assert!(validate_restore_backup_integrity(&path).is_err());
+    cleanup(&dir);
+}
+
 // ─── get_common_columns ──────────────────────────────────────────────────────
 
 #[test]

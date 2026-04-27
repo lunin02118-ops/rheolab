@@ -35,11 +35,13 @@ const outDir = path.join(repoRoot, 'runtime', 'audit', runId);
 const logsDir = path.join(outDir, 'logs');
 const summaryPath = path.join(outDir, 'frontend-ipc-audit-summary.json');
 const staticPath = path.join(outDir, 'static-scan-findings.json');
-const reportDate = new Date().toISOString().slice(0, 10);
+const reportDate = localDateStamp(new Date());
 const reportPath = path.join(repoRoot, 'docs', 'performance', `FRONTEND-IPC-DEEP-AUDIT-${reportDate}.md`);
 const latestReportPath = path.join(repoRoot, 'docs', 'performance', 'FRONTEND-IPC-DEEP-AUDIT-LATEST.md');
 const baselinesPath = path.join(repoRoot, 'docs', 'performance', 'BASELINES.md');
 const outputPerfDir = path.join(repoRoot, 'outputs', 'e2e', 'perf');
+const ARTIFACT_MTIME_GRACE_BEFORE_MS = 5_000;
+const ARTIFACT_MTIME_GRACE_AFTER_MS = 30_000;
 
 const runConfig = quick
   ? { warmup: 1, workflow: 1, soak: 1, benchmark: 1 }
@@ -68,6 +70,13 @@ function ensureDir(dir) {
 
 function toRel(absPath) {
   return path.relative(repoRoot, absPath).replace(/\\/g, '/');
+}
+
+function localDateStamp(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function slugify(value) {
@@ -204,18 +213,22 @@ function runStaticScan() {
     }
 
     if (/setTimeout\(/.test(content) && !/clearTimeout\(/.test(content) && /src\/(app|components|hooks|contexts)\//.test(rel)) {
-      // Skip benign patterns that cannot cause memory leaks:
-      // 1. Sleep helpers: await new Promise(resolve => setTimeout(resolve, N))
-      const isSleepHelper = /await\s+new\s+Promise\s*\(\s*resolve\s*=>\s*setTimeout\s*\(resolve/.test(content);
-      // 2. Intentional reload/navigate timers — page destruction clears the timer automatically.
-      const isReloadTimer = content.split('\n').some((ln, i, lines) => {
-        if (!/setTimeout\(/.test(ln)) return false;
-        const ctx = lines.slice(i, Math.min(i + 5, lines.length)).join('\n');
-        return /window\.location\.reload|location\.reload\b|location\.href\s*=/.test(ctx);
+      const lines = content.split(/\r?\n/);
+      const timeoutLineIndexes = lines
+        .map((line, idx) => (/setTimeout\(/.test(line) ? idx : -1))
+        .filter((idx) => idx >= 0);
+      const actionableTimerIndex = timeoutLineIndexes.find((idx) => {
+        const ctx = lines.slice(Math.max(0, idx - 12), Math.min(idx + 6, lines.length)).join('\n');
+        // Skip benign patterns that cannot cause memory leaks:
+        // 1. Sleep/idle helpers: new Promise(resolve => setTimeout(resolve, N))
+        const isSleepHelper = /new\s+Promise\s*\([^)]*resolve[\s\S]*setTimeout\s*\(\s*resolve\b/.test(ctx);
+        // 2. Intentional reload/navigate timers; page teardown clears the timer.
+        const isReloadTimer = /window\.location\.reload|location\.reload\b|location\.href\s*=/.test(ctx);
+        return !isSleepHelper && !isReloadTimer;
       });
-      if (!isSleepHelper && !isReloadTimer) {
+
+      if (actionableTimerIndex !== undefined) {
         stats.timerWithoutClear += 1;
-        const { line, snippet } = findLine(content, /setTimeout\(/);
         findings.push({
           id: `P1-TIMER-${findings.length + 1}`,
           bucket: 'P1',
@@ -226,8 +239,8 @@ function runStaticScan() {
           impact: 'Risk of stale updates after unmount and unnecessary queued work.',
           verification: `rg -n "setTimeout\\(" ${rel}`,
           file: rel,
-          line,
-          snippet,
+          line: actionableTimerIndex + 1,
+          snippet: lines[actionableTimerIndex].trim(),
         });
       }
     }
@@ -313,6 +326,7 @@ function runCommand(id, command, extraEnv = {}) {
     maxBuffer: 10 * 1024 * 1024,
   });
   const durationMs = Date.now() - startedAt;
+  const finishedAt = startedAt + durationMs;
 
   const stdout = result.stdout || '';
   const stderr = result.stderr || '';
@@ -330,6 +344,10 @@ function runCommand(id, command, extraEnv = {}) {
     command,
     exitCode: result.status ?? 1,
     durationMs,
+    startedAt: new Date(startedAt).toISOString(),
+    finishedAt: new Date(finishedAt).toISOString(),
+    startedAtMs: startedAt,
+    finishedAtMs: finishedAt,
     logFile: toRel(logPath),
     ok: (result.status ?? 1) === 0,
   };
@@ -348,6 +366,79 @@ function listPerfFiles(regex, sinceMs = null, beforeMs = null) {
     .filter((item) => (sinceMs === null || item.mtimeMs >= sinceMs))
     .filter((item) => (beforeMs === null || item.mtimeMs < beforeMs))
     .sort((a, b) => a.mtimeMs - b.mtimeMs);
+}
+
+function matchesRegex(regex, value) {
+  regex.lastIndex = 0;
+  return regex.test(value);
+}
+
+function addPerfFile(out, item, source) {
+  const existing = out.get(item.name);
+  if (existing) {
+    existing.sources = Array.from(new Set([...(existing.sources || []), source]));
+    return;
+  }
+  out.set(item.name, { ...item, sources: [source] });
+}
+
+function readCommandLog(run) {
+  const relLog = String(run.logFile || '').replace(/\//g, path.sep);
+  const absLog = path.isAbsolute(relLog) ? relLog : path.join(repoRoot, relLog);
+  try {
+    return fs.readFileSync(absLog, 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+function extractPerfNamesFromLog(content, regex) {
+  const names = new Set();
+  regex.lastIndex = 0;
+  let match = regex.exec(content);
+  while (match) {
+    const raw = String(match[1] || match[0] || '').replace(/\\/g, '/').replace(/[),.;\]]+$/g, '');
+    names.add(path.posix.basename(raw));
+    match = regex.exec(content);
+  }
+  return [...names];
+}
+
+function perfInfoFromName(name, expectedRegex) {
+  const cleanName = path.posix.basename(String(name).replace(/\\/g, '/').replace(/[),.;\]]+$/g, ''));
+  if (!matchesRegex(expectedRegex, cleanName)) return null;
+  const abs = path.join(outputPerfDir, cleanName);
+  if (!fs.existsSync(abs)) return null;
+  const stat = fs.statSync(abs);
+  return { name: cleanName, abs, mtimeMs: stat.mtimeMs };
+}
+
+function collectPerfFilesForRuns(runs, expectedRegex, logRegex) {
+  if (skipDynamic || runs.length === 0) {
+    return listPerfFiles(expectedRegex, auditStartMs);
+  }
+
+  const out = new Map();
+  for (const run of runs) {
+    const since = Number.isFinite(run.startedAtMs)
+      ? Math.max(0, run.startedAtMs - ARTIFACT_MTIME_GRACE_BEFORE_MS)
+      : auditStartMs;
+    const before = Number.isFinite(run.finishedAtMs)
+      ? run.finishedAtMs + ARTIFACT_MTIME_GRACE_AFTER_MS
+      : null;
+
+    for (const item of listPerfFiles(expectedRegex, since, before)) {
+      addPerfFile(out, item, `${run.id}:mtime-window`);
+    }
+
+    const logContent = readCommandLog(run);
+    for (const name of extractPerfNamesFromLog(logContent, logRegex)) {
+      const item = perfInfoFromName(name, expectedRegex);
+      if (item) addPerfFile(out, item, `${run.id}:log`);
+    }
+  }
+
+  return [...out.values()].sort((a, b) => a.mtimeMs - b.mtimeMs);
 }
 
 function parseWorkflowFiles(files) {
@@ -444,10 +535,20 @@ function selectMeasuredWorkflowRows(rows) {
 function selectMeasuredNativeRows(rows, measuredWorkflowCount) {
   if (skipDynamic) return rows;
   if (!rows.length) return rows;
-  if (measuredWorkflowCount <= 0) return [];
-  if (rows.length > measuredWorkflowCount) {
+  if (measuredWorkflowCount > 0 && rows.length > measuredWorkflowCount) {
     // Keep only rows likely corresponding to measured workflow runs.
     return rows.slice(-measuredWorkflowCount);
+  }
+  if (measuredWorkflowCount > 0) return rows;
+
+  // A workflow command can fail after Tauri launches and the native sampler
+  // writes a valid jsonl file. Preserve those artifacts for KPI transparency
+  // instead of turning a partial-but-real run into a false empty signal.
+  if (rows.length >= runConfig.workflow + 1) {
+    return rows.slice(-runConfig.workflow);
+  }
+  if (rows.length > 1) {
+    return rows.slice(1);
   }
   return rows;
 }
@@ -528,6 +629,15 @@ function evaluateGates(dynamicRuns, workflowRows, soakRows, nativeRows, kpiDelta
       id: 'GATE-004',
       severity: 'high',
       message: 'Memory aggregate step failed (fail-fast on empty/missing data expected).',
+    });
+  }
+
+  const failedCommands = dynamicRuns.filter((run) => !run.ok);
+  if (failedCommands.length > 0) {
+    violations.push({
+      id: 'GATE-CMD',
+      severity: 'high',
+      message: `${failedCommands.length} dynamic profiling command(s) failed: ${failedCommands.slice(0, 4).map((run) => run.id).join(', ')}.`,
     });
   }
 
@@ -689,6 +799,10 @@ function buildReportMarkdown(summary) {
     .map((run) => `| ${run.id} | \`${run.command}\` | ${run.ok ? 'PASS' : 'FAIL'} | ${run.exitCode} | ${fmt(run.durationMs, 0)} | \`${run.logFile}\` |`)
     .join('\n');
 
+  const artifactWarnings = summary.dynamic.artifactWarnings.length
+    ? summary.dynamic.artifactWarnings.map((warning) => `- ${warning}`).join('\n')
+    : '- none';
+
   const backlogRows = summary.backlog
     .map(
       (item) =>
@@ -697,7 +811,7 @@ function buildReportMarkdown(summary) {
     .join('\n');
 
   return [
-    `# Frontend + IPC Deep Audit (${new Date(summary.generatedAt).toISOString().slice(0, 10)})`,
+    `# Frontend + IPC Deep Audit (${localDateStamp(new Date(summary.generatedAt))})`,
     '',
     '## Scope',
     '',
@@ -743,6 +857,14 @@ function buildReportMarkdown(summary) {
     '|---|---|---|---:|---:|---|',
     dynamicRows || '| n/a | n/a | n/a | n/a | n/a | n/a |',
     '',
+    '## Artifact Collection',
+    '',
+    `- workflow artifacts (all/measured): ${summary.dynamic.workflowFilesAll.length}/${summary.dynamic.workflowFiles.length}`,
+    `- soak artifacts: ${summary.dynamic.soakFiles.length}`,
+    `- native-memory artifacts (all/measured): ${summary.dynamic.nativeFilesAll.length}/${summary.dynamic.nativeFiles.length}`,
+    `- benchmark artifacts: ${summary.dynamic.benchmarkFiles.length}`,
+    artifactWarnings,
+    '',
     '## Remediation Backlog',
     '',
     '| ID | Bucket | Severity | Owner | Effort | Expected Gain | Verification | Status |',
@@ -781,7 +903,7 @@ function appendBaselineSection(summary) {
 
   const block = [
     '',
-    `## Baseline #${nextNumber} — Frontend IPC Deep Audit (${new Date(summary.generatedAt).toISOString().slice(0, 10)})`,
+    `## Baseline #${nextNumber} — Frontend IPC Deep Audit (${localDateStamp(new Date(summary.generatedAt))})`,
     '',
     `**runId:** \`${summary.runId}\``,
     `**Workflow artifact:** \`outputs/e2e/perf/${latestWorkflow.file}\``,
@@ -815,8 +937,21 @@ function runDynamicPass() {
     return commands;
   }
 
-  const workflowFastCommand = 'npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow';
-  commands.push(runCommand('D-WARMUP', workflowFastCommand));
+  const e2eBuild = runCommand(
+    'D-PREP-E2E-BUILD',
+    'npx tauri build --debug --no-bundle --config src-tauri/tauri.e2e.conf.json',
+  );
+  commands.push(e2eBuild);
+  if (!e2eBuild.ok) {
+    return commands;
+  }
+
+  const workflowFastCommand = 'npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri';
+  const warmup = runCommand('D-WARMUP', workflowFastCommand);
+  commands.push(warmup);
+  if (!warmup.ok) {
+    return commands;
+  }
 
   for (let i = 0; i < runConfig.workflow; i += 1) {
     commands.push(runCommand(`D-WORKFLOW-${i + 1}`, workflowFastCommand));
@@ -853,12 +988,45 @@ function main() {
 
   const dynamicCommands = runDynamicPass();
 
-  const workflowFilesAll = parseWorkflowFiles(listPerfFiles(/^workflow-.*-tauri\.json$/, auditStartMs));
+  const workflowCommandRuns = dynamicCommands.filter((run) => run.id === 'D-WARMUP' || /^D-WORKFLOW-\d+$/.test(run.id));
+  const soakCommandRuns = dynamicCommands.filter((run) => /^D-SOAK-\d+$/.test(run.id));
+  const benchmarkCommandRuns = dynamicCommands.filter((run) => /^D-BENCH-\d+$/.test(run.id));
+
+  const workflowFilesAll = parseWorkflowFiles(collectPerfFilesForRuns(
+    workflowCommandRuns,
+    /^workflow-.*-tauri\.json$/,
+    /(workflow-[^\s'"`]+-tauri\.json)/g,
+  ));
   const workflowFiles = selectMeasuredWorkflowRows(workflowFilesAll);
-  const soakFiles = parseSoakFiles(listPerfFiles(/^soak-.*-\d+\.json$/, auditStartMs));
-  const nativeFilesAll = parseNativeMemoryFiles(listPerfFiles(/^native-memory-\d+\.jsonl$/, auditStartMs));
+  const soakFiles = parseSoakFiles(collectPerfFilesForRuns(
+    soakCommandRuns,
+    /^soak-.*-\d+\.json$/,
+    /(soak-[^\s'"`]+-\d+\.json)/g,
+  ));
+  const nativeFilesAll = parseNativeMemoryFiles(collectPerfFilesForRuns(
+    workflowCommandRuns,
+    /^native-memory-\d+\.jsonl$/,
+    /(native-memory-\d+\.jsonl)/g,
+  ));
   const nativeFiles = selectMeasuredNativeRows(nativeFilesAll, workflowFiles.length);
-  const benchmarkFiles = listPerfFiles(/^benchmark-.*\.json$/, auditStartMs).map((x) => x.name);
+  const benchmarkFiles = collectPerfFilesForRuns(
+    benchmarkCommandRuns,
+    /^benchmark-.*\.json$/,
+    /(benchmark-[^\s'"`]+\.json)/g,
+  ).map((x) => x.name);
+
+  const artifactWarnings = [];
+  if (!skipDynamic && workflowFiles.length === 0 && nativeFiles.length > 0) {
+    artifactWarnings.push(
+      'Native-memory artifacts were captured even though measured workflow JSON artifacts were missing; native KPI rows were retained.',
+    );
+  }
+  if (!skipDynamic && workflowFilesAll.length > workflowFiles.length) {
+    artifactWarnings.push('Warm-up workflow artifact was excluded from measured workflow KPI rows.');
+  }
+  if (!skipDynamic && nativeFilesAll.length > nativeFiles.length) {
+    artifactWarnings.push('Warm-up or extra native-memory artifact was excluded from measured native KPI rows.');
+  }
 
   const historicalWorkflow = parseWorkflowFiles(listPerfFiles(/^workflow-.*-tauri\.json$/, null, auditStartMs)).slice(-5);
   const historicalNative = parseNativeMemoryFiles(listPerfFiles(/^native-memory-\d+\.jsonl$/, null, auditStartMs)).slice(-5);
@@ -890,8 +1058,19 @@ function main() {
     static: staticScan,
     dynamic: {
       commands: dynamicCommands,
+      artifactCollection: {
+        outputDir: toRel(outputPerfDir),
+        workflowCommandCount: workflowCommandRuns.length,
+        soakCommandCount: soakCommandRuns.length,
+        benchmarkCommandCount: benchmarkCommandRuns.length,
+        mtimeGraceBeforeMs: ARTIFACT_MTIME_GRACE_BEFORE_MS,
+        mtimeGraceAfterMs: ARTIFACT_MTIME_GRACE_AFTER_MS,
+      },
+      artifactWarnings,
+      workflowFilesAll,
       workflowFiles,
       soakFiles,
+      nativeFilesAll,
       nativeFiles,
       benchmarkFiles,
     },

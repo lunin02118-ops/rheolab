@@ -1,4 +1,4 @@
-﻿use crate::error::Result;
+use crate::error::Result;
 use crate::state::AppState;
 use reqwest::StatusCode;
 use rusqlite::params;
@@ -11,9 +11,7 @@ use super::*;
 
 // ── Command implementations (called by thin #[tauri::command] wrappers in mod.rs) ──
 
-pub(crate) async fn api_keys_list_impl(
-    state: State<'_, AppState>,
-) -> Result<Vec<ApiKeyItem>> {
+pub(crate) async fn api_keys_list_impl(state: State<'_, AppState>) -> Result<Vec<ApiKeyItem>> {
     let conn = state.pool_conn()?;
 
     // Delete any rows with un-decodable keys (allow both AESGCM: and legacy OBFHEX: formats)
@@ -23,19 +21,14 @@ pub(crate) async fn api_keys_list_impl(
     )
     .ok();
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, name, key, provider, isActive, createdAt, updatedAt \
+    let mut stmt = conn.prepare(
+        "SELECT id, name, key, provider, isActive, createdAt, updatedAt \
              FROM APIKey ORDER BY createdAt DESC",
-        )?;
+    )?;
 
-    let rows = stmt
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(2)?,
-            ))
-        })?;
+    let rows = stmt.query_map([], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(2)?))
+    })?;
 
     let mut invalid_ids = Vec::new();
 
@@ -72,24 +65,22 @@ pub(crate) async fn api_keys_list_impl(
     }
 
     // Re-query after cleanup
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, name, key, provider, isActive, createdAt, updatedAt \
+    let mut stmt = conn.prepare(
+        "SELECT id, name, key, provider, isActive, createdAt, updatedAt \
              FROM APIKey ORDER BY createdAt DESC",
-        )?;
+    )?;
 
-    let rows = stmt
-        .query_map([], |row| {
-            Ok(ApiKeyItem {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                key: MASKED_KEY.to_string(),
-                provider: row.get(3)?,
-                is_active: row.get::<_, i32>(4)? != 0,
-                created_at: row.get(5)?,
-                updated_at: row.get(6)?,
-            })
-        })?;
+    let rows = stmt.query_map([], |row| {
+        Ok(ApiKeyItem {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            key: MASKED_KEY.to_string(),
+            provider: row.get(3)?,
+            is_active: row.get::<_, i32>(4)? != 0,
+            created_at: row.get(5)?,
+            updated_at: row.get(6)?,
+        })
+    })?;
 
     let mut items = Vec::new();
     for row in rows {
@@ -132,7 +123,15 @@ pub(crate) async fn api_keys_create_impl(
     conn.execute(
         "INSERT INTO APIKey (id, name, key, provider, isActive, createdAt, updatedAt, userId) \
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?7)",
-        params![id, name, encoded_key, provider, is_active, now, LOCAL_USER_ID],
+        params![
+            id,
+            name,
+            encoded_key,
+            provider,
+            is_active,
+            now,
+            LOCAL_USER_ID
+        ],
     )?;
 
     Ok(ApiKeyMutationResponse::ok(ApiKeyItem {
@@ -201,7 +200,6 @@ pub(crate) async fn api_keys_set_active_impl(
         None => Ok(ApiKeyMutationResponse::err("Key disappeared after update")),
     }
 }
-
 
 /// Resolve the decrypted plaintext API key for the active entry of a provider.
 ///
@@ -275,12 +273,11 @@ pub(crate) async fn api_keys_active_impl(
     let provider = normalize_provider(provider);
     let conn = state.pool_conn()?;
 
-    let count: i32 = conn
-        .query_row(
-            "SELECT COUNT(*) FROM APIKey WHERE provider = ?1",
-            params![provider],
-            |row| row.get(0),
-        )?;
+    let count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM APIKey WHERE provider = ?1",
+        params![provider],
+        |row| row.get(0),
+    )?;
 
     if count == 0 {
         return Ok(ActiveApiKeyResponse {
@@ -292,25 +289,23 @@ pub(crate) async fn api_keys_active_impl(
     }
 
     // Prefer the active key, fallback to newest, but only if it's decryptable
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, name, isActive, createdAt, key FROM APIKey \
+    let mut stmt = conn.prepare(
+        "SELECT id, name, isActive, createdAt, key FROM APIKey \
              WHERE provider = ?1 \
              ORDER BY isActive DESC, createdAt DESC",
-        )?;
+    )?;
 
-    let rows = stmt
-        .query_map(params![provider], |row| {
-            Ok((
-                ActiveApiKeyMeta {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    is_active: row.get::<_, i32>(2)? != 0,
-                    created_at: row.get(3)?,
-                },
-                row.get::<_, String>(4)?,
-            ))
-        })?;
+    let rows = stmt.query_map(params![provider], |row| {
+        Ok((
+            ActiveApiKeyMeta {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                is_active: row.get::<_, i32>(2)? != 0,
+                created_at: row.get(3)?,
+            },
+            row.get::<_, String>(4)?,
+        ))
+    })?;
 
     let mut active = None;
     for row in rows {
@@ -338,14 +333,14 @@ pub(crate) async fn api_keys_check_active_impl(
     let conn = state.pool_conn()?;
 
     let keys_to_check: Vec<(String, String)> = {
-        let mut stmt = conn
-            .prepare(
-                "SELECT id, key FROM APIKey WHERE provider = ?1 \
+        let mut stmt = conn.prepare(
+            "SELECT id, key FROM APIKey WHERE provider = ?1 \
                  ORDER BY isActive DESC, createdAt DESC",
-            )?;
+        )?;
 
-        let rows = stmt
-            .query_map(params![provider], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)))?;
+        let rows = stmt.query_map(params![provider], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
 
         let mut keys = Vec::new();
         for row in rows {
@@ -371,7 +366,9 @@ pub(crate) async fn api_keys_check_active_impl(
         }
     }
 
-    Ok(ApiKeyValidationResponse::err("No valid API keys configured"))
+    Ok(ApiKeyValidationResponse::err(
+        "No valid API keys configured",
+    ))
 }
 
 pub(crate) async fn api_keys_validate_impl(
@@ -389,10 +386,7 @@ pub(crate) async fn api_keys_validate_impl(
 
 // ── Provider validation ────────────────────────────────────────────────
 
-async fn validate_provider_key(
-    provider: &str,
-    key: &str,
-) -> Result<ApiKeyValidationResponse> {
+async fn validate_provider_key(provider: &str, key: &str) -> Result<ApiKeyValidationResponse> {
     if provider != "groq" {
         return Ok(ApiKeyValidationResponse::err(format!(
             "Unsupported provider: {}",

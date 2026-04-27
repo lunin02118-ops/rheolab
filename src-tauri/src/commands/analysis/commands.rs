@@ -12,7 +12,9 @@ use rheolab_core::types::RheoStep;
 
 use super::cycle_detection::{detect_cycles_native, make_cycle};
 use super::cycle_processing::process_all_cycles;
-use super::dto::{AnalysisOutput, AnalyzeFullInput, DetectStepsInput, DetectStepsOutput, RegroupByPatternInput};
+use super::dto::{
+    AnalysisOutput, AnalyzeFullInput, DetectStepsInput, DetectStepsOutput, RegroupByPatternInput,
+};
 
 /// Full analysis pipeline: detect steps → filter → detect cycles → calculate Grace.
 #[tauri::command]

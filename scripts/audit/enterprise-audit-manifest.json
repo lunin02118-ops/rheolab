@@ -9,12 +9,12 @@
     {
       "id": "linux",
       "description": "Node + Rust + desktop core gates",
-      "requiredCheckIds": ["00", "01", "02", "04", "05", "06", "11", "22"]
+      "requiredCheckIds": ["00", "01", "02", "04", "05", "06", "11", "22", "24"]
     },
     {
       "id": "windows",
       "description": "Desktop + E2E + release dry-run readiness",
-      "requiredCheckIds": ["00", "01", "02", "04", "05", "08", "11", "12", "20"]
+      "requiredCheckIds": ["00", "01", "02", "04", "05", "08", "11", "12", "20", "24", "25"]
     },
     {
       "id": "php-enabled",
@@ -28,7 +28,7 @@
     }
   ],
   "checks": [
-    { "id": "00", "name": "Git worktree check", "phase": "phase0", "scope": "environment", "blocking": true, "preflight": true, "quick": true, "environments": ["linux", "windows"] },
+    { "id": "00", "name": "Git clean worktree check", "phase": "phase0", "scope": "environment", "blocking": true, "preflight": true, "quick": true, "environments": ["linux", "windows"] },
     { "id": "01", "name": "Node/NPM versions", "phase": "phase0", "scope": "environment", "blocking": true, "preflight": true, "quick": true, "environments": ["linux", "windows"] },
     { "id": "02", "name": "Cargo version", "phase": "phase0", "scope": "environment", "blocking": true, "preflight": true, "quick": true, "environments": ["linux", "windows"] },
     { "id": "03", "name": "PHP version", "phase": "phase0", "scope": "environment", "blocking": true, "preflight": true, "quick": true, "environments": ["php-enabled"] },
@@ -46,11 +46,13 @@
     { "id": "14", "name": "Perf benchmark", "phase": "phase4", "scope": "performance", "blocking": false, "preflight": false, "quick": false, "environments": ["windows"] },
     { "id": "15", "name": "Perf workflow", "phase": "phase4", "scope": "performance", "blocking": false, "preflight": false, "quick": false, "environments": ["windows"] },
     { "id": "16", "name": "Perf memory aggregate", "phase": "phase4", "scope": "performance", "blocking": false, "preflight": false, "quick": false, "environments": ["windows"] },
+    { "id": "25", "name": "Frontend/IPC dynamic profiling", "phase": "phase4", "scope": "performance", "blocking": false, "preflight": false, "quick": false, "environments": ["windows"] },
     { "id": "17", "name": "Release dry-run (signed policy)", "phase": "phase5", "scope": "release", "blocking": true, "preflight": false, "quick": false, "environments": ["windows"] },
     { "id": "18", "name": "License-server PHP lint", "phase": "phase5", "scope": "license-server", "blocking": true, "preflight": false, "quick": true, "environments": ["php-enabled"] },
     { "id": "19", "name": "Website build", "phase": "phase5", "scope": "website", "blocking": true, "preflight": false, "quick": true, "environments": ["website"] },
     { "id": "20", "name": "Release dry-run (allow unsigned)", "phase": "phase5", "scope": "release", "blocking": false, "preflight": false, "quick": true, "environments": ["windows"] },
     { "id": "22", "name": "npm audit high", "phase": "phase5", "scope": "security", "blocking": true, "preflight": false, "quick": true, "environments": ["linux", "windows"] },
-    { "id": "23", "name": "cargo audit", "phase": "phase5", "scope": "security", "blocking": true, "preflight": false, "quick": false, "environments": ["linux", "windows"] }
+    { "id": "23", "name": "cargo audit", "phase": "phase5", "scope": "security", "blocking": true, "preflight": false, "quick": false, "environments": ["linux", "windows"] },
+    { "id": "24", "name": "gitleaks source/history", "phase": "phase5", "scope": "security", "blocking": true, "preflight": false, "quick": true, "environments": ["linux", "windows"] }
   ]
 }

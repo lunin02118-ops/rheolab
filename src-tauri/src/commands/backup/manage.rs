@@ -1,5 +1,6 @@
-﻿//! Backup CRUD management commands.
+//! Backup CRUD management commands.
 
+use crate::commands::licensing::require_write_license;
 use crate::error::{AppError, Result};
 use crate::state::AppState;
 use crate::types::{BackupInfo, BackupResult};
@@ -18,8 +19,7 @@ pub async fn backup_list(state: State<'_, AppState>) -> Result<Vec<BackupInfo>> 
         return Ok(vec![]);
     }
 
-    let entries =
-        fs::read_dir(backups_dir)?;
+    let entries = fs::read_dir(backups_dir)?;
 
     let mut backups: Vec<BackupInfo> = entries
         .filter_map(|entry| {
@@ -51,6 +51,8 @@ pub async fn backup_list(state: State<'_, AppState>) -> Result<Vec<BackupInfo>> 
 /// Create a new backup
 #[tauri::command]
 pub async fn backup_create(state: State<'_, AppState>) -> Result<BackupResult> {
+    require_write_license(&state).await?;
+
     let db_path = &state.database_path;
     let backups_dir = &state.backups_dir;
 
@@ -107,10 +109,9 @@ pub async fn backup_create(state: State<'_, AppState>) -> Result<BackupResult> {
 
 /// Delete a backup file
 #[tauri::command]
-pub async fn backup_delete(
-    state: State<'_, AppState>,
-    filename: String,
-) -> Result<BackupResult> {
+pub async fn backup_delete(state: State<'_, AppState>, filename: String) -> Result<BackupResult> {
+    require_write_license(&state).await?;
+
     sanitize_backup_filename(&filename)?;
 
     let backup_path = state.backups_dir.join(&filename);

@@ -1,0 +1,55 @@
+[2026-04-23T10:39:03.516Z] wrapper start
+[2026-04-23T10:39:03.516Z] cwd=D:\Development\Rheolab
+[2026-04-23T10:39:03.516Z] command=npm.cmd exec tauri -- dev
+[2026-04-23T10:39:03.516Z] RHEOLAB_SKIP_VERSION_BUMP=
+[2026-04-23T10:39:03.519Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-23T10:39:03.519Z] using shell fallback: npm.cmd "exec" "tauri" "--" "dev"
+[2026-04-23T10:39:04.220Z] [stderr]      Running BeforeDevCommand (`npm run dev`)
+[2026-04-23T10:39:04.449Z] [stdout] 
+[2026-04-23T10:39:04.449Z] [stdout] > rheolab-enterprise@0.2.0-beta.33 dev
+[2026-04-23T10:39:04.449Z] [stdout] > vite
+[2026-04-23T10:39:04.449Z] [stdout] 
+[2026-04-23T10:39:04.800Z] [stdout] [2m15:39:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because lockfile has changed
+[2026-04-23T10:39:04.842Z] [stdout] 
+[2026-04-23T10:39:04.842Z] [stdout]   [32m[1mVITE[22m v6.4.2[39m  [2mready in [0m[1m342[22m[2m[0m ms[22m
+[2026-04-23T10:39:04.842Z] [stdout] 
+[2026-04-23T10:39:04.843Z] [stdout]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m1420[22m/[39m
+[2026-04-23T10:39:08.247Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-23T10:39:08.477Z] [stderr]         Info Watching D:\Development\Rheolab\src-tauri for changes...
+[2026-04-23T10:39:11.078Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 2.68s
+[2026-04-23T10:39:11.411Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-23T10:39:18.532Z] heartbeat: pid=11496 elapsed=15.0s
+[2026-04-23T10:39:19.734Z] [stdout] [2026-04-23][10:39:19][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-23T10:39:19.991Z] [stdout] [2026-04-23][10:39:19][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-23T10:39:33.536Z] heartbeat: pid=11496 elapsed=30.0s
+[2026-04-23T10:39:48.541Z] heartbeat: pid=11496 elapsed=45.0s
+[2026-04-23T10:40:03.552Z] heartbeat: pid=11496 elapsed=60.0s
+[2026-04-23T10:40:18.561Z] heartbeat: pid=11496 elapsed=75.0s
+[2026-04-23T10:40:33.575Z] heartbeat: pid=11496 elapsed=90.1s
+[2026-04-23T10:40:48.588Z] heartbeat: pid=11496 elapsed=105.1s
+[2026-04-23T10:41:03.600Z] heartbeat: pid=11496 elapsed=120.1s
+[2026-04-23T10:41:18.608Z] heartbeat: pid=11496 elapsed=135.1s
+[2026-04-23T10:41:33.618Z] heartbeat: pid=11496 elapsed=150.1s
+[2026-04-23T10:41:48.624Z] heartbeat: pid=11496 elapsed=165.1s
+[2026-04-23T10:42:03.635Z] heartbeat: pid=11496 elapsed=180.1s
+[2026-04-23T10:42:18.643Z] heartbeat: pid=11496 elapsed=195.1s
+[2026-04-23T10:42:33.656Z] heartbeat: pid=11496 elapsed=210.1s
+[2026-04-23T10:42:48.666Z] heartbeat: pid=11496 elapsed=225.2s
+[2026-04-23T10:43:03.671Z] heartbeat: pid=11496 elapsed=240.2s
+[2026-04-23T10:43:18.680Z] heartbeat: pid=11496 elapsed=255.2s
+[2026-04-23T10:43:33.692Z] heartbeat: pid=11496 elapsed=270.2s
+[2026-04-23T10:43:48.694Z] heartbeat: pid=11496 elapsed=285.2s
+[2026-04-23T10:44:03.694Z] heartbeat: pid=11496 elapsed=300.2s
+[2026-04-23T10:44:18.700Z] heartbeat: pid=11496 elapsed=315.2s
+[2026-04-23T10:44:33.707Z] heartbeat: pid=11496 elapsed=330.2s
+[2026-04-23T10:44:48.717Z] heartbeat: pid=11496 elapsed=345.2s
+[2026-04-23T10:45:03.728Z] heartbeat: pid=11496 elapsed=360.2s
+[2026-04-23T10:45:18.735Z] heartbeat: pid=11496 elapsed=375.2s
+[2026-04-23T10:45:33.743Z] heartbeat: pid=11496 elapsed=390.2s
+[2026-04-23T10:45:48.755Z] heartbeat: pid=11496 elapsed=405.2s
+[2026-04-23T10:46:03.769Z] heartbeat: pid=11496 elapsed=420.3s
+[2026-04-23T10:46:18.779Z] heartbeat: pid=11496 elapsed=435.3s
+[2026-04-23T10:46:33.790Z] heartbeat: pid=11496 elapsed=450.3s
+[2026-04-23T10:46:48.799Z] heartbeat: pid=11496 elapsed=465.3s
+[2026-04-23T10:46:59.655Z] [stderr] [1m[91merror[0m: process didn't exit successfully: `target\debug\rheolab-enterprise.exe` (exit code: 0xffffffff)
+[2026-04-23T10:47:01.460Z] wrapper exit: code=4294967295 signal=null elapsed=477.9s

@@ -1,4 +1,4 @@
-﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Cryptographic helpers, secure storage, and HMAC-protected SystemState access.
 //!
 //! All items are `pub(super)` — visible to the parent `licensing/mod.rs` only.
@@ -16,10 +16,7 @@ use serde_json::{json, Value};
 use std::path::PathBuf;
 
 use super::hardware::{all_legacy_ids, get_or_create_machine_id};
-use super::types::{
-    Aes256CbcDec, HmacSha256,
-    STORAGE_SALT, DEFAULT_INTEGRITY_KEY,
-};
+use super::types::{Aes256CbcDec, HmacSha256, DEFAULT_INTEGRITY_KEY, STORAGE_SALT};
 
 // ── Hex helper ─────────────────────────────────────────────────────────
 
@@ -72,8 +69,8 @@ const RSA_PUBLIC_KEY_DER: &[u8] = include_bytes!("../../../keys/dev_public.der")
 /// parse / decode errors).
 pub(super) fn verify_server_signature(canonical_json: &str, base64_sig: &str) -> bool {
     use base64::Engine;
-    use rsa::pkcs8::DecodePublicKey;
     use rsa::pkcs1v15::{Signature, VerifyingKey};
+    use rsa::pkcs8::DecodePublicKey;
     use rsa::signature::Verifier;
     use sha2::Sha256;
 
@@ -115,8 +112,7 @@ pub(super) fn verify_server_signature(canonical_json: &str, base64_sig: &str) ->
 // ── Key derivation ─────────────────────────────────────────────────────
 
 pub(super) fn get_integrity_key() -> String {
-    std::env::var("INTEGRITY_SECRET_KEY")
-        .unwrap_or_else(|_| DEFAULT_INTEGRITY_KEY.to_string())
+    std::env::var("INTEGRITY_SECRET_KEY").unwrap_or_else(|_| DEFAULT_INTEGRITY_KEY.to_string())
 }
 
 // ── HMAC integrity ─────────────────────────────────────────────────────
@@ -165,10 +161,7 @@ pub(super) fn secure_storage_path(app_data_dir: &std::path::Path) -> PathBuf {
 pub(super) fn derive_storage_key(machine_id: &str) -> [u8; 32] {
     use hkdf::Hkdf;
     use sha2::Sha256;
-    let hk = Hkdf::<Sha256>::new(
-        Some(STORAGE_SALT.as_bytes()),
-        machine_id.as_bytes(),
-    );
+    let hk = Hkdf::<Sha256>::new(Some(STORAGE_SALT.as_bytes()), machine_id.as_bytes());
     let mut okm = [0u8; 32];
     // HKDF-SHA256 can produce up to 255*32 = 8160 bytes; 32 is always valid.
     #[allow(clippy::expect_used)]
@@ -192,10 +185,7 @@ fn derive_storage_key_legacy(machine_id: &str) -> [u8; 32] {
     key
 }
 
-pub(super) fn save_secure_last_check(
-    app_data_dir: &std::path::Path,
-    date_iso: &str,
-) -> Result<()> {
+pub(super) fn save_secure_last_check(app_data_dir: &std::path::Path, date_iso: &str) -> Result<()> {
     let machine_id = get_or_create_machine_id(app_data_dir);
     let key_bytes = derive_storage_key(&machine_id);
 
@@ -224,8 +214,7 @@ pub(super) fn save_secure_last_check(
         let _ = std::fs::create_dir_all(parent);
     }
     let json_str = serde_json::to_string(&data)?;
-    std::fs::write(&path, json_str)
-        .map_err(AppError::Io)
+    std::fs::write(&path, json_str).map_err(AppError::Io)
 }
 
 pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<String> {
@@ -270,7 +259,9 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
                         if let Some(date) = payload["date"].as_str().map(|s| s.to_string()) {
                             // Re-save with new HKDF key
                             let _ = save_secure_last_check(app_data_dir, &date);
-                            tracing::info!("Secure storage: migrated key derivation from HMAC to HKDF");
+                            tracing::info!(
+                                "Secure storage: migrated key derivation from HMAC to HKDF"
+                            );
                             return Some(date);
                         }
                     }
@@ -283,7 +274,10 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
             if legacy_id == machine_id {
                 continue;
             }
-            for legacy_key in [derive_storage_key(&legacy_id), derive_storage_key_legacy(&legacy_id)] {
+            for legacy_key in [
+                derive_storage_key(&legacy_id),
+                derive_storage_key_legacy(&legacy_id),
+            ] {
                 let legacy_gcm_key = GcmKey::<Aes256Gcm>::from_slice(&legacy_key);
                 let legacy_cipher = Aes256Gcm::new(legacy_gcm_key);
                 if let Ok(plaintext) = legacy_cipher.decrypt(nonce, ct_bytes.as_ref()) {
@@ -291,7 +285,9 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
                         if let Ok(payload) = serde_json::from_str::<Value>(&payload_str) {
                             if let Some(date) = payload["date"].as_str().map(|s| s.to_string()) {
                                 let _ = save_secure_last_check(app_data_dir, &date);
-                                tracing::info!("Secure storage (GCM): migrated from legacy machine ID to v2");
+                                tracing::info!(
+                                    "Secure storage (GCM): migrated from legacy machine ID to v2"
+                                );
                                 return Some(date);
                             }
                         }
@@ -345,7 +341,9 @@ pub(super) fn get_secure_last_check(app_data_dir: &std::path::Path) -> Option<St
                     if let Some(date) = payload["date"].as_str().map(|s| s.to_string()) {
                         // Re-encrypt with GCM + current v2 key
                         let _ = save_secure_last_check(app_data_dir, &date);
-                        tracing::info!("Secure storage: migrated from CBC (v1) + legacy ID to GCM (v2)");
+                        tracing::info!(
+                            "Secure storage: migrated from CBC (v1) + legacy ID to GCM (v2)"
+                        );
                         return Some(date);
                     }
                 }
@@ -387,16 +385,12 @@ pub(super) fn upsert_system_state(
     Ok(())
 }
 
-pub(super) fn delete_system_state(
-    conn: &rusqlite::Connection,
-    key: &str,
-) -> Result<()> {
+pub(super) fn delete_system_state(conn: &rusqlite::Connection, key: &str) -> Result<()> {
     conn.execute("DELETE FROM SystemState WHERE key = ?1", params![key])?;
     Ok(())
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────
-
 
 #[cfg(test)]
 #[path = "crypto_tests.rs"]

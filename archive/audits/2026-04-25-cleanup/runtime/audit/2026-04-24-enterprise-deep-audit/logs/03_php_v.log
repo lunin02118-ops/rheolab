@@ -1,0 +1,5 @@
+[2026-04-24T02:21:16.057Z] $ php -v
+'php' is not recognized as an internal or external command,
+operable program or batch file.
+
+[2026-04-24T02:21:16.071Z] exit=1 signal=none timedOut=false

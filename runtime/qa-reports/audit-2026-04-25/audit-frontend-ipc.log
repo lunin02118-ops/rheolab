@@ -1,0 +1,7 @@
+[frontend-ipc-audit] runId=20260425-100230942-frontend-ipc-deep-audit
+[frontend-ipc-audit] outDir=runtime/audit/20260425-100230942-frontend-ipc-deep-audit
+[frontend-ipc-audit] summary: runtime/audit/20260425-100230942-frontend-ipc-deep-audit/frontend-ipc-audit-summary.json
+[frontend-ipc-audit] report: docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-25.md
+[frontend-ipc-audit] latest: docs/performance/FRONTEND-IPC-DEEP-AUDIT-LATEST.md
+[frontend-ipc-audit] baseline update: No workflow artifacts for this run
+[frontend-ipc-audit] gate violations detected; exiting with failure

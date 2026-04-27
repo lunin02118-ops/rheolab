@@ -1,0 +1,36 @@
+
+> rheolab-enterprise@0.2.0-beta.53 audit:enterprise:quick
+> node scripts/audit/run-enterprise-deep-audit.js --quick
+
+[audit] 00 Git worktree check :: git rev-parse --is-inside-work-tree
+[audit] 00 exit=0 duration=0.04s
+[audit] 01 Node/NPM versions :: node -v && npm -v
+[audit] 01 exit=0 duration=0.25s
+[audit] 02 Cargo version :: cargo --version
+[audit] 02 exit=0 duration=0.07s
+[audit] 03 PHP version :: php -v
+[audit] 03 exit=1 duration=0.01s
+[audit] 21 Astro CLI preflight :: npm --prefix website exec -- astro --version
+[audit] 21 exit=0 duration=0.97s
+[audit] 04 TypeScript gate :: npx tsc --noEmit
+[audit] 04 exit=0 duration=8.14s
+[audit] 05 ESLint gate :: npx eslint .
+[audit] 05 exit=1 duration=11.64s
+[audit] 06 Unit/Integration tests :: npm test
+[audit] 06 exit=1 duration=10.79s
+[audit] 11 Cargo check :: cargo check --manifest-path "D:/Development/Rheolab/src-tauri/Cargo.toml"
+[audit] 11 exit=0 duration=33.1s
+[audit] 18 License-server PHP lint :: node scripts/audit/php-lint-license-server.js
+[audit] 18 exit=127 duration=0.05s
+[audit] 19 Website build :: npm --prefix website ci && npm --prefix website run build
+[audit] 19 exit=0 duration=12.04s
+[audit] 20 Release dry-run (allow unsigned) :: npm run release:prepare -- --channel beta --dry-run --allow-unsigned --skip-qa
+[audit] 20 exit=1 duration=0.35s
+[audit] 22 npm audit high :: npm audit --audit-level=high
+[audit] 22 exit=0 duration=3.69s
+[audit] mode: quick
+[audit] output dir: runtime/audit/2026-04-25-enterprise-deep-audit
+[audit] summary: runtime/audit/2026-04-25-enterprise-deep-audit/dynamic-checks-summary.tsv
+[audit] metrics: runtime/audit/2026-04-25-enterprise-deep-audit/audit-metrics.json
+[audit] findings: runtime/audit/2026-04-25-enterprise-deep-audit/audit-findings.json
+[audit] release gate: runtime/audit/2026-04-25-enterprise-deep-audit/release-gate-decision.md

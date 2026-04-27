@@ -1,6 +1,6 @@
-use super::*;
 use super::crypto::upsert_system_state;
 use super::demo;
+use super::*;
 
 // ── Test-clock helpers ──────────────────────────────────────────────
 //
@@ -49,8 +49,8 @@ fn sign_with_dev_private_key(data: &[u8]) -> String {
     use sha2::Sha256;
 
     let private_der = include_bytes!("../../../keys/dev_private.der");
-    let private_key = rsa::RsaPrivateKey::from_pkcs8_der(private_der)
-        .expect("dev private key should be valid");
+    let private_key =
+        rsa::RsaPrivateKey::from_pkcs8_der(private_der).expect("dev private key should be valid");
     let signing_key = SigningKey::<Sha256>::new(private_key);
     let signature = signing_key.sign(data);
     base64::engine::general_purpose::STANDARD.encode(&*signature.to_bytes())
@@ -64,8 +64,9 @@ fn setup_test_db() -> rusqlite::Connection {
             value TEXT NOT NULL,
             signature TEXT NOT NULL,
             updatedAt TEXT NOT NULL
-        );"
-    ).unwrap();
+        );",
+    )
+    .unwrap();
     conn
 }
 
@@ -88,7 +89,10 @@ fn gate_rejects_empty_db() {
     upsert_system_state(&conn, types::DB_KEY_DEMO, &value).unwrap();
 
     let result = check_license_gate(&conn);
-    assert!(result.is_err(), "Gate must reject when no license and demo expired");
+    assert!(
+        result.is_err(),
+        "Gate must reject when no license and demo expired"
+    );
     assert_eq!(result.unwrap_err().to_string(), "License error: required");
 }
 
@@ -124,7 +128,10 @@ fn gate_accepts_valid_license() {
     let demo_val = serde_json::to_string(&demo_state).unwrap();
     upsert_system_state(&conn, types::DB_KEY_DEMO, &demo_val).unwrap();
 
-    assert!(check_license_gate(&conn).is_ok(), "Gate must accept a valid RSA-signed license");
+    assert!(
+        check_license_gate(&conn).is_ok(),
+        "Gate must accept a valid RSA-signed license"
+    );
 }
 
 #[test]
@@ -143,7 +150,8 @@ fn gate_rejects_tampered_hmac() {
     conn.execute(
         "INSERT INTO SystemState (key, value, signature, updatedAt) VALUES (?1, ?2, ?3, ?4)",
         rusqlite::params![types::DB_KEY_LICENSE, value, "forged_signature", now],
-    ).unwrap();
+    )
+    .unwrap();
 
     // Also insert expired demo so no demo fallback
     let demo_state = types::DemoState {
@@ -194,7 +202,10 @@ fn gate_rejects_expired_plus_grace() {
     upsert_system_state(&conn, types::DB_KEY_DEMO, &demo_val).unwrap();
 
     let result = check_license_gate(&conn);
-    assert!(result.is_err(), "Gate must reject expired+past-grace license");
+    assert!(
+        result.is_err(),
+        "Gate must reject expired+past-grace license"
+    );
 }
 
 #[test]
@@ -326,8 +337,13 @@ fn demo_counter_tamper_resistant() {
     let now = now_rfc3339();
     conn.execute(
         "UPDATE SystemState SET value = ?1, updatedAt = ?3 WHERE key = ?2",
-        rusqlite::params![serde_json::to_string(&forged).unwrap(), types::DB_KEY_DEMO, now],
-    ).unwrap();
+        rusqlite::params![
+            serde_json::to_string(&forged).unwrap(),
+            types::DB_KEY_DEMO,
+            now
+        ],
+    )
+    .unwrap();
 
     // check_demo should treat tampered state as missing (first launch)
     let result = demo::check_demo(&conn, None);
@@ -469,7 +485,12 @@ fn load_verified_license_rejects_legacy_no_signed_payload() {
         max_days: types::DEMO_MAX_DAYS,
         max_experiments: types::DEMO_MAX_EXPERIMENTS,
     };
-    upsert_system_state(&conn, types::DB_KEY_DEMO, &serde_json::to_string(&demo_state).unwrap()).unwrap();
+    upsert_system_state(
+        &conn,
+        types::DB_KEY_DEMO,
+        &serde_json::to_string(&demo_state).unwrap(),
+    )
+    .unwrap();
 
     // Gate must reject — legacy record falls through to demo, demo also expired
     assert!(
@@ -621,9 +642,16 @@ fn license_type_from_str_recognises_superuser() {
 fn alpha_channel_token_is_64_char_hex() {
     // UC-2: HMAC-SHA256 → 32 bytes → 64 lowercase hex chars.
     let token = make_alpha_channel_token();
-    assert_eq!(token.len(), 64, "alpha token must be 64 hex chars, got {}", token.len());
+    assert_eq!(
+        token.len(),
+        64,
+        "alpha token must be 64 hex chars, got {}",
+        token.len()
+    );
     assert!(
-        token.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        token
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
         "alpha token must be lowercase hex, got {token}",
     );
 }
@@ -650,6 +678,8 @@ fn alpha_channel_token_is_stable_within_window() {
     // source of nondeterminism here would break replay-protected auth.
     let t1 = make_alpha_channel_token();
     let t2 = make_alpha_channel_token();
-    assert_eq!(t1, t2, "alpha token must be stable within one 5-minute window");
+    assert_eq!(
+        t1, t2,
+        "alpha token must be stable within one 5-minute window"
+    );
 }
-

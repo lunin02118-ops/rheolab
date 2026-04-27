@@ -1,4 +1,5 @@
-﻿use crate::error::{AppError, Result};
+use crate::commands::licensing::require_write_license;
+use crate::error::{AppError, Result};
 use crate::state::AppState;
 use rusqlite::{params, OptionalExtension};
 use serde_json::{json, Value};
@@ -17,32 +18,32 @@ pub async fn experiment_payloads_list(
     experiment_id: String,
 ) -> Result<Vec<ExperimentPayloadItem>> {
     if experiment_id.is_empty() {
-        return Err(AppError::BadRequest("experiment_id must not be empty".into()));
+        return Err(AppError::BadRequest(
+            "experiment_id must not be empty".into(),
+        ));
     }
     let conn = state.pool_conn()?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, experimentId, importBatchId, payloadVersion, \
+    let mut stmt = conn.prepare(
+        "SELECT id, experimentId, importBatchId, payloadVersion, \
                     payloadFormat, contentFingerprint, sourceLabId, \
                     isCanonical, createdAt \
              FROM ExperimentPayload WHERE experimentId = ?1 \
              ORDER BY payloadVersion DESC",
-        )?;
+    )?;
 
-    let rows = stmt
-        .query_map(params![experiment_id], |row| {
-            Ok(ExperimentPayloadItem {
-                id: row.get(0)?,
-                experiment_id: row.get(1)?,
-                import_batch_id: row.get(2)?,
-                payload_version: row.get(3)?,
-                payload_format: row.get(4)?,
-                content_fingerprint: row.get(5)?,
-                source_lab_id: row.get(6)?,
-                is_canonical: row.get::<_, i32>(7)? != 0,
-                created_at: row.get(8)?,
-            })
-        })?;
+    let rows = stmt.query_map(params![experiment_id], |row| {
+        Ok(ExperimentPayloadItem {
+            id: row.get(0)?,
+            experiment_id: row.get(1)?,
+            import_batch_id: row.get(2)?,
+            payload_version: row.get(3)?,
+            payload_format: row.get(4)?,
+            content_fingerprint: row.get(5)?,
+            source_lab_id: row.get(6)?,
+            is_canonical: row.get::<_, i32>(7)? != 0,
+            created_at: row.get(8)?,
+        })
+    })?;
 
     rows.collect::<rusqlite::Result<Vec<_>>>()
         .map_err(AppError::Sql)
@@ -58,30 +59,30 @@ pub async fn parser_artifacts_list(
     experiment_id: String,
 ) -> Result<Vec<ParserArtifactItem>> {
     if experiment_id.is_empty() {
-        return Err(AppError::BadRequest("experiment_id must not be empty".into()));
+        return Err(AppError::BadRequest(
+            "experiment_id must not be empty".into(),
+        ));
     }
     let conn = state.pool_conn()?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, experimentId, importBatchId, parserVersion, \
+    let mut stmt = conn.prepare(
+        "SELECT id, experimentId, importBatchId, parserVersion, \
                     schemaVersion, contentFingerprint, promotedToHot, createdAt \
              FROM ParserArtifact WHERE experimentId = ?1 \
              ORDER BY createdAt DESC",
-        )?;
+    )?;
 
-    let rows = stmt
-        .query_map(params![experiment_id], |row| {
-            Ok(ParserArtifactItem {
-                id: row.get(0)?,
-                experiment_id: row.get(1)?,
-                import_batch_id: row.get(2)?,
-                parser_version: row.get(3)?,
-                schema_version: row.get(4)?,
-                content_fingerprint: row.get(5)?,
-                promoted_to_hot: row.get::<_, i32>(6)? != 0,
-                created_at: row.get(7)?,
-            })
-        })?;
+    let rows = stmt.query_map(params![experiment_id], |row| {
+        Ok(ParserArtifactItem {
+            id: row.get(0)?,
+            experiment_id: row.get(1)?,
+            import_batch_id: row.get(2)?,
+            parser_version: row.get(3)?,
+            schema_version: row.get(4)?,
+            content_fingerprint: row.get(5)?,
+            promoted_to_hot: row.get::<_, i32>(6)? != 0,
+            created_at: row.get(7)?,
+        })
+    })?;
 
     rows.collect::<rusqlite::Result<Vec<_>>>()
         .map_err(AppError::Sql)
@@ -89,10 +90,7 @@ pub async fn parser_artifacts_list(
 
 /// Read the raw artifact JSON for a specific parser artifact.
 #[tauri::command]
-pub async fn parser_artifacts_get(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<Value> {
+pub async fn parser_artifacts_get(state: State<'_, AppState>, id: String) -> Result<Value> {
     if id.is_empty() {
         return Err(AppError::BadRequest("id must not be empty".into()));
     }
@@ -107,8 +105,7 @@ pub async fn parser_artifacts_get(
 
     match json_str {
         Some(s) => {
-            let parsed: Value =
-                serde_json::from_str(&s).unwrap_or(Value::String(s));
+            let parsed: Value = serde_json::from_str(&s).unwrap_or(Value::String(s));
             Ok(json!({ "success": true, "artifact": parsed }))
         }
         None => Ok(json!({ "success": false, "error": "Parser artifact not found" })),
@@ -125,31 +122,31 @@ pub async fn report_artifacts_list(
     experiment_id: String,
 ) -> Result<Vec<ReportArtifactItem>> {
     if experiment_id.is_empty() {
-        return Err(AppError::BadRequest("experiment_id must not be empty".into()));
+        return Err(AppError::BadRequest(
+            "experiment_id must not be empty".into(),
+        ));
     }
     let conn = state.pool_conn()?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, experimentId, importBatchId, reportType, \
+    let mut stmt = conn.prepare(
+        "SELECT id, experimentId, importBatchId, reportType, \
                     templateVersion, storagePath, binarySha256, sizeBytes, createdAt \
              FROM ReportArtifact WHERE experimentId = ?1 \
              ORDER BY createdAt DESC",
-        )?;
+    )?;
 
-    let rows = stmt
-        .query_map(params![experiment_id], |row| {
-            Ok(ReportArtifactItem {
-                id: row.get(0)?,
-                experiment_id: row.get(1)?,
-                import_batch_id: row.get(2)?,
-                report_type: row.get(3)?,
-                template_version: row.get(4)?,
-                storage_path: row.get(5)?,
-                binary_sha256: row.get(6)?,
-                size_bytes: row.get(7)?,
-                created_at: row.get(8)?,
-            })
-        })?;
+    let rows = stmt.query_map(params![experiment_id], |row| {
+        Ok(ReportArtifactItem {
+            id: row.get(0)?,
+            experiment_id: row.get(1)?,
+            import_batch_id: row.get(2)?,
+            report_type: row.get(3)?,
+            template_version: row.get(4)?,
+            storage_path: row.get(5)?,
+            binary_sha256: row.get(6)?,
+            size_bytes: row.get(7)?,
+            created_at: row.get(8)?,
+        })
+    })?;
 
     rows.collect::<rusqlite::Result<Vec<_>>>()
         .map_err(AppError::Sql)
@@ -166,8 +163,12 @@ pub async fn report_artifacts_save(
     binary_sha256: Option<String>,
     size_bytes: Option<i64>,
 ) -> Result<Value> {
+    require_write_license(&state).await?;
+
     if experiment_id.is_empty() {
-        return Err(AppError::BadRequest("experiment_id must not be empty".into()));
+        return Err(AppError::BadRequest(
+            "experiment_id must not be empty".into(),
+        ));
     }
     if report_type.is_empty() {
         return Err(AppError::BadRequest("report_type must not be empty".into()));
@@ -188,16 +189,14 @@ pub async fn report_artifacts_save(
 }
 
 #[tauri::command]
-pub async fn report_artifacts_delete(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<Value> {
+pub async fn report_artifacts_delete(state: State<'_, AppState>, id: String) -> Result<Value> {
+    require_write_license(&state).await?;
+
     if id.is_empty() {
         return Err(AppError::BadRequest("id must not be empty".into()));
     }
     let conn = state.pool_conn()?;
-    let deleted = conn
-        .execute("DELETE FROM ReportArtifact WHERE id = ?1", params![id])?;
+    let deleted = conn.execute("DELETE FROM ReportArtifact WHERE id = ?1", params![id])?;
 
     if deleted == 0 {
         return Ok(json!({ "success": false, "error": "Report artifact not found" }));

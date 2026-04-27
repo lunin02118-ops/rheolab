@@ -1,6 +1,6 @@
-use rusqlite::Connection;
 use super::error::MigrationError;
 use super::r#trait::Migration;
+use rusqlite::Connection;
 
 /// The entire initial schema — 22 tables, indexes, FTS5 virtual table, and
 /// triggers — created idempotently with `IF NOT EXISTS` guards.

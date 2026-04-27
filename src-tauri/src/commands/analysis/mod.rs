@@ -24,7 +24,10 @@ mod dto;
 // macro-generated helpers (`__cmd__<name>`) are reachable via
 // `commands::analysis::__cmd__analysis_*` from `tauri::generate_handler!`.
 pub use commands::*;
-pub use dto::{AnalysisOutput, AnalyzeFullInput, DetectStepsInput, DetectStepsOutput, RegroupByPatternInput, RheoPointsColumnar};
+pub use dto::{
+    AnalysisOutput, AnalyzeFullInput, DetectStepsInput, DetectStepsOutput, RegroupByPatternInput,
+    RheoPointsColumnar,
+};
 
 // Re-export `RheoPoint` for the test module — kept for backward compatibility
 // with the previous single-file layout where it was imported at the top.

@@ -36,6 +36,7 @@ function ComparisonChartUPlotInner({
     // persisted store is missing this key.
     const comparisonAxisMode = useChartSettingsStore(s => s.settings.comparisonAxisMode ?? 'individual');
     const chartSettings = useChartSettingsStore(s => s.settings);
+    const timeFormat = chartSettings.rheologyUnits?.timeFormat ?? 'seconds';
     const { resolvedTheme } = useTheme();
     const isDark = resolvedTheme === 'dark';
     const uPlotRef = useRef<uPlot | null>(null);
@@ -263,7 +264,7 @@ function ComparisonChartUPlotInner({
                 },
                 tooltipPlugin({
                     titleFormatter: (val: number) => {
-                        const timeFmt: TimeDisplayFormat = chartSettings.rheologyUnits?.timeFormat ?? 'seconds';
+                        const timeFmt: TimeDisplayFormat = timeFormat;
                         let formatted: string;
                         switch (timeFmt) {
                             case 'seconds': formatted = String(Math.round(val * 60)); break;
@@ -312,7 +313,7 @@ function ComparisonChartUPlotInner({
             axes: axesConfig,
             series: seriesConfig
         };
-    }, [axesConfig, seriesConfig, touchPoints, viscosityThreshold, showTouchPoints, targetTime, primaryMetric, comparisonAxisMode, readPlotBbox, isDark]);
+    }, [axesConfig, seriesConfig, touchPoints, viscosityThreshold, showTouchPoints, targetTime, primaryMetric, comparisonAxisMode, readPlotBbox, isDark, timeFormat]);
 
     return (
         <div className="flex flex-col h-full w-full">

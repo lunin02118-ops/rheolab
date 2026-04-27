@@ -1,0 +1,2737 @@
+   Compiling rheolab-enterprise v0.2.0-beta.53 (D:\Development\Rheolab\src-tauri)
+warning: unnecessary `if let` since only the `Ok` variant of the iterator element is used
+   --> src\commands\api_keys\commands.rs:226:5
+    |
+226 | /     for row in rows {
+227 | |         if let Ok(encoded) = row {
+228 | |             if let Some(raw_key) = decode_key(&encoded, app_data_dir) {
+229 | |                 return Some(raw_key);
+...   |
+232 | |     }
+    | |_____^
+    |
+help: try `.flatten()` and remove the `if let` statement in the for loop
+   --> src\commands\api_keys\commands.rs:227:9
+    |
+227 | /         if let Ok(encoded) = row {
+228 | |             if let Some(raw_key) = decode_key(&encoded, app_data_dir) {
+229 | |                 return Some(raw_key);
+230 | |             }
+231 | |         }
+    | |_________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_flatten
+    = note: `#[warn(clippy::manual_flatten)]` on by default
+help: try
+    |
+226 ~     for encoded in rows.flatten() {
+227 +         if let Some(raw_key) = decode_key(&encoded, app_data_dir) {
+228 +             return Some(raw_key);
+229 +         }
+230 +     }
+    |
+
+warning: unnecessary `if let` since only the `Ok` variant of the iterator element is used
+   --> src\commands\api_keys\commands.rs:316:5
+    |
+316 | /     for row in rows {
+317 | |         if let Ok((meta, encoded)) = row {
+318 | |             if decode_key(&encoded, &state.app_data_dir).is_some() {
+319 | |                 active = Some(meta);
+...   |
+323 | |     }
+    | |_____^
+    |
+help: try `.flatten()` and remove the `if let` statement in the for loop
+   --> src\commands\api_keys\commands.rs:317:9
+    |
+317 | /         if let Ok((meta, encoded)) = row {
+318 | |             if decode_key(&encoded, &state.app_data_dir).is_some() {
+319 | |                 active = Some(meta);
+320 | |                 break;
+321 | |             }
+322 | |         }
+    | |_________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_flatten
+help: try
+    |
+316 ~     for (meta, encoded) in rows.flatten() {
+317 +         if decode_key(&encoded, &state.app_data_dir).is_some() {
+318 +             active = Some(meta);
+319 +             break;
+320 +         }
+321 +     }
+    |
+
+warning: unnecessary `if let` since only the `Ok` variant of the iterator element is used
+   --> src\commands\api_keys\commands.rs:351:9
+    |
+351 | /         for row in rows {
+352 | |             if let Ok(k) = row {
+353 | |                 keys.push(k);
+354 | |             }
+355 | |         }
+    | |_________^
+    |
+help: try `.flatten()` and remove the `if let` statement in the for loop
+   --> src\commands\api_keys\commands.rs:352:13
+    |
+352 | /             if let Ok(k) = row {
+353 | |                 keys.push(k);
+354 | |             }
+    | |_____________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_flatten
+help: try
+    |
+351 ~         for k in rows.flatten() {
+352 +             keys.push(k);
+353 +         }
+    |
+
+warning: stripping a prefix manually
+  --> src\commands\api_keys\mod.rs:81:23
+   |
+81 |         let payload = &stored[AES_GCM_PREFIX.len()..];
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the prefix was tested here
+  --> src\commands\api_keys\mod.rs:79:5
+   |
+79 |     if stored.starts_with(AES_GCM_PREFIX) {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_strip
+   = note: `#[warn(clippy::manual_strip)]` on by default
+help: try using the `strip_prefix` method
+   |
+79 ~     if let Some(payload) = stored.strip_prefix(AES_GCM_PREFIX) {
+80 |         // New AES-256-GCM path
+81 ~         let parts: Vec<&str> = payload.splitn(2, '/').collect();
+   |
+
+warning: called `iter().cloned().collect()` on a slice to create a `Vec`. Calling `to_vec()` is both faster and more readable
+   --> src\commands\analysis\commands.rs:118:47
+    |
+118 |                     sorted[i..i + pattern_len].iter().cloned().collect();
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `.to_vec()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#iter_cloned_collect
+    = note: `#[warn(clippy::iter_cloned_collect)]` on by default
+
+warning: useless use of `format!`
+  --> src\commands\backup\validate.rs:11:20
+   |
+11 |         return Err(format!("Invalid backup filename: path traversal not allowed").into());
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.to_string()`: `"Invalid backup filename: path traversal not allowed".to_string()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_format
+   = note: `#[warn(clippy::useless_format)]` on by default
+
+warning: useless use of `format!`
+  --> src\commands\backup\validate.rs:14:20
+   |
+14 |         return Err(format!("Invalid backup filename: must end with .db").into());
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.to_string()`: `"Invalid backup filename: must end with .db".to_string()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_format
+
+warning: the borrowed expression implements the required traits
+  --> src\commands\backup\export.rs:34:37
+   |
+34 |         Err(e) => BackupResult::err(&format!("╨Ю╤И╨╕╨▒╨║╨░ ╤Н╨║╤Б╨┐╨╛╤А╤В╨░ ╨▒╨░╨╖╤Л ╨┤╨░╨╜╨╜╤Л╤Е: {}", e)),
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `format!("╨Ю╤И╨╕╨▒╨║╨░ ╤Н╨║╤Б╨┐╨╛╤А╤В╨░ ╨▒╨░╨╖╤Л ╨┤╨░╨╜╨╜╤Л╤Е: {}", e)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#needless_borrows_for_generic_args
+   = note: `#[warn(clippy::needless_borrows_for_generic_args)]` on by default
+
+warning: this function has too many arguments (8/7)
+  --> src\commands\data_flows\helpers.rs:79:1
+   |
+79 | / pub(crate) fn create_experiment_payload(
+80 | |     conn: &Connection,
+81 | |     experiment_id: &str,
+82 | |     import_batch_id: Option<&str>,
+...  |
+87 | |     is_canonical: bool,
+88 | | ) -> Result<String> {
+   | |___________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#too_many_arguments
+   = note: `#[warn(clippy::too_many_arguments)]` on by default
+
+warning: this function has too many arguments (9/7)
+   --> src\commands\data_flows\helpers.rs:157:1
+    |
+157 | / pub(crate) fn create_report_artifact(
+158 | |     conn: &Connection,
+159 | |     experiment_id: &str,
+160 | |     import_batch_id: Option<&str>,
+...   |
+166 | |     size_bytes: Option<i64>,
+167 | | ) -> Result<String> {
+    | |___________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#too_many_arguments
+
+warning: this function has too many arguments (8/7)
+   --> src\commands\data_flows\artifacts.rs:159:1
+    |
+159 | / pub async fn report_artifacts_save(
+160 | |     state: State<'_, AppState>,
+161 | |     experiment_id: String,
+162 | |     report_type: String,
+...   |
+167 | |     size_bytes: Option<i64>,
+168 | | ) -> Result<Value> {
+    | |__________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#too_many_arguments
+
+warning: doc list item without indentation
+   --> src\commands\experiments\types.rs:497:9
+    |
+497 |     /// Computed against the WHOLE library тАФ independent of the current
+    |         ^
+    |
+    = help: if this is supposed to be its own paragraph, add a blank line
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_lazy_continuation
+    = note: `#[warn(clippy::doc_lazy_continuation)]` on by default
+help: indent this line
+    |
+497 |     ///     Computed against the WHOLE library тАФ independent of the current
+    |         ++++
+
+warning: doc list item without indentation
+   --> src\commands\experiments\types.rs:498:9
+    |
+498 |     /// filter panel selections тАФ so the hints remain stable while the user
+    |         ^
+    |
+    = help: if this is supposed to be its own paragraph, add a blank line
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_lazy_continuation
+help: indent this line
+    |
+498 |     ///     filter panel selections тАФ so the hints remain stable while the user
+    |         ++++
+
+warning: doc list item without indentation
+   --> src\commands\experiments\types.rs:499:9
+    |
+499 |     /// is editing filter values.
+    |         ^
+    |
+    = help: if this is supposed to be its own paragraph, add a blank line
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_lazy_continuation
+help: indent this line
+    |
+499 |     ///     is editing filter values.
+    |         ++++
+
+warning: this `repeat().take()` can be written more concisely
+  --> src\commands\experiments\crud.rs:78:22
+   |
+78 |     let ph: String = std::iter::repeat("?").take(ids.len()).collect::<Vec<_>>().join(",");
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `repeat_n()` instead: `std::iter::repeat_n("?", ids.len())`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_repeat_n
+   = note: `#[warn(clippy::manual_repeat_n)]` on by default
+
+warning: manual implementation of `.is_multiple_of()`
+  --> src\commands\licensing\hardware\cache.rs:48:8
+   |
+48 |     if s.len() % 2 != 0 {
+   |        ^^^^^^^^^^^^^^^^ help: replace with: `!s.len().is_multiple_of(2)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_is_multiple_of
+   = note: `#[warn(clippy::manual_is_multiple_of)]` on by default
+
+error: this boolean expression contains a logic bug
+  --> src\commands\analysis\..\analysis_tests.rs:75:13
+   |
+75 |     assert!(!result.unwrap().steps.is_empty() || true, "call succeeded");
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: it would look like the following: `true`
+   |
+help: this expression can be optimized out by applying boolean operations to the outer expression
+  --> src\commands\analysis\..\analysis_tests.rs:75:14
+   |
+75 |     assert!(!result.unwrap().steps.is_empty() || true, "call succeeded");
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#overly_complex_bool_expr
+   = note: `#[deny(clippy::overly_complex_bool_expr)]` on by default
+
+warning: this `map_or` can be simplified
+   --> src\commands\licensing\engine\verification.rs:249:48
+    |
+249 | ...                   let warn = days.map_or(false, |d| d <= 30);
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unnecessary_map_or
+    = note: `#[warn(clippy::unnecessary_map_or)]` on by default
+help: use is_some_and instead
+    |
+249 -                                     let warn = days.map_or(false, |d| d <= 30);
+249 +                                     let warn = days.is_some_and(|d| d <= 30);
+    |
+
+warning: this `map_or` can be simplified
+   --> src\commands\licensing\engine\verification.rs:311:48
+    |
+311 | ...                   let show_warning = days_remaining.map_or(false, |d| d <= 30);
+    |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unnecessary_map_or
+help: use is_some_and instead
+    |
+311 -                             let show_warning = days_remaining.map_or(false, |d| d <= 30);
+311 +                             let show_warning = days_remaining.is_some_and(|d| d <= 30);
+    |
+
+warning: manually reimplementing `div_ceil`
+  --> src\db\columnar.rs:62:24
+   |
+62 |     let bitmap_bytes = ((point_count as usize) + 7) / 8;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(point_count as usize).div_ceil(8)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_div_ceil
+   = note: `#[warn(clippy::manual_div_ceil)]` on by default
+
+warning: manually reimplementing `div_ceil`
+   --> src\db\columnar.rs:161:24
+    |
+161 |     let bitmap_bytes = ((point_count as usize) + 7) / 8;
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(point_count as usize).div_ceil(8)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_div_ceil
+
+warning: manually reimplementing `div_ceil`
+   --> src\db\columnar.rs:254:24
+    |
+254 |     let bitmap_bytes = (point_count + 7) / 8;
+    |                        ^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `point_count.div_ceil(8)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_div_ceil
+
+warning: doc list item overindented
+  --> src\db\migration.rs:58:5
+   |
+58 | ///                      existing rows (same name) left untouched.
+   |     ^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+   = note: `#[warn(clippy::doc_overindented_list_items)]` on by default
+
+warning: this `map_or` can be simplified
+   --> src\db\migration.rs:139:27
+    |
+139 |       let version_changed = previous_app_version
+    |  ___________________________^
+140 | |         .as_deref()
+141 | |         .map_or(false, |prev| prev != app_version);
+    | |__________________________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unnecessary_map_or
+help: use is_some_and instead
+    |
+141 -         .map_or(false, |prev| prev != app_version);
+141 +         .is_some_and(|prev| prev != app_version);
+    |
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:15:5
+   |
+15 | ///                                   threshold (50 cP) was detected, 0 when
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:16:5
+   |
+16 | ///                                   the curve never crossed, NULL when the
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:17:5
+   |
+17 | ///                                   algorithm has not been run yet.
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:19:5
+   |
+19 | ///                                   first crossed the 50 cP threshold after
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:20:5
+   |
+20 | ///                                   the viscosity peak.  NULL when no
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:21:5
+   |
+21 | ///                                   crossing was found.
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:23:5
+   |
+23 | ///                                   тАФ not always equal to 50 cP because the
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:24:5
+   |
+24 | ///                                   stored value is the smoothed value of
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:25:5
+   |
+25 | ///                                   the snapped data point.
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:27:5
+   |
+27 | ///                                   time (10 min), interpolated or snapped
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:28:5
+   |
+28 | ///                                   to the nearest real data point across
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:29:5
+   |
+29 | ///                                   shear-rate jumps.
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:31:5
+   |
+31 | ///                                   the other four columns.  NULL signals
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:32:5
+   |
+32 | ///                                   "not yet computed"; startup backfill
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: doc list item overindented
+  --> src\db\migrations\v0002_touch_point_metrics.rs:33:5
+   |
+33 | ///                                   scans for rows where this is NULL.
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try using `    ` (4 spaces)
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_overindented_list_items
+
+warning: this `repeat().take()` can be written more concisely
+   --> src\db\repositories\experiments\read.rs:214:22
+    |
+214 |     let ph: String = std::iter::repeat("?").take(ids.len()).collect::<Vec<_>>().join(",");
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `repeat_n()` instead: `std::iter::repeat_n("?", ids.len())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_repeat_n
+
+warning: consider using `sort_by_key`
+  --> src\startup\logging.rs:63:5
+   |
+63 |     rotated_logs.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `rotated_logs.sort_by_key(|b| std::cmp::Reverse(b.file_name()))`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unnecessary_sort_by
+   = note: `#[warn(clippy::unnecessary_sort_by)]` on by default
+
+error: approximate value of `f{32, 64}::consts::PI` found
+  --> src\commands\experiments\helpers_tests.rs:13:52
+   |
+13 |     assert_eq!(parse_number_from_str("3.14"), Some(3.14));
+   |                                                    ^^^^
+   |
+   = help: consider using the constant directly
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#approx_constant
+   = note: `#[deny(clippy::approx_constant)]` on by default
+
+error: approximate value of `f{32, 64}::consts::PI` found
+  --> src\commands\experiments\helpers_tests.rs:45:40
+   |
+45 |     assert_eq!(number_from_json(&json!(3.14)), Some(3.14));
+   |                                        ^^^^
+   |
+   = help: consider using the constant directly
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#approx_constant
+
+error: approximate value of `f{32, 64}::consts::PI` found
+  --> src\commands\experiments\helpers_tests.rs:45:53
+   |
+45 |     assert_eq!(number_from_json(&json!(3.14)), Some(3.14));
+   |                                                     ^^^^
+   |
+   = help: consider using the constant directly
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#approx_constant
+
+warning: manual `RangeInclusive::contains` implementation
+   --> src\commands\experiments\list\list_tests.rs:622:9
+    |
+622 |         v <= 500.0 && v >= 100.0,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(100.0..=500.0).contains(&v)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_range_contains
+    = note: `#[warn(clippy::manual_range_contains)]` on by default
+
+warning: field assignment outside of initializer for an instance created with Default::default()
+   --> src\commands\experiments\list\list_tests.rs:827:5
+    |
+827 |     query_fast.has_crossing = Some("yes".to_string());
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `commands::experiments::types::ExperimentsListQuery { has_crossing: Some("yes".to_string()), limit: Some(10), ..Default::default() }` and removing relevant reassignments
+   --> src\commands\experiments\list\list_tests.rs:826:5
+    |
+826 |     let mut query_fast = ExperimentsListQuery::default();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#field_reassign_with_default
+    = note: `#[warn(clippy::field_reassign_with_default)]` on by default
+
+warning: field assignment outside of initializer for an instance created with Default::default()
+   --> src\commands\experiments\list\list_tests.rs:834:5
+    |
+834 |     query_slow.viscosity_threshold = Some("500".to_string());
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `commands::experiments::types::ExperimentsListQuery { viscosity_threshold: Some("500".to_string()), has_crossing: Some("yes".to_string()), limit: Some(10), ..Default::default() }` and removing relevant reassignments
+   --> src\commands\experiments\list\list_tests.rs:833:5
+    |
+833 |     let mut query_slow = ExperimentsListQuery::default();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#field_reassign_with_default
+
+warning: field assignment outside of initializer for an instance created with Default::default()
+   --> src\commands\experiments\list\list_tests.rs:866:5
+    |
+866 |     query_too_high.viscosity_threshold = Some("2000".to_string());
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `commands::experiments::types::ExperimentsListQuery { viscosity_threshold: Some("2000".to_string()), has_crossing: Some("yes".to_string()), limit: Some(10), ..Default::default() }` and removing relevant reassignments
+   --> src\commands\experiments\list\list_tests.rs:865:5
+    |
+865 |     let mut query_too_high = ExperimentsListQuery::default();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#field_reassign_with_default
+
+warning: field assignment outside of initializer for an instance created with Default::default()
+   --> src\commands\experiments\list\list_tests.rs:809:9
+    |
+809 |         query.viscosity_threshold = Some(threshold.to_string());
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `commands::experiments::types::ExperimentsListQuery { viscosity_threshold: Some(threshold.to_string()), has_crossing: Some("yes".to_string()), limit: Some(10), ..Default::default() }` and removing relevant reassignments
+   --> src\commands\experiments\list\list_tests.rs:808:9
+    |
+808 |         let mut query = ExperimentsListQuery::default();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#field_reassign_with_default
+
+warning: field assignment outside of initializer for an instance created with Default::default()
+   --> src\commands\experiments\list\list_tests.rs:963:9
+    |
+963 |         q.test_name = Some(exp.name.clone());
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `commands::experiments::types::ExperimentsListQuery { test_name: Some(exp.name.clone()), viscosity_threshold: Some("100".to_string()), has_crossing: Some("yes".to_string()), limit: Some(50), ..Default::default() }` and removing relevant reassignments
+   --> src\commands\experiments\list\list_tests.rs:962:9
+    |
+962 |         let mut q = ExperimentsListQuery::default();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#field_reassign_with_default
+
+warning: very complex type used. Consider factoring parts into `type` definitions
+   --> src\commands\experiments\crud_tests.rs:346:6
+    |
+346 | ) -> (Option<i64>, Option<f64>, Option<f64>, Option<f64>, Option<i64>) {
+    |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#type_complexity
+    = note: `#[warn(clippy::type_complexity)]` on by default
+
+warning: `rheolab-enterprise` (lib) generated 40 warnings (run `cargo clippy --fix --lib -p rheolab-enterprise` to apply 17 suggestions)
+error: approximate value of `f{32, 64}::consts::PI` found
+   --> src\commands\parsing\mod.rs:267:27
+    |
+267 |         assert_eq!(round2(3.14159), 3.14);
+    |                           ^^^^^^^
+    |
+    = help: consider using the constant directly
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#approx_constant
+
+error: approximate value of `f{32, 64}::consts::PI` found
+   --> src\commands\parsing\mod.rs:267:37
+    |
+267 |         assert_eq!(round2(3.14159), 3.14);
+    |                                     ^^^^
+    |
+    = help: consider using the constant directly
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#approx_constant
+
+warning: used `unwrap()` on an `Option` value
+  --> src\commands\licensing\hardware\..\hardware_tests.rs:18:16
+   |
+18 |     assert_eq!(id1.unwrap().len(), 32);
+   |                ^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+note: the lint level is defined here
+  --> src\commands\licensing\hardware\mod.rs:1:9
+   |
+ 1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+   |         ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on an `Option` value
+  --> src\commands\licensing\hardware\..\hardware_tests.rs:31:14
+   |
+31 |     let v2 = compute_v2_id("cpu123", "mobo456", "bios789").unwrap();
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\hardware\..\hardware_tests.rs:49:23
+   |
+49 |         let content = std::fs::read_to_string(&cache_path).unwrap();
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\hardware\..\hardware_tests.rs:55:43
+   |
+55 |         let envelope: serde_json::Value = serde_json::from_str(&content).unwrap();
+   |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on an `Option` value
+  --> src\commands\licensing\hardware\..\hardware_tests.rs:60:25
+   |
+60 |         let decrypted = read_cache(&tmp).expect("Encrypted cache must be readable by read_cache");
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+note: the lint level is defined here
+  --> src\commands\licensing\hardware\mod.rs:1:30
+   |
+ 1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+   |                              ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on a `Result` value
+ --> src\commands\licensing\crypto_tests.rs:8:19
+  |
+8 |     let decoded = hex::decode(&encoded).unwrap();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: if this value is an `Err`, it will panic
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+note: the lint level is defined here
+ --> src\commands\licensing\crypto.rs:1:9
+  |
+1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+  |         ^^^^^^^^^^^^^^^^^^^
+
+warning: used `expect()` on a `Result` value
+  --> src\commands\licensing\crypto_tests.rs:33:23
+   |
+33 |       let private_key = rsa::RsaPrivateKey::from_pkcs8_der(private_der)
+   |  _______________________^
+34 | |         .expect("dev private key should be valid");
+   | |__________________________________________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+note: the lint level is defined here
+  --> src\commands\licensing\crypto.rs:1:30
+   |
+ 1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+   |                              ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\crypto_tests.rs:105:16
+    |
+105 |     let conn = rusqlite::Connection::open_in_memory().unwrap();
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\crypto_tests.rs:106:5
+    |
+106 | /     conn.execute_batch(
+107 | |         "CREATE TABLE SystemState (
+108 | |             key TEXT PRIMARY KEY,
+109 | |             value TEXT NOT NULL,
+...   |
+112 | |         );"
+113 | |     ).unwrap();
+    | |______________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\crypto_tests.rs:116:5
+    |
+116 |     upsert_system_state(&conn, "test_key", value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on an `Option` value
+   --> src\commands\licensing\crypto_tests.rs:118:36
+    |
+118 |       let (stored_val, stored_sig) = get_system_state(&conn, "test_key")
+    |  ____________________________________^
+119 | |         .unwrap()
+120 | |         .expect("should exist");
+    | |_______________________________^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\crypto_tests.rs:118:36
+    |
+118 |       let (stored_val, stored_sig) = get_system_state(&conn, "test_key")
+    |  ____________________________________^
+119 | |         .unwrap()
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\crypto_tests.rs:127:16
+    |
+127 |     let conn = rusqlite::Connection::open_in_memory().unwrap();
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\crypto_tests.rs:128:5
+    |
+128 | /     conn.execute_batch(
+129 | |         "CREATE TABLE SystemState (
+130 | |             key TEXT PRIMARY KEY,
+131 | |             value TEXT NOT NULL,
+...   |
+134 | |         );"
+135 | |     ).unwrap();
+    | |______________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\crypto_tests.rs:137:5
+    |
+137 |     upsert_system_state(&conn, "test_key", r#"{"valid":true}"#).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\crypto_tests.rs:140:5
+    |
+140 | /     conn.execute(
+141 | |         "UPDATE SystemState SET value = '{\"valid\":false,\"type\":\"enterprise\"}' WHERE key = 'test_key'",
+142 | |         [],
+143 | |     ).unwrap();
+    | |______________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on an `Option` value
+   --> src\commands\licensing\crypto_tests.rs:145:40
+    |
+145 |       let (tampered_val, original_sig) = get_system_state(&conn, "test_key")
+    |  ________________________________________^
+146 | |         .unwrap()
+147 | |         .expect("should exist");
+    | |_______________________________^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\crypto_tests.rs:145:40
+    |
+145 |       let (tampered_val, original_sig) = get_system_state(&conn, "test_key")
+    |  ________________________________________^
+146 | |         .unwrap()
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\demo.rs:260:20
+    |
+260 |         let conn = rusqlite::Connection::open_in_memory().unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+note: the lint level is defined here
+   --> src\commands\licensing\demo.rs:1:9
+    |
+  1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\demo.rs:261:9
+    |
+261 | /         conn.execute_batch(
+262 | |             "CREATE TABLE IF NOT EXISTS SystemState (
+263 | |                 key TEXT PRIMARY KEY,
+264 | |                 value TEXT NOT NULL,
+...   |
+267 | |             );"
+268 | |         ).unwrap();
+    | |__________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\commands\licensing\demo.rs:278:17
+    |
+278 |         assert!(result.days_remaining.unwrap() > 0);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\demo.rs:297:9
+    |
+297 |         save_demo_state(&conn, &state).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\demo.rs:315:9
+    |
+315 |         save_demo_state(&conn, &state).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+  --> src\commands\licensing\engine\engine_tests.rs:26:9
+   |
+26 |         dt.unwrap().date_naive(),
+   |         ^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+note: the lint level is defined here
+  --> src\commands\licensing\mod.rs:1:9
+   |
+ 1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]//! Licensing commands тАФ native Rust implementation (V2).
+   |         ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on an `Option` value
+  --> src\commands\licensing\engine\engine_tests.rs:27:9
+   |
+27 |         NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+  --> src\commands\licensing\engine\engine_tests.rs:50:13
+   |
+50 |     assert!(days.unwrap() >= 9); // Might be 9 or 10 depending on time of day
+   |             ^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+  --> src\commands\licensing\engine\engine_tests.rs:60:13
+   |
+60 |     assert!(days.unwrap() <= -4);
+   |             ^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\engine\engine_tests.rs:66:16
+   |
+66 |     let conn = rusqlite::Connection::open_in_memory().unwrap();
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\engine\engine_tests.rs:67:5
+   |
+67 | /     conn.execute_batch(
+68 | |         "CREATE TABLE IF NOT EXISTS SystemState (
+69 | |             key TEXT PRIMARY KEY,
+70 | |             value TEXT NOT NULL,
+...  |
+75 | |     .unwrap();
+   | |_____________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\engine\engine_tests.rs:80:15
+   |
+80 |     let dir = tempfile::tempdir().unwrap();
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\engine\engine_tests.rs:82:16
+   |
+82 |     let pool = crate::db::create_pool(&db_path).unwrap();
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\engine\engine_tests.rs:84:20
+   |
+84 |         let conn = pool.get().unwrap();
+   |                    ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\engine\engine_tests.rs:85:9
+   |
+85 | /         conn.execute_batch(
+86 | |             "CREATE TABLE IF NOT EXISTS SystemState (
+87 | |                 key TEXT PRIMARY KEY,
+88 | |                 value TEXT NOT NULL,
+...  |
+93 | |         .unwrap();
+   | |_________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:108:9
+    |
+108 |         rsa::RsaPrivateKey::from_pkcs8_der(private_der).expect("dev private key should be valid");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+note: the lint level is defined here
+   --> src\commands\licensing\mod.rs:1:30
+    |
+  1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]//! Licensing commands тАФ native Rust implementation (V2).
+    |                              ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:137:21
+    |
+137 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:138:5
+    |
+138 |     upsert_system_state(&conn, DB_KEY_LICENSE, &value_str).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:171:21
+    |
+171 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:172:5
+    |
+172 |     upsert_system_state(&conn, DB_KEY_LICENSE, &value_str).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:200:21
+    |
+200 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:201:5
+    |
+201 |     upsert_system_state(&conn, DB_KEY_LICENSE, &value_str).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:231:21
+    |
+231 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:232:5
+    |
+232 |     upsert_system_state(&conn, DB_KEY_LICENSE, &value_str).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:261:21
+    |
+261 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:262:5
+    |
+262 |     upsert_system_state(&conn, DB_KEY_LICENSE, &value_str).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:288:21
+    |
+288 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:291:5
+    |
+291 | /     conn.execute(
+292 | |         "INSERT INTO SystemState (key, value, signature, updatedAt) VALUES (?1, ?2, ?3, ?4)",
+293 | |         rusqlite::params![DB_KEY_LICENSE, value_str, "forged_hmac", now],
+294 | |     )
+295 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:313:5
+    |
+313 |     upsert_system_state(&conn, DB_KEY_LICENSE, malformed_value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:355:21
+    |
+355 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:361:5
+    |
+361 | /     conn.execute(
+362 | |         "INSERT INTO SystemState (key, value, signature, updatedAt) VALUES (?1, ?2, ?3, ?4)",
+363 | |         rusqlite::params![DB_KEY_LICENSE, &value_str, "deadbeef_stale_hmac", now],
+364 | |     )
+365 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\commands\licensing\engine\engine_tests.rs:368:15
+    |
+368 |     let pre = get_system_state(&conn, DB_KEY_LICENSE).unwrap().unwrap();
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:368:15
+    |
+368 |     let pre = get_system_state(&conn, DB_KEY_LICENSE).unwrap().unwrap();
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\commands\licensing\engine\engine_tests.rs:379:42
+    |
+379 |     let (returned_value, returned_sig) = result.unwrap();
+    |                                          ^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\commands\licensing\engine\engine_tests.rs:394:16
+    |
+394 |     let post = get_system_state(&conn, DB_KEY_LICENSE).unwrap().unwrap();
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:394:16
+    |
+394 |     let post = get_system_state(&conn, DB_KEY_LICENSE).unwrap().unwrap();
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:436:21
+    |
+436 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:439:5
+    |
+439 | /     conn.execute(
+440 | |         "INSERT INTO SystemState (key, value, signature, updatedAt) VALUES (?1, ?2, ?3, ?4)",
+441 | |         rusqlite::params![DB_KEY_LICENSE, &value_str, "stale_hmac_here", now],
+442 | |     )
+443 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:473:21
+    |
+473 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:476:5
+    |
+476 | /     conn.execute(
+477 | |         "INSERT INTO SystemState (key, value, signature, updatedAt) VALUES (?1, ?2, ?3, ?4)",
+478 | |         rusqlite::params![DB_KEY_LICENSE, &value_str, "stale_hmac_no_rsa", now],
+479 | |     )
+480 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:494:19
+    |
+494 |     let app_dir = tempfile::tempdir().unwrap();
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:510:21
+    |
+510 |     let value_str = serde_json::to_string(&db_record).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:512:20
+    |
+512 |         let conn = pool.get().unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:513:9
+    |
+513 |         upsert_system_state(&conn, DB_KEY_LICENSE, &value_str).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:516:14
+    |
+516 |     let rt = tokio::runtime::Runtime::new().unwrap();
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on an `Option` value
+   --> src\commands\licensing\engine\engine_tests.rs:526:18
+    |
+526 |     let cached = rt.block_on(engine.cached()).expect("cached startup result");
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:543:23
+    |
+543 |         let app_dir = tempfile::tempdir().unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:560:24
+    |
+560 |             let conn = pool.get().unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:561:13
+    |
+561 |             upsert_system_state(&conn, DB_KEY_LICENSE, &serde_json::to_string(&db_record).unwrap()).unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:561:57
+    |
+561 |             upsert_system_state(&conn, DB_KEY_LICENSE, &serde_json::to_string(&db_record).unwrap()).unwrap();
+    |                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:564:18
+    |
+564 |         let rt = tokio::runtime::Runtime::new().unwrap();
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:580:23
+    |
+580 |         let app_dir = tempfile::tempdir().unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\engine\engine_tests.rs:583:18
+    |
+583 |         let rt = tokio::runtime::Runtime::new().unwrap();
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on a `Result` value
+  --> src\commands\licensing\licensing_tests.rs:52:23
+   |
+52 |       let private_key = rsa::RsaPrivateKey::from_pkcs8_der(private_der)
+   |  _______________________^
+53 | |         .expect("dev private key should be valid");
+   | |__________________________________________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\licensing_tests.rs:60:16
+   |
+60 |     let conn = rusqlite::Connection::open_in_memory().unwrap();
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\licensing_tests.rs:61:5
+   |
+61 | /     conn.execute_batch(
+62 | |         "CREATE TABLE IF NOT EXISTS SystemState (
+63 | |             key TEXT PRIMARY KEY,
+64 | |             value TEXT NOT NULL,
+...  |
+67 | |         );"
+68 | |     ).unwrap();
+   | |______________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\licensing_tests.rs:87:17
+   |
+87 |     let value = serde_json::to_string(&state).unwrap();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\commands\licensing\licensing_tests.rs:88:5
+   |
+88 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &value).unwrap();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap_err()` on a `Result` value
+  --> src\commands\licensing\licensing_tests.rs:92:16
+   |
+92 |     assert_eq!(result.unwrap_err().to_string(), "License error: required");
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Ok`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:111:17
+    |
+111 |     let value = serde_json::to_string(&license).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:112:5
+    |
+112 |     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:124:20
+    |
+124 |     let demo_val = serde_json::to_string(&demo_state).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:125:5
+    |
+125 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &demo_val).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:140:17
+    |
+140 |     let value = serde_json::to_string(&license).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:143:5
+    |
+143 | /     conn.execute(
+144 | |         "INSERT INTO SystemState (key, value, signature, updatedAt) VALUES (?1, ?2, ?3, ?4)",
+145 | |         rusqlite::params![types::DB_KEY_LICENSE, value, "forged_signature", now],
+146 | |     ).unwrap();
+    | |______________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:157:20
+    |
+157 |     let demo_val = serde_json::to_string(&demo_state).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:158:5
+    |
+158 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &demo_val).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:181:17
+    |
+181 |     let value = serde_json::to_string(&license).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:182:5
+    |
+182 |     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:193:20
+    |
+193 |     let demo_val = serde_json::to_string(&demo_state).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:194:5
+    |
+194 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &demo_val).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:228:17
+    |
+228 |     let value = serde_json::to_string(&license).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:229:5
+    |
+229 |     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:240:20
+    |
+240 |     let demo_val = serde_json::to_string(&demo_state).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:241:5
+    |
+241 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &demo_val).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:261:17
+    |
+261 |     let value = serde_json::to_string(&state).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:262:5
+    |
+262 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\commands\licensing\licensing_tests.rs:277:29
+    |
+277 |     let initial_remaining = result1.experiments_remaining.unwrap();
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:280:5
+    |
+280 |     demo::increment_demo_experiments(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\commands\licensing\licensing_tests.rs:283:9
+    |
+283 |         result2.experiments_remaining.unwrap(),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:301:17
+    |
+301 |     let value = serde_json::to_string(&state).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:302:5
+    |
+302 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\commands\licensing\licensing_tests.rs:316:30
+    |
+316 |       let (_, _original_sig) = crypto::get_system_state(&conn, types::DB_KEY_DEMO)
+    |  ______________________________^
+317 | |         .unwrap()
+318 | |         .unwrap();
+    | |_________________^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:316:30
+    |
+316 |       let (_, _original_sig) = crypto::get_system_state(&conn, types::DB_KEY_DEMO)
+    |  ______________________________^
+317 | |         .unwrap()
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:327:5
+    |
+327 | /     conn.execute(
+328 | |         "UPDATE SystemState SET value = ?1, updatedAt = ?3 WHERE key = ?2",
+329 | |         rusqlite::params![serde_json::to_string(&forged).unwrap(), types::DB_KEY_DEMO, now],
+330 | |     ).unwrap();
+    | |______________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:329:27
+    |
+329 |         rusqlite::params![serde_json::to_string(&forged).unwrap(), types::DB_KEY_DEMO, now],
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:360:17
+    |
+360 |     let value = serde_json::to_string(&license).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:361:5
+    |
+361 |     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:460:17
+    |
+460 |     let value = serde_json::to_string(&license).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:461:5
+    |
+461 |     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:472:5
+    |
+472 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &serde_json::to_string(&demo_state).unwrap()).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:472:53
+    |
+472 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &serde_json::to_string(&demo_state).unwrap()).unwrap();
+    |                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:494:17
+    |
+494 |     let value = serde_json::to_string(&license).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:495:5
+    |
+495 |     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:517:17
+    |
+517 |     let value = serde_json::to_string(&license).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:518:5
+    |
+518 |     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:529:20
+    |
+529 |     let demo_val = serde_json::to_string(&demo_state).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:530:5
+    |
+530 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &demo_val).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:550:17
+    |
+550 |     let value = serde_json::to_string(&license).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:551:5
+    |
+551 |     upsert_system_state(&conn, types::DB_KEY_LICENSE, &value).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:562:20
+    |
+562 |     let demo_val = serde_json::to_string(&demo_state).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\commands\licensing\licensing_tests.rs:563:5
+    |
+563 |     upsert_system_state(&conn, types::DB_KEY_DEMO, &demo_val).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:305:23
+    |
+305 |         let encoded = encode(&[]).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+note: the lint level is defined here
+   --> src\db\columnar.rs:1:9
+    |
+  1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:307:23
+    |
+307 |         let decoded = decode(&encoded).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:314:23
+    |
+314 |         let encoded = encode(&points).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:315:23
+    |
+315 |         let decoded = decode(&encoded).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:330:25
+    |
+330 |         let json_size = serde_json::to_string(&points).unwrap().len();
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:331:31
+    |
+331 |         let compressed_size = encode(&points).unwrap().len();
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:349:23
+    |
+349 |         let encoded = encode(&points).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:350:23
+    |
+350 |         let decoded = decode(&encoded).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:373:23
+    |
+373 |         let encoded = encode(&points).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:375:21
+    |
+375 |         let typed = decode_typed(&encoded).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: `panic` should not be present in production code
+   --> src\db\columnar.rs:379:56
+    |
+379 |             let col = typed.get(key).unwrap_or_else(|| panic!("missing channel {key}"));
+    |                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#panic
+note: the lint level is defined here
+   --> src\db\columnar.rs:1:51
+    |
+  1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+    |                                                   ^^^^^^^^^^^^^
+
+warning: used `unwrap()` on an `Option` value
+   --> src\db\columnar.rs:385:23
+    |
+385 |         let vis_col = typed.get("viscosity_cp").unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\db\columnar.rs:387:28
+    |
+387 |             let expected = pt.get("viscosity_cp").and_then(|v| v.as_f64()).unwrap();
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on an `Option` value
+   --> src\db\columnar.rs:388:23
+    |
+388 |             let got = vis_col[i].expect("unexpected null");
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+note: the lint level is defined here
+   --> src\db\columnar.rs:1:30
+    |
+  1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+    |                              ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:393:21
+    |
+393 |         let empty = decode_typed(&[]).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:404:23
+    |
+404 |         let encoded = encode(&points).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:405:21
+    |
+405 |         let typed = decode_typed(&encoded).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\db\columnar.rs:407:19
+    |
+407 |         let vis = typed.get("viscosity_cp").unwrap();
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> src\db\columnar.rs:412:20
+    |
+412 |         let temp = typed.get("temperature_c").unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:425:23
+    |
+425 |         let encoded = encode(&points).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:426:24
+    |
+426 |         let _decoded = decode(&encoded).unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:440:23
+    |
+440 |         let encoded = encode(&points).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\columnar.rs:442:22
+    |
+442 |         let _typed = decode_typed(&encoded).unwrap();
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:15:16
+   |
+15 |     let conn = Connection::open_in_memory().unwrap();
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+note: the lint level is defined here
+  --> src\db\migration.rs:1:9
+   |
+ 1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+   |         ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:16:5
+   |
+16 |     conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:26:5
+   |
+26 | /     conn.execute(
+27 | |         "INSERT INTO User (id, name, email, role, isActive, createdAt, updatedAt) \
+28 | |          VALUES (?1, ?2, ?3, 'operator', 1, datetime('now'), datetime('now'))",
+29 | |         rusqlite::params![id, id, format!("{id}@test")],
+30 | |     )
+31 | |     .unwrap();
+   | |_____________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:35:5
+   |
+35 | /     conn.execute(
+36 | |         "INSERT INTO Experiment \
+37 | |          (id, createdAt, updatedAt, originalFilename, testDate, instrumentType, \
+38 | |           geometry, geometrySource, durationSeconds, avgTemperatureC, \
+...  |
+49 | |     .unwrap();
+   | |_____________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:57:5
+   |
+57 |     run_migrations(&conn).unwrap();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:59:31
+   |
+59 |       let tables: Vec<String> = conn
+   |  _______________________________^
+60 | |         .prepare(
+61 | |             "SELECT name FROM sqlite_master \
+62 | |              WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'fts_%' \
+...  |
+68 | |         .collect::<rusqlite::Result<Vec<_>>>()
+69 | |         .unwrap();
+   | |_________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:59:31
+   |
+59 |       let tables: Vec<String> = conn
+   |  _______________________________^
+60 | |         .prepare(
+61 | |             "SELECT name FROM sqlite_master \
+62 | |              WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'fts_%' \
+...  |
+66 | |         .query_map([], |row| row.get(0))
+67 | |         .unwrap()
+   | |_________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:59:31
+   |
+59 |       let tables: Vec<String> = conn
+   |  _______________________________^
+60 | |         .prepare(
+61 | |             "SELECT name FROM sqlite_master \
+62 | |              WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'fts_%' \
+...  |
+65 | |         .unwrap()
+   | |_________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:92:5
+   |
+92 |     run_migrations(&conn).unwrap();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> src\db\migration_tests.rs:93:5
+   |
+93 |     run_migrations(&conn).unwrap(); // second call must not fail
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:104:5
+    |
+104 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:115:5
+    |
+115 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:118:5
+    |
+118 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:132:5
+    |
+132 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:135:5
+    |
+135 | /     conn.execute(
+136 | |         "INSERT INTO ReagentCatalog \
+137 | |          (id, name, category, manufacturer, country, description, \
+138 | |           activeSubstance, form, createdAt, updatedAt) \
+...   |
+143 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:148:5
+    |
+148 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:149:5
+    |
+149 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:150:5
+    |
+150 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:171:5
+    |
+171 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on a `Result` value
+   --> src\db\migration_tests.rs:174:33
+    |
+174 |       let first_default: String = conn
+    |  _________________________________^
+175 | |         .query_row(
+176 | |             "SELECT name FROM ReagentCatalog WHERE id LIKE 'seed_%' LIMIT 1",
+177 | |             [],
+...   |
+180 | |         .expect("At least one seed reagent must exist");
+    | |_______________________________________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+note: the lint level is defined here
+   --> src\db\migration.rs:1:30
+    |
+  1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+    |                              ^^^^^^^^^^^^^^^^^^^
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:183:5
+    |
+183 | /     conn.execute(
+184 | |         "DELETE FROM ReagentCatalog WHERE name = ?1",
+185 | |         rusqlite::params![&first_default],
+186 | |     )
+187 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:189:21
+    |
+189 |       let gone: i64 = conn
+    |  _____________________^
+190 | |         .query_row(
+191 | |             "SELECT COUNT(*) FROM ReagentCatalog WHERE name = ?1",
+192 | |             rusqlite::params![&first_default],
+...   |
+195 | |         .unwrap();
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:199:5
+    |
+199 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:201:25
+    |
+201 |       let restored: i64 = conn
+    |  _________________________^
+202 | |         .query_row(
+203 | |             "SELECT COUNT(*) FROM ReagentCatalog WHERE name = ?1",
+204 | |             rusqlite::params![&first_default],
+...   |
+207 | |         .unwrap();
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:217:5
+    |
+217 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:227:5
+    |
+227 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:228:5
+    |
+228 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:229:5
+    |
+229 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:241:5
+    |
+241 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:247:5
+    |
+247 | /     conn.execute(
+248 | |         "INSERT INTO Laboratory (id, name, createdAt, updatedAt) \
+249 | |          VALUES ('lab1','╨ж╨Ч╨Ы ╨Э╨╡╤Д╤В╤П╨╜╨╕╨║',datetime('now'),datetime('now'))",
+250 | |         [],
+251 | |     )
+252 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:255:5
+    |
+255 | /     conn.execute(
+256 | |         "INSERT INTO Operator (id, name, position, isActive, createdAt, updatedAt) \
+257 | |          VALUES ('op1','╨Ш╨▓╨░╨╜╨╛╨▓ ╨Ш.╨Ш.','╨Ш╨╜╨╢╨╡╨╜╨╡╤А',1,datetime('now'),datetime('now'))",
+258 | |         [],
+259 | |     )
+260 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:263:5
+    |
+263 | /     conn.execute(
+264 | |         "INSERT INTO ReagentCatalog (id, name, category, manufacturer, country, \
+265 | |          description, activeSubstance, form, createdAt, updatedAt) \
+266 | |          VALUES ('r1','╨Ъ╨░╤Б╤В╨╛╨╝-1','Breaker','╨Ю╨Ю╨Ю','╨а╨╛╤Б╤Б╨╕╤П','desc',NULL,'Powder', \
+...   |
+270 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:271:5
+    |
+271 | /     conn.execute(
+272 | |         "INSERT INTO ExperimentReagent \
+273 | |          (id, experimentId, reagentId, reagentName, category, concentration, unit) \
+274 | |          VALUES ('er1','exp-a','r1','╨Ъ╨░╤Б╤В╨╛╨╝-1','Breaker',0.5,'kg/m┬│')",
+...   |
+277 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:287:5
+    |
+287 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:301:5
+    |
+301 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:316:5
+    |
+316 | /     conn.execute(
+317 | |         "INSERT INTO ExperimentData \
+318 | |          (experimentId, dataBlob, encoding, pointCount, createdAt, updatedAt) \
+319 | |          VALUES ('exp-fk', X'deadbeef', 'columnar-v1-zstd', 1, datetime('now'), datetime('now'))",
+...   |
+322 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:326:5
+    |
+326 |     conn.execute_batch("PRAGMA foreign_keys = ON; DELETE FROM Experiment WHERE id='exp-fk';").unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:340:18
+    |
+340 |     let result = run_migrations(&conn).unwrap();
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on a `Result` value
+   --> src\db\migration_tests.rs:347:51
+    |
+347 |       let (db_version, db_app_ver): (i64, String) = conn
+    |  ___________________________________________________^
+348 | |         .query_row(
+349 | |             "SELECT schema_version, app_version FROM schema_meta WHERE id = 1",
+350 | |             [],
+...   |
+353 | |         .expect("schema_meta row must exist after run_migrations");
+    | |__________________________________________________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:363:5
+    |
+363 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:364:5
+    |
+364 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:366:26
+    |
+366 |       let row_count: i64 = conn
+    |  __________________________^
+367 | |         .query_row("SELECT COUNT(*) FROM schema_meta", [], |r| r.get(0))
+368 | |         .unwrap();
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:376:17
+    |
+376 |     let first = run_migrations(&conn).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:379:18
+    |
+379 |     let second = run_migrations(&conn).unwrap();
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:393:5
+    |
+393 |     conn.execute_batch(V1_DDL).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:394:5
+    |
+394 |     conn.execute("DELETE FROM schema_meta", []).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:396:18
+    |
+396 |     let result = run_migrations(&conn).unwrap();
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:402:22
+    |
+402 |       let count: i64 = conn
+    |  ______________________^
+403 | |         .query_row("SELECT COUNT(*) FROM schema_meta WHERE id = 1", [], |r| r.get(0))
+404 | |         .unwrap();
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:412:18
+    |
+412 |     let result = run_migrations(&conn).unwrap();
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:428:17
+    |
+428 |     let first = run_migrations(&conn).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:429:18
+    |
+429 |     let second = run_migrations(&conn).unwrap();
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:451:5
+    |
+451 |     run_migrations(&conn_a).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:454:5
+    |
+454 |     conn_b.execute_batch(V1_DDL).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:456:5
+    |
+456 |     V0002TouchPointMetrics.up(&conn_b).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:459:5
+    |
+459 |     V0003MultiThresholdTouchPoint.up(&conn_b).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:462:24
+    |
+462 |           let mut stmt = conn
+    |  ________________________^
+463 | |             .prepare(
+464 | |                 "SELECT type, name, sql FROM sqlite_master \
+465 | |                  WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' \
+...   |
+468 | |             .unwrap();
+    | |_____________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:469:9
+    |
+469 | /         stmt.query_map([], |r| {
+470 | |             Ok(format!(
+471 | |                 "{}:{}:{}",
+472 | |                 r.get::<_, String>(0)?,
+...   |
+476 | |         })
+477 | |         .unwrap()
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:478:18
+    |
+478 |         .map(|r| r.unwrap())
+    |                  ^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `expect()` on a `Result` value
+   --> src\db\migration_tests.rs:497:5
+    |
+497 | /     crate::db::migrations::validate_registry()
+498 | |         .expect("MIGRATIONS registry must have strictly increasing positive versions");
+    | |______________________________________________________________________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:526:17
+    |
+526 |     let first = run_migrations(&conn).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:530:18
+    |
+530 |     let second = run_migrations(&conn).unwrap();
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:533:33
+    |
+533 |       let schema_meta_rows: i64 = conn
+    |  _________________________________^
+534 | |         .query_row("SELECT COUNT(*) FROM schema_meta", [], |r| r.get(0))
+535 | |         .unwrap();
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:546:5
+    |
+546 |     run_migrations(&conn).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> src\db\migration_tests.rs:549:5
+    |
+549 | /     conn.execute(
+550 | |         "UPDATE schema_meta SET schema_version = ?1 WHERE id = 1",
+551 | |         rusqlite::params![CURRENT_SCHEMA_VERSION + 100],
+552 | |     )
+553 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unwrap_used
+
+warning: consider using `sort_by_key`
+   --> src\lib.rs:154:9
+    |
+154 |         rotated_logs.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `rotated_logs.sort_by_key(|b| std::cmp::Reverse(b.file_name()))`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unnecessary_sort_by
+
+warning: useless use of `vec!`
+  --> src\commands\licensing\hardware\..\hardware_tests.rs:24:17
+   |
+24 |     let parts = vec!["cpu123", "mobo456", "bios789"];
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `["cpu123", "mobo456", "bios789"]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_vec
+   = note: `#[warn(clippy::useless_vec)]` on by default
+
+warning: `rheolab-enterprise` (lib test) generated 256 warnings (40 duplicates)
+error: could not compile `rheolab-enterprise` (lib test) due to 6 previous errors; 256 warnings emitted

@@ -10,4 +10,4 @@ pub mod pool;
 pub mod repositories;
 pub mod touch_point_precompute;
 
-pub use pool::{DbPool, DbConn, create_pool};
+pub use pool::{create_pool, DbConn, DbPool};

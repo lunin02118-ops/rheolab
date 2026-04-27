@@ -55,10 +55,22 @@ pub struct MergeResult {
 
 impl MergeResult {
     pub fn ok(imported: u64, skipped: u64) -> Self {
-        Self { success: true, error: None, imported, skipped, warnings: None }
+        Self {
+            success: true,
+            error: None,
+            imported,
+            skipped,
+            warnings: None,
+        }
     }
     pub fn err(error: impl Into<String>) -> Self {
-        Self { success: false, error: Some(error.into()), imported: 0, skipped: 0, warnings: None }
+        Self {
+            success: false,
+            error: Some(error.into()),
+            imported: 0,
+            skipped: 0,
+            warnings: None,
+        }
     }
 }
 

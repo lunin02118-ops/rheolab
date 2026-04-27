@@ -197,6 +197,5 @@ export function useRheologyChartOptions({
                 sBathTemperature,
             }),
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- touchPoints/showTouchPoints/targetTime/viscosityThreshold/tooltipEnabled are read from a ref inside the draw hook (no chart recreation needed)
     }, [activeSettings, chartSettings, showTemperature, showShearRate, showPressure, showRpm, showBathTemperature, pdfMode, captureMode, effectiveShearRateAxis, effectivePressureAxis, axisMode, resolvedTheme, language]);
 }

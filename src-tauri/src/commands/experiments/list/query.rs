@@ -1,11 +1,11 @@
-﻿use crate::db::migrations::v0003_multi_threshold_touch_point::LIBRARY_TOUCH_THRESHOLDS_CP;
+use super::super::helpers::*;
+use super::super::types::*;
+use crate::db::migrations::v0003_multi_threshold_touch_point::LIBRARY_TOUCH_THRESHOLDS_CP;
 use crate::error::Result;
 use crate::state::AppState;
 use rusqlite::params;
 use rusqlite::OptionalExtension;
 use serde_json::Value;
-use super::super::types::*;
-use super::super::helpers::*;
 
 /// Default library-filter threshold.  Used when the user has not picked
 /// any preset — the touch-point sidebar is inactive and any `hasCrossing`
@@ -273,9 +273,8 @@ fn append_precomputed_touch_conditions(
                 conditions.push("tpp.hasCrossing = 1".to_string());
             }
             "no" | "false" | "0" => {
-                conditions.push(
-                    "(tpp.hasCrossing = 0 AND tpp.hasCrossing IS NOT NULL)".to_string(),
-                );
+                conditions
+                    .push("(tpp.hasCrossing = 0 AND tpp.hasCrossing IS NOT NULL)".to_string());
             }
             _ => {}
         }
@@ -349,9 +348,7 @@ pub(crate) fn query_experiments_list_sql(
             Some(preset) => preset,
             None => {
                 return crate::commands::experiments::list::dynamic::query_with_dynamic_threshold(
-                    state,
-                    query,
-                    user_cp,
+                    state, query, user_cp,
                 );
             }
         },
@@ -393,8 +390,9 @@ pub(crate) fn query_experiments_list_sql(
         tpp_join, where_clause
     );
     let params_ref: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-    let total: usize = conn
-        .query_row(&count_sql, params_ref.as_slice(), |row| row.get::<_, i64>(0))? as usize;
+    let total: usize = conn.query_row(&count_sql, params_ref.as_slice(), |row| {
+        row.get::<_, i64>(0)
+    })? as usize;
 
     if total == 0 {
         return Ok((vec![], 0));
@@ -405,22 +403,22 @@ pub(crate) fn query_experiments_list_sql(
     let limit = query.limit.unwrap_or(20).clamp(1, 500);
     // Resolve sort column + direction from whitelist (no user input in SQL string).
     let sort_col = match query.sort_by.as_deref() {
-        Some("name")            => "e.name",
-        Some("testDate")        => "e.testDate",
-        Some("instrumentType")  => "e.instrumentType",
-        Some("geometry")        => "e.geometry",
-        Some("fluidType")       => "e.fluidType",
+        Some("name") => "e.name",
+        Some("testDate") => "e.testDate",
+        Some("instrumentType") => "e.instrumentType",
+        Some("geometry") => "e.geometry",
+        Some("fluidType") => "e.fluidType",
         Some("durationSeconds") => "e.durationSeconds",
         Some("avgTemperatureC") => "e.avgTemperatureC",
-        Some("avgViscosity")    => "e.avgViscosity",
-        Some("testCategory")    => "e.testCategory",
-        Some("testType")        => "e.testType",
+        Some("avgViscosity") => "e.avgViscosity",
+        Some("testCategory") => "e.testCategory",
+        Some("testType") => "e.testType",
         Some("dominantPattern") => "e.dominantPattern",
-        _                       => "e.testDate",
+        _ => "e.testDate",
     };
     let sort_dir_sql = match query.sort_dir.as_deref() {
         Some("asc") => "ASC",
-        _           => "DESC",
+        _ => "DESC",
     };
     // Keyset cursor: when `after_id` is provided, fetch that row's createdAt,
     // then replace OFFSET with a WHERE condition on createdAt. This eliminates
@@ -439,8 +437,7 @@ pub(crate) fn query_experiments_list_sql(
 
         if let Some(at) = cursor_at {
             // Add cursor condition using parameterized bindings (no string interpolation)
-            let cursor_cond =
-                "(e.createdAt < ? OR (e.createdAt = ? AND e.id < ?))".to_string();
+            let cursor_cond = "(e.createdAt < ? OR (e.createdAt = ? AND e.id < ?))".to_string();
             // Prepend cursor condition into existing WHERE
             let existing = conditions.join(" AND ");
             conditions.clear();
@@ -465,13 +462,19 @@ pub(crate) fn query_experiments_list_sql(
             let offset = (page - 1) * limit;
             params.push(Box::new(limit as i64));
             params.push(Box::new(offset as i64));
-            (format!("ORDER BY {} {}", sort_col, sort_dir_sql), "LIMIT ? OFFSET ?".to_string())
+            (
+                format!("ORDER BY {} {}", sort_col, sort_dir_sql),
+                "LIMIT ? OFFSET ?".to_string(),
+            )
         }
     } else {
         let offset = (page - 1) * limit;
         params.push(Box::new(limit as i64));
         params.push(Box::new(offset as i64));
-        (format!("ORDER BY {} {}", sort_col, sort_dir_sql), "LIMIT ? OFFSET ?".to_string())
+        (
+            format!("ORDER BY {} {}", sort_col, sort_dir_sql),
+            "LIMIT ? OFFSET ?".to_string(),
+        )
     };
 
     // ── DATA query (excludes rawPoints, metrics, calibration) ──

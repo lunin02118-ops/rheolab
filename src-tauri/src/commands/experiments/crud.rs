@@ -1,14 +1,16 @@
-﻿//! CRUD commands for experiments: get, save, delete.
+//! CRUD commands for experiments: get, save, delete.
 
+use super::helpers::*;
+use super::types::*;
+use crate::commands::licensing::{
+    can_write_via_engine, maybe_increment_demo_save, require_write_license,
+};
 use crate::error::Result;
-use crate::commands::licensing::{can_write_via_engine, maybe_increment_demo_save};
 use crate::state::AppState;
 use crate::utils::validation::{validate_bounded_str, validate_hash_id};
 use rusqlite::params;
 use rusqlite::OptionalExtension;
 use tauri::State;
-use super::types::*;
-use super::helpers::*;
 
 #[tauri::command]
 pub async fn experiments_get(
@@ -37,12 +39,15 @@ pub async fn experiments_get_batch(
     ids: Vec<String>,
 ) -> Result<ExperimentGetBatchResponse> {
     // WP-1.5: validate each hash ID
-    for id in &ids { validate_hash_id(id, "ids[]")?; }
+    for id in &ids {
+        validate_hash_id(id, "ids[]")?;
+    }
 
     if ids.len() > BATCH_GET_MAX {
-        return Err(crate::error::AppError::BadRequest(
-            format!("Batch size {} exceeds maximum of {BATCH_GET_MAX}", ids.len()),
-        ));
+        return Err(crate::error::AppError::BadRequest(format!(
+            "Batch size {} exceeds maximum of {BATCH_GET_MAX}",
+            ids.len()
+        )));
     }
 
     let conn = state.pool_conn()?;
@@ -69,13 +74,20 @@ pub async fn experiments_check_existence(
     ids: Vec<String>,
 ) -> Result<ExperimentExistenceResponse> {
     // WP-1.5: validate each hash ID
-    for id in &ids { validate_hash_id(id, "ids[]")?; }
+    for id in &ids {
+        validate_hash_id(id, "ids[]")?;
+    }
 
     let conn = state.pool_conn()?;
     if ids.is_empty() {
-        return Ok(ExperimentExistenceResponse { existing_ids: vec![] });
+        return Ok(ExperimentExistenceResponse {
+            existing_ids: vec![],
+        });
     }
-    let ph: String = std::iter::repeat("?").take(ids.len()).collect::<Vec<_>>().join(",");
+    let ph: String = std::iter::repeat("?")
+        .take(ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
     let sql = format!("SELECT id FROM Experiment WHERE id IN ({ph})");
     let mut stmt = conn.prepare(&sql).map_err(|e| format!("SQL error: {e}"))?;
     let existing: Vec<String> = stmt
@@ -83,7 +95,9 @@ pub async fn experiments_check_existence(
         .map_err(|e| format!("SQL error: {e}"))?
         .collect::<rusqlite::Result<Vec<_>>>()
         .map_err(|e| format!("SQL row error: {e}"))?;
-    Ok(ExperimentExistenceResponse { existing_ids: existing })
+    Ok(ExperimentExistenceResponse {
+        existing_ids: existing,
+    })
 }
 
 #[tauri::command]
@@ -98,10 +112,18 @@ pub async fn experiments_save(
     validate_bounded_str(&payload.instrument_type, 255, "instrumentType")?;
     validate_bounded_str(&payload.fluid_type, 255, "fluidType")?;
     validate_bounded_str(&payload.test_group, 255, "testGroup")?;
-    if let Some(ref v) = payload.field_name { validate_bounded_str(v, 255, "fieldName")?; }
-    if let Some(ref v) = payload.operator_name { validate_bounded_str(v, 255, "operatorName")?; }
-    if let Some(ref v) = payload.well_number { validate_bounded_str(v, 100, "wellNumber")?; }
-    if let Some(ref v) = payload.geometry { validate_bounded_str(v, 255, "geometry")?; }
+    if let Some(ref v) = payload.field_name {
+        validate_bounded_str(v, 255, "fieldName")?;
+    }
+    if let Some(ref v) = payload.operator_name {
+        validate_bounded_str(v, 255, "operatorName")?;
+    }
+    if let Some(ref v) = payload.well_number {
+        validate_bounded_str(v, 100, "wellNumber")?;
+    }
+    if let Some(ref v) = payload.geometry {
+        validate_bounded_str(v, 255, "geometry")?;
+    }
 
     // F-08: License gate — must call BEFORE acquiring Connection (!Send across .await)
     if !can_write_via_engine(&state).await {
@@ -151,7 +173,10 @@ pub async fn experiments_save(
 
     if let Some((existing_id, existing_name)) = name_match {
         if !should_overwrite {
-            return Ok(ExperimentSaveResponse::name_conflict(existing_id, existing_name));
+            return Ok(ExperimentSaveResponse::name_conflict(
+                existing_id,
+                existing_name,
+            ));
         }
         // overwrite=true: look up the existing record's createdAt and reuse its id
         let existing_created_at: String = tx
@@ -175,16 +200,36 @@ pub async fn experiments_save(
         if let Ok(payload_json) = serde_json::to_string(&updated) {
             let ref_json = super::super::data_flows::compact_ref(&existing_id, &payload_json);
             super::super::data_flows::create_experiment_payload(
-                &tx, &existing_id, None, &ref_json, None, None, None, true,
+                &tx,
+                &existing_id,
+                None,
+                &ref_json,
+                None,
+                None,
+                None,
+                true,
             )?;
             super::super::data_flows::create_parser_artifact(
-                &tx, &existing_id, None, env!("CARGO_PKG_VERSION"), "v1", &ref_json,
+                &tx,
+                &existing_id,
+                None,
+                env!("CARGO_PKG_VERSION"),
+                "v1",
+                &ref_json,
             )?;
             super::super::data_flows::append_sync_outbox(
-                &tx, "experiment", &existing_id, "update", &ref_json,
+                &tx,
+                "experiment",
+                &existing_id,
+                "update",
+                &ref_json,
             )?;
             super::super::data_flows::log_search_projection(
-                &tx, Some(&existing_id), "update", "v1", None,
+                &tx,
+                Some(&existing_id),
+                "update",
+                "v1",
+                None,
             )?;
         }
 
@@ -223,20 +268,40 @@ pub async fn experiments_save(
         if let Ok(payload_json) = serde_json::to_string(&updated) {
             let ref_json = super::super::data_flows::compact_ref(&existing_id, &payload_json);
             super::super::data_flows::create_experiment_payload(
-                &tx, &existing_id, None, &ref_json, None, None, None, true,
+                &tx,
+                &existing_id,
+                None,
+                &ref_json,
+                None,
+                None,
+                None,
+                true,
             )?;
-            
+
             super::super::data_flows::create_parser_artifact(
-                &tx, &existing_id, None, env!("CARGO_PKG_VERSION"), "v1", &ref_json,
+                &tx,
+                &existing_id,
+                None,
+                env!("CARGO_PKG_VERSION"),
+                "v1",
+                &ref_json,
             )?;
-            
+
             // SyncOutbox failure is critical — roll back so no ghost entry is created
             super::super::data_flows::append_sync_outbox(
-                &tx, "experiment", &existing_id, "update", &ref_json,
+                &tx,
+                "experiment",
+                &existing_id,
+                "update",
+                &ref_json,
             )?;
-            
+
             super::super::data_flows::log_search_projection(
-                &tx, Some(&existing_id), "update", "v1", None,
+                &tx,
+                Some(&existing_id),
+                "update",
+                "v1",
+                None,
             )?;
         }
 
@@ -254,20 +319,40 @@ pub async fn experiments_save(
     if let Ok(payload_json) = serde_json::to_string(&stored) {
         let ref_json = super::super::data_flows::compact_ref(&experiment_id, &payload_json);
         super::super::data_flows::create_experiment_payload(
-            &tx, &experiment_id, None, &ref_json, None, None, None, true,
+            &tx,
+            &experiment_id,
+            None,
+            &ref_json,
+            None,
+            None,
+            None,
+            true,
         )?;
-        
+
         super::super::data_flows::create_parser_artifact(
-            &tx, &experiment_id, None, env!("CARGO_PKG_VERSION"), "v1", &ref_json,
+            &tx,
+            &experiment_id,
+            None,
+            env!("CARGO_PKG_VERSION"),
+            "v1",
+            &ref_json,
         )?;
-        
+
         // SyncOutbox failure is critical — roll back so no ghost entry is created
         super::super::data_flows::append_sync_outbox(
-            &tx, "experiment", &experiment_id, "create", &ref_json,
+            &tx,
+            "experiment",
+            &experiment_id,
+            "create",
+            &ref_json,
         )?;
-        
+
         super::super::data_flows::log_search_projection(
-            &tx, Some(&experiment_id), "create", "v1", None,
+            &tx,
+            Some(&experiment_id),
+            "create",
+            "v1",
+            None,
         )?;
     }
 
@@ -285,6 +370,8 @@ pub async fn experiments_delete(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<ExperimentDeleteResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: validate hash ID
     validate_hash_id(&id, "id")?;
 
@@ -294,15 +381,16 @@ pub async fn experiments_delete(
     // V2 data flows: record deletion in sync outbox before actual delete
     // SyncOutbox failure is critical — roll back so the delete is not orphaned
     super::super::data_flows::append_sync_outbox(
-        &tx, "experiment", &id, "delete", &format!(r#"{{"id":"{}"}}"#, id),
-    )?;
-    
-    super::super::data_flows::log_search_projection(
-        &tx, Some(&id), "delete", "v1", None,
+        &tx,
+        "experiment",
+        &id,
+        "delete",
+        &format!(r#"{{"id":"{}"}}"#, id),
     )?;
 
-    let deleted = tx
-        .execute("DELETE FROM Experiment WHERE id = ?1", params![id])?;
+    super::super::data_flows::log_search_projection(&tx, Some(&id), "delete", "v1", None)?;
+
+    let deleted = tx.execute("DELETE FROM Experiment WHERE id = ?1", params![id])?;
 
     if deleted == 0 {
         return Ok(ExperimentDeleteResponse {
@@ -310,7 +398,6 @@ pub async fn experiments_delete(
             error: Some("Experiment not found".to_string()),
         });
     }
-
 
     tx.commit()?;
     super::list::invalidate_filter_metadata_cache();
@@ -388,13 +475,12 @@ fn normalize_reagent(mut reagent: StoredExperimentReagent) -> StoredExperimentRe
     reagent
 }
 
-
 // ── Repository re-exports ─────────────────────────────────────────────────────
 // SQL for these operations lives in db::repositories::experiments.
 // Re-exported here so existing callers (sync_engine, experiments::sync) do not
 // need to change their import paths.
 pub(crate) use crate::db::repositories::experiments::{
-    persist_experiment, load_experiment_by_id, load_experiments_batch,
+    load_experiment_by_id, load_experiments_batch, persist_experiment,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,64 @@
+[2026-04-25T07:53:01.389Z] wrapper start
+[2026-04-25T07:53:01.389Z] cwd=D:\Development\Rheolab
+[2026-04-25T07:53:01.389Z] command=npm.cmd exec tauri -- dev
+[2026-04-25T07:53:01.389Z] RHEOLAB_SKIP_VERSION_BUMP=
+[2026-04-25T07:53:01.392Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-25T07:53:01.393Z] using shell fallback: npm.cmd "exec" "tauri" "--" "dev"
+[2026-04-25T07:53:02.429Z] [stderr]      Running BeforeDevCommand (`npm run dev`)
+[2026-04-25T07:53:02.659Z] [stdout] 
+[2026-04-25T07:53:02.659Z] [stdout] > rheolab-enterprise@0.2.0-beta.53 dev
+[2026-04-25T07:53:02.659Z] [stdout] > vite
+[2026-04-25T07:53:02.659Z] [stdout] 
+[2026-04-25T07:53:03.093Z] [stdout] 
+[2026-04-25T07:53:03.093Z] [stdout]   [32m[1mVITE[22m v6.4.2[39m  [2mready in [0m[1m368[22m[2m[0m ms[22m
+[2026-04-25T07:53:03.093Z] [stdout] 
+[2026-04-25T07:53:03.094Z] [stdout]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m1420[22m/[39m
+[2026-04-25T07:53:06.450Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-25T07:53:06.522Z] [stderr]         Info Watching D:\Development\Rheolab\src-tauri for changes...
+[2026-04-25T07:53:07.553Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 1.04s
+[2026-04-25T07:53:07.614Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-25T07:53:14.292Z] [stdout] [2026-04-25][07:53:14][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-25T07:53:14.540Z] [stdout] [2026-04-25][07:53:14][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-25T07:53:16.406Z] heartbeat: pid=15772 elapsed=15.0s
+[2026-04-25T07:53:31.407Z] heartbeat: pid=15772 elapsed=30.0s
+[2026-04-25T07:53:46.421Z] heartbeat: pid=15772 elapsed=45.0s
+[2026-04-25T07:54:01.432Z] heartbeat: pid=15772 elapsed=60.0s
+[2026-04-25T07:54:16.435Z] heartbeat: pid=15772 elapsed=75.0s
+[2026-04-25T07:54:31.441Z] heartbeat: pid=15772 elapsed=90.1s
+[2026-04-25T07:54:46.442Z] heartbeat: pid=15772 elapsed=105.1s
+[2026-04-25T07:55:01.442Z] heartbeat: pid=15772 elapsed=120.1s
+[2026-04-25T07:55:16.455Z] heartbeat: pid=15772 elapsed=135.1s
+[2026-04-25T07:55:31.456Z] heartbeat: pid=15772 elapsed=150.1s
+[2026-04-25T07:55:46.456Z] heartbeat: pid=15772 elapsed=165.1s
+[2026-04-25T07:56:01.466Z] heartbeat: pid=15772 elapsed=180.1s
+[2026-04-25T07:56:16.470Z] heartbeat: pid=15772 elapsed=195.1s
+[2026-04-25T07:56:31.483Z] heartbeat: pid=15772 elapsed=210.1s
+[2026-04-25T07:56:46.487Z] heartbeat: pid=15772 elapsed=225.1s
+[2026-04-25T07:57:01.500Z] heartbeat: pid=15772 elapsed=240.1s
+[2026-04-25T07:57:16.512Z] heartbeat: pid=15772 elapsed=255.1s
+[2026-04-25T07:57:31.520Z] heartbeat: pid=15772 elapsed=270.1s
+[2026-04-25T07:57:46.525Z] heartbeat: pid=15772 elapsed=285.1s
+[2026-04-25T07:58:01.532Z] heartbeat: pid=15772 elapsed=300.1s
+[2026-04-25T07:58:16.541Z] heartbeat: pid=15772 elapsed=315.2s
+[2026-04-25T07:58:31.546Z] heartbeat: pid=15772 elapsed=330.2s
+[2026-04-25T07:58:46.554Z] heartbeat: pid=15772 elapsed=345.2s
+[2026-04-25T07:59:01.554Z] heartbeat: pid=15772 elapsed=360.2s
+[2026-04-25T07:59:16.562Z] heartbeat: pid=15772 elapsed=375.2s
+[2026-04-25T07:59:31.569Z] heartbeat: pid=15772 elapsed=390.2s
+[2026-04-25T07:59:46.580Z] heartbeat: pid=15772 elapsed=405.2s
+[2026-04-25T08:00:01.580Z] heartbeat: pid=15772 elapsed=420.2s
+[2026-04-25T08:00:16.582Z] heartbeat: pid=15772 elapsed=435.2s
+[2026-04-25T08:00:31.583Z] heartbeat: pid=15772 elapsed=450.2s
+[2026-04-25T08:00:46.594Z] heartbeat: pid=15772 elapsed=465.2s
+[2026-04-25T08:01:01.600Z] heartbeat: pid=15772 elapsed=480.2s
+[2026-04-25T08:01:04.594Z] [stdout] [2026-04-25][08:01:04][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[2026-04-25T08:01:04.595Z] [stdout] [2026-04-25][08:01:04][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+[2026-04-25T08:01:16.610Z] heartbeat: pid=15772 elapsed=495.2s
+[2026-04-25T08:01:31.617Z] heartbeat: pid=15772 elapsed=510.2s
+[2026-04-25T08:01:33.030Z] [stdout] [2026-04-25][08:01:33][tauri_plugin_updater::updater][DEBUG] checking for updates https://license.vizbuka.ru/releases/v1/update/windows-x86_64/update
+[2026-04-25T08:01:33.031Z] [stdout] [2026-04-25][08:01:33][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-25T08:01:33.260Z] [stdout] [2026-04-25][08:01:33][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-25T08:01:33.264Z] [stdout] [2026-04-25][08:01:33][tauri_plugin_updater::updater][DEBUG] update response: Object {"notes": String("### Исправлено\r\n- **PARSE-001**: Исправлен тест `test_stub_optional_ai_falls_back_to_heuristic_on_invalid_mapping` — при inline-загрузке файла (байты из браузера/API) опциональный AI-маппер теперь всегда запускается независимо от состояния эвристики. Ранее при здоровой эвристике функция возвращала результат досрочно и `ai_diagnostics.failure_reason` оставалось `None` вместо сообщения об ошибке.\r\n- **PARSE-002**: Сообщение об ошибке AI-маппера в `ai_diagnostics.failure_reason` больше не содержит префикс варианта `\"Parse error: \"` — в поле записывается только текст ошибки.\r\n- **PARSE-003**: Оптимизация и исправления специфичных BSL-файлов (например, фикстуры `t-12.03.26-3BSL`):\r\n  - Исправлено определение времени (`fractional-minute` / дробные доли минуты) для BSL файлов, где заголовок содержит только \"Время\" без единиц измерения.\r\n  - Починен парсинг кодировки времени через запятую-тысячные (bug ×1000).\r\n  - Починен баг \"dropped-decimal time encoding\" (потеря десятичных знаков в BSL-таблицах).\r\n  - Интеллектуальный парсинг: для сложных и неизвестных форматов (в т.ч. некоторых BSL) добавлен принудительный запуск AI-парсера (forceAI toggle).\r\n  - Исправлена физическая эвристика: расчётное значение скорости сдвига больше не перезаписывается, если табличное значение превышает физическую оценку (never overwrite sr).\r\n  - Добавлена интеграция native Groq HTTP для глубокой AI-обработки файлов в десктопе Tauri.\r\n\r\n### Добавлено\r\n- **LIC-BACKUP**: Добавлен Windows-скрипт `license-server/download-backup.ps1` для безопасного скачивания последнего backup-архива или SQL-дампа БД лицензирования с сервера на локальный ПК по SSH/SCP.\r\n- **LIC-SERVER**: Добавлен серверный скрипт `license-server/cleanup.sh` для очистки истёкших `rate_limits`, ротации `license-backup.log` и удаления устаревшего временного мусора.\r\n- **LIC-SERVER**: Скрипт `license-server/backup.sh` переведён на `mysqldump --single-transaction --no-tablespaces`, чтобы резервное копирование не ломалось из-за лишних приви"), "platforms": Object {"windows-x86_64": Object {"signature": String("dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZHVMM2FqM01zUVMxdVVoOENYbzQvVVBLbUc0bE1hUEMxNmV5UUt1a1F5cUgzU1V6QTAyVW1abHdmU3BPT09admNWSEEwWGdtZS8rU2tVVUxTQWdaQlF3SHNab0xTb1F3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczOTQzNDc4CWZpbGU6Umhlb0xhYiBFbnRlcnByaXNlXzAuMi4wLWJldGEuNF94NjQtc2V0dXAuZXhlCmcrZXpWd3hQdHprRC9iOHhqSk03aVFCWkF5THdTRkVjbEJZWHBXNmVQci9tQlBibFNUbks0TGgwelQwZEVKaE1ZQnAwNlZvdGhHTHM4Y25WZ1VFTUNBPT0K"), "url": String("https://license.vizbuka.ru/releases/artifacts/0.2.0-beta.4/RheoLab%20Enterprise_0.2.0-beta.4_x64-setup.exe")}}, "pub_date": String("2026-03-19T18:05:50Z"), "version": String("0.2.0-beta.4")}
+[2026-04-25T08:01:33.264Z] [stdout] [2026-04-25][08:01:33][tauri_plugin_updater::updater][DEBUG] parsed release response RemoteRelease { version: Version { major: 0, minor: 2, patch: 0, pre: Prerelease("beta.4") }, notes: Some("### Исправлено\r\n- **PARSE-001**: Исправлен тест `test_stub_optional_ai_falls_back_to_heuristic_on_invalid_mapping` — при inline-загрузке файла (байты из браузера/API) опциональный AI-маппер теперь всегда запускается независимо от состояния эвристики. Ранее при здоровой эвристике функция возвращала результат досрочно и `ai_diagnostics.failure_reason` оставалось `None` вместо сообщения об ошибке.\r\n- **PARSE-002**: Сообщение об ошибке AI-маппера в `ai_diagnostics.failure_reason` больше не содержит префикс варианта `\"Parse error: \"` — в поле записывается только текст ошибки.\r\n- **PARSE-003**: Оптимизация и исправления специфичных BSL-файлов (например, фикстуры `t-12.03.26-3BSL`):\r\n  - Исправлено определение времени (`fractional-minute` / дробные доли минуты) для BSL файлов, где заголовок содержит только \"Время\" без единиц измерения.\r\n  - Починен парсинг кодировки времени через запятую-тысячные (bug ×1000).\r\n  - Починен баг \"dropped-decimal time encoding\" (потеря десятичных знаков в BSL-таблицах).\r\n  - Интеллектуальный парсинг: для сложных и неизвестных форматов (в т.ч. некоторых BSL) добавлен принудительный запуск AI-парсера (forceAI toggle).\r\n  - Исправлена физическая эвристика: расчётное значение скорости сдвига больше не перезаписывается, если табличное значение превышает физическую оценку (never overwrite sr).\r\n  - Добавлена интеграция native Groq HTTP для глубокой AI-обработки файлов в десктопе Tauri.\r\n\r\n### Добавлено\r\n- **LIC-BACKUP**: Добавлен Windows-скрипт `license-server/download-backup.ps1` для безопасного скачивания последнего backup-архива или SQL-дампа БД лицензирования с сервера на локальный ПК по SSH/SCP.\r\n- **LIC-SERVER**: Добавлен серверный скрипт `license-server/cleanup.sh` для очистки истёкших `rate_limits`, ротации `license-backup.log` и удаления устаревшего временного мусора.\r\n- **LIC-SERVER**: Скрипт `license-server/backup.sh` переведён на `mysqldump --single-transaction --no-tablespaces`, чтобы резервное копирование не ломалось из-за лишних приви"), pub_date: Some(2026-03-19 18:05:50.0 +00:00:00), data: Static { platforms: {"windows-x86_64": ReleaseManifestPlatform { url: Url { scheme: "https", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("license.vizbuka.ru")), port: None, path: "/releases/artifacts/0.2.0-beta.4/RheoLab%20Enterprise_0.2.0-beta.4_x64-setup.exe", query: None, fragment: None }, signature: "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZHVMM2FqM01zUVMxdVVoOENYbzQvVVBLbUc0bE1hUEMxNmV5UUt1a1F5cUgzU1V6QTAyVW1abHdmU3BPT09admNWSEEwWGdtZS8rU2tVVUxTQWdaQlF3SHNab0xTb1F3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczOTQzNDc4CWZpbGU6Umhlb0xhYiBFbnRlcnByaXNlXzAuMi4wLWJldGEuNF94NjQtc2V0dXAuZXhlCmcrZXpWd3hQdHprRC9iOHhqSk03aVFCWkF5THdTRkVjbEJZWHBXNmVQci9tQlBibFNUbks0TGgwelQwZEVKaE1ZQnAwNlZvdGhHTHM4Y25WZ1VFTUNBPT0K" }} } }
+[2026-04-25T08:01:33.264Z] [stdout] [2026-04-25][08:01:33][tauri_plugin_updater::updater][DEBUG] Searching for updater target 'windows-x86_64' in release data
+[2026-04-25T08:01:38.406Z] wrapper exit: code=0 signal=null elapsed=517.0s

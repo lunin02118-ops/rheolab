@@ -8,12 +8,10 @@
 //!
 //!   cargo test --test ipc_contracts -- --nocapture
 
+use rheolab_enterprise::commands::experiments::types::StoredExperiment;
 use rheolab_enterprise::db::migration::run_migrations;
 use rheolab_enterprise::db::repositories::experiments::{
     ExperimentRepository, SqliteExperimentRepository,
-};
-use rheolab_enterprise::commands::experiments::types::{
-    StoredExperiment,
 };
 use rusqlite::Connection;
 use serde_json::json;
@@ -66,11 +64,13 @@ fn minimal_experiment(id: &str, user_id: &str) -> StoredExperiment {
         reagents: vec![],
         max_viscosity: None,
         avg_viscosity: None,
-        user: Some(rheolab_enterprise::commands::experiments::types::StoredExperimentUser {
-            id: user_id.to_string(),
-            name: "Test User".to_string(),
-            email: None,
-        }),
+        user: Some(
+            rheolab_enterprise::commands::experiments::types::StoredExperimentUser {
+                id: user_id.to_string(),
+                name: "Test User".to_string(),
+                email: None,
+            },
+        ),
         laboratory: None,
         parsed_by: None,
         parse_source: None,
@@ -185,10 +185,7 @@ fn save_is_upsert_not_duplicate() {
         .unwrap();
     assert_eq!(count, 1, "upsert must not create a duplicate row");
 
-    let found = repo
-        .find_by_id(&conn, "exp-upsert-001")
-        .unwrap()
-        .unwrap();
+    let found = repo.find_by_id(&conn, "exp-upsert-001").unwrap().unwrap();
     assert_eq!(found.name, "Updated Name", "upsert must update the name");
 }
 
@@ -224,12 +221,7 @@ fn find_duplicate_detects_existing_experiment() {
     repo.save(&conn, &exp).expect("save");
 
     // Duplicate detection uses (originalFilename, testDate, name).
-    let dup = repo.find_duplicate(
-        &conn,
-        &exp.original_filename,
-        &exp.test_date,
-        &exp.name,
-    );
+    let dup = repo.find_duplicate(&conn, &exp.original_filename, &exp.test_date, &exp.name);
     assert!(dup.is_ok());
     let dup = dup.unwrap();
     assert!(dup.is_some(), "duplicate must be detected after save");
@@ -249,7 +241,15 @@ fn find_duplicate_no_false_positive_different_name() {
 
     // Same file + date but DIFFERENT name — must not be a duplicate.
     let result = repo
-        .find_duplicate(&conn, &exp.original_filename, &exp.test_date, "Completely Different Name")
+        .find_duplicate(
+            &conn,
+            &exp.original_filename,
+            &exp.test_date,
+            "Completely Different Name",
+        )
         .expect("find_duplicate");
-    assert!(result.is_none(), "different name must not trigger duplicate detection");
+    assert!(
+        result.is_none(),
+        "different name must not trigger duplicate detection"
+    );
 }

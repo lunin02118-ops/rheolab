@@ -8,8 +8,10 @@ use uuid::Uuid;
 /// Create an isolated AppState backed by a temporary file database.
 /// Each call returns a state with a unique DB so tests don't interfere.
 fn make_test_state() -> AppState {
-    let dir = std::env::temp_dir()
-        .join(format!("rheolab_list_test_{}", Uuid::new_v4().to_string().replace('-', "")));
+    let dir = std::env::temp_dir().join(format!(
+        "rheolab_list_test_{}",
+        Uuid::new_v4().to_string().replace('-', "")
+    ));
     std::fs::create_dir_all(&dir).unwrap();
     let db_path = dir.join("test.db");
     let pool = crate::db::create_pool(&db_path).unwrap();
@@ -76,7 +78,11 @@ fn query_with(key: &str, val: &str) -> ExperimentsListQuery {
     serde_json::from_value(json!({ key: val })).unwrap()
 }
 
-fn experiment_from_parse(id: &str, parsed_filename: &str, resp: &crate::commands::parsing::ParseFileResponse) -> StoredExperiment {
+fn experiment_from_parse(
+    id: &str,
+    parsed_filename: &str,
+    resp: &crate::commands::parsing::ParseFileResponse,
+) -> StoredExperiment {
     let mut exp = minimal_experiment(id, None, "Well");
     exp.name = format!("Fixture {id}");
     exp.original_filename = parsed_filename.to_string();
@@ -127,8 +133,7 @@ fn parse_fixture_bytes(filename: &str) -> crate::commands::parsing::ParseFileRes
 #[test]
 fn empty_db_returns_zero_results() {
     let state = make_test_state();
-    let (experiments, total) =
-        query_experiments_list_sql(&state, &default_query()).unwrap();
+    let (experiments, total) = query_experiments_list_sql(&state, &default_query()).unwrap();
     assert_eq!(total, 0);
     assert!(experiments.is_empty());
 }
@@ -141,8 +146,7 @@ fn inserted_experiment_is_returned() {
     persist_experiment(&conn, &exp).unwrap();
     drop(conn);
 
-    let (experiments, total) =
-        query_experiments_list_sql(&state, &default_query()).unwrap();
+    let (experiments, total) = query_experiments_list_sql(&state, &default_query()).unwrap();
     assert_eq!(total, 1);
     assert_eq!(experiments[0].id, "exp_list_01");
 }
@@ -193,7 +197,11 @@ fn pagination_second_page_returns_remaining_rows() {
     let q2: ExperimentsListQuery =
         serde_json::from_value(json!({ "page": 2, "limit": 3 })).unwrap();
     let (experiments, _) = query_experiments_list_sql(&state, &q2).unwrap();
-    assert_eq!(experiments.len(), 2, "second page should have 2 remaining rows");
+    assert_eq!(
+        experiments.len(),
+        2,
+        "second page should have 2 remaining rows"
+    );
 }
 
 // ── field-name filter ────────────────────────────────────────────────────
@@ -207,7 +215,11 @@ fn filter_by_field_name_returns_matching_rows_only() {
         &minimal_experiment("fn_a", Some("Mamontovskoe"), "Lake"),
     )
     .unwrap();
-    persist_experiment(&conn, &minimal_experiment("fn_b", Some("Priobskoe"), "River")).unwrap();
+    persist_experiment(
+        &conn,
+        &minimal_experiment("fn_b", Some("Priobskoe"), "River"),
+    )
+    .unwrap();
     drop(conn);
 
     let query = query_with("fieldName", "Mamontovskoe");
@@ -290,8 +302,7 @@ fn list_item_exposes_precomputed_touch_point_columns() {
     persist_experiment(&conn, &experiment_with_crossing("tp_item_01", 200.0, 10.0)).unwrap();
     drop(conn);
 
-    let (experiments, total) =
-        query_experiments_list_sql(&state, &default_query()).unwrap();
+    let (experiments, total) = query_experiments_list_sql(&state, &default_query()).unwrap();
     assert_eq!(total, 1);
     let item = &experiments[0];
 
@@ -367,7 +378,11 @@ fn filter_crossing_time_range_narrows_results() {
     let state = make_test_state();
     let conn = state.pool_conn().unwrap();
     // Slower decline crosses 50 cP near the 10-min mark.
-    persist_experiment(&conn, &experiment_with_crossing("tp_time_slow", 200.0, 10.0)).unwrap();
+    persist_experiment(
+        &conn,
+        &experiment_with_crossing("tp_time_slow", 200.0, 10.0),
+    )
+    .unwrap();
     // Steeper decline crosses 50 cP much earlier (~3 min).
     persist_experiment(&conn, &experiment_with_crossing("tp_time_fast", 80.0, 5.0)).unwrap();
     // Flat curve — no crossing — must always be excluded by a time range.
@@ -387,14 +402,21 @@ fn filter_crossing_time_range_narrows_results() {
     );
     let ids: Vec<&str> = experiments.iter().map(|e| e.id.as_str()).collect();
     assert!(ids.contains(&"tp_time_slow"));
-    assert!(!ids.contains(&"tp_time_flat"), "flat curves must never match a crossing-time range");
+    assert!(
+        !ids.contains(&"tp_time_flat"),
+        "flat curves must never match a crossing-time range"
+    );
 }
 
 #[test]
 fn filter_crossing_viscosity_range_narrows_results() {
     let state = make_test_state();
     let conn = state.pool_conn().unwrap();
-    persist_experiment(&conn, &experiment_with_crossing("tp_vcross_01", 200.0, 10.0)).unwrap();
+    persist_experiment(
+        &conn,
+        &experiment_with_crossing("tp_vcross_01", 200.0, 10.0),
+    )
+    .unwrap();
     persist_experiment(&conn, &experiment_flat_no_crossing("tp_vcross_flat", 500.0)).unwrap();
     drop(conn);
 
@@ -462,7 +484,11 @@ fn filter_pending_backfill_rows_are_excluded_by_touch_point_range() {
     // Save a row, then simulate pre-v0002 state by clearing its precompute
     // columns.  A subsequent range filter must NOT pick this row up — the
     // backfill task is responsible for filling it in.
-    persist_experiment(&conn, &experiment_with_crossing("tp_pending_01", 200.0, 10.0)).unwrap();
+    persist_experiment(
+        &conn,
+        &experiment_with_crossing("tp_pending_01", 200.0, 10.0),
+    )
+    .unwrap();
     // Simulate pre-v0002 / pre-v0003 state: clear BOTH legacy columns
     // (v0002 schema) AND the v0003 side-table rows.  The backfill task
     // is responsible for (re)populating everything on next launch.
@@ -585,8 +611,7 @@ fn dynamic_threshold_matches_crosslinked_gel_break_point() {
     )
     .unwrap();
     // Flat 120 cP curve — peaks below 500, prune must skip it entirely.
-    persist_experiment(&conn, &experiment_flat_no_crossing("dt_flat", 120.0))
-        .unwrap();
+    persist_experiment(&conn, &experiment_flat_no_crossing("dt_flat", 120.0)).unwrap();
     drop(conn);
 
     // Default threshold (50 cP) — both rows remain in the list (flat is
@@ -630,11 +655,7 @@ fn dynamic_threshold_prunes_by_max_viscosity() {
     let conn = state.pool_conn().unwrap();
     persist_experiment(&conn, &experiment_flat_no_crossing("dt_low_1", 80.0)).unwrap();
     persist_experiment(&conn, &experiment_flat_no_crossing("dt_low_2", 300.0)).unwrap();
-    persist_experiment(
-        &conn,
-        &experiment_with_crossing("dt_high", 1200.0, 20.0),
-    )
-    .unwrap();
+    persist_experiment(&conn, &experiment_with_crossing("dt_high", 1200.0, 20.0)).unwrap();
     drop(conn);
 
     // Threshold 500 cP — only the 1200→20 curve can possibly cross.
@@ -654,8 +675,7 @@ fn dynamic_threshold_with_crossing_time_range_narrows_further() {
     let conn = state.pool_conn().unwrap();
     // Two declining curves: steep (crosses 500 cP fast) and gradual.
     persist_experiment(&conn, &experiment_with_crossing("dt_fast", 800.0, 5.0)).unwrap();
-    persist_experiment(&conn, &experiment_with_crossing("dt_slow", 1200.0, 20.0))
-        .unwrap();
+    persist_experiment(&conn, &experiment_with_crossing("dt_slow", 1200.0, 20.0)).unwrap();
     drop(conn);
 
     // Wide time window — both should match the threshold filter.
@@ -733,8 +753,11 @@ fn touch_point_stats_ignores_pending_backfill_rows_in_ranges() {
     let state = make_test_state();
     let conn = state.pool_conn().unwrap();
     persist_experiment(&conn, &experiment_with_crossing("stats_done", 200.0, 10.0)).unwrap();
-    persist_experiment(&conn, &experiment_with_crossing("stats_pending", 200.0, 10.0))
-        .unwrap();
+    persist_experiment(
+        &conn,
+        &experiment_with_crossing("stats_pending", 200.0, 10.0),
+    )
+    .unwrap();
     // Simulate a pre-v0002 row: columns wiped out, waiting on backfill.
     conn.execute(
         "UPDATE Experiment SET touchHasCrossing = NULL, touchCrossingTimeMin = NULL, \
@@ -775,11 +798,11 @@ fn dynamic_threshold_synthetic_data_test() {
     exp.name = "Synthetic High Viscosity Test".to_string();
     exp.original_filename = "synthetic.csv".to_string();
     exp.test_date = "2025-04-22".to_string();
-    
+
     // Create synthetic data points that simulate a gel breaking structure:
     // - Start at 1000 cP (high)
     // - Cross 500 cP at around 2 minutes (120 seconds)
-    // - Cross 50 cP at around 5 minutes (300 seconds)  
+    // - Cross 50 cP at around 5 minutes (300 seconds)
     // - End at 10 cP (low)
     // Use the correct field names that the touch-point algorithm expects
     let raw_points = vec![
@@ -788,11 +811,11 @@ fn dynamic_threshold_synthetic_data_test() {
         json!({"timeSec": 120.0, "viscosityCp": 500.0, "shearRate": 10.0, "temperatureC": 25.0}), // Cross 500 cP
         json!({"timeSec": 180.0, "viscosityCp": 300.0, "shearRate": 10.0, "temperatureC": 25.0}),
         json!({"timeSec": 240.0, "viscosityCp": 100.0, "shearRate": 10.0, "temperatureC": 25.0}),
-        json!({"timeSec": 300.0, "viscosityCp": 50.0, "shearRate": 10.0, "temperatureC": 25.0}),  // Cross 50 cP
+        json!({"timeSec": 300.0, "viscosityCp": 50.0, "shearRate": 10.0, "temperatureC": 25.0}), // Cross 50 cP
         json!({"timeSec": 360.0, "viscosityCp": 30.0, "shearRate": 10.0, "temperatureC": 25.0}),
         json!({"timeSec": 420.0, "viscosityCp": 10.0, "shearRate": 10.0, "temperatureC": 25.0}),
     ];
-    
+
     exp.raw_points = raw_points;
 
     // Save experiment
@@ -803,22 +826,26 @@ fn dynamic_threshold_synthetic_data_test() {
 
     // Test different thresholds
     let thresholds = vec!["10", "50", "500", "1000"];
-    
+
     for threshold in thresholds {
         let mut query = ExperimentsListQuery::default();
         query.viscosity_threshold = Some(threshold.to_string());
         query.has_crossing = Some("yes".to_string());
         query.limit = Some(10);
 
-        let results = query_experiments_list_sql(&state, &query)
-            .expect("Query must succeed");
+        let results = query_experiments_list_sql(&state, &query).expect("Query must succeed");
 
         println!("Threshold {} cP: {} results", threshold, results.0.len());
         if !results.0.is_empty() {
             let exp = &results.0[0];
-            println!("  - crossing_time: {:?} min, crossing_viscosity: {:?} cP", 
-                     exp.touch_crossing_time_min, exp.touch_crossing_viscosity_cp);
-            println!("  - viscosity_at_target: {:?} cP", exp.touch_viscosity_at_target_cp);
+            println!(
+                "  - crossing_time: {:?} min, crossing_viscosity: {:?} cP",
+                exp.touch_crossing_time_min, exp.touch_crossing_viscosity_cp
+            );
+            println!(
+                "  - viscosity_at_target: {:?} cP",
+                exp.touch_viscosity_at_target_cp
+            );
         }
     }
 
@@ -827,37 +854,61 @@ fn dynamic_threshold_synthetic_data_test() {
     query_fast.has_crossing = Some("yes".to_string());
     query_fast.limit = Some(10);
 
-    let results_fast = query_experiments_list_sql(&state, &query_fast)
-        .expect("Fast path must succeed");
+    let results_fast =
+        query_experiments_list_sql(&state, &query_fast).expect("Fast path must succeed");
 
     let mut query_slow = ExperimentsListQuery::default();
     query_slow.viscosity_threshold = Some("500".to_string());
     query_slow.has_crossing = Some("yes".to_string());
     query_slow.limit = Some(10);
 
-    let results_slow = query_experiments_list_sql(&state, &query_slow)
-        .expect("Slow path must succeed");
+    let results_slow =
+        query_experiments_list_sql(&state, &query_slow).expect("Slow path must succeed");
 
     println!("\n=== Fast vs Slow Path Comparison ===");
-    println!("Fast path (default 50 cP): {} results", results_fast.0.len());
+    println!(
+        "Fast path (default 50 cP): {} results",
+        results_fast.0.len()
+    );
     println!("Slow path (500 cP): {} results", results_slow.0.len());
 
     // Both should return the same experiment since it crosses both thresholds
-    assert_eq!(results_fast.0.len(), 1, "Fast path should find the experiment");
-    assert_eq!(results_slow.0.len(), 1, "Slow path should find the experiment");
+    assert_eq!(
+        results_fast.0.len(),
+        1,
+        "Fast path should find the experiment"
+    );
+    assert_eq!(
+        results_slow.0.len(),
+        1,
+        "Slow path should find the experiment"
+    );
 
     // But the crossing times should differ
     if !results_fast.0.is_empty() && !results_slow.0.is_empty() {
         let fast_exp = &results_fast.0[0];
         let slow_exp = &results_slow.0[0];
-        
-        println!("Fast path crossing time: {:?} min", fast_exp.touch_crossing_time_min);
-        println!("Slow path crossing time: {:?} min", slow_exp.touch_crossing_time_min);
-        
+
+        println!(
+            "Fast path crossing time: {:?} min",
+            fast_exp.touch_crossing_time_min
+        );
+        println!(
+            "Slow path crossing time: {:?} min",
+            slow_exp.touch_crossing_time_min
+        );
+
         // The 500 cP crossing should happen earlier than 50 cP crossing
-        if let (Some(fast_time), Some(slow_time)) = (fast_exp.touch_crossing_time_min, slow_exp.touch_crossing_time_min) {
-            assert!(slow_time <= fast_time + 0.1, 
-                   "500 cP crossing ({}) should be <= 50 cP crossing ({})", slow_time, fast_time);
+        if let (Some(fast_time), Some(slow_time)) = (
+            fast_exp.touch_crossing_time_min,
+            slow_exp.touch_crossing_time_min,
+        ) {
+            assert!(
+                slow_time <= fast_time + 0.1,
+                "500 cP crossing ({}) should be <= 50 cP crossing ({})",
+                slow_time,
+                fast_time
+            );
         }
     }
 
@@ -867,11 +918,18 @@ fn dynamic_threshold_synthetic_data_test() {
     query_too_high.has_crossing = Some("yes".to_string());
     query_too_high.limit = Some(10);
 
-    let results_too_high = query_experiments_list_sql(&state, &query_too_high)
-        .expect("Query must succeed");
+    let results_too_high =
+        query_experiments_list_sql(&state, &query_too_high).expect("Query must succeed");
 
-    println!("Threshold 2000 cP (above max): {} results", results_too_high.0.len());
-    assert_eq!(results_too_high.0.len(), 0, "Should not find experiments when threshold > max viscosity");
+    println!(
+        "Threshold 2000 cP (above max): {} results",
+        results_too_high.0.len()
+    );
+    assert_eq!(
+        results_too_high.0.len(),
+        0,
+        "Should not find experiments when threshold > max viscosity"
+    );
 }
 
 #[test]
@@ -943,7 +1001,10 @@ fn dynamic_threshold_real_fixtures_brookfield_grace_threshold_100_is_sound() {
     for (id, filename) in fixtures {
         let resp = parse_fixture_bytes(filename);
         assert!(resp.success, "parse must succeed for {filename}");
-        assert!(!resp.data.is_empty(), "parsed data must not be empty for {filename}");
+        assert!(
+            !resp.data.is_empty(),
+            "parsed data must not be empty for {filename}"
+        );
 
         let min_visc = resp
             .data
@@ -1032,8 +1093,16 @@ fn combat_all_fixtures_all_thresholds_fast_path_consistency() {
             }
         };
 
-        let min_visc = resp.data.iter().map(|p| p.viscosity_cp).fold(f64::INFINITY, f64::min);
-        let max_visc = resp.data.iter().map(|p| p.viscosity_cp).fold(f64::NEG_INFINITY, f64::max);
+        let min_visc = resp
+            .data
+            .iter()
+            .map(|p| p.viscosity_cp)
+            .fold(f64::INFINITY, f64::min);
+        let max_visc = resp
+            .data
+            .iter()
+            .map(|p| p.viscosity_cp)
+            .fold(f64::NEG_INFINITY, f64::max);
 
         let exp = experiment_from_parse(id, filename, &resp);
         persist_experiment(&conn, &exp).expect("persist fixture");
@@ -1073,7 +1142,10 @@ fn combat_all_fixtures_all_thresholds_fast_path_consistency() {
             "experiment {id} must have {expected_thresholds} TPP rows, got {tpp_count}"
         );
     }
-    println!("  ✓ TPP coverage: all {} × {expected_thresholds} rows present", parsed_ids.len());
+    println!(
+        "  ✓ TPP coverage: all {} × {expected_thresholds} rows present",
+        parsed_ids.len()
+    );
 
     drop(conn);
 
@@ -1233,7 +1305,10 @@ fn combat_all_fixtures_all_thresholds_fast_path_consistency() {
                 total >= prev_crossings,
                 "monotonicity: threshold {} cP has {} crossings, \
                  but lower threshold {} cP had {} — expected ≥",
-                threshold_cp as i64, total, prev_threshold as i64, prev_crossings,
+                threshold_cp as i64,
+                total,
+                prev_threshold as i64,
+                prev_crossings,
             );
         }
         prev_crossings = total;
@@ -1476,7 +1551,9 @@ fn combat_composite_filter_threshold_plus_time_range() {
     .unwrap();
     let (early_rows, early_total) = query_experiments_list_sql(&state, &q_max_only).unwrap();
     for exp in &early_rows {
-        let t = exp.touch_crossing_time_min.expect("must have crossing time");
+        let t = exp
+            .touch_crossing_time_min
+            .expect("must have crossing time");
         assert!(
             t <= 5.0 + 1e-6,
             "crossingTimeMax=5: experiment {} has crossing_time={:.3} > 5.0",

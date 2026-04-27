@@ -1,0 +1,347 @@
+[2026-04-22T18:03:20.343Z] wrapper start
+[2026-04-22T18:03:20.344Z] cwd=D:\Development\Rheolab
+[2026-04-22T18:03:20.344Z] command=npm.cmd exec tauri -- dev
+[2026-04-22T18:03:20.344Z] RHEOLAB_SKIP_VERSION_BUMP=
+[2026-04-22T18:03:20.348Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-22T18:03:20.349Z] using shell fallback: npm.cmd "exec" "tauri" "--" "dev"
+[2026-04-22T18:03:21.095Z] [stderr]      Running BeforeDevCommand (`npm run dev`)
+[2026-04-22T18:03:21.362Z] [stdout] 
+[2026-04-22T18:03:21.362Z] [stdout] > rheolab-enterprise@0.2.0-beta.24 dev
+[2026-04-22T18:03:21.362Z] [stdout] > vite
+[2026-04-22T18:03:21.362Z] [stdout] 
+[2026-04-22T18:03:21.770Z] [stdout] 
+[2026-04-22T18:03:21.770Z] [stdout]   [32m[1mVITE[22m v6.4.2[39m  [2mready in [0m[1m355[22m[2m[0m ms[22m
+[2026-04-22T18:03:21.771Z] [stdout] 
+[2026-04-22T18:03:21.771Z] [stdout]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m1420[22m/[39m
+[2026-04-22T18:03:25.115Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:03:25.183Z] [stderr]         Info Watching D:\Development\Rheolab\src-tauri for changes...
+[2026-04-22T18:03:26.131Z] [stderr] [1m[92m   Compiling[0m rheolab-enterprise v0.2.0-beta.24 (D:\Development\Rheolab\src-tauri)
+[2026-04-22T18:03:35.366Z] heartbeat: pid=12736 elapsed=15.0s
+[2026-04-22T18:03:42.835Z] [stderr] [1m[96m    Building[0m [=======================> ] 823/825: rheolab…[1m[96m    Building[0m [=======================> ] 824/825: rheolab…                                                            [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 17.66s
+[2026-04-22T18:03:42.890Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:03:50.376Z] heartbeat: pid=12736 elapsed=30.0s
+[2026-04-22T18:03:57.415Z] [stdout] [2026-04-22][18:03:57][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:03:57.682Z] [stdout] [2026-04-22][18:03:57][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:04:05.378Z] heartbeat: pid=12736 elapsed=45.0s
+[2026-04-22T18:04:20.389Z] heartbeat: pid=12736 elapsed=60.0s
+[2026-04-22T18:04:28.025Z] [stdout] [2m23:04:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mtests/e2e/pages/library.page.ts[22m
+[2026-04-22T18:04:35.399Z] heartbeat: pid=12736 elapsed=75.1s
+[2026-04-22T18:04:45.129Z] [stdout] [2m23:04:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mtests/e2e/pages/library.page.ts[22m
+[2026-04-22T18:04:50.400Z] heartbeat: pid=12736 elapsed=90.1s
+[2026-04-22T18:05:05.415Z] heartbeat: pid=12736 elapsed=105.1s
+[2026-04-22T18:05:20.428Z] heartbeat: pid=12736 elapsed=120.1s
+[2026-04-22T18:05:29.130Z] [stdout] [2m23:05:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mtests/e2e/library/touch-point-filters.tauri.spec.ts[22m
+[2026-04-22T18:05:35.436Z] heartbeat: pid=12736 elapsed=135.1s
+[2026-04-22T18:05:40.541Z] [stdout] [2m23:05:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mtests/e2e/library/touch-point-filters.tauri.spec.ts[22m
+[2026-04-22T18:05:50.447Z] heartbeat: pid=12736 elapsed=150.1s
+[2026-04-22T18:06:05.456Z] heartbeat: pid=12736 elapsed=165.1s
+[2026-04-22T18:06:20.461Z] heartbeat: pid=12736 elapsed=180.1s
+[2026-04-22T18:06:25.681Z] [stdout] [2m23:06:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mtests/e2e/library/touch-point-filters.tauri.spec.ts[22m
+[2026-04-22T18:06:35.468Z] heartbeat: pid=12736 elapsed=195.1s
+[2026-04-22T18:06:50.474Z] heartbeat: pid=12736 elapsed=210.1s
+[2026-04-22T18:06:56.119Z] [stdout] [2m23:06:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mtests/e2e/library/touch-point-filters.tauri.spec.ts[22m
+[2026-04-22T18:07:05.487Z] heartbeat: pid=12736 elapsed=225.1s
+[2026-04-22T18:07:20.491Z] heartbeat: pid=12736 elapsed=240.1s
+[2026-04-22T18:07:35.495Z] heartbeat: pid=12736 elapsed=255.2s
+[2026-04-22T18:07:50.498Z] heartbeat: pid=12736 elapsed=270.2s
+[2026-04-22T18:07:51.195Z] [stdout] [2m23:07:51[22m [36m[1m[vite][22m[39m [32mvite.config.ts changed, restarting server...[39m
+[2026-04-22T18:07:51.295Z] [stdout] [2m23:07:51[22m [36m[1m[vite][22m[39m server restarted.
+[2026-04-22T18:08:05.512Z] heartbeat: pid=12736 elapsed=285.2s
+[2026-04-22T18:08:20.527Z] heartbeat: pid=12736 elapsed=300.2s
+[2026-04-22T18:08:27.622Z] [stdout] [2m23:08:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:08:35.533Z] heartbeat: pid=12736 elapsed=315.2s
+[2026-04-22T18:08:50.541Z] heartbeat: pid=12736 elapsed=330.2s
+[2026-04-22T18:09:05.544Z] heartbeat: pid=12736 elapsed=345.2s
+[2026-04-22T18:09:20.551Z] heartbeat: pid=12736 elapsed=360.2s
+[2026-04-22T18:09:35.555Z] heartbeat: pid=12736 elapsed=375.2s
+[2026-04-22T18:09:50.567Z] heartbeat: pid=12736 elapsed=390.2s
+[2026-04-22T18:10:05.575Z] heartbeat: pid=12736 elapsed=405.2s
+[2026-04-22T18:10:20.577Z] heartbeat: pid=12736 elapsed=420.2s
+[2026-04-22T18:10:35.593Z] heartbeat: pid=12736 elapsed=435.3s
+[2026-04-22T18:10:50.608Z] heartbeat: pid=12736 elapsed=450.3s
+[2026-04-22T18:11:05.614Z] heartbeat: pid=12736 elapsed=465.3s
+[2026-04-22T18:11:20.628Z] heartbeat: pid=12736 elapsed=480.3s
+[2026-04-22T18:11:35.641Z] heartbeat: pid=12736 elapsed=495.3s
+[2026-04-22T18:11:50.641Z] heartbeat: pid=12736 elapsed=510.3s
+[2026-04-22T18:12:05.644Z] heartbeat: pid=12736 elapsed=525.3s
+[2026-04-22T18:12:20.653Z] heartbeat: pid=12736 elapsed=540.3s
+[2026-04-22T18:12:35.665Z] heartbeat: pid=12736 elapsed=555.3s
+[2026-04-22T18:12:50.671Z] heartbeat: pid=12736 elapsed=570.3s
+[2026-04-22T18:13:05.686Z] heartbeat: pid=12736 elapsed=585.3s
+[2026-04-22T18:13:20.687Z] heartbeat: pid=12736 elapsed=600.3s
+[2026-04-22T18:13:35.695Z] heartbeat: pid=12736 elapsed=615.4s
+[2026-04-22T18:13:39.048Z] [stderr]         Info File src-tauri\tests\ipc_contracts.rs changed. Rebuilding application...
+[2026-04-22T18:13:39.050Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:13:40.015Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.91s
+[2026-04-22T18:13:40.053Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:13:46.873Z] [stdout] [2m23:13:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:13:50.696Z] heartbeat: pid=12736 elapsed=630.4s
+[2026-04-22T18:13:51.671Z] [stdout] [2026-04-22][18:13:51][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:13:51.910Z] [stdout] [2026-04-22][18:13:51][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:13:53.322Z] [stderr]         Info File src-tauri\tests\ipc_contracts.rs changed. Rebuilding application...
+[2026-04-22T18:13:53.324Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:13:54.195Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.81s
+[2026-04-22T18:13:54.234Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:14:01.479Z] [stdout] [2m23:14:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:14:05.703Z] heartbeat: pid=12736 elapsed=645.4s
+[2026-04-22T18:14:06.344Z] [stdout] [2026-04-22][18:14:06][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:14:06.576Z] [stdout] [2026-04-22][18:14:06][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:14:18.113Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:14:18.115Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:14:19.216Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 1.04s
+[2026-04-22T18:14:19.259Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:14:20.716Z] heartbeat: pid=12736 elapsed=660.4s
+[2026-04-22T18:14:26.063Z] [stdout] [2m23:14:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:14:30.138Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:14:30.141Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:14:31.040Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.84s
+[2026-04-22T18:14:31.080Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:14:35.726Z] heartbeat: pid=12736 elapsed=675.4s
+[2026-04-22T18:14:39.330Z] [stdout] [2m23:14:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:14:44.765Z] [stdout] [2026-04-22][18:14:44][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:14:44.992Z] [stdout] [2026-04-22][18:14:44][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:14:50.736Z] heartbeat: pid=12736 elapsed=690.4s
+[2026-04-22T18:14:55.938Z] [stderr]         Info File src-tauri\src\commands\experiments\types.rs changed. Rebuilding application...
+[2026-04-22T18:14:55.941Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:14:57.000Z] [stderr] [1m[92m   Compiling[0m rheolab-enterprise v0.2.0-beta.24 (D:\Development\Rheolab\src-tauri)
+[2026-04-22T18:15:05.744Z] heartbeat: pid=12736 elapsed=705.4s
+[2026-04-22T18:15:12.724Z] [stderr] [1m[96m    Building[0m [=======================> ] 823/825: rheolab…        Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:15:12.727Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:15:13.934Z] [stderr] [1m[92m   Compiling[0m rheolab-enterprise v0.2.0-beta.24 (D:\Development\Rheolab\src-tauri)
+[2026-04-22T18:15:20.747Z] heartbeat: pid=12736 elapsed=720.4s
+[2026-04-22T18:15:35.757Z] heartbeat: pid=12736 elapsed=735.4s
+[2026-04-22T18:15:41.098Z] [stderr] [1m[96m    Building[0m [=======================> ] 823/825: rheolab…[1m[96m    Building[0m [=======================> ] 824/825: rheolab…                                                            [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 28.29s
+[2026-04-22T18:15:41.142Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:15:50.045Z] [stdout] [2m23:15:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:15:50.761Z] heartbeat: pid=12736 elapsed=750.4s
+[2026-04-22T18:15:55.024Z] [stdout] [2026-04-22][18:15:55][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:15:55.269Z] [stdout] [2026-04-22][18:15:55][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:16:05.765Z] heartbeat: pid=12736 elapsed=765.4s
+[2026-04-22T18:16:13.374Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:16:13.376Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:16:14.419Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.98s
+[2026-04-22T18:16:14.460Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:16:20.769Z] heartbeat: pid=12736 elapsed=780.4s
+[2026-04-22T18:16:21.467Z] [stdout] [2m23:16:21[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:16:26.205Z] [stdout] [2026-04-22][18:16:26][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:16:26.454Z] [stdout] [2026-04-22][18:16:26][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:16:28.397Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:16:28.399Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:16:29.250Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.79s
+[2026-04-22T18:16:29.301Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:16:35.781Z] heartbeat: pid=12736 elapsed=795.4s
+[2026-04-22T18:16:37.066Z] [stdout] [2m23:16:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:16:42.231Z] [stdout] [2026-04-22][18:16:42][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:16:42.486Z] [stdout] [2026-04-22][18:16:42][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:16:50.790Z] heartbeat: pid=12736 elapsed=810.4s
+[2026-04-22T18:16:59.463Z] [stderr]         Info File src-tauri\tests\ipc_contracts.rs changed. Rebuilding application...
+[2026-04-22T18:16:59.466Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:17:00.782Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 1.21s
+[2026-04-22T18:17:00.834Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:17:05.802Z] heartbeat: pid=12736 elapsed=825.5s
+[2026-04-22T18:17:08.866Z] [stdout] [2m23:17:08[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:17:14.218Z] [stdout] [2026-04-22][18:17:14][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:17:14.459Z] [stdout] [2026-04-22][18:17:14][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:17:15.241Z] [stderr]         Info File src-tauri\tests\ipc_contracts.rs changed. Rebuilding application...
+[2026-04-22T18:17:15.244Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:17:16.242Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.92s
+[2026-04-22T18:17:16.289Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:17:20.816Z] heartbeat: pid=12736 elapsed=840.5s
+[2026-04-22T18:17:24.192Z] [stdout] [2m23:17:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:17:29.554Z] [stdout] [2026-04-22][18:17:29][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:17:29.807Z] [stdout] [2026-04-22][18:17:29][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:17:32.273Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:17:32.275Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:17:33.454Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 1.11s
+[2026-04-22T18:17:33.501Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:17:35.818Z] heartbeat: pid=12736 elapsed=855.5s
+[2026-04-22T18:17:41.399Z] [stdout] [2m23:17:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:17:47.612Z] [stdout] [2026-04-22][18:17:47][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:17:47.854Z] [stdout] [2026-04-22][18:17:47][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:17:50.818Z] heartbeat: pid=12736 elapsed=870.5s
+[2026-04-22T18:18:01.326Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:18:01.328Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:18:02.499Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 1.09s
+[2026-04-22T18:18:02.548Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:18:05.821Z] heartbeat: pid=12736 elapsed=885.5s
+[2026-04-22T18:18:10.410Z] [stdout] [2m23:18:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:18:16.399Z] [stdout] [2026-04-22][18:18:16][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:18:16.653Z] [stdout] [2026-04-22][18:18:16][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:18:20.828Z] heartbeat: pid=12736 elapsed=900.5s
+[2026-04-22T18:18:34.384Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:18:34.386Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:18:35.658Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 1.20s
+[2026-04-22T18:18:35.703Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:18:35.835Z] heartbeat: pid=12736 elapsed=915.5s
+[2026-04-22T18:18:43.424Z] [stdout] [2m23:18:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:18:49.004Z] [stdout] [2026-04-22][18:18:49][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:18:49.232Z] [stdout] [2026-04-22][18:18:49][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:18:50.843Z] heartbeat: pid=12736 elapsed=930.5s
+[2026-04-22T18:19:05.847Z] heartbeat: pid=12736 elapsed=945.5s
+[2026-04-22T18:19:20.862Z] heartbeat: pid=12736 elapsed=960.5s
+[2026-04-22T18:19:35.862Z] heartbeat: pid=12736 elapsed=975.5s
+[2026-04-22T18:19:50.872Z] heartbeat: pid=12736 elapsed=990.5s
+[2026-04-22T18:20:05.882Z] heartbeat: pid=12736 elapsed=1005.5s
+[2026-04-22T18:20:08.390Z] [stdout] [2026-04-22][18:20:08][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[2026-04-22T18:20:08.390Z] [stdout] [2026-04-22][18:20:08][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+[2026-04-22T18:20:20.891Z] heartbeat: pid=12736 elapsed=1020.5s
+[2026-04-22T18:20:35.894Z] heartbeat: pid=12736 elapsed=1035.6s
+[2026-04-22T18:20:50.896Z] heartbeat: pid=12736 elapsed=1050.6s
+[2026-04-22T18:21:05.901Z] heartbeat: pid=12736 elapsed=1065.6s
+[2026-04-22T18:21:20.908Z] heartbeat: pid=12736 elapsed=1080.6s
+[2026-04-22T18:21:35.917Z] heartbeat: pid=12736 elapsed=1095.6s
+[2026-04-22T18:21:50.922Z] heartbeat: pid=12736 elapsed=1110.6s
+[2026-04-22T18:22:05.932Z] heartbeat: pid=12736 elapsed=1125.6s
+[2026-04-22T18:22:20.937Z] heartbeat: pid=12736 elapsed=1140.6s
+[2026-04-22T18:22:35.947Z] heartbeat: pid=12736 elapsed=1155.6s
+[2026-04-22T18:22:50.950Z] heartbeat: pid=12736 elapsed=1170.6s
+[2026-04-22T18:23:05.949Z] heartbeat: pid=12736 elapsed=1185.6s
+[2026-04-22T18:23:20.955Z] heartbeat: pid=12736 elapsed=1200.6s
+[2026-04-22T18:23:35.955Z] heartbeat: pid=12736 elapsed=1215.6s
+[2026-04-22T18:23:50.956Z] heartbeat: pid=12736 elapsed=1230.6s
+[2026-04-22T18:24:05.958Z] heartbeat: pid=12736 elapsed=1245.6s
+[2026-04-22T18:24:20.959Z] heartbeat: pid=12736 elapsed=1260.6s
+[2026-04-22T18:24:35.973Z] heartbeat: pid=12736 elapsed=1275.6s
+[2026-04-22T18:24:50.979Z] heartbeat: pid=12736 elapsed=1290.6s
+[2026-04-22T18:25:05.983Z] heartbeat: pid=12736 elapsed=1305.6s
+[2026-04-22T18:25:20.986Z] heartbeat: pid=12736 elapsed=1320.6s
+[2026-04-22T18:25:36.001Z] heartbeat: pid=12736 elapsed=1335.7s
+[2026-04-22T18:25:51.012Z] heartbeat: pid=12736 elapsed=1350.7s
+[2026-04-22T18:26:06.013Z] heartbeat: pid=12736 elapsed=1365.7s
+[2026-04-22T18:26:21.021Z] heartbeat: pid=12736 elapsed=1380.7s
+[2026-04-22T18:26:36.032Z] heartbeat: pid=12736 elapsed=1395.7s
+[2026-04-22T18:26:43.547Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:26:43.550Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:26:44.690Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 1.07s
+[2026-04-22T18:26:44.732Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:26:51.043Z] heartbeat: pid=12736 elapsed=1410.7s
+[2026-04-22T18:26:51.892Z] [stdout] [2m23:26:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:26:57.074Z] [stdout] [2026-04-22][18:26:57][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:26:57.315Z] [stdout] [2026-04-22][18:26:57][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:27:06.046Z] heartbeat: pid=12736 elapsed=1425.7s
+[2026-04-22T18:27:21.050Z] heartbeat: pid=12736 elapsed=1440.7s
+[2026-04-22T18:27:36.064Z] heartbeat: pid=12736 elapsed=1455.7s
+[2026-04-22T18:27:45.660Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:27:45.662Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:27:46.845Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 1.10s
+[2026-04-22T18:27:46.884Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:27:51.067Z] heartbeat: pid=12736 elapsed=1470.7s
+[2026-04-22T18:27:54.151Z] [stdout] [2m23:27:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:27:59.336Z] [stdout] [2026-04-22][18:27:59][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:27:59.563Z] [stdout] [2026-04-22][18:27:59][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:28:06.080Z] heartbeat: pid=12736 elapsed=1485.7s
+[2026-04-22T18:28:21.087Z] heartbeat: pid=12736 elapsed=1500.7s
+[2026-04-22T18:28:36.094Z] heartbeat: pid=12736 elapsed=1515.8s
+[2026-04-22T18:28:51.094Z] heartbeat: pid=12736 elapsed=1530.8s
+[2026-04-22T18:29:06.108Z] heartbeat: pid=12736 elapsed=1545.8s
+[2026-04-22T18:29:21.112Z] heartbeat: pid=12736 elapsed=1560.8s
+[2026-04-22T18:29:36.120Z] heartbeat: pid=12736 elapsed=1575.8s
+[2026-04-22T18:29:51.130Z] heartbeat: pid=12736 elapsed=1590.8s
+[2026-04-22T18:30:06.138Z] heartbeat: pid=12736 elapsed=1605.8s
+[2026-04-22T18:30:21.143Z] heartbeat: pid=12736 elapsed=1620.8s
+[2026-04-22T18:30:36.152Z] heartbeat: pid=12736 elapsed=1635.8s
+[2026-04-22T18:30:51.159Z] heartbeat: pid=12736 elapsed=1650.8s
+[2026-04-22T18:31:06.158Z] heartbeat: pid=12736 elapsed=1665.8s
+[2026-04-22T18:31:21.158Z] heartbeat: pid=12736 elapsed=1680.8s
+[2026-04-22T18:31:36.158Z] heartbeat: pid=12736 elapsed=1695.8s
+[2026-04-22T18:31:51.172Z] heartbeat: pid=12736 elapsed=1710.8s
+[2026-04-22T18:32:06.186Z] heartbeat: pid=12736 elapsed=1725.8s
+[2026-04-22T18:32:21.186Z] heartbeat: pid=12736 elapsed=1740.8s
+[2026-04-22T18:32:36.186Z] heartbeat: pid=12736 elapsed=1755.8s
+[2026-04-22T18:32:51.186Z] heartbeat: pid=12736 elapsed=1770.8s
+[2026-04-22T18:33:06.186Z] heartbeat: pid=12736 elapsed=1785.8s
+[2026-04-22T18:33:21.186Z] heartbeat: pid=12736 elapsed=1800.8s
+[2026-04-22T18:33:36.186Z] heartbeat: pid=12736 elapsed=1815.8s
+[2026-04-22T18:33:51.200Z] heartbeat: pid=12736 elapsed=1830.9s
+[2026-04-22T18:34:06.215Z] heartbeat: pid=12736 elapsed=1845.9s
+[2026-04-22T18:34:21.218Z] heartbeat: pid=12736 elapsed=1860.9s
+[2026-04-22T18:34:36.233Z] heartbeat: pid=12736 elapsed=1875.9s
+[2026-04-22T18:34:51.244Z] heartbeat: pid=12736 elapsed=1890.9s
+[2026-04-22T18:35:06.258Z] heartbeat: pid=12736 elapsed=1905.9s
+[2026-04-22T18:35:21.264Z] heartbeat: pid=12736 elapsed=1920.9s
+[2026-04-22T18:35:36.274Z] heartbeat: pid=12736 elapsed=1935.9s
+[2026-04-22T18:35:51.277Z] heartbeat: pid=12736 elapsed=1950.9s
+[2026-04-22T18:36:02.990Z] [stdout] [2m23:36:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/dashboard/DashboardLayoutClient.tsx, /src/app/globals.css, /src/app/dashboard/comparison/page.tsx, /src/components/comparison/reports/ComparisonReportTab.tsx, /src/components/library/experiment-card.tsx, /src/components/library/experiment-table.tsx[22m
+[2026-04-22T18:36:06.291Z] heartbeat: pid=12736 elapsed=1965.9s
+[2026-04-22T18:36:21.292Z] heartbeat: pid=12736 elapsed=1980.9s
+[2026-04-22T18:36:30.644Z] [stdout] [2m23:36:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/dashboard/DashboardLayoutClient.tsx, /src/app/globals.css, /src/app/dashboard/comparison/page.tsx, /src/components/comparison/reports/ComparisonReportTab.tsx, /src/components/library/experiment-card.tsx, /src/components/library/experiment-table.tsx[22m
+[2026-04-22T18:36:36.294Z] heartbeat: pid=12736 elapsed=1996.0s
+[2026-04-22T18:36:51.298Z] heartbeat: pid=12736 elapsed=2011.0s
+[2026-04-22T18:37:06.306Z] heartbeat: pid=12736 elapsed=2026.0s
+[2026-04-22T18:37:21.319Z] heartbeat: pid=12736 elapsed=2041.0s
+[2026-04-22T18:37:36.318Z] heartbeat: pid=12736 elapsed=2056.0s
+[2026-04-22T18:37:51.329Z] heartbeat: pid=12736 elapsed=2071.0s
+[2026-04-22T18:38:06.342Z] heartbeat: pid=12736 elapsed=2086.0s
+[2026-04-22T18:38:21.350Z] heartbeat: pid=12736 elapsed=2101.0s
+[2026-04-22T18:38:36.363Z] heartbeat: pid=12736 elapsed=2116.0s
+[2026-04-22T18:38:51.371Z] heartbeat: pid=12736 elapsed=2131.0s
+[2026-04-22T18:39:06.376Z] heartbeat: pid=12736 elapsed=2146.0s
+[2026-04-22T18:39:21.387Z] heartbeat: pid=12736 elapsed=2161.0s
+[2026-04-22T18:39:36.389Z] heartbeat: pid=12736 elapsed=2176.0s
+[2026-04-22T18:39:51.391Z] heartbeat: pid=12736 elapsed=2191.0s
+[2026-04-22T18:39:55.329Z] [stdout] [2026-04-22][18:39:55][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[2026-04-22T18:39:55.331Z] [stdout] [2026-04-22][18:39:55][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+[2026-04-22T18:40:00.517Z] [stdout] [2026-04-22][18:40:00][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[2026-04-22T18:40:00.519Z] [stdout] [2026-04-22][18:40:00][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+[2026-04-22T18:40:06.401Z] heartbeat: pid=12736 elapsed=2206.1s
+[2026-04-22T18:40:21.413Z] heartbeat: pid=12736 elapsed=2221.1s
+[2026-04-22T18:40:36.414Z] heartbeat: pid=12736 elapsed=2236.1s
+[2026-04-22T18:40:51.427Z] heartbeat: pid=12736 elapsed=2251.1s
+[2026-04-22T18:41:06.428Z] heartbeat: pid=12736 elapsed=2266.1s
+[2026-04-22T18:41:21.430Z] heartbeat: pid=12736 elapsed=2281.1s
+[2026-04-22T18:41:36.435Z] heartbeat: pid=12736 elapsed=2296.1s
+[2026-04-22T18:41:51.446Z] heartbeat: pid=12736 elapsed=2311.1s
+[2026-04-22T18:42:06.458Z] heartbeat: pid=12736 elapsed=2326.1s
+[2026-04-22T18:42:21.459Z] heartbeat: pid=12736 elapsed=2341.1s
+[2026-04-22T18:42:36.460Z] heartbeat: pid=12736 elapsed=2356.1s
+[2026-04-22T18:42:51.468Z] heartbeat: pid=12736 elapsed=2371.1s
+[2026-04-22T18:43:06.468Z] heartbeat: pid=12736 elapsed=2386.1s
+[2026-04-22T18:43:21.470Z] heartbeat: pid=12736 elapsed=2401.1s
+[2026-04-22T18:43:36.473Z] heartbeat: pid=12736 elapsed=2416.1s
+[2026-04-22T18:43:51.484Z] heartbeat: pid=12736 elapsed=2431.1s
+[2026-04-22T18:44:06.497Z] heartbeat: pid=12736 elapsed=2446.2s
+[2026-04-22T18:44:11.838Z] [stdout] [2m23:44:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/library/experiment-filters.tsx, /src/app/globals.css[22m
+[2026-04-22T18:44:21.509Z] heartbeat: pid=12736 elapsed=2461.2s
+[2026-04-22T18:44:22.269Z] [stdout] [2m23:44:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/library/experiment-filters.tsx, /src/app/globals.css[22m
+[2026-04-22T18:44:36.514Z] heartbeat: pid=12736 elapsed=2476.2s
+[2026-04-22T18:44:51.528Z] heartbeat: pid=12736 elapsed=2491.2s
+[2026-04-22T18:45:06.535Z] heartbeat: pid=12736 elapsed=2506.2s
+[2026-04-22T18:45:21.545Z] heartbeat: pid=12736 elapsed=2521.2s
+[2026-04-22T18:45:36.545Z] heartbeat: pid=12736 elapsed=2536.2s
+[2026-04-22T18:45:51.546Z] heartbeat: pid=12736 elapsed=2551.2s
+[2026-04-22T18:46:06.548Z] heartbeat: pid=12736 elapsed=2566.2s
+[2026-04-22T18:46:21.553Z] heartbeat: pid=12736 elapsed=2581.2s
+[2026-04-22T18:46:36.566Z] heartbeat: pid=12736 elapsed=2596.2s
+[2026-04-22T18:46:51.569Z] heartbeat: pid=12736 elapsed=2611.2s
+[2026-04-22T18:47:06.580Z] heartbeat: pid=12736 elapsed=2626.2s
+[2026-04-22T18:47:21.585Z] heartbeat: pid=12736 elapsed=2641.2s
+[2026-04-22T18:47:36.598Z] heartbeat: pid=12736 elapsed=2656.3s
+[2026-04-22T18:47:51.599Z] heartbeat: pid=12736 elapsed=2671.3s
+[2026-04-22T18:48:06.612Z] heartbeat: pid=12736 elapsed=2686.3s
+[2026-04-22T18:48:21.618Z] heartbeat: pid=12736 elapsed=2701.3s
+[2026-04-22T18:48:36.619Z] heartbeat: pid=12736 elapsed=2716.3s
+[2026-04-22T18:48:51.620Z] heartbeat: pid=12736 elapsed=2731.3s
+[2026-04-22T18:49:00.132Z] [stderr]         Info File src-tauri\src\commands\experiments\list\list_tests.rs changed. Rebuilding application...
+[2026-04-22T18:49:00.134Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:49:01.602Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 1.39s
+[2026-04-22T18:49:01.656Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:49:06.629Z] heartbeat: pid=12736 elapsed=2746.3s
+[2026-04-22T18:49:08.706Z] [stdout] [2m23:49:08[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:49:13.673Z] [stdout] [2026-04-22][18:49:13][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:49:13.929Z] [stdout] [2026-04-22][18:49:13][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:49:21.634Z] heartbeat: pid=12736 elapsed=2761.3s
+[2026-04-22T18:49:36.643Z] heartbeat: pid=12736 elapsed=2776.3s
+[2026-04-22T18:49:51.649Z] heartbeat: pid=12736 elapsed=2791.3s
+[2026-04-22T18:49:53.476Z] [stderr]         Info File src-tauri\src\db\touch_point_precompute.rs changed. Rebuilding application...
+[2026-04-22T18:49:53.478Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T18:49:54.590Z] [stderr] [1m[92m   Compiling[0m rheolab-enterprise v0.2.0-beta.24 (D:\Development\Rheolab\src-tauri)
+[2026-04-22T18:50:06.661Z] heartbeat: pid=12736 elapsed=2806.3s
+[2026-04-22T18:50:10.693Z] [stderr] [1m[96m    Building[0m [=======================> ] 823/825: rheolab…[1m[96m    Building[0m [=======================> ] 824/825: rheolab…                                                            [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 17.16s
+[2026-04-22T18:50:10.753Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T18:50:20.172Z] [stdout] [2m23:50:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-22T18:50:21.669Z] heartbeat: pid=12736 elapsed=2821.3s
+[2026-04-22T18:50:25.251Z] [stdout] [2026-04-22][18:50:25][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T18:50:25.489Z] [stdout] [2026-04-22][18:50:25][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T18:50:36.669Z] heartbeat: pid=12736 elapsed=2836.3s
+[2026-04-22T18:50:51.679Z] heartbeat: pid=12736 elapsed=2851.3s
+[2026-04-22T18:51:04.806Z] wrapper exit: code=0 signal=null elapsed=2864.5s

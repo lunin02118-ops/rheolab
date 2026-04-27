@@ -1,11 +1,11 @@
 //! Pure helper functions for experiment commands.
 
+use super::types::*;
 use crate::error::Result;
 pub(crate) use crate::utils::time::now_rfc3339;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use super::types::*;
 
 /// Load reagents for a batch of experiment IDs using a single SQL query.
 pub(super) fn load_reagents_batch(
@@ -45,12 +45,10 @@ pub(super) fn load_reagents_batch(
         let reagent_name = catalog_name.or(denorm_name);
         let category = catalog_category.or(denorm_category);
 
-        let reagent_descriptor = reagent_name
-            .clone()
-            .map(|name| StoredReagentDescriptor {
-                name,
-                category: category.clone(),
-            });
+        let reagent_descriptor = reagent_name.clone().map(|name| StoredReagentDescriptor {
+            name,
+            category: category.clone(),
+        });
 
         Ok((
             exp_id,
@@ -277,13 +275,12 @@ pub(super) fn number_from_path(value: &Value, path: &[&str]) -> Option<f64> {
 // path, columnar decode path, touch-point precompute, export aggregations,
 // …) sees the same list.  Adding a new alias becomes a one-line change.
 
-pub(crate) const TIME_CHANNEL_ALIASES:        &[&str] = &["time_sec",      "timeSec",      "time"];
-pub(crate) const VISCOSITY_CHANNEL_ALIASES:   &[&str] = &["viscosity_cp",  "viscosityCp",  "viscosity"];
-pub(crate) const TEMPERATURE_CHANNEL_ALIASES: &[&str] = &["temperature_c", "temperatureC", "temperature"];
-pub(crate) const SHEAR_RATE_CHANNEL_ALIASES:  &[&str] = &[
-    "shear_rate_s1", "shearRateS1",
-    "shear_rate",    "shearRate",
-];
+pub(crate) const TIME_CHANNEL_ALIASES: &[&str] = &["time_sec", "timeSec", "time"];
+pub(crate) const VISCOSITY_CHANNEL_ALIASES: &[&str] = &["viscosity_cp", "viscosityCp", "viscosity"];
+pub(crate) const TEMPERATURE_CHANNEL_ALIASES: &[&str] =
+    &["temperature_c", "temperatureC", "temperature"];
+pub(crate) const SHEAR_RATE_CHANNEL_ALIASES: &[&str] =
+    &["shear_rate_s1", "shearRateS1", "shear_rate", "shearRate"];
 
 /// Read a numeric channel from a raw-point JSON object, trying each alias
 /// in order. Returns `None` when none of the aliases resolve to a number.
@@ -291,7 +288,9 @@ pub(crate) const SHEAR_RATE_CHANNEL_ALIASES:  &[&str] = &[
 /// Replaces the previous `number_from_path(p, &[snake]).or_else(|| number_from_path(p, &[camel]))`
 /// pattern that used to be duplicated across every aggregation helper.
 pub(crate) fn channel_value_from_point(point: &Value, aliases: &[&str]) -> Option<f64> {
-    aliases.iter().find_map(|alias| number_from_path(point, &[*alias]))
+    aliases
+        .iter()
+        .find_map(|alias| number_from_path(point, &[*alias]))
 }
 
 pub(crate) fn calculate_duration_seconds(raw_points: &[Value]) -> Option<f64> {
@@ -425,7 +424,8 @@ pub(super) fn compute_dominant_pattern(raw_points: &[serde_json::Value]) -> Opti
     for cycle in &cycles {
         *counts.entry(cycle.cycle_type.clone()).or_insert(0) += 1;
     }
-    counts.into_iter()
+    counts
+        .into_iter()
         .max_by_key(|(_, count)| *count)
         .map(|(ct, _)| ct)
 }

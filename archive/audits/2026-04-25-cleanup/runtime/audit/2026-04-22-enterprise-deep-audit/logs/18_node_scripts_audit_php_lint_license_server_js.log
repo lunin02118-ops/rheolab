@@ -1,0 +1,5 @@
+[2026-04-22T20:14:16.999Z] $ node scripts/audit/php-lint-license-server.js
+[php-lint] php runtime is unavailable in PATH
+[php-lint] spawnSync php ENOENT
+
+[2026-04-22T20:14:17.055Z] exit=127 signal=none timedOut=false

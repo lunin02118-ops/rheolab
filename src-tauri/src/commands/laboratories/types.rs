@@ -37,10 +37,18 @@ pub struct LaboratoryMutationResponse {
 
 impl LaboratoryMutationResponse {
     pub fn ok(lab: StoredLaboratory) -> Self {
-        Self { success: true, laboratory: Some(lab), error: None }
+        Self {
+            success: true,
+            laboratory: Some(lab),
+            error: None,
+        }
     }
     pub fn err(msg: impl Into<String>) -> Self {
-        Self { success: false, laboratory: None, error: Some(msg.into()) }
+        Self {
+            success: false,
+            laboratory: None,
+            error: Some(msg.into()),
+        }
     }
 }
 

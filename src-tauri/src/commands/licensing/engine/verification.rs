@@ -1,16 +1,19 @@
 use chrono::Utc;
 use serde_json::Value;
 
-use super::super::crypto::{delete_system_state, get_system_state, sign_data, upsert_system_state, verify_server_signature, verify_signature};
+use super::super::crypto::{
+    delete_system_state, get_system_state, sign_data, upsert_system_state, verify_server_signature,
+    verify_signature,
+};
 use super::super::features::{expired_features, features_for_type};
+use super::super::hardware::delete_legacy_cache;
 use super::super::online::{migrate_machine_online, validate_online};
 use super::super::security::{is_clock_tampered, is_offline_overdue};
 use super::super::types::{
-    LicenseCheckResult, LicenseSource, LicenseStatus, LicenseType,
-    DB_KEY_LICENSE, DEFAULT_GRACE_PERIOD_DAYS,
+    LicenseCheckResult, LicenseSource, LicenseStatus, LicenseType, DB_KEY_LICENSE,
+    DEFAULT_GRACE_PERIOD_DAYS,
 };
 use super::{compute_days_remaining, mask_key, parse_expiry, LicenseEngine};
-use super::super::hardware::delete_legacy_cache;
 use crate::db::DbPool;
 
 impl LicenseEngine {
@@ -115,7 +118,7 @@ impl LicenseEngine {
             if !verify_server_signature(payload, server_sig) {
                 self.diag(
                     "RSA FAILED — signedPayload present but signature invalid. \
-                     Server key mismatch or corrupted record."
+                     Server key mismatch or corrupted record.",
                 );
                 return None;
             }
@@ -139,8 +142,7 @@ impl LicenseEngine {
         db_pool: &DbPool,
         license_json: &str,
     ) -> LicenseCheckResult {
-        let data: Value =
-            serde_json::from_str(license_json).unwrap_or(serde_json::json!({}));
+        let data: Value = serde_json::from_str(license_json).unwrap_or(serde_json::json!({}));
 
         let key = data["key"].as_str().unwrap_or("");
         let license_type_str = data["type"].as_str().unwrap_or("standard");
@@ -197,7 +199,10 @@ impl LicenseEngine {
                             // Revoked — remove from DB and return revoked status
                             if let Ok(db_conn) = db_pool.get() {
                                 if let Err(e) = delete_system_state(&db_conn, DB_KEY_LICENSE) {
-                                    tracing::warn!("Failed to remove revoked license from DB: {}", e);
+                                    tracing::warn!(
+                                        "Failed to remove revoked license from DB: {}",
+                                        e
+                                    );
                                 }
                             }
                             return LicenseCheckResult {
@@ -210,16 +215,17 @@ impl LicenseEngine {
                                 expires_at: expires_at.map(|s| s.to_string()),
                                 days_remaining: None,
                                 experiments_remaining: None,
-                                message: Some(
-                                    "Лицензия была отозвана сервером".to_string(),
-                                ),
+                                message: Some("Лицензия была отозвана сервером".to_string()),
                                 show_warning: true,
                             };
                         }
                         "inactive" => {
                             if let Ok(db_conn) = db_pool.get() {
                                 if let Err(e) = delete_system_state(&db_conn, DB_KEY_LICENSE) {
-                                    tracing::warn!("Failed to remove deactivated license from DB: {}", e);
+                                    tracing::warn!(
+                                        "Failed to remove deactivated license from DB: {}",
+                                        e
+                                    );
                                 }
                             }
                             return LicenseCheckResult {
@@ -239,13 +245,18 @@ impl LicenseEngine {
                         // Machine ID mismatch: the server has a v1 ID but we're
                         // now sending v2.  Try migration, then re-validate.
                         "wrong_machine" | "already_activated" => {
-                            tracing::info!("Server reported machine ID mismatch — attempting migration");
-                            if let Ok(true) = migrate_machine_online(key, &self.app_data_dir).await {
+                            tracing::info!(
+                                "Server reported machine ID mismatch — attempting migration"
+                            );
+                            if let Ok(true) = migrate_machine_online(key, &self.app_data_dir).await
+                            {
                                 // Migration succeeded — re-validate to get the fresh status
                                 let retry = validate_online(key, &self.app_data_dir).await;
                                 if retry.success {
                                     let features = features_for_type(license_type);
-                                    let days = retry.days_remaining.or_else(|| compute_days_remaining(expires_at));
+                                    let days = retry
+                                        .days_remaining
+                                        .or_else(|| compute_days_remaining(expires_at));
                                     let warn = days.map_or(false, |d| d <= 30);
                                     delete_legacy_cache(&self.app_data_dir);
                                     return LicenseCheckResult {
@@ -258,13 +269,18 @@ impl LicenseEngine {
                                         expires_at: expires_at.map(|s| s.to_string()),
                                         days_remaining: days,
                                         experiments_remaining: None,
-                                        message: Some("Лицензия перенесена на обновлённый идентификатор".to_string()),
+                                        message: Some(
+                                            "Лицензия перенесена на обновлённый идентификатор"
+                                                .to_string(),
+                                        ),
                                         show_warning: warn,
                                     };
                                 }
                             }
                             // Migration failed — keep local license and try again later (offline path)
-                            tracing::warn!("Machine ID migration failed — falling through to offline path");
+                            tracing::warn!(
+                                "Machine ID migration failed — falling through to offline path"
+                            );
                         }
                         "expired" => {
                             // Check grace period
@@ -287,16 +303,38 @@ impl LicenseEngine {
                                 online.signed_payload.is_some(),
                                 online.server_signature.is_some()
                             ));
-                            if let (Some(sp), Some(ss)) = (&online.signed_payload, &online.server_signature) {
-                                self.diag(&format!("refreshing DB with signedPayload (len={})", sp.len()));
-                                if let Ok(mut stored) = serde_json::from_str::<serde_json::Map<String, Value>>(license_json) {
-                                    stored.insert("signedPayload".into(), Value::String(sp.clone()));
-                                    stored.insert("serverSignature".into(), Value::String(ss.clone()));
-                                    let updated_str = serde_json::to_string(&Value::Object(stored)).unwrap_or_default();
+                            if let (Some(sp), Some(ss)) =
+                                (&online.signed_payload, &online.server_signature)
+                            {
+                                self.diag(&format!(
+                                    "refreshing DB with signedPayload (len={})",
+                                    sp.len()
+                                ));
+                                if let Ok(mut stored) =
+                                    serde_json::from_str::<serde_json::Map<String, Value>>(
+                                        license_json,
+                                    )
+                                {
+                                    stored
+                                        .insert("signedPayload".into(), Value::String(sp.clone()));
+                                    stored.insert(
+                                        "serverSignature".into(),
+                                        Value::String(ss.clone()),
+                                    );
+                                    let updated_str = serde_json::to_string(&Value::Object(stored))
+                                        .unwrap_or_default();
                                     if let Ok(db_conn) = db_pool.get() {
-                                        match upsert_system_state(&db_conn, DB_KEY_LICENSE, &updated_str) {
-                                            Ok(()) => self.diag("DB refresh OK — RSA will pass on next cold start"),
-                                            Err(e) => self.diag(&format!("DB refresh FAILED: {}", e)),
+                                        match upsert_system_state(
+                                            &db_conn,
+                                            DB_KEY_LICENSE,
+                                            &updated_str,
+                                        ) {
+                                            Ok(()) => self.diag(
+                                                "DB refresh OK — RSA will pass on next cold start",
+                                            ),
+                                            Err(e) => {
+                                                self.diag(&format!("DB refresh FAILED: {}", e))
+                                            }
                                         }
                                     }
                                 }
@@ -306,8 +344,9 @@ impl LicenseEngine {
 
                             // Return active result
                             let features = features_for_type(license_type);
-                            let days_remaining =
-                                online.days_remaining.or_else(|| compute_days_remaining(expires_at));
+                            let days_remaining = online
+                                .days_remaining
+                                .or_else(|| compute_days_remaining(expires_at));
                             let show_warning = days_remaining.map_or(false, |d| d <= 30);
 
                             return LicenseCheckResult {
@@ -340,7 +379,10 @@ impl LicenseEngine {
             } else if let Some(ref err_msg) = online.error {
                 // Server not reached — log for diagnostics (covers network errors,
                 // HTTP client build failures, etc.)
-                tracing::warn!("Online validation skipped (server unreachable): {}", err_msg);
+                tracing::warn!(
+                    "Online validation skipped (server unreachable): {}",
+                    err_msg
+                );
             }
         }
 
@@ -365,7 +407,14 @@ impl LicenseEngine {
         }
 
         // Offline but within allowed window — check local expiry
-        self.build_expiry_result(key, license_type_str, license_type, customer_name, expires_at, grace_days)
+        self.build_expiry_result(
+            key,
+            license_type_str,
+            license_type,
+            customer_name,
+            expires_at,
+            grace_days,
+        )
     }
 
     /// Build the result for a license based on local expiry data.
@@ -383,52 +432,51 @@ impl LicenseEngine {
         let now = Utc::now();
         let features = features_for_type(license_type);
 
-        let (status, days_remaining, show_warning, message) =
-            if let Some(exp_str) = expires_at {
-                match parse_expiry(exp_str) {
-                    Some(expiry) => {
-                        let days = (expiry.date_naive() - now.date_naive()).num_days();
-                        if days >= 0 {
-                            // Not yet expired
-                            let warn = days <= 30;
-                            let msg = if warn {
-                                Some(format!("Лицензия истекает через {} дней", days))
-                            } else {
-                                None
-                            };
-                            (LicenseStatus::Active, Some(days), warn, msg)
+        let (status, days_remaining, show_warning, message) = if let Some(exp_str) = expires_at {
+            match parse_expiry(exp_str) {
+                Some(expiry) => {
+                    let days = (expiry.date_naive() - now.date_naive()).num_days();
+                    if days >= 0 {
+                        // Not yet expired
+                        let warn = days <= 30;
+                        let msg = if warn {
+                            Some(format!("Лицензия истекает через {} дней", days))
                         } else {
-                            // Past expiry — check grace period
-                            let past_expiry = -days;
-                            if past_expiry <= grace_days {
-                                (
-                                    LicenseStatus::Grace,
-                                    Some(grace_days - past_expiry),
-                                    true,
-                                    Some(format!(
-                                        "Лицензия истекла. Осталось {} дней льготного периода",
-                                        grace_days - past_expiry
-                                    )),
-                                )
-                            } else {
-                                (
-                                    LicenseStatus::Expired,
-                                    Some(days),
-                                    true,
-                                    Some("Лицензия истекла".to_string()),
-                                )
-                            }
+                            None
+                        };
+                        (LicenseStatus::Active, Some(days), warn, msg)
+                    } else {
+                        // Past expiry — check grace period
+                        let past_expiry = -days;
+                        if past_expiry <= grace_days {
+                            (
+                                LicenseStatus::Grace,
+                                Some(grace_days - past_expiry),
+                                true,
+                                Some(format!(
+                                    "Лицензия истекла. Осталось {} дней льготного периода",
+                                    grace_days - past_expiry
+                                )),
+                            )
+                        } else {
+                            (
+                                LicenseStatus::Expired,
+                                Some(days),
+                                true,
+                                Some("Лицензия истекла".to_string()),
+                            )
                         }
                     }
-                    None => {
-                        // Can't parse expiry — treat as active (will be caught on next online check)
-                        (LicenseStatus::Active, None, false, None)
-                    }
                 }
-            } else {
-                // No expiry date — perpetual license
-                (LicenseStatus::Active, None, false, None)
-            };
+                None => {
+                    // Can't parse expiry — treat as active (will be caught on next online check)
+                    (LicenseStatus::Active, None, false, None)
+                }
+            }
+        } else {
+            // No expiry date — perpetual license
+            (LicenseStatus::Active, None, false, None)
+        };
 
         let final_features = if matches!(status, LicenseStatus::Expired) {
             expired_features()

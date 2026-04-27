@@ -103,7 +103,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('Real Native Export', () => {
-  test('PDF has valid size and magic bytes', async ({ page, dashboard, reports }) => {
+  test('PDF has valid size and magic bytes', async ({ dashboard, reports }) => {
     await dashboard.uploadFile(CHANDLER_SST_63);
     await dashboard.waitForAnalysis();
 
@@ -121,7 +121,7 @@ test.describe('Real Native Export', () => {
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF');
   });
 
-  test('Excel has valid size and magic bytes', async ({ page, dashboard, reports }) => {
+  test('Excel has valid size and magic bytes', async ({ dashboard, reports }) => {
     await dashboard.uploadFile(CHANDLER_SST_63);
     await dashboard.waitForAnalysis();
 

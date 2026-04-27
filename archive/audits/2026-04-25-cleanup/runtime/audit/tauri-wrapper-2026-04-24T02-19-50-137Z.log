@@ -1,0 +1,97 @@
+[2026-04-24T02:19:50.138Z] wrapper start
+[2026-04-24T02:19:50.138Z] cwd=D:\Development\Rheolab
+[2026-04-24T02:19:50.138Z] command=npm.cmd exec tauri -- dev
+[2026-04-24T02:19:50.138Z] RHEOLAB_SKIP_VERSION_BUMP=
+[2026-04-24T02:19:50.141Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-24T02:19:50.142Z] using shell fallback: npm.cmd "exec" "tauri" "--" "dev"
+[2026-04-24T02:19:50.842Z] [stderr]      Running BeforeDevCommand (`npm run dev`)
+[2026-04-24T02:19:51.073Z] [stdout] 
+[2026-04-24T02:19:51.073Z] [stdout] > rheolab-enterprise@0.2.0-beta.39 dev
+[2026-04-24T02:19:51.074Z] [stdout] > vite
+[2026-04-24T02:19:51.074Z] [stdout] 
+[2026-04-24T02:19:51.439Z] [stdout] 
+[2026-04-24T02:19:51.439Z] [stdout]   [32m[1mVITE[22m v6.4.2[39m  [2mready in [0m[1m311[22m[2m[0m ms[22m
+[2026-04-24T02:19:51.440Z] [stdout] 
+[2026-04-24T02:19:51.440Z] [stdout]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m1420[22m/[39m
+[2026-04-24T02:19:54.870Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-24T02:19:54.945Z] [stderr]         Info Watching D:\Development\Rheolab\src-tauri for changes...
+[2026-04-24T02:19:55.817Z] [stderr] [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.89s
+[2026-04-24T02:19:55.863Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-24T02:20:01.879Z] [stdout] [2026-04-24][02:20:01][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-24T02:20:02.118Z] [stdout] [2026-04-24][02:20:02][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-24T02:20:05.155Z] heartbeat: pid=21308 elapsed=15.0s
+[2026-04-24T02:20:20.155Z] heartbeat: pid=21308 elapsed=30.0s
+[2026-04-24T02:20:35.157Z] heartbeat: pid=21308 elapsed=45.0s
+[2026-04-24T02:20:50.179Z] heartbeat: pid=21308 elapsed=60.0s
+[2026-04-24T02:21:05.187Z] heartbeat: pid=21308 elapsed=75.0s
+[2026-04-24T02:21:20.189Z] heartbeat: pid=21308 elapsed=90.1s
+[2026-04-24T02:21:35.198Z] heartbeat: pid=21308 elapsed=105.1s
+[2026-04-24T02:21:50.212Z] heartbeat: pid=21308 elapsed=120.1s
+[2026-04-24T02:21:55.559Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/about/index.html[22m
+[2026-04-24T02:21:55.560Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/comparison/index.html[22m
+[2026-04-24T02:21:55.561Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/index.html[22m
+[2026-04-24T02:21:55.561Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/faq/index.html[22m
+[2026-04-24T02:21:55.562Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/interface/index.html[22m
+[2026-04-24T02:21:55.562Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/data-management/index.html[22m
+[2026-04-24T02:21:55.562Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/models/index.html[22m
+[2026-04-24T02:21:55.562Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/library/index.html[22m
+[2026-04-24T02:21:55.562Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/parsing/index.html[22m
+[2026-04-24T02:21:55.563Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/quick-start/index.html[22m
+[2026-04-24T02:21:55.563Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/reports/index.html[22m
+[2026-04-24T02:21:55.563Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/troubleshooting/index.html[22m
+[2026-04-24T02:21:55.563Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/globals.css[22m
+[2026-04-24T02:21:55.564Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/index.html[22m
+[2026-04-24T02:21:55.564Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/llms-full.txt[22m
+[2026-04-24T02:21:55.564Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/llms.txt[22m
+[2026-04-24T02:21:55.564Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/globals.css[22m
+[2026-04-24T02:21:55.564Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/robots.txt[22m
+[2026-04-24T02:21:55.565Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/site.webmanifest[22m
+[2026-04-24T02:21:55.565Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/sitemap-0.xml[22m
+[2026-04-24T02:21:55.565Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/sitemap-index.xml[22m
+[2026-04-24T02:21:55.566Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/download/latest/index.html[22m
+[2026-04-24T02:21:55.566Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/faq/index.html[22m
+[2026-04-24T02:21:55.566Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/privacy/index.html[22m
+[2026-04-24T02:21:55.566Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/terms/index.html[22m
+[2026-04-24T02:21:55.566Z] [stdout] [2m07:21:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/team/index.html[22m
+[2026-04-24T02:21:56.657Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/favicon.svg[22m
+[2026-04-24T02:21:56.658Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/llms-full.txt[22m
+[2026-04-24T02:21:56.658Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/llms.txt[22m
+[2026-04-24T02:21:56.658Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/og-image.svg[22m
+[2026-04-24T02:21:56.659Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/robots.txt[22m
+[2026-04-24T02:21:56.659Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/site.webmanifest[22m
+[2026-04-24T02:21:56.835Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/about/index.html[22m
+[2026-04-24T02:21:56.847Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/data-management/index.html[22m
+[2026-04-24T02:21:56.848Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/comparison/index.html[22m
+[2026-04-24T02:21:56.849Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/faq/index.html[22m
+[2026-04-24T02:21:56.869Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/interface/index.html[22m
+[2026-04-24T02:21:56.875Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/library/index.html[22m
+[2026-04-24T02:21:56.883Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/models/index.html[22m
+[2026-04-24T02:21:56.893Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/parsing/index.html[22m
+[2026-04-24T02:21:56.907Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/index.html[22m
+[2026-04-24T02:21:56.921Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/quick-start/index.html[22m
+[2026-04-24T02:21:56.928Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/reports/index.html[22m
+[2026-04-24T02:21:56.936Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/troubleshooting/index.html[22m
+[2026-04-24T02:21:56.953Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/index.html[22m
+[2026-04-24T02:21:56.957Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/faq/index.html[22m
+[2026-04-24T02:21:56.960Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/sitemap-index.xml[22m
+[2026-04-24T02:21:56.962Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/privacy/index.html[22m
+[2026-04-24T02:21:56.966Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/sitemap-0.xml[22m
+[2026-04-24T02:21:56.969Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/team/index.html[22m
+[2026-04-24T02:21:56.970Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/terms/index.html[22m
+[2026-04-24T02:21:56.987Z] [stdout] [2m07:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/download/latest/index.html[22m
+[2026-04-24T02:22:05.226Z] heartbeat: pid=21308 elapsed=135.1s
+[2026-04-24T02:22:20.229Z] heartbeat: pid=21308 elapsed=150.1s
+[2026-04-24T02:22:35.233Z] heartbeat: pid=21308 elapsed=165.1s
+[2026-04-24T02:22:50.242Z] heartbeat: pid=21308 elapsed=180.1s
+[2026-04-24T02:23:05.243Z] heartbeat: pid=21308 elapsed=195.1s
+[2026-04-24T02:23:20.256Z] heartbeat: pid=21308 elapsed=210.1s
+[2026-04-24T02:23:26.949Z] [stderr]         Info File src-tauri\src\error.rs changed. Rebuilding application...
+[2026-04-24T02:23:26.952Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-24T02:23:27.936Z] [stderr] [1m[92m   Compiling[0m rheolab-enterprise v0.2.0-beta.39 (D:\Development\Rheolab\src-tauri)
+[2026-04-24T02:23:35.271Z] heartbeat: pid=21308 elapsed=225.1s
+[2026-04-24T02:23:41.386Z] [stderr] [1m[96m    Building[0m [=======================> ] 823/825: rheolab…[1m[96m    Building[0m [=======================> ] 824/825: rheolab…                                                            [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 14.35s
+[2026-04-24T02:23:41.432Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-24T02:23:43.767Z] [stdout] [2m07:23:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/generated.d.ts[22m
+[2026-04-24T02:23:48.443Z] [stdout] [2026-04-24][02:23:48][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-24T02:23:48.705Z] [stdout] [2026-04-24][02:23:48][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-24T02:23:50.273Z] heartbeat: pid=21308 elapsed=240.1s

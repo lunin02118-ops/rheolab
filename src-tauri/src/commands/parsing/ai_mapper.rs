@@ -102,7 +102,9 @@ impl AiColumnMapper for GroqAiColumnMapper {
         requested_model: Option<&str>,
     ) -> Result<AiMappingResponse> {
         if candidates.is_empty() {
-            return Err(AppError::Parse("AI context candidates are empty".to_string()));
+            return Err(AppError::Parse(
+                "AI context candidates are empty".to_string(),
+            ));
         }
 
         #[derive(Serialize)]
@@ -170,7 +172,10 @@ impl AiColumnMapper for GroqAiColumnMapper {
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
-            return Err(AppError::Parse(format!("Groq API error {}: {}", status, text)));
+            return Err(AppError::Parse(format!(
+                "Groq API error {}: {}",
+                status, text
+            )));
         }
 
         let chat: ChatResponse = response.json().await?;
@@ -235,8 +240,12 @@ pub(crate) fn parse_ai_mapping_response(
         .trim_end_matches("```")
         .trim();
 
-    let raw: RawAiMappingResponse = serde_json::from_str(clean)
-        .map_err(|error| AppError::Parse(format!("AI response JSON parse error: {} (raw: {})", error, clean)))?;
+    let raw: RawAiMappingResponse = serde_json::from_str(clean).map_err(|error| {
+        AppError::Parse(format!(
+            "AI response JSON parse error: {} (raw: {})",
+            error, clean
+        ))
+    })?;
 
     let response = AiMappingResponse {
         selected_candidate: raw.selected_candidate,
@@ -276,9 +285,7 @@ pub(crate) fn validate_ai_mapping_response(
         if column.index >= header_len {
             return Err(AppError::Parse(format!(
                 "AI mapped field '{}' to out-of-range column index {} (header has {} columns)",
-                field,
-                column.index,
-                header_len
+                field, column.index, header_len
             )));
         }
 
@@ -286,8 +293,7 @@ pub(crate) fn validate_ai_mapping_response(
             if !(0.0..=1.0).contains(&confidence) {
                 return Err(AppError::Parse(format!(
                     "AI returned invalid confidence {} for field '{}'",
-                    confidence,
-                    field
+                    confidence, field
                 )));
             }
         }
@@ -295,9 +301,7 @@ pub(crate) fn validate_ai_mapping_response(
         if let Some(existing_field) = seen_indexes.insert(column.index, field.clone()) {
             return Err(AppError::Parse(format!(
                 "AI assigned duplicate column index {} to '{}' and '{}'",
-                column.index,
-                existing_field,
-                field
+                column.index, existing_field, field
             )));
         }
     }
@@ -323,11 +327,21 @@ mod tests {
             ],
             unit_row: Some(AiContextRow {
                 row_index: 13,
-                cells: vec!["s".to_string(), "cP".to_string(), "C".to_string(), "bar".to_string()],
+                cells: vec![
+                    "s".to_string(),
+                    "cP".to_string(),
+                    "C".to_string(),
+                    "bar".to_string(),
+                ],
             }),
             sample_rows: vec![AiContextRow {
                 row_index: 14,
-                cells: vec!["1".to_string(), "100".to_string(), "25".to_string(), "1".to_string()],
+                cells: vec![
+                    "1".to_string(),
+                    "100".to_string(),
+                    "25".to_string(),
+                    "1".to_string(),
+                ],
             }],
             instrument_hint: Some("BSL Model R1".to_string()),
             heuristic_mapping: ColumnMapping::default(),
@@ -365,7 +379,13 @@ mod tests {
         .expect("valid payload should parse");
 
         assert_eq!(result.selected_candidate, 0);
-        assert_eq!(result.mapping.get("time_sec").map(|field| field.index), Some(0));
-        assert_eq!(result.mapping.get("viscosity_cp").map(|field| field.index), Some(1));
+        assert_eq!(
+            result.mapping.get("time_sec").map(|field| field.index),
+            Some(0)
+        );
+        assert_eq!(
+            result.mapping.get("viscosity_cp").map(|field| field.index),
+            Some(1)
+        );
     }
 }

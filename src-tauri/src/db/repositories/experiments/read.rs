@@ -1,6 +1,6 @@
 use crate::commands::experiments::types::{
-    StoredExperiment, StoredExperimentLaboratory, StoredExperimentReagent,
-    StoredExperimentUser, StoredReagentDescriptor,
+    StoredExperiment, StoredExperimentLaboratory, StoredExperimentReagent, StoredExperimentUser,
+    StoredReagentDescriptor,
 };
 use crate::error::Result;
 use rusqlite::{params, OptionalExtension};
@@ -47,15 +47,14 @@ pub(crate) fn load_experiment_by_id(
                 };
 
                 let water_params_str: Option<String> = row.get(14)?;
-                let water_params = water_params_str
-                    .and_then(|s| serde_json::from_str::<Value>(&s).ok());
+                let water_params =
+                    water_params_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
 
                 let metrics_str: String = row.get(18)?;
-                let metrics = serde_json::from_str::<Value>(&metrics_str)
-                    .unwrap_or_else(|e| {
-                        tracing::warn!("malformed metrics JSON (single-read): {}", e);
-                        json!({})
-                    });
+                let metrics = serde_json::from_str::<Value>(&metrics_str).unwrap_or_else(|e| {
+                    tracing::warn!("malformed metrics JSON (single-read): {}", e);
+                    json!({})
+                });
 
                 // P0 refactoring: defer raw_points parsing — columnar blob is preferred.
                 // Only parse inline JSON as fallback for legacy rows (pre-V2 migration).
@@ -63,20 +62,24 @@ pub(crate) fn load_experiment_by_id(
                 let raw_points = if raw_points_str == "[]" || raw_points_str.is_empty() {
                     vec![]
                 } else {
-                    serde_json::from_str::<Vec<Value>>(&raw_points_str)
-                        .unwrap_or_else(|e| {
-                            tracing::warn!("malformed rawPoints JSON (single-read): {}", e);
-                            vec![]
-                        })
+                    serde_json::from_str::<Vec<Value>>(&raw_points_str).unwrap_or_else(|e| {
+                        tracing::warn!("malformed rawPoints JSON (single-read): {}", e);
+                        vec![]
+                    })
                 };
 
                 let calibration_str: Option<String> = row.get(20)?;
-                let calibration = calibration_str
-                    .and_then(|s| serde_json::from_str::<Value>(&s).ok());
+                let calibration =
+                    calibration_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
 
                 let extra_fields_str: Option<String> = row.get(35)?;
-                let extra_fields = extra_fields_str
-                    .and_then(|s| if s == "{}" { None } else { serde_json::from_str::<Value>(&s).ok() });
+                let extra_fields = extra_fields_str.and_then(|s| {
+                    if s == "{}" {
+                        None
+                    } else {
+                        serde_json::from_str::<Value>(&s).ok()
+                    }
+                });
 
                 Ok(StoredExperiment {
                     id: row.get(0)?,
@@ -133,10 +136,14 @@ pub(crate) fn load_experiment_by_id(
             .optional()
             .ok()
             .flatten()
-            .and_then(|blob| crate::db::columnar::decode(&blob).map_err(|e| {
-                tracing::warn!("columnar decode failed for {}: {}", exp.id, e);
-                e
-            }).ok())
+            .and_then(|blob| {
+                crate::db::columnar::decode(&blob)
+                    .map_err(|e| {
+                        tracing::warn!("columnar decode failed for {}: {}", exp.id, e);
+                        e
+                    })
+                    .ok()
+            })
             .filter(|pts: &Vec<Value>| !pts.is_empty());
 
         // Load reagents for this experiment
@@ -162,12 +169,10 @@ pub(crate) fn load_experiment_by_id(
                 let reagent_name = catalog_name.or(denorm_name);
                 let category = catalog_category.or(denorm_category);
 
-                let reagent_descriptor = reagent_name
-                    .clone()
-                    .map(|name| StoredReagentDescriptor {
-                        name,
-                        category: category.clone(),
-                    });
+                let reagent_descriptor = reagent_name.clone().map(|name| StoredReagentDescriptor {
+                    name,
+                    category: category.clone(),
+                });
 
                 Ok(StoredExperimentReagent {
                     reagent_id,
@@ -211,7 +216,10 @@ pub(crate) fn load_experiments_batch(
         return Ok(vec![]);
     }
 
-    let ph: String = std::iter::repeat("?").take(ids.len()).collect::<Vec<_>>().join(",");
+    let ph: String = std::iter::repeat("?")
+        .take(ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
 
     // ── Query 1: Main experiment rows + user/lab ──────────────────────────
     let main_sql = format!(
@@ -246,7 +254,10 @@ pub(crate) fn load_experiments_batch(
                 email: user_email,
             });
             let laboratory = match (lab_id, lab_name) {
-                (Some(lid), Some(lname)) => Some(StoredExperimentLaboratory { id: lid, name: lname }),
+                (Some(lid), Some(lname)) => Some(StoredExperimentLaboratory {
+                    id: lid,
+                    name: lname,
+                }),
                 _ => None,
             };
 
@@ -255,11 +266,10 @@ pub(crate) fn load_experiments_batch(
                 water_params_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
 
             let metrics_str: String = row.get(18)?;
-            let metrics =
-                serde_json::from_str::<Value>(&metrics_str).unwrap_or_else(|e| {
-                    tracing::warn!("malformed metrics JSON (batch-read): {}", e);
-                    json!({})
-                });
+            let metrics = serde_json::from_str::<Value>(&metrics_str).unwrap_or_else(|e| {
+                tracing::warn!("malformed metrics JSON (batch-read): {}", e);
+                json!({})
+            });
 
             let raw_points_str: String = row.get(19)?;
             let raw_points = if raw_points_str == "[]" || raw_points_str.is_empty() {
@@ -272,8 +282,7 @@ pub(crate) fn load_experiments_batch(
             };
 
             let calibration_str: Option<String> = row.get(20)?;
-            let calibration =
-                calibration_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
+            let calibration = calibration_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
 
             let extra_fields_str: Option<String> = row.get(35)?;
             let extra_fields = extra_fields_str.and_then(|s| {
@@ -332,9 +341,8 @@ pub(crate) fn load_experiments_batch(
         .map_err(|e| format!("SQL batch row error: {}", e))?;
 
     // ── Query 2: Columnar blobs ───────────────────────────────────────────
-    let blobs_sql = format!(
-        "SELECT experimentId, dataBlob FROM ExperimentData WHERE experimentId IN ({ph})"
-    );
+    let blobs_sql =
+        format!("SELECT experimentId, dataBlob FROM ExperimentData WHERE experimentId IN ({ph})");
     let mut blob_stmt = conn
         .prepare(&blobs_sql)
         .map_err(|e| format!("SQL blob batch error: {}", e))?;

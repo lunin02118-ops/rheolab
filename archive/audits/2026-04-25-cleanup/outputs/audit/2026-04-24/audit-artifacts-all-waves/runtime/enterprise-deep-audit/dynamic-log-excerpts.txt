@@ -1,0 +1,48 @@
+## 03 PHP version
+[2026-04-24T02:21:16.057Z] $ php -v
+'php' is not recognized as an internal or external command,
+operable program or batch file.
+[2026-04-24T02:21:16.071Z] exit=1 signal=none timedOut=false
+
+## 04 TypeScript gate
+[2026-04-24T02:21:16.763Z] $ npx tsc --noEmit
+tests/reports/comparison-experiment-adapter.test.ts(37,5): error TS2741: Property 'showRheology' is missing in type '{ language: "en"; unitSystem: "SI"; companyName: string; companyLogo: null; chartSettings: ChartSettings; showCalibration: true; showRawData: true; showRecipe: true; showWaterAnalysis: true; ... 5 more ...; isExpert: false; }' but required in type 'ComparisonExperimentContextOverrides'.
+tests/reports/useComparisonReportExport.test.ts(92,5): error TS2322: Type '{ experiments: Experiment[]; displaySettings: ComparisonDisplaySettings; chartSettings: ChartSettings; brushRange?: [number, number] | undefined; language: "ru" | "en"; unitSystem: "SI" | "SI_Pas" | "Imperial"; ... 8 more ...; isExpert: boolean; }' is not assignable to type 'UseComparisonReportExportOptions'.
+  Types of property 'showRheology' are incompatible.
+    Type 'boolean | undefined' is not assignable to type 'boolean'.
+      Type 'undefined' is not assignable to type 'boolean'.
+[2026-04-24T02:21:19.465Z] exit=1 signal=none timedOut=false
+
+## 05 ESLint gate
+  1:24684  error  '_i' is defined but never used           @typescript-eslint/no-unused-vars
+  2:2891   error  '_name' is defined but never used        @typescript-eslint/no-unused-vars
+  2:2897   error  '_dataColumn' is defined but never used  @typescript-eslint/no-unused-vars
+D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts
+  159:68  error  The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type  @typescript-eslint/no-unsafe-function-type
+D:\Development\Rheolab\tests\e2e\reports\real-native-export.tauri.spec.ts
+  106:55  error  'page' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  124:57  error  'page' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+✖ 28 problems (27 errors, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+[2026-04-24T02:21:29.197Z] exit=1 signal=none timedOut=false
+
+## 06 Unit/Integration tests
+    [90m175| [39m
+    [90m176| [39m        [34mclickTab[39m([32m'TableTabButton'[39m)[33m;[39m
+    [90m177| [39m        [34mexpect[39m(screen[33m.[39m[34mgetByTestId[39m([32m'MockRawDataTable'[39m))[33m.[39m[34mtoBeDefined[39m()[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m178| [39m
+    [90m179| [39m        [34mclickTab[39m([32m'RecipeTabButton'[39m)[33m;[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/16]⎯[22m[39m
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m88 passed[39m[22m[90m (90)[39m
+[2m      Tests [22m [1m[31m16 failed[39m[22m[2m | [22m[1m[32m1311 passed[39m[22m[2m | [22m[33m6 skipped[39m[90m (1333)[39m
+[2m   Start at [22m 07:21:29
+[2m   Duration [22m 9.51s[2m (transform 12.41s, setup 2.06s, import 27.81s, tests 19.53s, environment 28.12s)[22m
+[2026-04-24T02:21:39.557Z] exit=1 signal=none timedOut=false
+
+## 18 License-server PHP lint
+[2026-04-24T02:21:46.513Z] $ node scripts/audit/php-lint-license-server.js
+[php-lint] php runtime is unavailable in PATH
+[php-lint] spawnSync php ENOENT
+[2026-04-24T02:21:46.583Z] exit=127 signal=none timedOut=false

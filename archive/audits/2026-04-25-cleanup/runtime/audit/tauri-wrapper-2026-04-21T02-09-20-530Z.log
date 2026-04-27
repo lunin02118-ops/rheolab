@@ -1,0 +1,727 @@
+[2026-04-21T02:09:20.531Z] wrapper start
+[2026-04-21T02:09:20.531Z] cwd=D:\Development\Rheolab
+[2026-04-21T02:09:20.532Z] command=npm.cmd exec tauri -- build
+[2026-04-21T02:09:20.532Z] RHEOLAB_SKIP_VERSION_BUMP=1
+[2026-04-21T02:09:20.532Z] INTEGRITY_SECRET_KEY present=true dev_sentinel=false
+[2026-04-21T02:09:20.532Z] TAURI_SIGNING_PRIVATE_KEY present=true len=348
+[2026-04-21T02:09:20.532Z] TAURI_SIGNING_PRIVATE_KEY_PASSWORD present=true
+[2026-04-21T02:09:20.535Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-21T02:09:20.535Z] using shell fallback: npm.cmd "exec" "tauri" "--" "build"
+[2026-04-21T02:09:21.482Z] [stderr]         Info Looking up installed tauri packages to check mismatched versions...
+[2026-04-21T02:09:22.295Z] [stderr]      Running beforeBuildCommand `npm run build`
+[2026-04-21T02:09:22.546Z] [stdout] 
+[2026-04-21T02:09:22.547Z] [stdout] > rheolab-enterprise@0.2.0-beta.9 build
+[2026-04-21T02:09:22.547Z] [stdout] > vite build
+[2026-04-21T02:09:22.547Z] [stdout] 
+[2026-04-21T02:09:22.974Z] [stdout] [36mvite v6.4.1 [32mbuilding for production...[36m[39m
+[2026-04-21T02:09:23.026Z] [stdout] transforming...
+[2026-04-21T02:09:26.771Z] [stderr] [33m[plugin vite:resolve] Module "crypto" has been externalized for browser compatibility, imported by "D:/Development/Rheolab/src/lib/utils/encryption.ts". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[2026-04-21T02:09:28.065Z] [stdout] [32m✓[39m 2910 modules transformed.
+[2026-04-21T02:09:28.284Z] [stdout] rendering chunks...
+[2026-04-21T02:09:28.413Z] [stdout] computing gzip size...
+[2026-04-21T02:09:28.430Z] [stdout] [2mdist/[22m[32mindex.html                                  [39m[1m[2m  1.70 kB[22m[1m[22m[2m │ gzip:  0.85 kB[22m
+[2026-04-21T02:09:28.430Z] [stdout] [2mdist/[22m[35massets/touch-point-Saz_VHki.css             [39m[1m[2m  1.63 kB[22m[1m[22m[2m │ gzip:  0.70 kB[22m
+[2026-04-21T02:09:28.431Z] [stdout] [2mdist/[22m[35massets/main-ztzCWvFw.css                    [39m[1m[2m141.53 kB[22m[1m[22m[2m │ gzip: 20.44 kB[22m
+[2026-04-21T02:09:28.431Z] [stdout] [2mdist/[22m[36massets/__vite-browser-external-BIHI7g3E.js  [39m[1m[2m  0.03 kB[22m[1m[22m[2m │ gzip:  0.05 kB[22m
+[2026-04-21T02:09:28.431Z] [stdout] [2mdist/[22m[36massets/encryption-CfscGWh_.js               [39m[1m[2m  0.14 kB[22m[1m[22m[2m │ gzip:  0.15 kB[22m
+[2026-04-21T02:09:28.431Z] [stdout] [2mdist/[22m[36massets/page-ag22mqCL.js                     [39m[1m[2m  0.17 kB[22m[1m[22m[2m │ gzip:  0.16 kB[22m
+[2026-04-21T02:09:28.431Z] [stdout] [2mdist/[22m[36massets/page-CdAzp9Ph.js                     [39m[1m[2m  0.20 kB[22m[1m[22m[2m │ gzip:  0.17 kB[22m
+[2026-04-21T02:09:28.431Z] [stdout] [2mdist/[22m[36massets/tauri-bridge-BwBaHBf8.js             [39m[1m[2m  0.27 kB[22m[1m[22m[2m │ gzip:  0.20 kB[22m
+[2026-04-21T02:09:28.431Z] [stdout] [2mdist/[22m[36massets/check-CnsFS85r.js                    [39m[1m[2m  0.29 kB[22m[1m[22m[2m │ gzip:  0.24 kB[22m
+[2026-04-21T02:09:28.431Z] [stdout] [2mdist/[22m[36massets/chevron-up-Bzuwqxy1.js               [39m[1m[2m  0.30 kB[22m[1m[22m[2m │ gzip:  0.25 kB[22m
+[2026-04-21T02:09:28.431Z] [stdout] [2mdist/[22m[36massets/chevron-down-DcOknXDx.js             [39m[1m[2m  0.30 kB[22m[1m[22m[2m │ gzip:  0.25 kB[22m
+[2026-04-21T02:09:28.432Z] [stdout] [2mdist/[22m[36massets/plus-Dr9xBTI9.js                     [39m[1m[2m  0.33 kB[22m[1m[22m[2m │ gzip:  0.25 kB[22m
+[2026-04-21T02:09:28.432Z] [stdout] [2mdist/[22m[36massets/circle-check-BEs8CzMG.js             [39m[1m[2m  0.35 kB[22m[1m[22m[2m │ gzip:  0.27 kB[22m
+[2026-04-21T02:09:28.432Z] [stdout] [2mdist/[22m[36massets/branding-store-_SvOqenG.js           [39m[1m[2m  0.36 kB[22m[1m[22m[2m │ gzip:  0.23 kB[22m
+[2026-04-21T02:09:28.432Z] [stdout] [2mdist/[22m[36massets/rotate-ccw-Cbqk-4ta.js               [39m[1m[2m  0.37 kB[22m[1m[22m[2m │ gzip:  0.29 kB[22m
+[2026-04-21T02:09:28.432Z] [stdout] [2mdist/[22m[36massets/upload-nvdMXahy.js                   [39m[1m[2m  0.40 kB[22m[1m[22m[2m │ gzip:  0.30 kB[22m
+[2026-04-21T02:09:28.432Z] [stdout] [2mdist/[22m[36massets/database-BPsK0iOF.js                 [39m[1m[2m  0.42 kB[22m[1m[22m[2m │ gzip:  0.31 kB[22m
+[2026-04-21T02:09:28.432Z] [stdout] [2mdist/[22m[36massets/settings-2-CEmjS4wz.js               [39m[1m[2m  0.42 kB[22m[1m[22m[2m │ gzip:  0.30 kB[22m
+[2026-04-21T02:09:28.432Z] [stdout] [2mdist/[22m[36massets/circle-alert-CDflgmy3.js             [39m[1m[2m  0.42 kB[22m[1m[22m[2m │ gzip:  0.29 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/key-6jJfWuff.js                      [39m[1m[2m  0.43 kB[22m[1m[22m[2m │ gzip:  0.32 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/pencil-DaAj8kCo.js                   [39m[1m[2m  0.45 kB[22m[1m[22m[2m │ gzip:  0.33 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/flask-conical-dnWVdpCI.js            [39m[1m[2m  0.47 kB[22m[1m[22m[2m │ gzip:  0.33 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/trash-2-CVI-fcH8.js                  [39m[1m[2m  0.50 kB[22m[1m[22m[2m │ gzip:  0.32 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/display-settings-store-BfUQvBXs.js   [39m[1m[2m  0.50 kB[22m[1m[22m[2m │ gzip:  0.31 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/file-down-Dnir1be5.js                [39m[1m[2m  0.53 kB[22m[1m[22m[2m │ gzip:  0.35 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/building-2-BglUJObk.js               [39m[1m[2m  0.56 kB[22m[1m[22m[2m │ gzip:  0.34 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/file-text-DrHYhCdV.js                [39m[1m[2m  0.56 kB[22m[1m[22m[2m │ gzip:  0.36 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/input-CyZn_VAv.js                    [39m[1m[2m  0.60 kB[22m[1m[22m[2m │ gzip:  0.38 kB[22m
+[2026-04-21T02:09:28.433Z] [stdout] [2mdist/[22m[36massets/circle-x-BWnm1knM.js                 [39m[1m[2m  0.69 kB[22m[1m[22m[2m │ gzip:  0.36 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/client-DputluJn.js                   [39m[1m[2m  0.75 kB[22m[1m[22m[2m │ gzip:  0.40 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/calendar-Gyegj0YV.js                 [39m[1m[2m  0.79 kB[22m[1m[22m[2m │ gzip:  0.41 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/useFocusTrap-DBIo29X4.js             [39m[1m[2m  0.84 kB[22m[1m[22m[2m │ gzip:  0.44 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/search-CeeNIOQP.js                   [39m[1m[2m  0.89 kB[22m[1m[22m[2m │ gzip:  0.42 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/settings-C2NhCJkW.js                 [39m[1m[2m  0.98 kB[22m[1m[22m[2m │ gzip:  0.42 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/ChartErrorBoundary-ByfAsyvH.js       [39m[1m[2m  1.16 kB[22m[1m[22m[2m │ gzip:  0.68 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/card-YCW_y9DP.js                     [39m[1m[2m  1.58 kB[22m[1m[22m[2m │ gzip:  0.67 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/index-QpzGHjbV.js                    [39m[1m[2m  1.89 kB[22m[1m[22m[2m │ gzip:  0.92 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/button-9bti7560.js                   [39m[1m[2m  1.94 kB[22m[1m[22m[2m │ gzip:  0.96 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/alert-dialog-BVeRD9V1.js             [39m[1m[2m  2.12 kB[22m[1m[22m[2m │ gzip:  0.77 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/TrialBanner-D_lScui3.js              [39m[1m[2m  2.26 kB[22m[1m[22m[2m │ gzip:  1.22 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/label-CEdA2_ID.js                    [39m[1m[2m  2.52 kB[22m[1m[22m[2m │ gzip:  0.95 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/BrandingManager-C79L2PGR.js          [39m[1m[2m  2.55 kB[22m[1m[22m[2m │ gzip:  1.16 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/index-DJB2IfzX.js                    [39m[1m[2m  3.59 kB[22m[1m[22m[2m │ gzip:  1.31 kB[22m
+[2026-04-21T02:09:28.434Z] [stdout] [2mdist/[22m[36massets/expert-settings-panel-CzHipoW-.js    [39m[1m[2m  3.90 kB[22m[1m[22m[2m │ gzip:  1.39 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/experiment-data-store-C8my7fFl.js    [39m[1m[2m  4.76 kB[22m[1m[22m[2m │ gzip:  1.89 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/LicenseActivationDialog-DE1OjVGL.js  [39m[1m[2m  5.38 kB[22m[1m[22m[2m │ gzip:  2.14 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/settings-shared-CadGWWOy.js          [39m[1m[2m  5.39 kB[22m[1m[22m[2m │ gzip:  2.11 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/chart-settings-store-DSERidXG.js     [39m[1m[2m  5.58 kB[22m[1m[22m[2m │ gzip:  1.58 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/LaboratoryManager-D5NT_h8N.js        [39m[1m[2m  5.61 kB[22m[1m[22m[2m │ gzip:  1.96 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/LogViewer-CKKcc7VB.js                [39m[1m[2m  5.76 kB[22m[1m[22m[2m │ gzip:  2.43 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/BackupManager-DNsYW-Z7.js            [39m[1m[2m  5.80 kB[22m[1m[22m[2m │ gzip:  2.23 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/OperatorManager-BVP5Uvq_.js          [39m[1m[2m  5.91 kB[22m[1m[22m[2m │ gzip:  2.14 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/ReportSettingsManager-DJZV3VFP.js    [39m[1m[2m  6.44 kB[22m[1m[22m[2m │ gzip:  2.17 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/ChartSettingsManager-t9D7cA2f.js     [39m[1m[2m  7.56 kB[22m[1m[22m[2m │ gzip:  2.35 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/ExperimentExportImport-C_GgUBaQ.js   [39m[1m[2m  7.97 kB[22m[1m[22m[2m │ gzip:  2.95 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/APIKeyManager-CVZdn-yy.js            [39m[1m[2m  8.79 kB[22m[1m[22m[2m │ gzip:  3.06 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/client-CHI59L5z.js                   [39m[1m[2m  9.13 kB[22m[1m[22m[2m │ gzip:  3.65 kB[22m
+[2026-04-21T02:09:28.435Z] [stdout] [2mdist/[22m[36massets/AppSettingsExporter-BBiims-p.js      [39m[1m[2m 10.90 kB[22m[1m[22m[2m │ gzip:  3.62 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/ru-C8Cx8G0_.js                       [39m[1m[2m 12.58 kB[22m[1m[22m[2m │ gzip:  3.14 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/touch-point-BIPuAbxP.js              [39m[1m[2m 14.00 kB[22m[1m[22m[2m │ gzip:  5.72 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/useToast-CA-fKsMn.js                 [39m[1m[2m 14.15 kB[22m[1m[22m[2m │ gzip:  5.63 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/vendor-date-B1cgXEfA.js              [39m[1m[2m 20.00 kB[22m[1m[22m[2m │ gzip:  5.73 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/rheology-chart-uplot-DWbJAnCe.js     [39m[1m[2m 22.17 kB[22m[1m[22m[2m │ gzip:  7.25 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/page-BN3McZSB.js                     [39m[1m[2m 29.13 kB[22m[1m[22m[2m │ gzip:  7.72 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/page-Boq3HH28.js                     [39m[1m[2m 30.24 kB[22m[1m[22m[2m │ gzip:  8.02 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/page-E_36OGT6.js                     [39m[1m[2m 40.93 kB[22m[1m[22m[2m │ gzip: 13.07 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/vendor-react-VsJEmFiX.js             [39m[1m[2m 48.76 kB[22m[1m[22m[2m │ gzip: 17.28 kB[22m
+[2026-04-21T02:09:28.436Z] [stdout] [2mdist/[22m[36massets/vendor-charts-CziCK5UB.js            [39m[1m[2m 52.27 kB[22m[1m[22m[2m │ gzip: 23.28 kB[22m
+[2026-04-21T02:09:28.437Z] [stdout] [2mdist/[22m[36massets/DashboardContent-C6zw0qwW.js         [39m[1m[2m 79.32 kB[22m[1m[22m[2m │ gzip: 20.08 kB[22m
+[2026-04-21T02:09:28.437Z] [stdout] [2mdist/[22m[36massets/page-D8J-ORJr.js                     [39m[1m[2m 92.70 kB[22m[1m[22m[2m │ gzip: 23.29 kB[22m
+[2026-04-21T02:09:28.437Z] [stdout] [2mdist/[22m[36massets/vendor-radix-wOjfjdRn.js             [39m[1m[2m113.50 kB[22m[1m[22m[2m │ gzip: 36.46 kB[22m
+[2026-04-21T02:09:28.437Z] [stdout] [2mdist/[22m[36massets/page-Cl1QTfBg.js                     [39m[1m[2m128.32 kB[22m[1m[22m[2m │ gzip: 36.84 kB[22m
+[2026-04-21T02:09:28.437Z] [stdout] [2mdist/[22m[36massets/main-muFNF5mJ.js                     [39m[1m[2m278.90 kB[22m[1m[22m[2m │ gzip: 88.67 kB[22m
+[2026-04-21T02:09:28.437Z] [stdout] [32m✓ built in 5.44s[39m
+[2026-04-21T02:09:32.835Z] [stderr]    Compiling proc-macro2 v1.0.105
+[2026-04-21T02:09:32.836Z] [stderr]    Compiling quote v1.0.43
+[2026-04-21T02:09:32.836Z] [stderr]    Compiling unicode-ident v1.0.22
+[2026-04-21T02:09:32.836Z] [stderr]    Compiling cfg-if v1.0.4
+[2026-04-21T02:09:32.836Z] [stderr]    Compiling serde_core v1.0.228
+[2026-04-21T02:09:32.836Z] [stderr]    Compiling getrandom v0.3.4
+[2026-04-21T02:09:32.836Z] [stderr]    Compiling serde v1.0.228
+[2026-04-21T02:09:32.837Z] [stderr]    Compiling zerocopy v0.8.33
+[2026-04-21T02:09:32.837Z] [stderr]    Compiling version_check v0.9.5
+[2026-04-21T02:09:32.837Z] [stderr]    Compiling autocfg v1.5.0
+[2026-04-21T02:09:32.837Z] [stderr]    Compiling thiserror v2.0.17
+[2026-04-21T02:09:32.837Z] [stderr]    Compiling zmij v1.0.12
+[2026-04-21T02:09:32.837Z] [stderr]    Compiling icu_properties_data v2.1.2
+[2026-04-21T02:09:32.837Z] [stderr]    Compiling icu_normalizer_data v2.1.1
+[2026-04-21T02:09:33.116Z] [stderr]    Compiling windows_x86_64_msvc v0.48.5
+[2026-04-21T02:09:33.117Z] [stderr]    Compiling getrandom v0.2.16
+[2026-04-21T02:09:33.240Z] [stderr]    Compiling find-msvc-tools v0.1.6
+[2026-04-21T02:09:33.620Z] [stderr]    Compiling rand_core v0.6.4
+[2026-04-21T02:09:33.668Z] [stderr]    Compiling shlex v1.3.0
+[2026-04-21T02:09:33.787Z] [stderr]    Compiling parking_lot_core v0.9.12
+[2026-04-21T02:09:33.912Z] [stderr]    Compiling siphasher v1.0.1
+[2026-04-21T02:09:33.913Z] [stderr]    Compiling stable_deref_trait v1.2.1
+[2026-04-21T02:09:34.046Z] [stderr]    Compiling memchr v2.7.6
+[2026-04-21T02:09:34.165Z] [stderr]    Compiling phf_shared v0.11.3
+[2026-04-21T02:09:34.441Z] [stderr]    Compiling thiserror v1.0.69
+[2026-04-21T02:09:34.493Z] [stderr]    Compiling smallvec v1.15.1
+[2026-04-21T02:09:34.519Z] [stderr]    Compiling windows-link v0.2.1
+[2026-04-21T02:09:34.534Z] [stderr]    Compiling siphasher v0.3.11
+[2026-04-21T02:09:34.781Z] [stderr]    Compiling getrandom v0.1.16
+[2026-04-21T02:09:34.826Z] [stderr]    Compiling typeid v1.0.3
+[2026-04-21T02:09:35.201Z] [stderr]    Compiling fnv v1.0.7
+[2026-04-21T02:09:35.237Z] [stderr]    Compiling itoa v1.0.17
+[2026-04-21T02:09:35.481Z] [stderr]    Compiling jobserver v0.1.34
+[2026-04-21T02:09:35.528Z] [stderr]    Compiling erased-serde v0.4.9
+[2026-04-21T02:09:35.557Z] heartbeat: pid=24396 elapsed=15.0s
+[2026-04-21T02:09:35.559Z] [stderr]    Compiling writeable v0.6.2
+[2026-04-21T02:09:35.701Z] [stderr]    Compiling ident_case v1.0.1
+[2026-04-21T02:09:35.792Z] [stderr]    Compiling litemap v0.8.1
+[2026-04-21T02:09:35.808Z] [stderr]    Compiling syn v1.0.109
+[2026-04-21T02:09:35.841Z] [stderr]    Compiling strsim v0.11.1
+[2026-04-21T02:09:35.950Z] [stderr]    Compiling once_cell v1.21.3
+[2026-04-21T02:09:36.049Z] [stderr]    Compiling phf_shared v0.8.0
+[2026-04-21T02:09:36.104Z] [stderr]    Compiling cc v1.2.51
+[2026-04-21T02:09:36.225Z] [stderr]    Compiling value-bag v1.12.0
+[2026-04-21T02:09:36.267Z] [stderr]    Compiling proc-macro-hack v0.5.20+deprecated
+[2026-04-21T02:09:36.310Z] [stderr]    Compiling rand_core v0.5.1
+[2026-04-21T02:09:36.368Z] [stderr]    Compiling libc v0.2.179
+[2026-04-21T02:09:36.487Z] [stderr]    Compiling anyhow v1.0.100
+[2026-04-21T02:09:36.617Z] [stderr]    Compiling phf_shared v0.10.0
+[2026-04-21T02:09:36.857Z] [stderr]    Compiling scopeguard v1.2.0
+[2026-04-21T02:09:36.914Z] [stderr]    Compiling byteorder v1.5.0
+[2026-04-21T02:09:37.031Z] [stderr]    Compiling rand_pcg v0.2.1
+[2026-04-21T02:09:37.075Z] [stderr]    Compiling new_debug_unreachable v1.0.6
+[2026-04-21T02:09:37.100Z] [stderr]    Compiling log v0.4.29
+[2026-04-21T02:09:37.193Z] [stderr]    Compiling serde_json v1.0.149
+[2026-04-21T02:09:37.285Z] [stderr]    Compiling lock_api v0.4.14
+[2026-04-21T02:09:37.486Z] [stderr]    Compiling precomputed-hash v0.1.1
+[2026-04-21T02:09:37.588Z] [stderr]    Compiling crc32fast v1.5.0
+[2026-04-21T02:09:37.615Z] [stderr]    Compiling winnow v0.7.14
+[2026-04-21T02:09:37.781Z] [stderr]    Compiling mac v0.1.1
+[2026-04-21T02:09:37.803Z] [stderr]    Compiling windows-targets v0.48.5
+[2026-04-21T02:09:37.877Z] [stderr]    Compiling syn v2.0.114
+[2026-04-21T02:09:38.042Z] [stderr]    Compiling parking_lot v0.12.5
+[2026-04-21T02:09:38.111Z] [stderr]    Compiling bitflags v1.3.2
+[2026-04-21T02:09:38.246Z] [stderr]    Compiling futf v0.1.5
+[2026-04-21T02:09:38.299Z] [stderr]    Compiling toml_writer v1.0.6+spec-1.1.0
+[2026-04-21T02:09:38.313Z] [stderr]    Compiling utf-8 v0.7.6
+[2026-04-21T02:09:38.435Z] [stderr]    Compiling windows_x86_64_msvc v0.52.6
+[2026-04-21T02:09:38.449Z] [stderr]    Compiling utf8_iter v1.0.4
+[2026-04-21T02:09:38.624Z] [stderr]    Compiling typenum v1.19.0
+[2026-04-21T02:09:38.652Z] [stderr]    Compiling dtoa v1.0.11
+[2026-04-21T02:09:38.785Z] [stderr]    Compiling percent-encoding v2.3.2
+[2026-04-21T02:09:38.910Z] [stderr]    Compiling tendril v0.4.3
+[2026-04-21T02:09:39.000Z] [stderr]    Compiling windows-sys v0.48.0
+[2026-04-21T02:09:39.062Z] [stderr]    Compiling dtoa-short v0.3.5
+[2026-04-21T02:09:39.156Z] [stderr]    Compiling form_urlencoded v1.2.2
+[2026-04-21T02:09:39.282Z] [stderr]    Compiling aho-corasick v1.1.4
+[2026-04-21T02:09:39.297Z] [stderr]    Compiling indexmap v1.9.3
+[2026-04-21T02:09:39.370Z] [stderr]    Compiling regex-syntax v0.8.8
+[2026-04-21T02:09:39.463Z] [stderr]    Compiling alloc-no-stdlib v2.0.4
+[2026-04-21T02:09:39.506Z] [stderr]    Compiling matches v0.1.10
+[2026-04-21T02:09:39.520Z] [stderr]    Compiling unic-char-range v0.9.0
+[2026-04-21T02:09:39.660Z] [stderr]    Compiling ppv-lite86 v0.2.21
+[2026-04-21T02:09:39.860Z] [stderr]    Compiling camino v1.2.2
+[2026-04-21T02:09:39.878Z] [stderr]    Compiling unic-common v0.9.0
+[2026-04-21T02:09:39.886Z] [stderr]    Compiling nodrop v0.1.14
+[2026-04-21T02:09:39.902Z] [stderr]    Compiling convert_case v0.4.0
+[2026-04-21T02:09:40.234Z] [stderr]    Compiling servo_arc v0.2.0
+[2026-04-21T02:09:40.289Z] [stderr]    Compiling unic-ucd-version v0.9.0
+[2026-04-21T02:09:40.492Z] [stderr]    Compiling unic-char-property v0.9.0
+[2026-04-21T02:09:40.694Z] [stderr]    Compiling rand_chacha v0.3.1
+[2026-04-21T02:09:40.701Z] [stderr]    Compiling semver v1.0.27
+[2026-04-21T02:09:40.707Z] [stderr]    Compiling rand_chacha v0.2.2
+[2026-04-21T02:09:40.796Z] [stderr]    Compiling serde_spanned v1.0.4
+[2026-04-21T02:09:40.829Z] [stderr]    Compiling toml_datetime v0.7.5+spec-1.1.0
+[2026-04-21T02:09:40.993Z] [stderr]    Compiling uuid v1.19.0
+[2026-04-21T02:09:41.005Z] [stderr]    Compiling winapi-util v0.1.11
+[2026-04-21T02:09:41.115Z] [stderr]    Compiling alloc-stdlib v0.2.2
+[2026-04-21T02:09:41.322Z] [stderr]    Compiling rand v0.8.5
+[2026-04-21T02:09:41.327Z] [stderr]    Compiling rand v0.7.3
+[2026-04-21T02:09:41.564Z] [stderr]    Compiling toml_parser v1.0.6+spec-1.1.0
+[2026-04-21T02:09:41.611Z] [stderr]    Compiling fxhash v0.2.1
+[2026-04-21T02:09:41.632Z] [stderr]    Compiling phf v0.8.0
+[2026-04-21T02:09:41.746Z] [stderr]    Compiling generic-array v0.14.7
+[2026-04-21T02:09:41.876Z] [stderr]    Compiling schemars v0.8.22
+[2026-04-21T02:09:41.993Z] [stderr]    Compiling equivalent v1.0.2
+[2026-04-21T02:09:42.049Z] [stderr]    Compiling hashbrown v0.12.3
+[2026-04-21T02:09:42.073Z] [stderr]    Compiling hashbrown v0.16.1
+[2026-04-21T02:09:42.218Z] [stderr]    Compiling cfb v0.7.3
+[2026-04-21T02:09:42.321Z] [stderr]    Compiling brotli-decompressor v5.0.0
+[2026-04-21T02:09:42.451Z] [stderr]    Compiling same-file v1.0.6
+[2026-04-21T02:09:42.658Z] [stderr]    Compiling unic-ucd-ident v0.9.0
+[2026-04-21T02:09:43.020Z] [stderr]    Compiling phf_generator v0.11.3
+[2026-04-21T02:09:43.262Z] [stderr]    Compiling phf_generator v0.10.0
+[2026-04-21T02:09:43.527Z] [stderr]    Compiling phf_codegen v0.11.3
+[2026-04-21T02:09:43.578Z] [stderr]    Compiling string_cache_codegen v0.5.4
+[2026-04-21T02:09:43.598Z] [stderr]    Compiling toml v0.9.10+spec-1.1.0
+[2026-04-21T02:09:43.653Z] [stderr]    Compiling regex-automata v0.4.13
+[2026-04-21T02:09:43.684Z] [stderr]    Compiling indexmap v2.13.0
+[2026-04-21T02:09:43.771Z] [stderr]    Compiling dunce v1.0.5
+[2026-04-21T02:09:43.907Z] [stderr]    Compiling dyn-clone v1.0.20
+[2026-04-21T02:09:44.029Z] [stderr]    Compiling bytes v1.11.0
+[2026-04-21T02:09:44.095Z] [stderr]    Compiling serde-untagged v0.1.9
+[2026-04-21T02:09:44.308Z] [stderr]    Compiling phf_generator v0.8.0
+[2026-04-21T02:09:44.310Z] [stderr]    Compiling infer v0.19.0
+[2026-04-21T02:09:44.344Z] [stderr]    Compiling walkdir v2.5.0
+[2026-04-21T02:09:44.441Z] [stderr]    Compiling glob v0.3.3
+[2026-04-21T02:09:44.663Z] [stderr]    Compiling markup5ever v0.14.1
+[2026-04-21T02:09:44.674Z] [stderr]    Compiling phf_codegen v0.8.0
+[2026-04-21T02:09:44.730Z] [stderr]    Compiling rustc_version v0.4.1
+[2026-04-21T02:09:44.927Z] [stderr]    Compiling libm v0.2.16
+[2026-04-21T02:09:45.095Z] [stderr]    Compiling selectors v0.24.0
+[2026-04-21T02:09:45.179Z] [stderr]    Compiling brotli v8.0.2
+[2026-04-21T02:09:45.329Z] [stderr]    Compiling heck v0.5.0
+[2026-04-21T02:09:45.697Z] [stderr]    Compiling http v1.4.0
+[2026-04-21T02:09:45.764Z] [stderr]    Compiling bitflags v2.10.0
+[2026-04-21T02:09:45.861Z] [stderr]    Compiling windows-sys v0.61.2
+[2026-04-21T02:09:46.418Z] [stderr]    Compiling vswhom-sys v0.1.3
+[2026-04-21T02:09:46.647Z] [stderr]    Compiling windows-targets v0.52.6
+[2026-04-21T02:09:46.916Z] [stderr]    Compiling windows_x86_64_msvc v0.53.1
+[2026-04-21T02:09:47.196Z] [stderr]    Compiling windows-sys v0.59.0
+[2026-04-21T02:09:47.407Z] [stderr]    Compiling pin-project-lite v0.2.16
+[2026-04-21T02:09:47.660Z] [stderr]    Compiling synstructure v0.13.2
+[2026-04-21T02:09:48.018Z] [stderr]    Compiling darling_core v0.21.3
+[2026-04-21T02:09:48.038Z] [stderr]    Compiling serde_derive_internals v0.29.1
+[2026-04-21T02:09:48.580Z] [stderr]    Compiling regex v1.12.2
+[2026-04-21T02:09:49.056Z] [stderr]    Compiling vswhom v0.1.0
+[2026-04-21T02:09:49.211Z] [stderr]    Compiling simd-adler32 v0.3.8
+[2026-04-21T02:09:49.555Z] [stderr]    Compiling option-ext v0.2.0
+[2026-04-21T02:09:50.037Z] [stderr]    Compiling crossbeam-utils v0.8.21
+[2026-04-21T02:09:50.204Z] [stderr]    Compiling windows-targets v0.53.5
+[2026-04-21T02:09:50.565Z] heartbeat: pid=24396 elapsed=30.0s
+[2026-04-21T02:09:50.577Z] [stderr]    Compiling num-traits v0.2.19
+[2026-04-21T02:09:50.627Z] [stderr]    Compiling num-conv v0.1.0
+[2026-04-21T02:09:50.915Z] [stderr]    Compiling time-core v0.1.6
+[2026-04-21T02:09:51.101Z] [stderr]    Compiling powerfmt v0.2.0
+[2026-04-21T02:09:51.231Z] [stderr]    Compiling windows-sys v0.60.2
+[2026-04-21T02:09:51.303Z] [stderr]    Compiling phf_macros v0.10.0
+[2026-04-21T02:09:51.394Z] [stderr]    Compiling cssparser v0.29.6
+[2026-04-21T02:09:51.757Z] [stderr]    Compiling deranged v0.5.5
+[2026-04-21T02:09:51.797Z] [stderr]    Compiling time-macros v0.2.24
+[2026-04-21T02:09:52.375Z] [stderr]    Compiling serde_derive v1.0.228
+[2026-04-21T02:09:52.592Z] [stderr]    Compiling zerofrom-derive v0.1.6
+[2026-04-21T02:09:52.675Z] [stderr]    Compiling displaydoc v0.2.5
+[2026-04-21T02:09:53.061Z] [stderr]    Compiling yoke-derive v0.8.1
+[2026-04-21T02:09:53.246Z] [stderr]    Compiling zerovec-derive v0.11.2
+[2026-04-21T02:09:53.354Z] [stderr]    Compiling thiserror-impl v2.0.17
+[2026-04-21T02:09:53.520Z] [stderr]    Compiling thiserror-impl v1.0.69
+[2026-04-21T02:09:54.176Z] [stderr]    Compiling phf_macros v0.11.3
+[2026-04-21T02:09:54.403Z] [stderr]    Compiling ctor v0.2.9
+[2026-04-21T02:09:54.645Z] [stderr]    Compiling phf v0.10.1
+[2026-04-21T02:09:54.828Z] [stderr]    Compiling zerocopy-derive v0.8.33
+[2026-04-21T02:09:55.131Z] [stderr]    Compiling cssparser-macros v0.6.1
+[2026-04-21T02:09:55.462Z] [stderr]    Compiling match_token v0.1.0
+[2026-04-21T02:09:55.588Z] [stderr]    Compiling zerofrom v0.1.6
+[2026-04-21T02:09:55.656Z] [stderr]    Compiling derive_more v0.99.20
+[2026-04-21T02:09:55.669Z] [stderr]    Compiling phf v0.11.3
+[2026-04-21T02:09:55.990Z] [stderr]    Compiling schemars_derive v0.8.22
+[2026-04-21T02:09:56.188Z] [stderr]    Compiling winreg v0.55.0
+[2026-04-21T02:09:56.287Z] [stderr]    Compiling yoke v0.8.1
+[2026-04-21T02:09:56.421Z] [stderr]    Compiling dirs-sys v0.5.0
+[2026-04-21T02:09:56.788Z] [stderr]    Compiling dirs v6.0.0
+[2026-04-21T02:09:56.999Z] [stderr]    Compiling zerovec v0.11.5
+[2026-04-21T02:09:57.070Z] [stderr]    Compiling zerotrie v0.2.3
+[2026-04-21T02:09:57.079Z] [stderr]    Compiling darling_macro v0.21.3
+[2026-04-21T02:09:57.297Z] [stderr]    Compiling embed-resource v3.0.6
+[2026-04-21T02:09:57.593Z] [stderr]    Compiling spin v0.9.8
+[2026-04-21T02:09:58.140Z] [stderr]    Compiling tauri-winres v0.3.5
+[2026-04-21T02:09:58.299Z] [stderr]    Compiling windows-link v0.1.3
+[2026-04-21T02:09:58.342Z] [stderr]    Compiling adler2 v2.0.1
+[2026-04-21T02:09:58.464Z] [stderr]    Compiling darling v0.21.3
+[2026-04-21T02:09:58.583Z] [stderr]    Compiling miniz_oxide v0.8.9
+[2026-04-21T02:09:58.696Z] [stderr]    Compiling tinystr v0.8.2
+[2026-04-21T02:09:58.771Z] [stderr]    Compiling potential_utf v0.1.4
+[2026-04-21T02:09:58.816Z] [stderr]    Compiling time v0.3.44
+[2026-04-21T02:09:59.132Z] [stderr]    Compiling serde_with_macros v3.16.1
+[2026-04-21T02:09:59.202Z] [stderr]    Compiling icu_locale_core v2.1.1
+[2026-04-21T02:09:59.306Z] [stderr]    Compiling icu_collections v2.1.1
+[2026-04-21T02:10:00.837Z] [stderr]    Compiling flate2 v1.1.5
+[2026-04-21T02:10:01.262Z] [stderr]    Compiling icu_provider v2.1.1
+[2026-04-21T02:10:02.039Z] [stderr]    Compiling string_cache v0.8.9
+[2026-04-21T02:10:02.116Z] [stderr]    Compiling icu_properties v2.1.2
+[2026-04-21T02:10:02.119Z] [stderr]    Compiling icu_normalizer v2.1.1
+[2026-04-21T02:10:02.135Z] [stderr]    Compiling jsonptr v0.6.3
+[2026-04-21T02:10:02.183Z] [stderr]    Compiling cargo-platform v0.1.9
+[2026-04-21T02:10:02.207Z] [stderr]    Compiling serde_with v3.16.1
+[2026-04-21T02:10:02.284Z] [stderr]    Compiling cargo_toml v0.22.3
+[2026-04-21T02:10:02.986Z] [stderr]    Compiling cargo_metadata v0.19.2
+[2026-04-21T02:10:03.371Z] [stderr]    Compiling json-patch v3.0.1
+[2026-04-21T02:10:05.004Z] [stderr]    Compiling idna_adapter v1.2.1
+[2026-04-21T02:10:05.177Z] [stderr]    Compiling html5ever v0.29.1
+[2026-04-21T02:10:05.438Z] [stderr]    Compiling idna v1.1.0
+[2026-04-21T02:10:05.568Z] heartbeat: pid=24396 elapsed=45.0s
+[2026-04-21T02:10:05.638Z] [stderr]    Compiling socket2 v0.6.1
+[2026-04-21T02:10:05.910Z] [stderr]    Compiling mio v1.1.1
+[2026-04-21T02:10:05.937Z] [stderr]    Compiling windows-strings v0.4.2
+[2026-04-21T02:10:05.982Z] [stderr]    Compiling windows-result v0.3.4
+[2026-04-21T02:10:06.132Z] [stderr]    Compiling windows-implement v0.60.2
+[2026-04-21T02:10:06.220Z] [stderr]    Compiling windows-interface v0.59.3
+[2026-04-21T02:10:06.301Z] [stderr]    Compiling tokio-macros v2.6.0
+[2026-04-21T02:10:06.976Z] [stderr]    Compiling url v2.5.8
+[2026-04-21T02:10:08.007Z] [stderr]    Compiling lazy_static v1.5.0
+[2026-04-21T02:10:08.235Z] [stderr]    Compiling tokio v1.49.0
+[2026-04-21T02:10:08.242Z] [stderr]    Compiling windows-core v0.61.2
+[2026-04-21T02:10:08.350Z] [stderr]    Compiling tracing-core v0.1.36
+[2026-04-21T02:10:08.524Z] [stderr]    Compiling kuchikiki v0.8.8-speedreader
+[2026-04-21T02:10:08.781Z] [stderr]    Compiling unicode-segmentation v1.12.0
+[2026-04-21T02:10:08.825Z] [stderr]    Compiling urlpattern v0.3.0
+[2026-04-21T02:10:09.265Z] [stderr]    Compiling rand_core v0.9.3
+[2026-04-21T02:10:09.705Z] [stderr]    Compiling tracing-attributes v0.1.31
+[2026-04-21T02:10:09.776Z] [stderr]    Compiling windows-threading v0.1.0
+[2026-04-21T02:10:09.905Z] [stderr]    Compiling cookie v0.18.1
+[2026-04-21T02:10:10.155Z] [stderr]    Compiling rand_chacha v0.9.0
+[2026-04-21T02:10:10.338Z] [stderr]    Compiling bytemuck_derive v1.10.2
+[2026-04-21T02:10:10.712Z] [stderr]    Compiling raw-window-handle v0.6.2
+[2026-04-21T02:10:10.769Z] [stderr]    Compiling windows-future v0.2.1
+[2026-04-21T02:10:10.856Z] [stderr]    Compiling windows-numerics v0.2.0
+[2026-04-21T02:10:10.982Z] [stderr]    Compiling windows-collections v0.2.0
+[2026-04-21T02:10:11.443Z] [stderr]    Compiling rand v0.9.2
+[2026-04-21T02:10:11.741Z] [stderr]    Compiling windows v0.61.3
+[2026-04-21T02:10:12.039Z] [stderr]    Compiling webview2-com-sys v0.38.2
+[2026-04-21T02:10:12.534Z] [stderr]    Compiling subtle v2.6.1
+[2026-04-21T02:10:12.654Z] [stderr]    Compiling arrayvec v0.7.6
+[2026-04-21T02:10:12.852Z] [stderr]    Compiling tauri-utils v2.8.1
+[2026-04-21T02:10:13.208Z] [stderr]    Compiling tracing v0.1.44
+[2026-04-21T02:10:13.534Z] [stderr]    Compiling crypto-common v0.1.7
+[2026-04-21T02:10:13.549Z] [stderr]    Compiling dpi v0.1.2
+[2026-04-21T02:10:13.576Z] [stderr]    Compiling yoke-derive v0.7.5
+[2026-04-21T02:10:13.592Z] [stderr]    Compiling bytemuck v1.24.0
+[2026-04-21T02:10:14.223Z] [stderr]    Compiling zeroize v1.8.2
+[2026-04-21T02:10:14.870Z] [stderr]    Compiling block-buffer v0.10.4
+[2026-04-21T02:10:14.905Z] [stderr]    Compiling fdeflate v0.3.7
+[2026-04-21T02:10:15.322Z] [stderr]    Compiling webview2-com-macros v0.8.1
+[2026-04-21T02:10:15.472Z] [stderr]    Compiling zerovec-derive v0.10.3
+[2026-04-21T02:10:15.988Z] [stderr]    Compiling windows-version v0.1.7
+[2026-04-21T02:10:16.012Z] [stderr]    Compiling base64 v0.22.1
+[2026-04-21T02:10:16.206Z] [stderr]    Compiling yoke v0.7.5
+[2026-04-21T02:10:16.457Z] [stderr]    Compiling futures-core v0.3.31
+[2026-04-21T02:10:17.061Z] [stderr]    Compiling png v0.17.16
+[2026-04-21T02:10:17.176Z] [stderr]    Compiling digest v0.10.7
+[2026-04-21T02:10:17.952Z] [stderr]    Compiling zerovec v0.10.4
+[2026-04-21T02:10:18.067Z] [stderr]    Compiling crossbeam-channel v0.5.15
+[2026-04-21T02:10:18.348Z] [stderr]    Compiling cpufeatures v0.2.17
+[2026-04-21T02:10:18.831Z] [stderr]    Compiling wry v0.53.5
+[2026-04-21T02:10:19.456Z] [stderr]    Compiling tauri-runtime v2.9.2
+[2026-04-21T02:10:20.141Z] [stderr]    Compiling ico v0.4.0
+[2026-04-21T02:10:20.262Z] [stderr]    Compiling sha2 v0.10.9
+[2026-04-21T02:10:20.278Z] [stderr]    Compiling ahash v0.8.12
+[2026-04-21T02:10:20.388Z] [stderr]    Compiling ryu v1.0.22
+[2026-04-21T02:10:20.415Z] [stderr]    Compiling tauri-runtime-wry v2.9.3
+[2026-04-21T02:10:20.569Z] heartbeat: pid=24396 elapsed=60.0s
+[2026-04-21T02:10:21.126Z] [stderr]    Compiling softbuffer v0.4.8
+[2026-04-21T02:10:21.160Z] [stderr]    Compiling keyboard-types v0.7.0
+[2026-04-21T02:10:21.208Z] [stderr]    Compiling litemap v0.7.5
+[2026-04-21T02:10:21.275Z] [stderr]    Compiling serialize-to-javascript-impl v0.1.2
+[2026-04-21T02:10:21.276Z] [stderr]    Compiling mime v0.3.17
+[2026-04-21T02:10:21.428Z] [stderr]    Compiling tinyvec_macros v0.1.1
+[2026-04-21T02:10:21.723Z] [stderr]    Compiling pkg-config v0.3.32
+[2026-04-21T02:10:21.728Z] [stderr]    Compiling tinyvec v1.10.0
+[2026-04-21T02:10:21.942Z] [stderr]    Compiling tinystr v0.7.6
+[2026-04-21T02:10:22.185Z] [stderr]    Compiling window-vibrancy v0.6.0
+[2026-04-21T02:10:22.268Z] [stderr]    Compiling serialize-to-javascript v0.1.2
+[2026-04-21T02:10:22.312Z] [stderr]    Compiling cobs v0.3.0
+[2026-04-21T02:10:22.417Z] [stderr]    Compiling serde_repr v0.1.20
+[2026-04-21T02:10:22.574Z] [stderr]    Compiling core_maths v0.1.1
+[2026-04-21T02:10:22.812Z] [stderr]    Compiling ring v0.17.14
+[2026-04-21T02:10:22.859Z] [stderr]    Compiling writeable v0.5.5
+[2026-04-21T02:10:22.860Z] [stderr]    Compiling const-oid v0.9.6
+[2026-04-21T02:10:22.860Z] [stderr]    Compiling object v0.37.3
+[2026-04-21T02:10:23.097Z] [stderr]    Compiling slab v0.4.11
+[2026-04-21T02:10:23.343Z] [stderr]    Compiling postcard v1.1.3
+[2026-04-21T02:10:23.424Z] [stderr]    Compiling hashbrown v0.14.5
+[2026-04-21T02:10:23.889Z] [stderr]    Compiling muda v0.17.1
+[2026-04-21T02:10:23.924Z] [stderr]    Compiling icu_locid v1.5.0
+[2026-04-21T02:10:23.983Z] [stderr]    Compiling icu_provider_macros v1.5.0
+[2026-04-21T02:10:24.256Z] [stderr]    Compiling crossbeam-epoch v0.9.18
+[2026-04-21T02:10:24.644Z] [stderr]    Compiling slotmap v1.1.1
+[2026-04-21T02:10:24.769Z] [stderr]    Compiling rayon-core v1.13.0
+[2026-04-21T02:10:25.223Z] [stderr]    Compiling rustversion v1.0.22
+[2026-04-21T02:10:25.622Z] [stderr]    Compiling float-cmp v0.9.0
+[2026-04-21T02:10:25.663Z] [stderr]    Compiling unicode-script v0.5.8
+[2026-04-21T02:10:25.847Z] [stderr]    Compiling futures-sink v0.3.31
+[2026-04-21T02:10:25.893Z] [stderr]    Compiling paste v1.0.15
+[2026-04-21T02:10:26.071Z] [stderr]    Compiling pin-utils v0.1.0
+[2026-04-21T02:10:26.235Z] [stderr]    Compiling tokio-util v0.7.18
+[2026-04-21T02:10:26.294Z] [stderr]    Compiling strict-num v0.1.1
+[2026-04-21T02:10:26.602Z] [stderr]    Compiling icu_provider v1.5.0
+[2026-04-21T02:10:26.624Z] [stderr]    Compiling crossbeam-deque v0.8.6
+[2026-04-21T02:10:27.065Z] [stderr]    Compiling ttf-parser v0.24.1
+[2026-04-21T02:10:27.230Z] [stderr]    Compiling rustls-pki-types v1.13.2
+[2026-04-21T02:10:27.431Z] [stderr]    Compiling http-body v1.0.1
+[2026-04-21T02:10:27.444Z] [stderr]    Compiling num-integer v0.1.46
+[2026-04-21T02:10:27.513Z] [stderr]    Compiling futures-macro v0.3.31
+[2026-04-21T02:10:27.676Z] [stderr]    Compiling encoding_rs v0.8.35
+[2026-04-21T02:10:28.037Z] [stderr]    Compiling httparse v1.10.1
+[2026-04-21T02:10:29.154Z] [stderr]    Compiling color_quant v1.1.0
+[2026-04-21T02:10:29.295Z] [stderr]    Compiling weezl v0.1.12
+[2026-04-21T02:10:29.655Z] [stderr]    Compiling futures-task v0.3.31
+[2026-04-21T02:10:29.670Z] [stderr]    Compiling arrayref v0.3.9
+[2026-04-21T02:10:29.792Z] [stderr]    Compiling untrusted v0.9.0
+[2026-04-21T02:10:29.937Z] [stderr]    Compiling icu_locid_transform_data v1.5.1
+[2026-04-21T02:10:30.083Z] [stderr]    Compiling portable-atomic v1.13.1
+[2026-04-21T02:10:30.087Z] [stderr]    Compiling tiny-skia-path v0.11.4
+[2026-04-21T02:10:30.538Z] [stderr]    Compiling futures-util v0.3.31
+[2026-04-21T02:10:31.178Z] [stderr]    Compiling font-types v0.10.1
+[2026-04-21T02:10:31.760Z] [stderr]    Compiling tauri-plugin v2.5.2
+[2026-04-21T02:10:31.870Z] [stderr]    Compiling tauri-build v2.5.3
+[2026-04-21T02:10:31.912Z] [stderr]    Compiling tauri-codegen v2.5.2
+[2026-04-21T02:10:32.485Z] [stderr]    Compiling kurbo v0.11.3
+[2026-04-21T02:10:33.052Z] [stderr]    Compiling serde_spanned v0.6.9
+[2026-04-21T02:10:33.173Z] [stderr]    Compiling toml_datetime v0.6.3
+[2026-04-21T02:10:33.453Z] [stderr]    Compiling bit-vec v0.8.0
+[2026-04-21T02:10:33.544Z] [stderr]    Compiling rustls v0.23.36
+[2026-04-21T02:10:33.952Z] [stderr]    Compiling unicode-properties v0.1.4
+[2026-04-21T02:10:34.107Z] [stderr]    Compiling atomic-waker v1.1.2
+[2026-04-21T02:10:34.121Z] [stderr]    Compiling data-url v0.3.2
+[2026-04-21T02:10:34.177Z] [stderr]    Compiling try-lock v0.2.5
+[2026-04-21T02:10:34.286Z] [stderr]    Compiling tower-service v0.3.3
+[2026-04-21T02:10:34.500Z] [stderr]    Compiling byteorder-lite v0.1.0
+[2026-04-21T02:10:34.538Z] [stderr]    Compiling either v1.15.0
+[2026-04-21T02:10:34.592Z] [stderr]    Compiling rust_decimal v1.39.0
+[2026-04-21T02:10:34.900Z] [stderr]    Compiling unscanny v0.1.0
+[2026-04-21T02:10:35.164Z] [stderr]    Compiling winnow v0.5.40
+[2026-04-21T02:10:35.204Z] [stderr]    Compiling unicode-bidi-mirroring v0.3.0
+[2026-04-21T02:10:35.216Z] [stderr]    Compiling memmap2 v0.9.9
+[2026-04-21T02:10:35.357Z] [stderr]    Compiling unicode-ccc v0.3.0
+[2026-04-21T02:10:35.363Z] [stderr]    Compiling winapi v0.3.9
+[2026-04-21T02:10:35.572Z] heartbeat: pid=24396 elapsed=75.0s
+[2026-04-21T02:10:35.582Z] [stderr]    Compiling fontdb v0.21.0
+[2026-04-21T02:10:35.607Z] [stderr]    Compiling rayon v1.11.0
+[2026-04-21T02:10:35.776Z] [stderr]    Compiling rustybuzz v0.18.0
+[2026-04-21T02:10:36.475Z] [stderr]    Compiling svgtypes v0.15.3
+[2026-04-21T02:10:36.743Z] [stderr]    Compiling h2 v0.4.13
+[2026-04-21T02:10:36.812Z] [stderr]    Compiling want v0.3.1
+[2026-04-21T02:10:37.179Z] [stderr]    Compiling bit-set v0.8.0
+[2026-04-21T02:10:37.948Z] [stderr]    Compiling ar_archive_writer v0.5.1
+[2026-04-21T02:10:38.084Z] [stderr]    Compiling strum_macros v0.26.4
+[2026-04-21T02:10:38.661Z] [stderr]    Compiling read-fonts v0.35.0
+[2026-04-21T02:10:39.614Z] [stderr]    Compiling toml_edit v0.20.2
+[2026-04-21T02:10:39.624Z] [stderr]    Compiling futures-channel v0.3.31
+[2026-04-21T02:10:39.792Z] [stderr]    Compiling block-padding v0.3.3
+[2026-04-21T02:10:40.325Z] [stderr]    Compiling half v2.7.1
+[2026-04-21T02:10:40.563Z] [stderr]    Compiling rustls-webpki v0.103.8
+[2026-04-21T02:10:40.594Z] [stderr]    Compiling pxfm v0.1.27
+[2026-04-21T02:10:40.920Z] [stderr]    Compiling pathfinder_simd v0.5.5
+[2026-04-21T02:10:40.964Z] [stderr]    Compiling simplecss v0.2.2
+[2026-04-21T02:10:40.977Z] [stderr]    Compiling quick-xml v0.38.4
+[2026-04-21T02:10:41.405Z] [stderr]    Compiling psm v0.1.30
+[2026-04-21T02:10:41.539Z] [stderr]    Compiling windows-result v0.4.1
+[2026-04-21T02:10:42.098Z] [stderr]    Compiling windows-strings v0.5.1
+[2026-04-21T02:10:43.051Z] [stderr]    Compiling roxmltree v0.20.0
+[2026-04-21T02:10:43.106Z] [stderr]    Compiling imagesize v0.13.0
+[2026-04-21T02:10:43.593Z] [stderr]    Compiling litrs v1.0.0
+[2026-04-21T02:10:43.995Z] [stderr]    Compiling unicode-vo v0.1.0
+[2026-04-21T02:10:44.389Z] [stderr]    Compiling pico-args v0.5.0
+[2026-04-21T02:10:44.812Z] [stderr]    Compiling xmlwriter v0.1.0
+[2026-04-21T02:10:44.898Z] [stderr]    Compiling bumpalo v3.19.1
+[2026-04-21T02:10:45.051Z] [stderr]    Compiling unicode-bidi v0.3.18
+[2026-04-21T02:10:45.322Z] [stderr]    Compiling base64ct v1.8.3
+[2026-04-21T02:10:45.361Z] [stderr]    Compiling compression-core v0.4.31
+[2026-04-21T02:10:45.790Z] [stderr]    Compiling zune-core v0.5.1
+[2026-04-21T02:10:45.869Z] [stderr]    Compiling icu_segmenter_data v1.5.1
+[2026-04-21T02:10:46.187Z] [stderr]    Compiling linked-hash-map v0.5.6
+[2026-04-21T02:10:46.446Z] [stderr]    Compiling icu_properties_data v1.5.1
+[2026-04-21T02:10:46.871Z] [stderr]    Compiling ciborium-io v0.2.2
+[2026-04-21T02:10:46.896Z] [stderr]    Compiling psl-types v2.0.11
+[2026-04-21T02:10:46.972Z] [stderr]    Compiling thin-vec v0.2.14
+[2026-04-21T02:10:47.199Z] [stderr]    Compiling zune-jpeg v0.5.12
+[2026-04-21T02:10:47.325Z] [stderr]    Compiling publicsuffix v2.3.0
+[2026-04-21T02:10:47.443Z] [stderr]    Compiling ciborium-ll v0.2.2
+[2026-04-21T02:10:47.455Z] [stderr]    Compiling toml v0.8.2
+[2026-04-21T02:10:47.527Z] [stderr]    Compiling yaml-rust v0.4.5
+[2026-04-21T02:10:47.601Z] [stderr]    Compiling pem-rfc7468 v0.7.0
+[2026-04-21T02:10:47.691Z] [stderr]    Compiling typst-utils v0.12.0
+[2026-04-21T02:10:47.905Z] [stderr]    Compiling moxcms v0.7.11
+[2026-04-21T02:10:48.040Z] [stderr]    Compiling usvg v0.43.0
+[2026-04-21T02:10:48.225Z] [stderr]    Compiling compression-codecs v0.4.37
+[2026-04-21T02:10:49.298Z] [stderr]    Compiling document-features v0.2.12
+[2026-04-21T02:10:49.366Z] [stderr]    Compiling hyper v1.8.1
+[2026-04-21T02:10:49.573Z] [stderr]    Compiling strum v0.26.3
+[2026-04-21T02:10:50.458Z] [stderr]    Compiling windows-registry v0.6.1
+[2026-04-21T02:10:50.587Z] heartbeat: pid=24396 elapsed=90.1s
+[2026-04-21T02:10:50.654Z] [stderr]    Compiling plist v1.8.0
+[2026-04-21T02:10:51.734Z] [stderr]    Compiling inout v0.1.4
+[2026-04-21T02:10:51.747Z] [stderr]    Compiling icu_locid_transform v1.5.0
+[2026-04-21T02:10:51.895Z] [stderr]    Compiling fancy-regex v0.16.2
+[2026-04-21T02:10:53.568Z] [stderr]    Compiling gif v0.14.1
+[2026-04-21T02:10:54.005Z] [stderr]    Compiling png v0.18.0
+[2026-04-21T02:10:54.281Z] [stderr]    Compiling tauri v2.9.5
+[2026-04-21T02:10:55.399Z] [stderr]    Compiling tauri-macros v2.5.2
+[2026-04-21T02:10:55.576Z] [stderr]    Compiling tauri-plugin-fs v2.4.4
+[2026-04-21T02:10:55.801Z] [stderr]    Compiling string-interner v0.17.0
+[2026-04-21T02:10:56.163Z] [stderr]    Compiling zstd-sys v2.0.16+zstd.1.5.7
+[2026-04-21T02:10:56.452Z] [stderr]    Compiling unicode-normalization v0.1.25
+[2026-04-21T02:10:56.697Z] [stderr]    Compiling icu_collections v1.5.0
+[2026-04-21T02:10:56.752Z] [stderr]    Compiling sync_wrapper v1.0.2
+[2026-04-21T02:10:57.264Z] [stderr]    Compiling kurbo v0.12.0
+[2026-04-21T02:10:57.482Z] [stderr]    Compiling quick-xml v0.36.2
+[2026-04-21T02:10:58.318Z] [stderr]    Compiling bincode v1.3.3
+[2026-04-21T02:10:59.065Z] [stderr]    Compiling ecow v0.2.6
+[2026-04-21T02:10:59.290Z] [stderr]    Compiling unic-langid-impl v0.9.6
+[2026-04-21T02:10:59.335Z] [stderr]    Compiling enum-ordinalize-derive v4.3.2
+[2026-04-21T02:10:59.608Z] [stderr]    Compiling stacker v0.1.23
+[2026-04-21T02:10:59.624Z] [stderr]    Compiling by_address v1.2.1
+[2026-04-21T02:10:59.747Z] [stderr]    Compiling zune-core v0.4.12
+[2026-04-21T02:11:00.232Z] [stderr]    Compiling numerals v0.1.4
+[2026-04-21T02:11:00.781Z] [stderr]    Compiling indexmap-nostd v0.4.0
+[2026-04-21T02:11:00.796Z] [stderr]    Compiling tower-layer v0.3.3
+[2026-04-21T02:11:01.051Z] [stderr]    Compiling quick-error v2.0.1
+[2026-04-21T02:11:01.083Z] [stderr]    Compiling palette v0.7.6
+[2026-04-21T02:11:01.124Z] [stderr]    Compiling unicode-math-class v0.1.0
+[2026-04-21T02:11:01.169Z] [stderr]    Compiling unsafe-libyaml v0.2.11
+[2026-04-21T02:11:01.392Z] [stderr]    Compiling vcpkg v0.2.15
+[2026-04-21T02:11:01.439Z] [stderr]    Compiling ipnet v2.11.0
+[2026-04-21T02:11:01.493Z] [stderr]    Compiling downcast-rs v1.2.1
+[2026-04-21T02:11:01.952Z] [stderr]    Compiling typst-syntax v0.12.0
+[2026-04-21T02:11:01.959Z] [stderr]    Compiling wasmi_core v0.35.0
+[2026-04-21T02:11:02.092Z] [stderr]    Compiling image-webp v0.1.3
+[2026-04-21T02:11:02.332Z] [stderr]    Compiling tokio-rustls v0.26.4
+[2026-04-21T02:11:02.441Z] [stderr]    Compiling tower v0.5.2
+[2026-04-21T02:11:02.667Z] [stderr]    Compiling hyper-util v0.1.19
+[2026-04-21T02:11:02.856Z] [stderr]    Compiling enum-ordinalize v4.3.2
+[2026-04-21T02:11:03.433Z] [stderr]    Compiling serde_yaml v0.9.34+deprecated
+[2026-04-21T02:11:03.594Z] [stderr]    Compiling wasmparser-nostd v0.100.2
+[2026-04-21T02:11:03.736Z] [stderr]    Compiling libsqlite3-sys v0.30.1
+[2026-04-21T02:11:03.750Z] [stderr]    Compiling biblatex v0.10.0
+[2026-04-21T02:11:04.196Z] [stderr]    Compiling citationberg v0.5.0
+[2026-04-21T02:11:04.838Z] [stderr]    Compiling palette_derive v0.7.6
+[2026-04-21T02:11:04.954Z] [stderr]    Compiling zune-jpeg v0.4.21
+[2026-04-21T02:11:05.172Z] [stderr]    Compiling unic-langid v0.9.6
+[2026-04-21T02:11:05.234Z] [stderr]    Compiling write-fonts v0.43.0
+[2026-04-21T02:11:05.600Z] heartbeat: pid=24396 elapsed=105.1s
+[2026-04-21T02:11:05.657Z] [stderr]    Compiling syntect v5.3.0
+[2026-04-21T02:11:05.697Z] [stderr]    Compiling wio v0.2.2
+[2026-04-21T02:11:06.268Z] [stderr]    Compiling image v0.25.9
+[2026-04-21T02:11:07.354Z] [stderr]    Compiling wasmi_collections v0.35.0
+[2026-04-21T02:11:08.080Z] [stderr]    Compiling skrifa v0.37.0
+[2026-04-21T02:11:08.264Z] [stderr]    Compiling cipher v0.4.4
+[2026-04-21T02:11:09.217Z] [stderr]    Compiling async-compression v0.4.41
+[2026-04-21T02:11:09.561Z] [stderr]    Compiling der v0.7.10
+[2026-04-21T02:11:10.135Z] [stderr]    Compiling ciborium v0.2.2
+[2026-04-21T02:11:11.396Z] [stderr]    Compiling tiny-skia v0.11.4
+[2026-04-21T02:11:11.456Z] [stderr]    Compiling gif v0.13.3
+[2026-04-21T02:11:11.660Z] [stderr]    Compiling webpki-roots v1.0.5
+[2026-04-21T02:11:12.095Z] [stderr]    Compiling num-bigint v0.4.6
+[2026-04-21T02:11:12.444Z] [stderr]    Compiling http-body-util v0.1.3
+[2026-04-21T02:11:14.398Z] [stderr]    Compiling zerotrie v0.1.3
+[2026-04-21T02:11:14.410Z] [stderr]    Compiling rgb v0.8.52
+[2026-04-21T02:11:15.413Z] [stderr]    Compiling approx v0.5.1
+[2026-04-21T02:11:15.869Z] [stderr]    Compiling comemo-macros v0.4.0
+[2026-04-21T02:11:16.002Z] [stderr]    Compiling num-derive v0.4.2
+[2026-04-21T02:11:16.834Z] [stderr]    Compiling csv-core v0.1.13
+[2026-04-21T02:11:16.899Z] [stderr]    Compiling rustc-hash v2.1.1
+[2026-04-21T02:11:17.142Z] [stderr]    Compiling multi-stash v0.2.0
+[2026-04-21T02:11:17.377Z] [stderr]    Compiling chinese-variant v1.1.5
+[2026-04-21T02:11:17.450Z] [stderr]    Compiling Inflector v0.11.4
+[2026-04-21T02:11:17.470Z] [stderr]    Compiling font-kit v0.14.3
+[2026-04-21T02:11:17.813Z] [stderr]    Compiling fast-srgb8 v1.0.0
+[2026-04-21T02:11:17.926Z] [stderr]    Compiling iri-string v0.7.10
+[2026-04-21T02:11:17.944Z] [stderr]    Compiling zip v2.4.2
+[2026-04-21T02:11:18.413Z] [stderr]    Compiling mutate_once v0.1.2
+[2026-04-21T02:11:18.622Z] [stderr]    Compiling wasmi v0.35.0
+[2026-04-21T02:11:18.705Z] [stderr]    Compiling subsetter v0.2.3
+[2026-04-21T02:11:18.985Z] [stderr]    Compiling specta-macros v2.0.0-rc.18
+[2026-04-21T02:11:19.004Z] [stderr]    Compiling kamadak-exif v0.5.5
+[2026-04-21T02:11:20.605Z] heartbeat: pid=24396 elapsed=120.1s
+[2026-04-21T02:11:21.033Z] [stderr]    Compiling chinese-number v0.7.8
+[2026-04-21T02:11:21.828Z] [stderr]    Compiling comemo v0.4.0
+[2026-04-21T02:11:22.277Z] [stderr]    Compiling csv v1.4.0
+[2026-04-21T02:11:22.353Z] [stderr]    Compiling icu_provider_blob v1.5.0
+[2026-04-21T02:11:23.405Z] [stderr]    Compiling tower-http v0.6.8
+[2026-04-21T02:11:23.519Z] [stderr]    Compiling resvg v0.43.0
+[2026-04-21T02:11:24.607Z] [stderr]    Compiling spki v0.7.3
+[2026-04-21T02:11:25.089Z] [stderr]    Compiling hyper-rustls v0.27.7
+[2026-04-21T02:11:25.506Z] [stderr]    Compiling hayagriva v0.8.1
+[2026-04-21T02:11:25.697Z] [stderr]    Compiling icu_segmenter v1.5.0
+[2026-04-21T02:11:25.878Z] [stderr]    Compiling icu_properties v1.5.1
+[2026-04-21T02:11:26.843Z] [stderr]    Compiling pathfinder_geometry v0.5.1
+[2026-04-21T02:11:27.799Z] [stderr]    Compiling two-face v0.4.5
+[2026-04-21T02:11:28.281Z] [stderr]    Compiling dwrote v0.11.5
+[2026-04-21T02:11:31.025Z] [stderr]    Compiling tao v0.34.5
+[2026-04-21T02:11:31.204Z] [stderr]    Compiling typst-timing v0.12.0
+[2026-04-21T02:11:31.299Z] [stderr]    Compiling tauri-plugin-shell v2.3.3
+[2026-04-21T02:11:31.401Z] [stderr]    Compiling tauri-plugin-updater v2.9.0
+[2026-04-21T02:11:31.812Z] [stderr]    Compiling tauri-plugin-os v2.3.2
+[2026-04-21T02:11:32.537Z] [stderr]    Compiling tauri-plugin-opener v2.5.2
+[2026-04-21T02:11:32.679Z] [stderr]    Compiling tauri-plugin-log v2.7.1
+[2026-04-21T02:11:34.953Z] [stderr]    Compiling tauri-plugin-process v2.3.1
+[2026-04-21T02:11:35.338Z] [stderr]    Compiling tauri-plugin-http v2.5.4
+[2026-04-21T02:11:35.455Z] [stderr]    Compiling tauri-plugin-dialog v2.4.2
+[2026-04-21T02:11:35.614Z] [stderr]    Compiling icu_provider_adapters v1.5.0
+[2026-04-21T02:11:35.615Z] heartbeat: pid=24396 elapsed=135.1s
+[2026-04-21T02:11:35.867Z] [stderr]    Compiling cookie_store v0.22.0
+[2026-04-21T02:11:36.094Z] [stderr]    Compiling zopfli v0.8.3
+[2026-04-21T02:11:36.138Z] [stderr]    Compiling lipsum v0.9.1
+[2026-04-21T02:11:36.547Z] [stderr]    Compiling pdf-writer v0.12.1
+[2026-04-21T02:11:37.588Z] [stderr]    Compiling serde_urlencoded v0.7.1
+[2026-04-21T02:11:37.756Z] [stderr]    Compiling universal-hash v0.5.1
+[2026-04-21T02:11:37.931Z] [stderr]    Compiling typst-macros v0.12.0
+[2026-04-21T02:11:37.982Z] [stderr]    Compiling typed-arena v2.0.2
+[2026-04-21T02:11:38.169Z] [stderr]    Compiling opaque-debug v0.3.1
+[2026-04-21T02:11:38.627Z] [stderr]    Compiling plotters-backend v0.3.7
+[2026-04-21T02:11:38.630Z] [stderr]    Compiling zstd-safe v7.2.4
+[2026-04-21T02:11:38.879Z] [stderr]    Compiling qcms v0.3.0
+[2026-04-21T02:11:38.905Z] [stderr]    Compiling num-bigint-dig v0.8.6
+[2026-04-21T02:11:39.007Z] [stderr]    Compiling typst-assets v0.12.0
+[2026-04-21T02:11:39.718Z] [stderr]    Compiling if_chain v1.0.3
+[2026-04-21T02:11:39.824Z] [stderr]    Compiling rfd v0.15.4
+[2026-04-21T02:11:39.955Z] [stderr]    Compiling hypher v0.1.6
+[2026-04-21T02:11:40.038Z] [stderr]    Compiling az v1.3.0
+[2026-04-21T02:11:40.038Z] [stderr]    Compiling float-ord v0.3.2
+[2026-04-21T02:11:40.854Z] [stderr]    Compiling svg2pdf v0.12.0
+[2026-04-21T02:11:41.402Z] [stderr]    Compiling webview2-com v0.38.2
+[2026-04-21T02:11:42.235Z] [stderr]    Compiling plotters-svg v0.3.7
+[2026-04-21T02:11:43.463Z] [stderr]    Compiling reqwest v0.12.28
+[2026-04-21T02:11:43.472Z] [stderr]    Compiling polyval v0.6.2
+[2026-04-21T02:11:43.927Z] [stderr]    Compiling typst v0.12.0
+[2026-04-21T02:11:46.092Z] [stderr]    Compiling pkcs8 v0.10.2
+[2026-04-21T02:11:46.673Z] [stderr]    Compiling specta v2.0.0-rc.22
+[2026-04-21T02:11:46.762Z] [stderr]    Compiling quick-xml v0.30.0
+[2026-04-21T02:11:47.171Z] [stderr]    Compiling codepage v0.1.2
+[2026-04-21T02:11:47.840Z] [stderr]    Compiling num-iter v0.1.45
+[2026-04-21T02:11:48.536Z] [stderr]    Compiling hashlink v0.9.1
+[2026-04-21T02:11:48.832Z] [stderr]    Compiling open v5.3.3
+[2026-04-21T02:11:49.478Z] [stderr]    Compiling zip v0.6.6
+[2026-04-21T02:11:49.570Z] [stderr]    Compiling scheduled-thread-pool v0.2.7
+[2026-04-21T02:11:49.898Z] [stderr]    Compiling chrono v0.4.42
+[2026-04-21T02:11:49.913Z] [stderr]    Compiling rust_xlsxwriter_derive v0.2.0
+[2026-04-21T02:11:50.620Z] heartbeat: pid=24396 elapsed=150.1s
+[2026-04-21T02:11:50.621Z] [stderr]    Compiling utf8-width v0.1.8
+[2026-04-21T02:11:50.706Z] [stderr]    Compiling ttf-parser v0.20.0
+[2026-04-21T02:11:51.046Z] [stderr]    Compiling foldhash v0.1.5
+[2026-04-21T02:11:51.206Z] [stderr]    Compiling fastrand v2.3.0
+[2026-04-21T02:11:51.412Z] [stderr]    Compiling xmp-writer v0.3.2
+[2026-04-21T02:11:51.669Z] [stderr]    Compiling allocator-api2 v0.2.21
+[2026-04-21T02:11:51.712Z] [stderr]    Compiling fallible-iterator v0.3.0
+[2026-04-21T02:11:52.284Z] [stderr]    Compiling fallible-streaming-iterator v0.1.9
+[2026-04-21T02:11:52.461Z] [stderr]    Compiling tempfile v3.24.0
+[2026-04-21T02:11:52.960Z] [stderr]    Compiling calamine v0.22.1
+[2026-04-21T02:11:52.974Z] [stderr]    Compiling rust_xlsxwriter v0.80.0
+[2026-04-21T02:11:53.048Z] [stderr]    Compiling byte-unit v5.2.0
+[2026-04-21T02:11:53.447Z] [stderr]    Compiling hashbrown v0.15.5
+[2026-04-21T02:11:53.593Z] [stderr]    Compiling specta-serde v0.0.9
+[2026-04-21T02:11:53.836Z] [stderr]    Compiling rusqlite v0.32.1
+[2026-04-21T02:11:54.155Z] [stderr]    Compiling r2d2 v0.8.10
+[2026-04-21T02:11:54.351Z] [stderr]    Compiling pkcs1 v0.7.5
+[2026-04-21T02:11:54.570Z] [stderr]    Compiling ghash v0.5.1
+[2026-04-21T02:11:54.865Z] [stderr]    Compiling aes v0.8.4
+[2026-04-21T02:11:55.046Z] [stderr]    Compiling plotters v0.3.7
+[2026-04-21T02:11:55.670Z] [stderr]    Compiling ctr v0.9.2
+[2026-04-21T02:11:56.622Z] [stderr]    Compiling rheolab-enterprise v0.2.0-beta.9 (D:\Development\Rheolab\src-tauri)
+[2026-04-21T02:11:56.741Z] [stderr]    Compiling signature v2.2.0
+[2026-04-21T02:11:57.408Z] [stderr]    Compiling hmac v0.12.1
+[2026-04-21T02:11:57.540Z] [stderr]    Compiling cookie_store v0.21.1
+[2026-04-21T02:11:57.850Z] [stderr]    Compiling dirs-sys v0.4.1
+[2026-04-21T02:11:58.255Z] [stderr]    Compiling aead v0.5.2
+[2026-04-21T02:11:58.530Z] [stderr]    Compiling matchers v0.2.0
+[2026-04-21T02:11:58.691Z] [stderr]    Compiling tracing-log v0.2.0
+[2026-04-21T02:11:58.829Z] [stderr]    Compiling sharded-slab v0.1.7
+[2026-04-21T02:11:59.082Z] [stderr]    Compiling os_info v3.14.0
+[2026-04-21T02:11:59.262Z] [stderr]    Compiling shared_child v1.1.1
+[2026-04-21T02:11:59.511Z] [stderr]    Compiling nu-ansi-term v0.50.3
+[2026-04-21T02:11:59.533Z] [stderr]    Compiling zip v4.6.1
+[2026-04-21T02:11:59.685Z] [stderr]    Compiling os_pipe v1.2.3
+[2026-04-21T02:11:59.802Z] [stderr]    Compiling fern v0.7.1
+[2026-04-21T02:11:59.824Z] [stderr]    Compiling gethostname v1.1.0
+[2026-04-21T02:12:00.163Z] [stderr]    Compiling thread_local v1.1.9
+[2026-04-21T02:12:00.340Z] [stderr]    Compiling minisign-verify v0.2.4
+[2026-04-21T02:12:00.411Z] [stderr]    Compiling sys-locale v0.3.2
+[2026-04-21T02:12:00.692Z] [stderr]    Compiling aes-gcm v0.10.3
+[2026-04-21T02:12:00.970Z] [stderr]    Compiling tracing-subscriber v0.3.22
+[2026-04-21T02:12:01.012Z] [stderr]    Compiling dirs v5.0.1
+[2026-04-21T02:12:01.066Z] [stderr]    Compiling hkdf v0.12.4
+[2026-04-21T02:12:01.127Z] [stderr]    Compiling rsa v0.9.10
+[2026-04-21T02:12:01.183Z] [stderr]    Compiling zstd v0.13.3
+[2026-04-21T02:12:01.275Z] [stderr]    Compiling r2d2_sqlite v0.25.0
+[2026-04-21T02:12:01.356Z] [stderr]    Compiling lru v0.12.5
+[2026-04-21T02:12:01.970Z] [stderr]    Compiling specta-typescript v0.0.9
+[2026-04-21T02:12:02.069Z] [stderr]    Compiling cbc v0.1.2
+[2026-04-21T02:12:02.130Z] [stderr]    Compiling async-trait v0.1.89
+[2026-04-21T02:12:02.228Z] [stderr]    Compiling urlencoding v2.1.3
+[2026-04-21T02:12:02.229Z] [stderr]    Compiling hex v0.4.3
+[2026-04-21T02:12:05.621Z] heartbeat: pid=24396 elapsed=165.1s
+[2026-04-21T02:12:20.633Z] heartbeat: pid=24396 elapsed=180.1s
+[2026-04-21T02:12:26.110Z] [stderr]    Compiling typst-pdf v0.12.0
+[2026-04-21T02:12:29.279Z] [stderr]    Compiling rheolab-core v0.1.0 (D:\Development\Rheolab\src\rust\rheolab-core)
+[2026-04-21T02:12:35.637Z] heartbeat: pid=24396 elapsed=195.1s
+[2026-04-21T02:12:50.642Z] heartbeat: pid=24396 elapsed=210.1s
+[2026-04-21T02:13:05.643Z] heartbeat: pid=24396 elapsed=225.1s
+[2026-04-21T02:13:20.655Z] heartbeat: pid=24396 elapsed=240.1s
+[2026-04-21T02:13:35.655Z] heartbeat: pid=24396 elapsed=255.1s
+[2026-04-21T02:13:50.664Z] heartbeat: pid=24396 elapsed=270.1s
+[2026-04-21T02:14:05.670Z] heartbeat: pid=24396 elapsed=285.1s
+[2026-04-21T02:14:20.676Z] heartbeat: pid=24396 elapsed=300.1s
+[2026-04-21T02:14:35.728Z] heartbeat: pid=24396 elapsed=315.2s
+[2026-04-21T02:14:50.729Z] heartbeat: pid=24396 elapsed=330.2s
+[2026-04-21T02:15:05.735Z] heartbeat: pid=24396 elapsed=345.2s
+[2026-04-21T02:15:20.743Z] heartbeat: pid=24396 elapsed=360.2s
+[2026-04-21T02:15:35.745Z] heartbeat: pid=24396 elapsed=375.2s
+[2026-04-21T02:15:50.755Z] heartbeat: pid=24396 elapsed=390.2s
+[2026-04-21T02:16:04.069Z] [stderr]     Finished `release` profile [optimized] target(s) in 6m 35s
+[2026-04-21T02:16:04.122Z] [stderr]        Built application at: D:\Development\Rheolab\src-tauri\target\release\rheolab-enterprise.exe
+[2026-04-21T02:16:04.124Z] [stderr]         Info Patching binary "D:\\Development\\Rheolab\\src-tauri\\target\\release\\rheolab-enterprise.exe" for type nsis
+[2026-04-21T02:16:04.131Z] [stderr]         Info Target: x64
+[2026-04-21T02:16:04.143Z] [stderr]      Running makensis to produce D:\Development\Rheolab\src-tauri\target\release\bundle\nsis\RheoLab Enterprise_0.2.0-beta.9_x64-setup.exe
+[2026-04-21T02:16:05.756Z] heartbeat: pid=24396 elapsed=405.2s
+[2026-04-21T02:16:06.342Z] [stderr]     Finished 1 bundle at:
+[2026-04-21T02:16:06.342Z] [stderr]         D:\Development\Rheolab\src-tauri\target\release\bundle\nsis\RheoLab Enterprise_0.2.0-beta.9_x64-setup.exe
+[2026-04-21T02:16:06.342Z] [stderr] 
+[2026-04-21T02:16:06.381Z] wrapper exit: code=0 signal=null elapsed=405.9s
+[2026-04-21T02:16:06.382Z] post-build sign: signing RheoLab Enterprise_0.2.0-beta.9_x64-setup.exe
+[2026-04-21T02:16:07.120Z] post-build sign: success → RheoLab Enterprise_0.2.0-beta.9_x64-setup.exe.sig

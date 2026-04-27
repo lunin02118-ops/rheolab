@@ -1,0 +1,3 @@
+cargo audit (src-tauri):
+  Status: PASS - 0 unresolved vulnerabilities
+  Note: 21 advisories ignored (transitive Tauri/GTK3 deps + reviewed false-positives)

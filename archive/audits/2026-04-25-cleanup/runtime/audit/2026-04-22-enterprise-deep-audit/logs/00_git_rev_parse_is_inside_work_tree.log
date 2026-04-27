@@ -1,0 +1,4 @@
+[2026-04-22T20:11:29.398Z] $ git rev-parse --is-inside-work-tree
+true
+
+[2026-04-22T20:11:29.454Z] exit=0 signal=none timedOut=false

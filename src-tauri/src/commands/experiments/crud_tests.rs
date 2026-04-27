@@ -94,23 +94,38 @@ fn roundtrip_all_fields() {
     assert_eq!(loaded.test_sub_group, exp.test_sub_group);
     // V8 fields
     assert_eq!(loaded.parsed_by, exp.parsed_by, "parsed_by must round-trip");
-    assert_eq!(loaded.parse_source, exp.parse_source, "parse_source must round-trip");
-    assert_eq!(loaded.time_range_min, exp.time_range_min, "timeRangeMin must round-trip");
-    assert_eq!(loaded.time_range_max, exp.time_range_max, "timeRangeMax must round-trip");
-    assert_eq!(loaded.pressure_max, exp.pressure_max, "pressureMax must round-trip");
+    assert_eq!(
+        loaded.parse_source, exp.parse_source,
+        "parse_source must round-trip"
+    );
+    assert_eq!(
+        loaded.time_range_min, exp.time_range_min,
+        "timeRangeMin must round-trip"
+    );
+    assert_eq!(
+        loaded.time_range_max, exp.time_range_max,
+        "timeRangeMax must round-trip"
+    );
+    assert_eq!(
+        loaded.pressure_max, exp.pressure_max,
+        "pressureMax must round-trip"
+    );
     // calibration JSON
-    assert!(loaded.calibration.is_some(), "calibration JSON must round-trip");
+    assert!(
+        loaded.calibration.is_some(),
+        "calibration JSON must round-trip"
+    );
     assert_eq!(
         loaded.calibration.as_ref().unwrap()["status"],
         json!("valid"),
         "calibration.status must be preserved"
     );
     // extra_fields
-    assert!(loaded.extra_fields.is_some(), "extra_fields must round-trip");
-    assert_eq!(
-        loaded.extra_fields.unwrap()["customField"],
-        json!("value1")
+    assert!(
+        loaded.extra_fields.is_some(),
+        "extra_fields must round-trip"
     );
+    assert_eq!(loaded.extra_fields.unwrap()["customField"], json!("value1"));
 }
 
 /// CRITICAL-1: upsert must PRESERVE the original createdAt timestamp.
@@ -159,7 +174,11 @@ fn upsert_preserves_calibration_row() {
     ).unwrap();
 
     let before: i64 = conn
-        .query_row("SELECT COUNT(*) FROM Calibration WHERE experimentId='cal_001'", [], |r| r.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM Calibration WHERE experimentId='cal_001'",
+            [],
+            |r| r.get(0),
+        )
         .unwrap();
     assert_eq!(before, 1, "Calibration row must exist before upsert");
 
@@ -169,7 +188,11 @@ fn upsert_preserves_calibration_row() {
     persist_experiment(&conn, &updated).unwrap();
 
     let after: i64 = conn
-        .query_row("SELECT COUNT(*) FROM Calibration WHERE experimentId='cal_001'", [], |r| r.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM Calibration WHERE experimentId='cal_001'",
+            [],
+            |r| r.get(0),
+        )
         .unwrap();
     assert_eq!(
         after, 1,
@@ -195,7 +218,11 @@ fn upsert_preserves_reagent_rows() {
     persist_experiment(&conn, &exp).unwrap();
 
     let before: i64 = conn
-        .query_row("SELECT COUNT(*) FROM ExperimentReagent WHERE experimentId='rg_001'", [], |r| r.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM ExperimentReagent WHERE experimentId='rg_001'",
+            [],
+            |r| r.get(0),
+        )
         .unwrap();
     assert_eq!(before, 1);
 
@@ -204,7 +231,11 @@ fn upsert_preserves_reagent_rows() {
     persist_experiment(&conn, &exp).unwrap();
 
     let after: i64 = conn
-        .query_row("SELECT COUNT(*) FROM ExperimentReagent WHERE experimentId='rg_001'", [], |r| r.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM ExperimentReagent WHERE experimentId='rg_001'",
+            [],
+            |r| r.get(0),
+        )
         .unwrap();
     assert_eq!(after, 1, "CRITICAL-1: ReagentRows must survive upsert");
 }
@@ -220,7 +251,11 @@ fn delete_experiment_removes_experiment_data() {
 
     // Verify ExperimentData was written
     let blob_count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM ExperimentData WHERE experimentId='del_001'", [], |r| r.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM ExperimentData WHERE experimentId='del_001'",
+            [],
+            |r| r.get(0),
+        )
         .unwrap();
     // columnar encode may silently fail on tiny raw_points arrays, so only
     // assert that if it was written, it survives delete logic.
@@ -228,19 +263,35 @@ fn delete_experiment_removes_experiment_data() {
 
     // Run the same DELETE chain that experiments_delete uses
     let tx = conn.unchecked_transaction().unwrap();
-    tx.execute("DELETE FROM ExperimentData WHERE experimentId = ?1", params!["del_001"]).unwrap();
-    tx.execute("DELETE FROM Experiment WHERE id = ?1", params!["del_001"]).unwrap();
+    tx.execute(
+        "DELETE FROM ExperimentData WHERE experimentId = ?1",
+        params!["del_001"],
+    )
+    .unwrap();
+    tx.execute("DELETE FROM Experiment WHERE id = ?1", params!["del_001"])
+        .unwrap();
     tx.commit().unwrap();
 
     let exp_count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM Experiment WHERE id='del_001'", [], |r| r.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM Experiment WHERE id='del_001'",
+            [],
+            |r| r.get(0),
+        )
         .unwrap();
     assert_eq!(exp_count, 0, "Experiment row must be deleted");
 
     let blob_after: i64 = conn
-        .query_row("SELECT COUNT(*) FROM ExperimentData WHERE experimentId='del_001'", [], |r| r.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM ExperimentData WHERE experimentId='del_001'",
+            [],
+            |r| r.get(0),
+        )
         .unwrap();
-    assert_eq!(blob_after, 0, "ExperimentData BLOB must be cleaned up on delete");
+    assert_eq!(
+        blob_after, 0,
+        "ExperimentData BLOB must be cleaned up on delete"
+    );
     let _ = had_blob; // explicitly used to avoid unused warning
 }
 
@@ -277,7 +328,9 @@ fn roundtrip_reagents() {
     let loaded = load_experiment_by_id(&conn, "rgt_001").unwrap().unwrap();
     assert_eq!(loaded.reagents.len(), 2, "both reagents must be loaded");
     // verify names survived
-    let names: Vec<_> = loaded.reagents.iter()
+    let names: Vec<_> = loaded
+        .reagents
+        .iter()
         .filter_map(|r| r.reagent_name.as_deref())
         .collect();
     assert!(names.contains(&"WG-9000F"), "WG-9000F must round-trip");
@@ -294,13 +347,16 @@ fn roundtrip_raw_points_via_columnar() {
 
     let loaded = load_experiment_by_id(&conn, "rp_001").unwrap().unwrap();
     assert_eq!(
-        loaded.raw_points.len(), exp.raw_points.len(),
+        loaded.raw_points.len(),
+        exp.raw_points.len(),
         "raw_points count must be preserved"
     );
     // The columnar decoder may not exact-match JSON floats, but viscosity_cp
     // should be numerically close.
     let orig_visc: f64 = exp.raw_points[0]["viscosity_cp"].as_f64().unwrap_or(0.0);
-    let loaded_visc: f64 = loaded.raw_points[0]["viscosity_cp"].as_f64().unwrap_or(-1.0);
+    let loaded_visc: f64 = loaded.raw_points[0]["viscosity_cp"]
+        .as_f64()
+        .unwrap_or(-1.0);
     assert!(
         (orig_visc - loaded_visc).abs() < 1.0,
         "viscosity_cp must survive columnar encode/decode (orig={orig_visc} loaded={loaded_visc})"
@@ -312,7 +368,10 @@ fn roundtrip_raw_points_via_columnar() {
 fn load_missing_experiment_returns_none() {
     let conn = open_db();
     let result = load_experiment_by_id(&conn, "no_such_id");
-    assert!(matches!(result, Ok(None)), "missing experiment must return Ok(None)");
+    assert!(
+        matches!(result, Ok(None)),
+        "missing experiment must return Ok(None)"
+    );
 }
 
 // ── Touch-point precompute (PR2 Phase B) ─────────────────────────────────
@@ -343,7 +402,13 @@ fn make_experiment_with_crossing(id: &str) -> StoredExperiment {
 fn read_touch_columns(
     conn: &Connection,
     id: &str,
-) -> (Option<i64>, Option<f64>, Option<f64>, Option<f64>, Option<i64>) {
+) -> (
+    Option<i64>,
+    Option<f64>,
+    Option<f64>,
+    Option<f64>,
+    Option<i64>,
+) {
     conn.query_row(
         "SELECT touchHasCrossing, touchCrossingTimeMin, touchCrossingViscosityCp, \
                 touchViscosityAtTargetCp, touchPrecomputeVersion \
@@ -370,17 +435,23 @@ fn persist_writes_touch_point_columns_for_crossing() {
     let exp = make_experiment_with_crossing("tp_cross_001");
     persist_experiment(&conn, &exp).unwrap();
 
-    let (has, t_cross, v_cross, v_target, version) =
-        read_touch_columns(&conn, "tp_cross_001");
+    let (has, t_cross, v_cross, v_target, version) = read_touch_columns(&conn, "tp_cross_001");
 
-    assert_eq!(has, Some(1), "linear decline to 10 cP must yield has_crossing = 1");
+    assert_eq!(
+        has,
+        Some(1),
+        "linear decline to 10 cP must yield has_crossing = 1"
+    );
     let t = t_cross.expect("crossing time must be written");
     assert!(
         (6.0..=10.0).contains(&t),
         "crossing time must land inside the declining window, got {t}"
     );
     let v = v_cross.expect("crossing viscosity must be written");
-    assert!(v > 30.0 && v < 80.0, "crossing viscosity near 50 cP, got {v}");
+    assert!(
+        v > 30.0 && v < 80.0,
+        "crossing viscosity near 50 cP, got {v}"
+    );
     let vt = v_target.expect("target-time viscosity must be written");
     assert!(
         vt > 20.0 && vt < 80.0,
@@ -411,8 +482,7 @@ fn persist_flat_curve_records_precompute_version_without_crossing() {
         .collect();
     persist_experiment(&conn, &exp).unwrap();
 
-    let (has, t_cross, v_cross, v_target, version) =
-        read_touch_columns(&conn, "tp_flat_001");
+    let (has, t_cross, v_cross, v_target, version) = read_touch_columns(&conn, "tp_flat_001");
     assert_eq!(has, Some(0), "flat 120 cP curve must not cross 50 cP");
     assert!(t_cross.is_none());
     assert!(v_cross.is_none());
@@ -452,7 +522,11 @@ fn resave_refreshes_touch_point_columns() {
     let exp2 = make_experiment_with_crossing("tp_resave_001");
     persist_experiment(&conn, &exp2).unwrap();
     let (has, t_cross, _, _, _) = read_touch_columns(&conn, "tp_resave_001");
-    assert_eq!(has, Some(1), "re-save with declining curve must flip has_crossing");
+    assert_eq!(
+        has,
+        Some(1),
+        "re-save with declining curve must flip has_crossing"
+    );
     assert!(t_cross.is_some());
 }
 
@@ -488,11 +562,21 @@ fn backfill_fills_legacy_rows_with_null_precompute_version() {
 
     // Run the backfill task — should locate this row and recompute.
     let stats = crate::db::touch_point_precompute::run_touch_point_backfill(&conn).unwrap();
-    assert!(stats.processed >= 1, "backfill must process the pending row");
+    assert!(
+        stats.processed >= 1,
+        "backfill must process the pending row"
+    );
 
     let (has, t_cross, _, _, version) = read_touch_columns(&conn, "tp_backfill_001");
-    assert_eq!(has, Some(1), "declining curve must have a crossing after backfill");
-    assert!(t_cross.is_some(), "crossing time must be set after backfill");
+    assert_eq!(
+        has,
+        Some(1),
+        "declining curve must have a crossing after backfill"
+    );
+    assert!(
+        t_cross.is_some(),
+        "crossing time must be set after backfill"
+    );
     assert_eq!(
         version,
         Some(crate::db::touch_point_precompute::TOUCH_PRECOMPUTE_VERSION),

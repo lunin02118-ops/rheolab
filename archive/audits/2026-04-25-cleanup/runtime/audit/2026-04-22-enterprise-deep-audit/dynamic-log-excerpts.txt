@@ -1,0 +1,25 @@
+## 03 PHP version
+[2026-04-22T20:11:29.989Z] $ php -v
+'php' is not recognized as an internal or external command,
+operable program or batch file.
+[2026-04-22T20:11:30.066Z] exit=1 signal=none timedOut=false
+
+## 05 ESLint gate
+D:\Development\Rheolab\src\hooks\useRheologyVisibility.ts
+  39:5  error  'previewMode' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  40:5  error  'captureMode' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts
+  159:68  error  The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type  @typescript-eslint/no-unsafe-function-type
+D:\Development\Rheolab\tests\e2e\reports\real-native-export.tauri.spec.ts
+  106:55  error  'page' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  124:57  error  'page' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+✖ 9 problems (8 errors, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+[2026-04-22T20:11:49.996Z] exit=1 signal=none timedOut=false
+
+## 18 License-server PHP lint
+[2026-04-22T20:14:16.999Z] $ node scripts/audit/php-lint-license-server.js
+[php-lint] php runtime is unavailable in PATH
+[php-lint] spawnSync php ENOENT
+[2026-04-22T20:14:17.055Z] exit=127 signal=none timedOut=false

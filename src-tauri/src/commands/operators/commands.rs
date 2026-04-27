@@ -1,5 +1,6 @@
 //! Tauri command handlers for Operator CRUD.
 
+use crate::commands::licensing::require_write_license;
 use crate::error::Result;
 use crate::state::AppState;
 use crate::utils::validation::{validate_bounded_str, validate_uuid};
@@ -60,9 +61,13 @@ pub async fn operators_create(
     state: State<'_, AppState>,
     payload: OperatorUpsertPayload,
 ) -> Result<OperatorMutationResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: string length bounds
     validate_bounded_str(&payload.name, 255, "name")?;
-    if let Some(ref p) = payload.position { validate_bounded_str(p, 255, "position")?; }
+    if let Some(ref p) = payload.position {
+        validate_bounded_str(p, 255, "position")?;
+    }
 
     let name = payload.name.trim().to_string();
     if name.is_empty() {
@@ -97,7 +102,9 @@ pub async fn operators_create(
 
     match get_operator(&conn, &id)? {
         Some(op) => Ok(OperatorMutationResponse::ok(op)),
-        None => Ok(OperatorMutationResponse::err("Insert succeeded but operator not found")),
+        None => Ok(OperatorMutationResponse::err(
+            "Insert succeeded but operator not found",
+        )),
     }
 }
 
@@ -107,10 +114,14 @@ pub async fn operators_update(
     id: String,
     payload: OperatorUpsertPayload,
 ) -> Result<OperatorMutationResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: validate ID format + string bounds
     validate_uuid(&id, "id")?;
     validate_bounded_str(&payload.name, 255, "name")?;
-    if let Some(ref p) = payload.position { validate_bounded_str(p, 255, "position")?; }
+    if let Some(ref p) = payload.position {
+        validate_bounded_str(p, 255, "position")?;
+    }
 
     let name = payload.name.trim().to_string();
     if name.is_empty() {
@@ -148,7 +159,9 @@ pub async fn operators_update(
 
     match get_operator(&conn, &id)? {
         Some(op) => Ok(OperatorMutationResponse::ok(op)),
-        None => Ok(OperatorMutationResponse::err("Update succeeded but operator not found")),
+        None => Ok(OperatorMutationResponse::err(
+            "Update succeeded but operator not found",
+        )),
     }
 }
 
@@ -157,6 +170,8 @@ pub async fn operators_delete(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<OperatorDeleteResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: validate ID format
     validate_uuid(&id, "id")?;
 
@@ -175,5 +190,8 @@ pub async fn operators_delete(
             error: Some("Оператор не найден".to_string()),
         });
     }
-    Ok(OperatorDeleteResponse { success: true, error: None })
+    Ok(OperatorDeleteResponse {
+        success: true,
+        error: None,
+    })
 }

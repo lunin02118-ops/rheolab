@@ -1,0 +1,86 @@
+[
+  {
+    "id": "ENV-005",
+    "domain": "environment",
+    "severity": "high",
+    "likelihood": "high",
+    "impact": "Blocks syntax and API hardening checks for license-server",
+    "evidence": {
+      "command": "php -v",
+      "log_file": "runtime/audit/2026-04-22-enterprise-deep-audit/logs/03_php_v.log",
+      "tail": [
+        "[2026-04-22T20:11:29.989Z] $ php -v",
+        "'php' is not recognized as an internal or external command,",
+        "operable program or batch file.",
+        "[2026-04-22T20:11:30.066Z] exit=1 signal=none timedOut=false"
+      ]
+    },
+    "repro_steps": [
+      "Run `php -v`"
+    ],
+    "owner": "Platform Team",
+    "fix_strategy": "Install PHP runtime in audit environment or run dedicated php-enabled CI job",
+    "effort": "M",
+    "status": "open",
+    "title": "PHP runtime is unavailable for license-server checks",
+    "check_id": "03"
+  },
+  {
+    "id": "LIC-PHP-LINT",
+    "domain": "security",
+    "severity": "high",
+    "likelihood": "high",
+    "impact": "License API syntax/integrity cannot be validated",
+    "evidence": {
+      "command": "node scripts/audit/php-lint-license-server.js",
+      "log_file": "runtime/audit/2026-04-22-enterprise-deep-audit/logs/18_node_scripts_audit_php_lint_license_server_js.log",
+      "tail": [
+        "[2026-04-22T20:14:16.999Z] $ node scripts/audit/php-lint-license-server.js",
+        "[php-lint] php runtime is unavailable in PATH",
+        "[php-lint] spawnSync php ENOENT",
+        "[2026-04-22T20:14:17.055Z] exit=127 signal=none timedOut=false"
+      ]
+    },
+    "repro_steps": [
+      "Run `node scripts/audit/php-lint-license-server.js`"
+    ],
+    "owner": "License Server Team",
+    "fix_strategy": "Resolve PHP syntax/runtime issues and rerun php lint checks",
+    "effort": "M",
+    "status": "open",
+    "title": "License-server PHP lint failed",
+    "check_id": "18"
+  },
+  {
+    "id": "QG-ESLINT",
+    "domain": "code-quality",
+    "severity": "high",
+    "likelihood": "high",
+    "impact": "Lint policy enforcement is broken and CI signal is degraded",
+    "evidence": {
+      "command": "npx eslint .",
+      "log_file": "runtime/audit/2026-04-22-enterprise-deep-audit/logs/05_npx_eslint.log",
+      "tail": [
+        "  40:5  error  'captureMode' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars",
+        "D:\\Development\\Rheolab\\tests\\e2e\\licensing\\real-license-ipc.tauri.spec.ts",
+        "  159:68  error  The `Function` type accepts any function-like value.",
+        "Prefer explicitly defining any function parameters and return type  @typescript-eslint/no-unsafe-function-type",
+        "D:\\Development\\Rheolab\\tests\\e2e\\reports\\real-native-export.tauri.spec.ts",
+        "  106:55  error  'page' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars",
+        "  124:57  error  'page' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars",
+        "✖ 9 problems (8 errors, 1 warning)",
+        "  0 errors and 1 warning potentially fixable with the `--fix` option.",
+        "[2026-04-22T20:11:49.996Z] exit=1 signal=none timedOut=false"
+      ]
+    },
+    "repro_steps": [
+      "Run `npx eslint .`"
+    ],
+    "owner": "Platform Team",
+    "fix_strategy": "Fix lint errors and keep warning debt tracked in remediation backlog",
+    "effort": "M",
+    "status": "open",
+    "title": "ESLint gate is red",
+    "check_id": "05"
+  }
+]

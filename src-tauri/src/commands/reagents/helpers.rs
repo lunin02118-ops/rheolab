@@ -1,4 +1,4 @@
-﻿use crate::error::{AppError, Result};
+use crate::error::{AppError, Result};
 pub(crate) use crate::utils::time::now_rfc3339;
 use rusqlite::params;
 use rusqlite::OptionalExtension;
@@ -23,10 +23,7 @@ pub(crate) fn row_to_reagent(row: &rusqlite::Row) -> rusqlite::Result<StoredReag
     })
 }
 
-pub(crate) fn get_reagent(
-    conn: &rusqlite::Connection,
-    id: &str,
-) -> Result<Option<StoredReagent>> {
+pub(crate) fn get_reagent(conn: &rusqlite::Connection, id: &str) -> Result<Option<StoredReagent>> {
     conn.query_row(
         "SELECT id, name, category, manufacturer, country, description, \
                 activeSubstance, form, createdAt, updatedAt \
@@ -68,4 +65,3 @@ pub(crate) fn generate_reagent_id(name: &str) -> String {
         .collect::<String>();
     format!("reag_{}", short)
 }
-

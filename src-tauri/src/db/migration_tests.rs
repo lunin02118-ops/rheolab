@@ -69,21 +69,38 @@ fn migration_v1_creates_all_tables() {
         .unwrap();
 
     let expected = vec![
-        "APIKey", "Calibration", "ConflictRecord",
-        "Experiment", "ExperimentData", "ExperimentPayload", "ExperimentReagent",
-        "ImportBatch", "Laboratory", "MergeEvent", "Operator", "ParserArtifact",
-        "ReagentCatalog", "ReportArtifact", "SearchProjectionLog",
-        "Settings", "SyncInbox", "SyncOutbox",
+        "APIKey",
+        "Calibration",
+        "ConflictRecord",
+        "Experiment",
+        "ExperimentData",
+        "ExperimentPayload",
+        "ExperimentReagent",
+        "ImportBatch",
+        "Laboratory",
+        "MergeEvent",
+        "Operator",
+        "ParserArtifact",
+        "ReagentCatalog",
+        "ReportArtifact",
+        "SearchProjectionLog",
+        "Settings",
+        "SyncInbox",
+        "SyncOutbox",
         "SystemState",
         // v0003 side table — one row per (experimentId, thresholdCp)
         // for multi-threshold touch-point precompute.  Sorts here in
         // SQLite's binary collation because uppercase `T` < `U`.
         "TouchPointPrecompute",
-        "User", "WaterSourceCatalog",
+        "User",
+        "WaterSourceCatalog",
         // lowercase names sort after all uppercase-starting names in SQLite binary order
         "schema_meta",
     ];
-    assert_eq!(tables, expected, "All 23 tables should be created by V1_DDL + v0003 side table");
+    assert_eq!(
+        tables, expected,
+        "All 23 tables should be created by V1_DDL + v0003 side table"
+    );
 }
 
 #[test]
@@ -91,8 +108,8 @@ fn migration_is_idempotent() {
     let conn = open();
     run_migrations(&conn).unwrap();
     run_migrations(&conn).unwrap(); // second call must not fail
-    // Idempotency is guaranteed by IF NOT EXISTS DDL; schema_meta upsert (ON CONFLICT)
-    // ensures the second run is also safe.
+                                    // Idempotency is guaranteed by IF NOT EXISTS DDL; schema_meta upsert (ON CONFLICT)
+                                    // ensures the second run is also safe.
 }
 
 // ── Reagent seeding tests ─────────────────────────────────────────────
@@ -104,7 +121,10 @@ fn fresh_install_seeds_default_reagents() {
     run_migrations(&conn).unwrap();
 
     let n = count(&conn, "ReagentCatalog");
-    assert!(n > 0, "Default reagents must be seeded on a fresh install, got 0");
+    assert!(
+        n > 0,
+        "Default reagents must be seeded on a fresh install, got 0"
+    );
 }
 
 /// Running migrations a second time (simulating app update / restart)
@@ -150,7 +170,10 @@ fn user_custom_reagents_preserved_across_updates() {
     run_migrations(&conn).unwrap();
 
     let after = count(&conn, "ReagentCatalog");
-    assert_eq!(before, after, "Custom reagent must not be deleted or duplicated by migration runs");
+    assert_eq!(
+        before, after,
+        "Custom reagent must not be deleted or duplicated by migration runs"
+    );
 
     let still_there: i64 = conn
         .query_row(
@@ -159,7 +182,10 @@ fn user_custom_reagents_preserved_across_updates() {
             |r| r.get(0),
         )
         .unwrap_or(0);
-    assert_eq!(still_there, 1, "Custom reagent 'МояДобавка-XL' must still exist after updates");
+    assert_eq!(
+        still_there, 1,
+        "Custom reagent 'МояДобавка-XL' must still exist after updates"
+    );
 }
 
 /// Default reagent that was *deleted* by the user gets re-seeded on next
@@ -205,7 +231,10 @@ fn deleted_default_reagent_is_reseeded_on_restart() {
             |r| r.get(0),
         )
         .unwrap();
-    assert_eq!(restored, 1, "Deleted default reagent must be re-seeded on next startup");
+    assert_eq!(
+        restored, 1,
+        "Deleted default reagent must be re-seeded on next startup"
+    );
 }
 
 // ── Experiment / user data preservation tests ────────────────────────
@@ -229,7 +258,8 @@ fn experiments_preserved_across_updates() {
     run_migrations(&conn).unwrap();
 
     assert_eq!(
-        count(&conn, "Experiment"), 2,
+        count(&conn, "Experiment"),
+        2,
         "Experiments must not be deleted or duplicated by migration runs"
     );
 }
@@ -277,20 +307,28 @@ fn all_user_data_preserved_after_migration() {
     .unwrap();
 
     // Snapshot counts
-    let exp_cnt    = count(&conn, "Experiment");
-    let lab_cnt    = count(&conn, "Laboratory");
-    let op_cnt     = count(&conn, "Operator");
-    let er_cnt     = count(&conn, "ExperimentReagent");
+    let exp_cnt = count(&conn, "Experiment");
+    let lab_cnt = count(&conn, "Laboratory");
+    let op_cnt = count(&conn, "Operator");
+    let er_cnt = count(&conn, "ExperimentReagent");
     let reag_count_before = count(&conn, "ReagentCatalog");
 
     // Simulate app update
     run_migrations(&conn).unwrap();
 
-    assert_eq!(count(&conn, "Experiment"),       exp_cnt,  "Experiments");
-    assert_eq!(count(&conn, "Laboratory"),        lab_cnt,  "Laboratories");
-    assert_eq!(count(&conn, "Operator"),          op_cnt,   "Operators");
-    assert_eq!(count(&conn, "ExperimentReagent"), er_cnt,   "ExperimentReagent links");
-    assert_eq!(count(&conn, "ReagentCatalog"),   reag_count_before, "ReagentCatalog total");
+    assert_eq!(count(&conn, "Experiment"), exp_cnt, "Experiments");
+    assert_eq!(count(&conn, "Laboratory"), lab_cnt, "Laboratories");
+    assert_eq!(count(&conn, "Operator"), op_cnt, "Operators");
+    assert_eq!(
+        count(&conn, "ExperimentReagent"),
+        er_cnt,
+        "ExperimentReagent links"
+    );
+    assert_eq!(
+        count(&conn, "ReagentCatalog"),
+        reag_count_before,
+        "ReagentCatalog total"
+    );
 }
 
 // ── FK integrity tests ───────────────────────────────────────────────
@@ -308,7 +346,10 @@ fn experiment_data_fk_cascades_on_delete() {
             |row| row.get(0),
         )
         .unwrap_or(0);
-    assert_eq!(fk_count, 1, "ExperimentData must have exactly one FK (to Experiment)");
+    assert_eq!(
+        fk_count, 1,
+        "ExperimentData must have exactly one FK (to Experiment)"
+    );
 
     insert_user(&conn, "u3");
     insert_experiment(&conn, "exp-fk", "u3");
@@ -323,10 +364,12 @@ fn experiment_data_fk_cascades_on_delete() {
 
     assert_eq!(count(&conn, "ExperimentData"), 1);
 
-    conn.execute_batch("PRAGMA foreign_keys = ON; DELETE FROM Experiment WHERE id='exp-fk';").unwrap();
+    conn.execute_batch("PRAGMA foreign_keys = ON; DELETE FROM Experiment WHERE id='exp-fk';")
+        .unwrap();
 
     assert_eq!(
-        count(&conn, "ExperimentData"), 0,
+        count(&conn, "ExperimentData"),
+        0,
         "ExperimentData row must be cascade-deleted with its parent Experiment"
     );
 }
@@ -340,8 +383,14 @@ fn schema_meta_created_on_fresh_db() {
     let result = run_migrations(&conn).unwrap();
 
     assert_eq!(result.schema_version, CURRENT_SCHEMA_VERSION);
-    assert!(result.was_fresh_install, "First run must report was_fresh_install = true");
-    assert!(!result.app_version.is_empty(), "app_version must not be empty");
+    assert!(
+        result.was_fresh_install,
+        "First run must report was_fresh_install = true"
+    );
+    assert!(
+        !result.app_version.is_empty(),
+        "app_version must not be empty"
+    );
 
     // Verify the row actually exists in the DB
     let (db_version, db_app_ver): (i64, String) = conn
@@ -366,7 +415,10 @@ fn schema_meta_stays_singleton_on_second_run() {
     let row_count: i64 = conn
         .query_row("SELECT COUNT(*) FROM schema_meta", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(row_count, 1, "schema_meta must remain a single-row singleton");
+    assert_eq!(
+        row_count, 1,
+        "schema_meta must remain a single-row singleton"
+    );
 }
 
 /// Second call to run_migrations must report was_fresh_install = false.
@@ -400,7 +452,9 @@ fn legacy_db_without_schema_meta_row_is_upgraded() {
 
     // Verify row was inserted
     let count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM schema_meta WHERE id = 1", [], |r| r.get(0))
+        .query_row("SELECT COUNT(*) FROM schema_meta WHERE id = 1", [], |r| {
+            r.get(0)
+        })
         .unwrap();
     assert_eq!(count, 1, "schema_meta row must be created after upgrade");
 }
@@ -533,7 +587,10 @@ fn run_migrations_is_idempotent_across_restarts() {
     let schema_meta_rows: i64 = conn
         .query_row("SELECT COUNT(*) FROM schema_meta", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(schema_meta_rows, 1, "schema_meta must remain a singleton row");
+    assert_eq!(
+        schema_meta_rows, 1,
+        "schema_meta must remain a singleton row"
+    );
 }
 
 /// Regression guard: if the stored schema_version is ahead of the binary's

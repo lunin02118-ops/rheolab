@@ -1,4 +1,4 @@
-﻿//! Native report generation commands for desktop mode.
+//! Native report generation commands for desktop mode.
 //!
 //! These commands execute the Rust report engine directly in Tauri runtime
 //! and return report bytes to the frontend.
@@ -6,11 +6,11 @@
 //! Raw bytes are returned via `tauri::ipc::Response` to avoid JSON serialization
 //! overhead (eliminates triple-copy: Vec<u8> → JSON number array → JS Array → Uint8Array).
 
+use crate::commands::licensing::can_write_via_engine;
 use crate::error::{AppError, Result};
 use crate::state::AppState;
-use crate::commands::licensing::can_write_via_engine;
-use rheolab_core::report_generator::ReportInput;
 use rheolab_core::report_generator::comparison::ComparisonReportInput;
+use rheolab_core::report_generator::ReportInput;
 use tauri::State;
 
 /// Inner implementation used by tests — returns raw bytes.
@@ -36,11 +36,10 @@ async fn generate_excel_bytes(input: ReportInput) -> Result<Vec<u8>> {
 /// Inner implementation used by tests — returns raw comparison PDF bytes.
 async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
-        rheolab_core::report_generator::generate_comparison_pdf(&input)
-            .map_err(|error| {
-                tracing::error!("Comparison PDF generation failed: {}", error);
-                AppError::Other(format!("Comparison PDF generation failed: {}", error))
-            })
+        rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
+            tracing::error!("Comparison PDF generation failed: {}", error);
+            AppError::Other(format!("Comparison PDF generation failed: {}", error))
+        })
     })
     .await
     .map_err(AppError::Join)?
@@ -49,8 +48,9 @@ async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<V
 /// Inner implementation used by tests — returns raw comparison XLSX bytes.
 async fn generate_comparison_excel_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
-        rheolab_core::report_generator::generate_comparison_excel(&input)
-            .map_err(|error| AppError::Other(format!("Comparison Excel generation failed: {}", error)))
+        rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
+            AppError::Other(format!("Comparison Excel generation failed: {}", error))
+        })
     })
     .await
     .map_err(AppError::Join)?
@@ -157,15 +157,15 @@ pub async fn reports_generate_comparison_excel(
 
 #[cfg(test)]
 mod tests {
-    use super::generate_pdf_bytes;
-    use super::generate_excel_bytes;
     use super::generate_comparison_excel_bytes;
     use super::generate_comparison_pdf_bytes;
-    use rheolab_core::report_generator::ReportInput;
+    use super::generate_excel_bytes;
+    use super::generate_pdf_bytes;
     use rheolab_core::report_generator::comparison::{
-        ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics,
-        ComparisonReportInput, SectionToggles, TouchPointConfig,
+        ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics, ComparisonReportInput,
+        SectionToggles, TouchPointConfig,
     };
+    use rheolab_core::report_generator::ReportInput;
 
     const REPORT_FIXTURE_JSON: &str = include_str!("../../../tests/fixtures/report_data.json");
 
@@ -251,7 +251,10 @@ mod tests {
             cycle_results: vec![],
             recipe: vec![],
             settings: Default::default(),
-            ..serde_json::from_str(r#"{"metadata":{"filename":""},"cycle_results":[],"recipe":[],"settings":{}}"#).unwrap()
+            ..serde_json::from_str(
+                r#"{"metadata":{"filename":""},"cycle_results":[],"recipe":[],"settings":{}}"#,
+            )
+            .unwrap()
         };
         // A minimal ReportInput should still produce some output (empty report)
         // or fail gracefully — either way, no panic.
@@ -271,13 +274,20 @@ mod tests {
             .await
             .expect("comparison Excel should succeed");
         assert!(!bytes.is_empty());
-        assert!(bytes.starts_with(b"PK"), "XLSX must start with ZIP signature");
+        assert!(
+            bytes.starts_with(b"PK"),
+            "XLSX must start with ZIP signature"
+        );
 
         // Count `xl/worksheets/sheetN.xml` entries inside the ZIP stream.
         let as_str = String::from_utf8_lossy(&bytes);
         for n in 1..=5 {
             let needle = format!("xl/worksheets/sheet{}.xml", n);
-            assert!(as_str.contains(&needle), "expected workbook to contain {}", needle);
+            assert!(
+                as_str.contains(&needle),
+                "expected workbook to contain {}",
+                needle
+            );
         }
     }
 
@@ -287,7 +297,10 @@ mod tests {
             .await
             .expect("comparison PDF should succeed");
         assert!(!bytes.is_empty());
-        assert!(bytes.starts_with(b"%PDF"), "PDF must start with %PDF header");
+        assert!(
+            bytes.starts_with(b"%PDF"),
+            "PDF must start with %PDF header"
+        );
         // Sanity-check size: a 3-experiment report with chart + summary table
         // is well above 20 KB on disk.  If we ever regress to a blank doc,
         // this catches it.

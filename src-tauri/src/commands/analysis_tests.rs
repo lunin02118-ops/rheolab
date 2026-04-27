@@ -237,7 +237,11 @@ async fn regroup_by_pattern_preserves_all_steps() {
 #[tokio::test]
 async fn analyze_full_small_dataset_succeeds() {
     let result = analysis_analyze_full(make_analyze_full_input(10)).await;
-    assert!(result.is_ok(), "small dataset should not fail: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "small dataset should not fail: {:?}",
+        result
+    );
 }
 
 #[tokio::test]
@@ -250,7 +254,11 @@ async fn analyze_full_large_dataset_succeeds() {
 async fn analyze_full_all_steps_returned() {
     let result = analysis_analyze_full(make_analyze_full_input(60)).await;
     // The command itself must succeed regardless of whether steps are detected
-    assert!(result.is_ok(), "analyze_full must not return an error: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "analyze_full must not return an error: {:?}",
+        result
+    );
 }
 
 // ── Input validation (B.3) ───────────────────────────────────────────────
@@ -281,7 +289,10 @@ async fn detect_steps_rejects_empty_rheo_points() {
     let result = analysis_detect_steps(input).await;
     assert!(result.is_err());
     assert!(
-        result.unwrap_err().to_string().contains("rheo_points must not be empty"),
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("rheo_points must not be empty"),
         "expected empty-points validation error"
     );
 }
@@ -311,7 +322,10 @@ async fn analyze_full_rejects_invalid_geometry_key() {
     let result = analysis_analyze_full(input).await;
     assert!(result.is_err());
     assert!(
-        result.unwrap_err().to_string().contains("unknown geometry_key"),
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("unknown geometry_key"),
         "expected geometry key validation error"
     );
 }
@@ -372,7 +386,10 @@ async fn regroup_rejects_invalid_geometry_key() {
     let result = analysis_regroup_by_pattern(input).await;
     assert!(result.is_err());
     assert!(
-        result.unwrap_err().to_string().contains("unknown geometry_key"),
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("unknown geometry_key"),
         "expected geometry key validation error"
     );
 }

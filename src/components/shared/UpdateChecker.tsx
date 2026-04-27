@@ -130,7 +130,7 @@ export function UpdateChecker(): null {
 
         // Resolve E2E flag first so we can skip side-effects entirely in tests.
         // Then register the startup_completed listener and schedule the timer.
-        (async () => {
+        void (async () => {
             // Suppress the auto-updater entirely in E2E test environments.
             // The updater can trigger a WebView2 navigation to `edge://downloads/hub`
             // mid-run, which breaks CDP-based Playwright fixtures. The Rust

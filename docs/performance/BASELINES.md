@@ -1623,3 +1623,66 @@ npm run perf:compare -- outputs/e2e/perf/workflow-1773578897707-tauri.json outpu
 - **Refactor Phase 4 verdict:** WP-4.7…WP-4.16 (experiments/helpers_tests, commands/licensing/hardware, parser/calibration/parsers, parser/row_mapper, etc.) are pure module/test extraction with **no behavioural drift** — confirmed by 339/339 passing unit tests (tauri 250 + core 89).
 - **Residual E2E failures (7/23) are unrelated** to Phase 4: licensing IPC tests fail with `TypeError: Cannot read properties of undefined (reading 'invoke')`. These depend on `window.__TAURI__.invoke` which is disabled by `withGlobalTauri: false`; tests need updating. Tracked separately.
 - **Known limitation:** B#22 and B#23 use different harnesses (frontend-IPC deep-audit vs. direct perf:workflow), so `peakHeapMb` is not directly comparable; wall time and node count are consistent across harnesses.
+
+## Baseline #24 — Frontend IPC Deep Audit (2026-04-26)
+
+**runId:** `20260426-frontend-ipc-quick-dynamic-pass`
+**Workflow artifact:** `outputs/e2e/perf/workflow-1777155641550-tauri.json`
+**Native memory artifact:** `outputs/e2e/perf/native-memory-1777155665794.jsonl`
+
+### KPI (current p50/p95)
+
+| Metric | p50 | p95 |
+|---|---:|---:|
+| peakHeapMb | 9.62 | 9.62 |
+| peakNodes | 1669.00 | 1669.00 |
+| totalWallMs | 20389.00 | 20389.00 |
+| totalWsMb | 484.84 | 484.84 |
+| rendererWsMb | 103.00 | 103.00 |
+
+### Notes
+
+- Gate status: PASS
+- Report: `docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-26.md`
+
+## Baseline #25 — Frontend IPC Deep Audit (2026-04-26)
+
+**runId:** `20260426-enterprise-full-final-frontend-ipc`
+**Workflow artifact:** `outputs/e2e/perf/workflow-1777157306147-tauri.json`
+**Native memory artifact:** `outputs/e2e/perf/native-memory-1777157329536.jsonl`
+
+### KPI (current p50/p95)
+
+| Metric | p50 | p95 |
+|---|---:|---:|
+| peakHeapMb | 9.66 | 9.68 |
+| peakNodes | 1669.00 | 1669.00 |
+| totalWallMs | 21062.00 | 22021.00 |
+| totalWsMb | 699.25 | 777.28 |
+| rendererWsMb | 205.95 | 209.53 |
+
+### Notes
+
+- Gate status: PASS
+- Report: `docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-26.md`
+
+## Baseline #26 — Frontend IPC Deep Audit (2026-04-26)
+
+**runId:** `20260426-enterprise-full-gitleaks-triaged-frontend-ipc`
+**Workflow artifact:** `outputs/e2e/perf/workflow-1777158863014-tauri.json`
+**Native memory artifact:** `outputs/e2e/perf/native-memory-1777158886300.jsonl`
+
+### KPI (current p50/p95)
+
+| Metric | p50 | p95 |
+|---|---:|---:|
+| peakHeapMb | 9.65 | 9.70 |
+| peakNodes | 1669.00 | 1681.00 |
+| totalWallMs | 18869.00 | 19255.00 |
+| totalWsMb | 655.25 | 662.96 |
+| rendererWsMb | 206.14 | 214.15 |
+
+### Notes
+
+- Gate status: PASS
+- Report: `docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-26.md`

@@ -1,0 +1,244 @@
+{
+  "runId": "wave3-frontend-ipc-static-only",
+  "generatedAt": "2026-04-24T02:44:59.496Z",
+  "startedAt": "2026-04-24T02:44:59.364Z",
+  "mode": {
+    "quick": false,
+    "nonBlocking": false,
+    "windowsRunner": false,
+    "skipDynamic": true,
+    "runConfig": {
+      "warmup": 1,
+      "workflow": 5,
+      "soak": 3,
+      "benchmark": 2
+    }
+  },
+  "assumptions": {
+    "authoritativeEnvironment": "Windows runner flag not set; results should be treated as advisory in mixed environments.",
+    "baselineWindow": "Last 5 successful workflow-tauri and native-memory artifacts before this run."
+  },
+  "static": {
+    "stats": {
+      "filesScanned": 359,
+      "storeWithoutSelector": 0,
+      "timerWithoutClear": 1,
+      "allocationHotspots": 1,
+      "ipcStringPayloads": 0
+    },
+    "findings": [
+      {
+        "id": "P1-TIMER-1",
+        "bucket": "P1",
+        "severity": "medium",
+        "owner": "Frontend Team",
+        "effort": "S",
+        "title": "UI timer without explicit clearTimeout path",
+        "impact": "Risk of stale updates after unmount and unnecessary queued work.",
+        "verification": "rg -n \"setTimeout\\(\" src/components/dashboard/file-upload.tsx",
+        "file": "src/components/dashboard/file-upload.tsx",
+        "line": 18,
+        "snippet": "setTimeout(resolve, 0);"
+      },
+      {
+        "id": "P2-ALLOC-2",
+        "bucket": "P2",
+        "severity": "medium",
+        "owner": "Frontend Team",
+        "effort": "M",
+        "title": "Potential allocation hotspot",
+        "impact": "High-frequency serialization or heavy memo blocks may increase CPU/GC pressure.",
+        "verification": "rg -n \"useMemo\\(\" src/components/library/experiment-filters.tsx",
+        "file": "src/components/library/experiment-filters.tsx",
+        "line": 53,
+        "snippet": "const metadataOptions = useMemo("
+      }
+    ]
+  },
+  "dynamic": {
+    "commands": [],
+    "workflowFiles": [],
+    "soakFiles": [],
+    "nativeFiles": [],
+    "benchmarkFiles": []
+  },
+  "kpi": {
+    "baseline": {
+      "peakHeapMb": {
+        "count": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p95": null
+      },
+      "peakNodes": {
+        "count": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p95": null
+      },
+      "totalWallMs": {
+        "count": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p95": null
+      },
+      "totalWsMb": {
+        "count": 5,
+        "min": 382.56,
+        "max": 3137.68,
+        "mean": 1225.74,
+        "p50": 1054.18,
+        "p95": 3137.68
+      },
+      "rendererWsMb": {
+        "count": 5,
+        "min": 95.67,
+        "max": 156.46,
+        "mean": 122.64,
+        "p50": 129.33,
+        "p95": 156.46
+      }
+    },
+    "current": {
+      "peakHeapMb": {
+        "count": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p95": null
+      },
+      "peakNodes": {
+        "count": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p95": null
+      },
+      "totalWallMs": {
+        "count": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p95": null
+      },
+      "totalWsMb": {
+        "count": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p95": null
+      },
+      "rendererWsMb": {
+        "count": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p95": null
+      }
+    },
+    "delta": {
+      "peakHeapMb": {
+        "baselineP50": null,
+        "currentP50": null,
+        "deltaP50": null,
+        "baselineP95": null,
+        "currentP95": null
+      },
+      "peakNodes": {
+        "baselineP50": null,
+        "currentP50": null,
+        "deltaP50": null,
+        "baselineP95": null,
+        "currentP95": null
+      },
+      "totalWallMs": {
+        "baselineP50": null,
+        "currentP50": null,
+        "deltaP50": null,
+        "baselineP95": null,
+        "currentP95": null
+      },
+      "totalWsMb": {
+        "baselineP50": 1054.18,
+        "currentP50": null,
+        "deltaP50": null,
+        "baselineP95": 3137.68,
+        "currentP95": null
+      },
+      "rendererWsMb": {
+        "baselineP50": 129.33,
+        "currentP50": null,
+        "deltaP50": null,
+        "baselineP95": 156.46,
+        "currentP95": null
+      }
+    }
+  },
+  "gates": {
+    "status": "skipped",
+    "violations": [
+      {
+        "id": "GATE-SKIP",
+        "severity": "low",
+        "message": "Dynamic profiling pass was skipped; current-run KPI gates were not evaluated."
+      }
+    ]
+  },
+  "backlog": [
+    {
+      "id": "P0-001",
+      "bucket": "P0",
+      "title": "Audit pipeline correctness and fail-fast guarantees",
+      "severity": "high",
+      "owner": "Platform Team",
+      "effort": "S",
+      "expectedGain": "Deterministic audit outputs; no false-green empty reports.",
+      "verificationCommand": "npm run perf:memory -- --skip-playwright --source tauri-soak",
+      "status": "open"
+    },
+    {
+      "id": "P1-001",
+      "bucket": "P1",
+      "title": "Frontend runtime rerender/timer hygiene",
+      "severity": "high",
+      "owner": "Frontend Team",
+      "effort": "M",
+      "expectedGain": "Lower rerender churn and fewer stale async callbacks.",
+      "verificationCommand": "rg -n \"use[A-Za-z0-9_]*Store\\(\\)|setTimeout\\(\" src",
+      "status": "open"
+    },
+    {
+      "id": "P2-001",
+      "bucket": "P2",
+      "title": "IPC/report serialization pressure reduction",
+      "severity": "medium",
+      "owner": "Frontend + Platform",
+      "effort": "M",
+      "expectedGain": "Reduce serialization/copy overhead for report and bridge payloads.",
+      "verificationCommand": "rg -n \"JSON\\.stringify\\(|input_json\\s*:\\s*String\" src src-tauri/src/commands",
+      "status": "monitoring"
+    },
+    {
+      "id": "P3-001",
+      "bucket": "P3",
+      "title": "Native memory ceiling reduction (WebView2 renderer/browser)",
+      "severity": "medium",
+      "owner": "Architecture Team",
+      "effort": "L",
+      "expectedGain": "Move toward <=600MB p95 and improved desktop stability.",
+      "verificationCommand": "npm run audit:frontend-ipc -- --windows-runner",
+      "status": "monitoring"
+    }
+  ]
+}

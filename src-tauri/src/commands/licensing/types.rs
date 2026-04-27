@@ -22,19 +22,17 @@ const DEV_ALPHA_CHANNEL_KEY: &str = "rheolab-alpha-channel-dev-key-00";
 ///
 /// Falls back to the dev sentinel if the env var is not set (dev/test only).
 /// Runtime env var override is still respected — allows key rotation without rebuild.
-pub(super) const DEFAULT_INTEGRITY_KEY: &str =
-    match option_env!("INTEGRITY_SECRET_KEY") {
-        Some(k) => k,
-        None => DEV_INTEGRITY_KEY,
-    };
+pub(super) const DEFAULT_INTEGRITY_KEY: &str = match option_env!("INTEGRITY_SECRET_KEY") {
+    Some(k) => k,
+    None => DEV_INTEGRITY_KEY,
+};
 
 /// Key used to sign and verify time-bounded beta update-channel tokens.
 /// Set `BETA_CHANNEL_SECRET` env var at build time; falls back to dev sentinel.
-pub(super) const BETA_CHANNEL_KEY: &str =
-    match option_env!("BETA_CHANNEL_SECRET") {
-        Some(k) => k,
-        None => DEV_BETA_CHANNEL_KEY,
-    };
+pub(super) const BETA_CHANNEL_KEY: &str = match option_env!("BETA_CHANNEL_SECRET") {
+    Some(k) => k,
+    None => DEV_BETA_CHANNEL_KEY,
+};
 
 /// Key used to sign and verify time-bounded alpha update-channel tokens.
 ///
@@ -44,11 +42,10 @@ pub(super) const BETA_CHANNEL_KEY: &str =
 /// the artefact roll out to `beta` (Developer licences) and finally `stable`.
 ///
 /// Set `ALPHA_CHANNEL_SECRET` env var at build time; falls back to dev sentinel.
-pub(super) const ALPHA_CHANNEL_KEY: &str =
-    match option_env!("ALPHA_CHANNEL_SECRET") {
-        Some(k) => k,
-        None => DEV_ALPHA_CHANNEL_KEY,
-    };
+pub(super) const ALPHA_CHANNEL_KEY: &str = match option_env!("ALPHA_CHANNEL_SECRET") {
+    Some(k) => k,
+    None => DEV_ALPHA_CHANNEL_KEY,
+};
 
 pub(super) const STORAGE_SALT: &str = "rheolab-storage-salt";
 pub(crate) const HW_SALT: &str = "rheolab-hw-";

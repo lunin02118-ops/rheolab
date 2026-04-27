@@ -1,0 +1,14 @@
+[2026-04-24T02:21:57.019Z] $ npm run release:prepare -- --channel beta --dry-run --allow-unsigned --skip-qa
+
+> rheolab-enterprise@0.2.0-beta.39 release:prepare
+> node scripts/release/prepare-production.js --channel beta --dry-run --allow-unsigned --skip-qa
+
+[release] updater signing key loaded from src-tauri/keys/updater.key
+[release] prepare-production started
+[release] channel: beta
+[release] dry-run: yes
+[release] version sync OK: 0.2.0-beta.39
+[release] using temporary tauri config for channel=beta: runtime/release/tmp/tauri.release.1776997317449.json
+[release] dry-run enabled: skipping QA, build and release artifact generation
+
+[2026-04-24T02:21:57.470Z] exit=0 signal=none timedOut=false

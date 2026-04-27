@@ -29,7 +29,10 @@ fn migration_succeeds_on_fresh_db() {
     let conn = Connection::open_in_memory().expect("in-memory DB");
     let result = run_migrations(&conn).expect("migration must not fail");
     assert_eq!(result.schema_version, CURRENT_SCHEMA_VERSION);
-    assert!(result.was_fresh_install, "first run should be detected as fresh install");
+    assert!(
+        result.was_fresh_install,
+        "first run should be detected as fresh install"
+    );
 }
 
 #[test]
@@ -39,7 +42,10 @@ fn migration_is_idempotent() {
     // Running twice must not error out (all DDL uses IF NOT EXISTS / INSERT OR IGNORE).
     let result = run_migrations(&conn).expect("second migration run must succeed");
     assert_eq!(result.schema_version, CURRENT_SCHEMA_VERSION);
-    assert!(!result.was_fresh_install, "second run should not be treated as fresh install");
+    assert!(
+        !result.was_fresh_install,
+        "second run should not be treated as fresh install"
+    );
 }
 
 #[test]
@@ -165,8 +171,11 @@ fn fk_cascade_delete_removes_experiment_data() {
     assert_eq!(child_count, 1);
 
     // Delete parent — child must be removed by CASCADE.
-    conn.execute("DELETE FROM Experiment WHERE id = ?1", rusqlite::params![exp_id])
-        .unwrap();
+    conn.execute(
+        "DELETE FROM Experiment WHERE id = ?1",
+        rusqlite::params![exp_id],
+    )
+    .unwrap();
 
     let after_count: i64 = conn
         .query_row(
@@ -192,7 +201,10 @@ fn unique_laboratory_name_enforced() {
         "INSERT INTO Laboratory (id, name) VALUES ('lab-2', 'Alpha Lab')",
         [],
     );
-    assert!(result.is_err(), "UNIQUE(name) on Laboratory must be enforced");
+    assert!(
+        result.is_err(),
+        "UNIQUE(name) on Laboratory must be enforced"
+    );
 }
 
 #[test]
@@ -222,7 +234,10 @@ fn unique_reagent_name_enforced() {
         "INSERT INTO ReagentCatalog (id, name, category) VALUES ('r-2', 'Guar Gump', 'polymer')",
         [],
     );
-    assert!(result.is_err(), "UNIQUE(name) on ReagentCatalog must be enforced");
+    assert!(
+        result.is_err(),
+        "UNIQUE(name) on ReagentCatalog must be enforced"
+    );
 }
 
 // ── Indexes present ───────────────────────────────────────────────────────────
@@ -259,5 +274,8 @@ fn default_reagents_seeded_on_fresh_install() {
     let count: i64 = conn
         .query_row("SELECT COUNT(*) FROM ReagentCatalog", [], |row| row.get(0))
         .unwrap();
-    assert!(count > 0, "default reagents must be seeded on fresh install");
+    assert!(
+        count > 0,
+        "default reagents must be seeded on fresh install"
+    );
 }

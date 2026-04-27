@@ -4,7 +4,7 @@ import type { RheoCycle } from '@/lib/analysis/types';
 import type { GraceCycleResult } from '@/lib/analysis/types';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
-import { useChartSettingsStore, formatTime, timeUnitLabel } from '@/lib/store/chart-settings-store';
+import { useChartSettingsStore, timeUnitLabel } from '@/lib/store/chart-settings-store';
 import type { UnitSystem } from '@/lib/store/display-settings-store';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { CycleRow } from './CycleRow';

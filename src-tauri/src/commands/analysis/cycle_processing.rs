@@ -2,7 +2,10 @@
 //! points, collect `(shear_rate, shear_stress)` pairs, and call Grace.
 
 use rheolab_core::types::{RheoCycle, RheoPoint, RheoStep};
-use rheolab_core::{calculate_grace_internal, process_cycle_internal, ExpertSettings, GraceCycleResult, GraceInputParams};
+use rheolab_core::{
+    calculate_grace_internal, process_cycle_internal, ExpertSettings, GraceCycleResult,
+    GraceInputParams,
+};
 
 /// Processes a slice of cycles through the calculation pipeline.
 ///
@@ -39,13 +42,15 @@ pub(super) fn process_all_cycles(
                     // Single-pass fold over the slice — avoids 5 separate iterator passes.
                     let (sum_sr, sum_ss, sum_vis, sum_temp, sum_press) = pts.iter().fold(
                         (0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64),
-                        |(sr, ss, vis, temp, press), p| (
-                            sr + p.shear_rate.unwrap_or(0.0),
-                            ss + p.shear_stress.unwrap_or(0.0),
-                            vis + p.viscosity_cp,
-                            temp + p.temperature_c,
-                            press + p.pressure_bar.unwrap_or(0.0),
-                        ),
+                        |(sr, ss, vis, temp, press), p| {
+                            (
+                                sr + p.shear_rate.unwrap_or(0.0),
+                                ss + p.shear_stress.unwrap_or(0.0),
+                                vis + p.viscosity_cp,
+                                temp + p.temperature_c,
+                                press + p.pressure_bar.unwrap_or(0.0),
+                            )
+                        },
                     );
                     RheoStep {
                         avg_shear_rate: sum_sr / n,
@@ -101,8 +106,13 @@ pub(super) fn process_all_cycles(
                 .last()
                 .map(|s| s.end_time)
                 .unwrap_or(start_sec);
-            let avg_temp = processed_steps.iter().map(|s| s.avg_temperature).sum::<f64>() / step_count;
-            let avg_pressure = processed_steps.iter().map(|s| s.avg_pressure).sum::<f64>() / step_count;
+            let avg_temp = processed_steps
+                .iter()
+                .map(|s| s.avg_temperature)
+                .sum::<f64>()
+                / step_count;
+            let avg_pressure =
+                processed_steps.iter().map(|s| s.avg_pressure).sum::<f64>() / step_count;
 
             let params = GraceInputParams {
                 cycle_no: cycle.cycle_index.unwrap_or(cycle.id),
@@ -112,7 +122,9 @@ pub(super) fn process_all_cycles(
                 pressure_bar: avg_pressure,
             };
 
-            if let Some(grace) = calculate_grace_internal(&data_points, geometry_key, settings, &params) {
+            if let Some(grace) =
+                calculate_grace_internal(&data_points, geometry_key, settings, &params)
+            {
                 results.push((cycle.id, grace));
             }
         }

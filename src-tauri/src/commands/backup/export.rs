@@ -167,7 +167,11 @@ mod export_tests {
 
         assert!(!result.success, "Should refuse to overwrite the live DB");
         assert!(
-            result.error.as_deref().unwrap_or("").contains("рабочей базы"),
+            result
+                .error
+                .as_deref()
+                .unwrap_or("")
+                .contains("рабочей базы"),
             "Error message should mention live database, got: {:?}",
             result.error
         );
@@ -200,10 +204,7 @@ mod export_tests {
         let result = vacuum_export_db(&conn, &src, bad.to_str().unwrap());
 
         assert!(!result.success, "Should fail for non-existent parent dir");
-        assert!(
-            result.error.is_some(),
-            "Should return an error message"
-        );
+        assert!(result.error.is_some(), "Should return an error message");
         cleanup(&dir);
     }
 

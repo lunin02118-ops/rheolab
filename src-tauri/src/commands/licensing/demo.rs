@@ -1,4 +1,4 @@
-﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Demo (trial) license logic — checking and initialising the 30-day demo period.
 //!
 //! Reads and writes the HMAC-protected `demo_state_v4` key in SystemState.
@@ -11,17 +11,15 @@ use super::crypto::{get_system_state, upsert_system_state, verify_signature};
 
 /// Parse a date string loosely: try "%Y-%m-%d" first, then take first 10 chars.
 fn parse_date_loose(s: &str) -> Option<NaiveDate> {
-    NaiveDate::parse_from_str(s, "%Y-%m-%d")
-        .ok()
-        .or_else(|| {
-            s.get(..10)
-                .and_then(|sub| NaiveDate::parse_from_str(sub, "%Y-%m-%d").ok())
-        })
+    NaiveDate::parse_from_str(s, "%Y-%m-%d").ok().or_else(|| {
+        s.get(..10)
+            .and_then(|sub| NaiveDate::parse_from_str(sub, "%Y-%m-%d").ok())
+    })
 }
 use super::features::{demo_features, expired_features};
 use super::types::{
-    DemoState, LicenseCheckResult, LicenseSource, LicenseStatus,
-    DB_KEY_DEMO, DEMO_MAX_DAYS, DEMO_MAX_EXPERIMENTS,
+    DemoState, LicenseCheckResult, LicenseSource, LicenseStatus, DB_KEY_DEMO, DEMO_MAX_DAYS,
+    DEMO_MAX_EXPERIMENTS,
 };
 
 /// Check the demo state and return a [`LicenseCheckResult`].
@@ -36,7 +34,10 @@ use super::types::{
 ///
 /// Pass `None` for synchronous call sites that cannot reach the network
 /// (startup local-check, license gate, demo counter).
-pub(super) fn check_demo(conn: &rusqlite::Connection, server_anchor: Option<&str>) -> LicenseCheckResult {
+pub(super) fn check_demo(
+    conn: &rusqlite::Connection,
+    server_anchor: Option<&str>,
+) -> LicenseCheckResult {
     let demo = match load_demo_state(conn) {
         Some(d) => d,
         None => {
@@ -45,10 +46,11 @@ pub(super) fn check_demo(conn: &rusqlite::Connection, server_anchor: Option<&str
             if let Err(e) = save_demo_state(conn, &state) {
                 tracing::error!("Failed to save initial demo state: {}", e);
             }
-            let days_rem = DEMO_MAX_DAYS - (Utc::now().date_naive()
-                - parse_date_loose(&state.first_launch_date)
-                    .unwrap_or_else(|| Utc::now().date_naive())
-            ).num_days();
+            let days_rem = DEMO_MAX_DAYS
+                - (Utc::now().date_naive()
+                    - parse_date_loose(&state.first_launch_date)
+                        .unwrap_or_else(|| Utc::now().date_naive()))
+                .num_days();
             return build_demo_result(
                 LicenseStatus::Demo,
                 &state,
@@ -64,7 +66,10 @@ pub(super) fn check_demo(conn: &rusqlite::Connection, server_anchor: Option<&str
     let mut first_launch = match parse_date_loose(&demo.first_launch_date) {
         Some(d) => d,
         None => {
-            tracing::warn!("Unparseable demo first_launch_date: {}", demo.first_launch_date);
+            tracing::warn!(
+                "Unparseable demo first_launch_date: {}",
+                demo.first_launch_date
+            );
             return build_expired_demo("Ошибка данных демо-периода");
         }
     };
@@ -83,7 +88,8 @@ pub(super) fn check_demo(conn: &rusqlite::Connection, server_anchor: Option<&str
                 // Correct it so the 30-day clock continues from the real start.
                 tracing::info!(
                     "Demo anchor correction: local first_launch={} → server first_seen={}",
-                    first_launch, anchor
+                    first_launch,
+                    anchor
                 );
                 first_launch = anchor;
                 corrected_first_launch = Some(anchor.format("%Y-%m-%d").to_string());
@@ -99,7 +105,11 @@ pub(super) fn check_demo(conn: &rusqlite::Connection, server_anchor: Option<&str
     if let Some(ref last_run) = demo.last_run_date {
         if let Some(last) = parse_date_loose(last_run) {
             if today < last {
-                tracing::warn!("Clock tampering detected in demo: today {} < last_run {}", today, last);
+                tracing::warn!(
+                    "Clock tampering detected in demo: today {} < last_run {}",
+                    today,
+                    last
+                );
                 return build_expired_demo("Обнаружена манипуляция с системными часами");
             }
         }
@@ -112,10 +122,7 @@ pub(super) fn check_demo(conn: &rusqlite::Connection, server_anchor: Option<&str
 
     // Check limits
     if days_elapsed >= DEMO_MAX_DAYS {
-        return build_expired_demo(&format!(
-            "Демо-период ({} дней) истёк",
-            DEMO_MAX_DAYS
-        ));
+        return build_expired_demo(&format!("Демо-период ({} дней) истёк", DEMO_MAX_DAYS));
     }
 
     if demo.experiments_count >= DEMO_MAX_EXPERIMENTS {
@@ -264,8 +271,9 @@ mod tests {
                 value TEXT NOT NULL,
                 signature TEXT NOT NULL,
                 updatedAt TEXT NOT NULL
-            );"
-        ).unwrap();
+            );",
+        )
+        .unwrap();
         conn
     }
 

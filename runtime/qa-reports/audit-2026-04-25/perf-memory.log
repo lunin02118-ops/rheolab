@@ -1,0 +1,24 @@
+
+> rheolab-enterprise@0.2.0-beta.53 perf:memory
+> node scripts/test/run-memory-perf-report.js --source tauri-soak
+
+Exception in thread Thread-1 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\VladimirWorkPC\AppData\Local\Programs\Python\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\VladimirWorkPC\AppData\Local\Programs\Python\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\VladimirWorkPC\AppData\Local\Programs\Python\Python313\Lib\subprocess.py", line 1609, in _readerthread
+    buffer.append(fh.read())
+                  ~~~~~~~^^
+  File "C:\Users\VladimirWorkPC\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 13: character maps to <undefined>
+Source: tauri-soak
+Input glob: soak-*.json
+Playwright status: ok Ч Playwright soak finished successfully (log: D:\Development\Rheolab\outputs\e2e\perf\latest-playwright-tauri-soak.log)
+Summary JSON: outputs/e2e/perf/tauri-soak-summary-20260425-100759.json
+Markdown report: docs/performance/memory-performance-report-2026-04-25.md

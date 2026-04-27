@@ -146,7 +146,9 @@ mod tests {
         V0003MultiThresholdTouchPoint.up(&conn).unwrap();
 
         // Verify the table exists with the full column set.
-        let mut stmt = conn.prepare("PRAGMA table_info(TouchPointPrecompute)").unwrap();
+        let mut stmt = conn
+            .prepare("PRAGMA table_info(TouchPointPrecompute)")
+            .unwrap();
         let cols: HashSet<String> = stmt
             .query_map([], |row| row.get::<_, String>(1))
             .unwrap()
@@ -261,12 +263,17 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(count, 0, "NULL-version rows must be skipped by the migration");
+        assert_eq!(
+            count, 0,
+            "NULL-version rows must be skipped by the migration"
+        );
 
         // Only the 50 cP row is seeded by this migration — the other 7
         // thresholds come online via the runtime backfill.
         let total: i64 = conn
-            .query_row("SELECT COUNT(*) FROM TouchPointPrecompute", [], |r| r.get(0))
+            .query_row("SELECT COUNT(*) FROM TouchPointPrecompute", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(total, 1);
     }
@@ -294,7 +301,9 @@ mod tests {
         V0003MultiThresholdTouchPoint.up(&conn).unwrap();
 
         let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM TouchPointPrecompute", [], |r| r.get(0))
+            .query_row("SELECT COUNT(*) FROM TouchPointPrecompute", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(count, 1, "idempotent migration must not duplicate rows");
     }

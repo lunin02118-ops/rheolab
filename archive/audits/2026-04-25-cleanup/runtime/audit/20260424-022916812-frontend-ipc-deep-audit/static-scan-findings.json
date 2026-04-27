@@ -1,0 +1,37 @@
+{
+  "stats": {
+    "filesScanned": 359,
+    "storeWithoutSelector": 0,
+    "timerWithoutClear": 1,
+    "allocationHotspots": 1,
+    "ipcStringPayloads": 0
+  },
+  "findings": [
+    {
+      "id": "P1-TIMER-1",
+      "bucket": "P1",
+      "severity": "medium",
+      "owner": "Frontend Team",
+      "effort": "S",
+      "title": "UI timer without explicit clearTimeout path",
+      "impact": "Risk of stale updates after unmount and unnecessary queued work.",
+      "verification": "rg -n \"setTimeout\\(\" src/components/dashboard/file-upload.tsx",
+      "file": "src/components/dashboard/file-upload.tsx",
+      "line": 18,
+      "snippet": "setTimeout(resolve, 0);"
+    },
+    {
+      "id": "P2-ALLOC-2",
+      "bucket": "P2",
+      "severity": "medium",
+      "owner": "Frontend Team",
+      "effort": "M",
+      "title": "Potential allocation hotspot",
+      "impact": "High-frequency serialization or heavy memo blocks may increase CPU/GC pressure.",
+      "verification": "rg -n \"useMemo\\(\" src/components/library/experiment-filters.tsx",
+      "file": "src/components/library/experiment-filters.tsx",
+      "line": 53,
+      "snippet": "const metadataOptions = useMemo("
+    }
+  ]
+}

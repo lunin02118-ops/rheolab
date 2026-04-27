@@ -1,4 +1,4 @@
-﻿//! Delta-sync file engine for offline laboratory data exchange.
+//! Delta-sync file engine for offline laboratory data exchange.
 //!
 //! # Scenario
 //!
@@ -24,14 +24,18 @@
 //! `updatedAt` timestamp; `incomingValue` holds the full remote experiment JSON
 //! snapshot.  `status` starts as `"open"` and transitions to `"resolved"`.
 
-use crate::error::Result;
 use crate::commands::experiments::crud::{load_experiments_batch, persist_experiment};
 use crate::commands::experiments::list::invalidate_filter_metadata_cache;
 use crate::commands::experiments::types::StoredExperiment;
+use crate::commands::licensing::require_write_license;
+use crate::db::DbPool;
+use crate::error::{AppError, Result};
 use crate::state::AppState;
+use crate::utils::validation::{validate_file_size, validate_user_file_path};
 use chrono::Utc;
 use rusqlite::{params, OptionalExtension};
 use serde_json::{json, Value};
+use std::path::PathBuf;
 use tauri::State;
 use uuid::Uuid;
 
@@ -55,6 +59,9 @@ fn new_id() -> String {
     Uuid::new_v4().to_string()
 }
 
+const DELTA_IMPORT_MAX_BYTES: u64 = 50 * 1024 * 1024;
+const DELTA_IMPORT_MAX_EXPERIMENTS: usize = 10_000;
+
 // ---------------------------------------------------------------------------
 // Commands
 // ---------------------------------------------------------------------------
@@ -70,13 +77,13 @@ pub async fn sync_export_delta(
     state: State<'_, AppState>,
     since_timestamp: String,
 ) -> Result<Value> {
+    require_write_license(&state).await?;
+
     let conn = state.pool_conn()?;
 
     // 1. Find experiments updated after `since_timestamp`.
-    let mut stmt = conn
-        .prepare(
-            "SELECT id FROM Experiment WHERE updatedAt > ?1 ORDER BY updatedAt",
-        )?;
+    let mut stmt =
+        conn.prepare("SELECT id FROM Experiment WHERE updatedAt > ?1 ORDER BY updatedAt")?;
 
     let ids: Vec<String> = stmt
         .query_map(params![since_timestamp], |row| row.get(0))?
@@ -122,14 +129,13 @@ pub async fn sync_export_delta(
         writer.flush()?;
     }
 
-    let file_path_str = file_path
-        .to_str()
-        .unwrap_or_default()
-        .to_string();
+    let file_path_str = file_path.to_str().unwrap_or_default().to_string();
 
     tracing::info!(
         "sync_export_delta: exported {} experiments since {} → {}",
-        count, since_timestamp, file_path_str
+        count,
+        since_timestamp,
+        file_path_str
     );
 
     Ok(json!({
@@ -152,24 +158,48 @@ pub async fn sync_export_delta(
 /// Returns `{ success, imported, updated, conflicts: [{ id, experimentId,
 /// localUpdatedAt, remoteUpdatedAt, createdAt }] }`.
 #[tauri::command]
-pub async fn sync_import_delta(
-    state: State<'_, AppState>,
-    file_path: String,
-) -> Result<Value> {
+pub async fn sync_import_delta(state: State<'_, AppState>, file_path: String) -> Result<Value> {
+    require_write_license(&state).await?;
+
+    let source_path = validate_user_file_path(&file_path, true)?;
+    if source_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.eq_ignore_ascii_case("json"))
+        != Some(true)
+    {
+        return Err(AppError::BadRequest(
+            "Delta file must have a .json extension".into(),
+        ));
+    }
+    validate_file_size(&source_path, DELTA_IMPORT_MAX_BYTES)?;
+
+    let db_pool = state.db_pool.clone();
+    tokio::task::spawn_blocking(move || sync_import_delta_blocking(db_pool, source_path)).await?
+}
+
+fn sync_import_delta_blocking(db_pool: DbPool, file_path: PathBuf) -> Result<Value> {
     // 1. Read + parse delta file.
-    let file = std::fs::File::open(&file_path)
-        .map_err(|e| format!("Cannot open delta file '{}': {}", file_path, e))?;
+    let file = std::fs::File::open(&file_path)?;
     let delta: Value = serde_json::from_reader(std::io::BufReader::new(file))?;
 
-    let remote_experiments = delta
+    let remote_experiments_raw = delta
         .get("experiments")
         .and_then(|v| v.as_array())
-        .ok_or_else(|| "Delta file missing 'experiments' array".to_string())?
-        .clone();
+        .ok_or_else(|| AppError::BadRequest("Delta file missing 'experiments' array".into()))?;
 
-    let conn = state.pool_conn()?;
-    let tx = conn
-        .unchecked_transaction()?;
+    if remote_experiments_raw.len() > DELTA_IMPORT_MAX_EXPERIMENTS {
+        return Err(AppError::BadRequest(format!(
+            "Delta file contains {} experiments; maximum is {}",
+            remote_experiments_raw.len(),
+            DELTA_IMPORT_MAX_EXPERIMENTS
+        )));
+    }
+
+    let remote_experiments = remote_experiments_raw.clone();
+
+    let conn = db_pool.get().map_err(AppError::Pool)?;
+    let tx = conn.unchecked_transaction()?;
 
     let mut imported: usize = 0;
     let mut updated: usize = 0;
@@ -220,8 +250,8 @@ pub async fn sync_import_delta(
                     params![merge_event_id, remote_exp.id, now],
                 )?;
 
-                let incoming_snapshot = serde_json::to_string(exp_val)
-                    .unwrap_or_else(|_| "{}".to_string());
+                let incoming_snapshot =
+                    serde_json::to_string(exp_val).unwrap_or_else(|_| "{}".to_string());
 
                 tx.execute(
                     "INSERT INTO ConflictRecord \
@@ -254,7 +284,9 @@ pub async fn sync_import_delta(
 
     tracing::info!(
         "sync_import_delta: imported={} updated={} conflicts={}",
-        imported, updated, conflict_rows.len()
+        imported,
+        updated,
+        conflict_rows.len()
     );
 
     Ok(json!({
@@ -278,25 +310,29 @@ pub async fn sync_resolve_conflict(
     conflict_id: String,
     resolution: String,
 ) -> Result<Value> {
-    if !matches!(resolution.as_str(), "keep_local" | "keep_remote" | "keep_both") {
+    require_write_license(&state).await?;
+
+    if !matches!(
+        resolution.as_str(),
+        "keep_local" | "keep_remote" | "keep_both"
+    ) {
         return Err(format!(
             "Invalid resolution '{}'. Must be keep_local | keep_remote | keep_both.",
             resolution
-        ).into());
+        )
+        .into());
     }
 
     let conn = state.pool_conn()?;
-    let tx = conn
-        .unchecked_transaction()?;
+    let tx = conn.unchecked_transaction()?;
 
     // Load the ConflictRecord.
-    let (experiment_id, incoming_snapshot_json): (String, String) = tx
-        .query_row(
-            "SELECT experimentId, incomingValue FROM ConflictRecord \
+    let (experiment_id, incoming_snapshot_json): (String, String) = tx.query_row(
+        "SELECT experimentId, incomingValue FROM ConflictRecord \
              WHERE id = ?1 AND fieldName = '_entire_experiment' AND status = 'open'",
-            params![conflict_id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )?;
+        params![conflict_id],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?;
 
     let now = now_iso();
 
@@ -312,8 +348,7 @@ pub async fn sync_resolve_conflict(
 
         "keep_remote" => {
             // Overwrite local experiment with remote snapshot.
-            let remote_exp: StoredExperiment =
-                serde_json::from_str(&incoming_snapshot_json)?;
+            let remote_exp: StoredExperiment = serde_json::from_str(&incoming_snapshot_json)?;
 
             persist_experiment(&tx, &remote_exp)?;
 
@@ -326,8 +361,7 @@ pub async fn sync_resolve_conflict(
 
         "keep_both" => {
             // Insert the remote snapshot under a new UUID; local copy unchanged.
-            let mut remote_exp: StoredExperiment =
-                serde_json::from_str(&incoming_snapshot_json)?;
+            let mut remote_exp: StoredExperiment = serde_json::from_str(&incoming_snapshot_json)?;
 
             let new_id_str = format!("exp_{}", new_id().replace('-', ""));
             remote_exp.id = new_id_str.clone();
@@ -351,7 +385,9 @@ pub async fn sync_resolve_conflict(
 
     tracing::info!(
         "sync_resolve_conflict: conflict={} experiment={} resolution={}",
-        conflict_id, experiment_id, resolution
+        conflict_id,
+        experiment_id,
+        resolution
     );
 
     Ok(json!({
@@ -370,13 +406,12 @@ pub async fn sync_resolve_conflict(
 pub async fn sync_list_conflicts(state: State<'_, AppState>) -> Result<Value> {
     let conn = state.pool_conn()?;
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, experimentId, localValue, incomingValue, createdAt \
+    let mut stmt = conn.prepare(
+        "SELECT id, experimentId, localValue, incomingValue, createdAt \
              FROM ConflictRecord \
              WHERE fieldName = '_entire_experiment' AND status = 'open' \
              ORDER BY createdAt DESC",
-        )?;
+    )?;
 
     let conflicts: Vec<Value> = stmt
         .query_map([], |row| {
@@ -388,14 +423,13 @@ pub async fn sync_list_conflicts(state: State<'_, AppState>) -> Result<Value> {
 
             // Extract remoteUpdatedAt from the stored snapshot without cloning
             // the entire document.
-            let remote_updated_at: Option<String> =
-                serde_json::from_str::<Value>(&incoming_json)
-                    .ok()
-                    .and_then(|v| {
-                        v.get("updatedAt")
-                            .and_then(|u| u.as_str())
-                            .map(|s| s.to_string())
-                    });
+            let remote_updated_at: Option<String> = serde_json::from_str::<Value>(&incoming_json)
+                .ok()
+                .and_then(|v| {
+                    v.get("updatedAt")
+                        .and_then(|u| u.as_str())
+                        .map(|s| s.to_string())
+                });
 
             Ok(json!({
                 "id": id,
@@ -463,5 +497,37 @@ mod tests {
     fn new_id_generates_unique_values() {
         let ids: std::collections::HashSet<String> = (0..20).map(|_| new_id()).collect();
         assert_eq!(ids.len(), 20, "each generated ID must be unique");
+    }
+
+    #[test]
+    fn sync_import_delta_rejects_too_many_experiments() {
+        let dir = std::env::temp_dir().join(format!(
+            "rheolab_delta_import_limit_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let delta_path = dir.join("delta.json");
+        let mut payload = String::from("{\"experiments\":[");
+        for index in 0..=DELTA_IMPORT_MAX_EXPERIMENTS {
+            if index > 0 {
+                payload.push(',');
+            }
+            payload.push_str("{}");
+        }
+        payload.push_str("]}");
+        std::fs::write(&delta_path, payload).unwrap();
+
+        let db_path = dir.join("unused.db");
+        let pool = crate::db::create_pool(&db_path).unwrap();
+        let err = sync_import_delta_blocking(pool, delta_path).unwrap_err();
+        assert!(matches!(err, AppError::BadRequest(_)));
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

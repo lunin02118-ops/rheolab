@@ -64,7 +64,10 @@ fn get_legacy_machine_seeds(app_data_dir: &std::path::Path) -> Vec<String> {
 
 // ── Crypto helpers ─────────────────────────────────────────────────────
 
-pub(crate) fn encode_key(raw: &str, app_data_dir: &std::path::Path) -> crate::error::Result<String> {
+pub(crate) fn encode_key(
+    raw: &str,
+    app_data_dir: &std::path::Path,
+) -> crate::error::Result<String> {
     let machine_seed = get_machine_seed(app_data_dir);
     let aes_key = derive_aes_key(&machine_seed);
     let cipher = Aes256Gcm::new(&aes_key);
@@ -72,7 +75,12 @@ pub(crate) fn encode_key(raw: &str, app_data_dir: &std::path::Path) -> crate::er
     let ciphertext = cipher
         .encrypt(&nonce, raw.as_bytes())
         .map_err(|e| crate::error::AppError::Other(format!("AES-GCM encrypt failed: {}", e)))?;
-    Ok(format!("{}{}/{}", AES_GCM_PREFIX, to_hex(&nonce), to_hex(&ciphertext)))
+    Ok(format!(
+        "{}{}/{}",
+        AES_GCM_PREFIX,
+        to_hex(&nonce),
+        to_hex(&ciphertext)
+    ))
 }
 
 pub(crate) fn decode_key(stored: &str, app_data_dir: &std::path::Path) -> Option<String> {
@@ -80,10 +88,14 @@ pub(crate) fn decode_key(stored: &str, app_data_dir: &std::path::Path) -> Option
         // New AES-256-GCM path
         let payload = &stored[AES_GCM_PREFIX.len()..];
         let parts: Vec<&str> = payload.splitn(2, '/').collect();
-        if parts.len() != 2 { return None; }
+        if parts.len() != 2 {
+            return None;
+        }
         let nonce_bytes = from_hex(parts[0])?;
         let ct_bytes = from_hex(parts[1])?;
-        if nonce_bytes.len() != 12 { return None; }
+        if nonce_bytes.len() != 12 {
+            return None;
+        }
 
         // Try with current (v2) machine seed
         let machine_seed = get_machine_seed(app_data_dir);
@@ -178,10 +190,7 @@ pub(crate) fn generate_id(name: &str, key: &str, now: &str) -> String {
 /// Called once during `AppState` initialization so that the XOR decode path
 /// is never exercised at runtime.  After one full release cycle, the XOR
 /// decode branch can be safely deleted.
-pub fn migrate_legacy_xor_keys(
-    db_pool: &crate::db::DbPool,
-    app_data_dir: &std::path::Path,
-) {
+pub fn migrate_legacy_xor_keys(db_pool: &crate::db::DbPool, app_data_dir: &std::path::Path) {
     let conn = match db_pool.get() {
         Ok(c) => c,
         Err(e) => {
@@ -190,9 +199,7 @@ pub fn migrate_legacy_xor_keys(
         }
     };
 
-    let mut stmt = match conn.prepare(
-        "SELECT id, key FROM APIKey WHERE key LIKE 'OBFHEX:%'",
-    ) {
+    let mut stmt = match conn.prepare("SELECT id, key FROM APIKey WHERE key LIKE 'OBFHEX:%'") {
         Ok(s) => s,
         Err(_) => return, // table may not exist yet
     };

@@ -1,0 +1,823 @@
+[2026-04-25T09:43:00.313Z] $ npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow
+exit_code=1
+duration_ms=52075
+[stdout]
+
+> rheolab-enterprise@0.2.0-beta.53 perf:workflow
+> npx playwright test --config playwright.tauri.config.ts
+
+[tauri-e2e] Бинарник актуален (TAURI_E2E_SKIP_BUILD=1 или исходники не изменились).
+[tauri-e2e] Запускаем приложение с CDP на порту 9222...
+[tauri-e2e] Ожидаем CDP на http://127.0.0.1:9222/json/version ...
+[tauri-e2e] ✓ CDP готов — http://127.0.0.1:9222
+[tauri-e2e] Native memory sampler PID=16532
+[tauri-e2e] Native memory output: D:\Development\Rheolab\outputs\e2e\perf\native-memory-1777110185319.jsonl
+
+Running 47 tests using 1 worker
+
+[tauri] [2026-04-25][09:43:10][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[tauri] [2026-04-25][09:43:10][reqwest::retry][TRACE] shouldn't retry!
+  ✘   1 tests\e2e\comparison\comparison-memory-release.tauri.spec.ts:58:3 › [Comparison/Tauri] Memory release › comparison_releases_heavy_data_on_unmount_and_rehydrates_on_return (5.5s)
+  ✘   2 tests\e2e\database\save-dialog.tauri.spec.ts:60:3 › [SQLite] Save dialog — реальный бинарник › save_sst_to_sqlite_no_error (3ms)
+  ✘   3 tests\e2e\database\save-dialog.tauri.spec.ts:83:3 › [SQLite] Save dialog — реальный бинарник › save_appears_in_library_after_save (3ms)
+  ✘   4 tests\e2e\database\save-dialog.tauri.spec.ts:109:3 › [SQLite] Save dialog — реальный бинарник › save_metadata_preserved_in_library_card (5ms)
+  ✘   5 tests\e2e\database\save-dialog.tauri.spec.ts:147:3 › [SQLite] Save dialog — реальный бинарник › save_persists_after_page_reload (3ms)
+  ✘   6 tests\e2e\database\save-dialog.tauri.spec.ts:176:3 › [SQLite] Save dialog — реальный бинарник › save_then_load_from_library_shows_chart (4ms)
+  ✘   7 tests\e2e\database\save-dialog.tauri.spec.ts:208:3 › [SQLite] Save dialog — реальный бинарник › save_grace_report_no_error (7ms)
+  ✘   8 tests\e2e\database\save-dialog.tauri.spec.ts:229:3 › [SQLite] Save dialog — реальный бинарник › save_two_experiments_both_in_library (6ms)
+  ✘   9 tests\e2e\db-scale-perf.tauri.spec.ts:44:3 › [DBScale/SMALL] Library performance with small DB › db_scale_library_perf_small (3ms)
+  ✘  10 tests\e2e\full-workflow.tauri.spec.ts:62:3 › Full E2E Workflow (Tauri) › 1_upload_parse_chart_renders (3ms)
+  ✘  11 tests\e2e\full-workflow.tauri.spec.ts:74:3 › Full E2E Workflow (Tauri) › 2_dashboard_tab_switching (3ms)
+  ✘  12 tests\e2e\full-workflow.tauri.spec.ts:89:3 › Full E2E Workflow (Tauri) › 3_save_experiment_to_db (4ms)
+  ✘  13 tests\e2e\full-workflow.tauri.spec.ts:104:3 › Full E2E Workflow (Tauri) › 4_library_filters_and_search (5ms)
+  ✘  14 tests\e2e\full-workflow.tauri.spec.ts:188:3 › Full E2E Workflow (Tauri) › 5_single_exp_report_generation (3ms)
+  ✘  15 tests\e2e\full-workflow.tauri.spec.ts:208:3 › Full E2E Workflow (Tauri) › 6_comparison_chart_with_two_experiments (3ms)
+  ✘  16 tests\e2e\full-workflow.tauri.spec.ts:236:3 › Full E2E Workflow (Tauri) › 7_comparison_report_toggles_and_download (5ms)
+  ✘  17 tests\e2e\full-workflow.tauri.spec.ts:296:3 › Full E2E Workflow (Tauri) › 8_comparison_report_language_switch (3ms)
+  ✘  18 tests\e2e\library\touch-point-filters.tauri.spec.ts:154:3 › [Touch-Point/Tauri] Precompute + filter integration › save_path_writes_precomputed_columns (3ms)
+  ✘  19 tests\e2e\library\touch-point-filters.tauri.spec.ts:191:3 › [Touch-Point/Tauri] Precompute + filter integration › has_crossing_filter_matches_reference_subset (3ms)
+  ✘  20 tests\e2e\library\touch-point-filters.tauri.spec.ts:225:3 › [Touch-Point/Tauri] Precompute + filter integration › range_filters_exclude_pending_and_out_of_bounds_rows (3ms)
+  ✘  21 tests\e2e\library\touch-point-filters.tauri.spec.ts:253:3 › [Touch-Point/Tauri] Precompute + filter integration › ui_sidebar_filter_forwards_to_real_ipc (5ms)
+  ✘  22 tests\e2e\library\touch-point-filters.tauri.spec.ts:309:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_500_prunes_rows_below_peak_500cP (4ms)
+  ✘  23 tests\e2e\library\touch-point-filters.tauri.spec.ts:338:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_dynamic_differs_from_fast_path (4ms)
+  ✘  24 tests\e2e\library\touch-point-filters.tauri.spec.ts:392:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_below_min_viscosity_returns_empty (6ms)
+  ✘  25 tests\e2e\library\touch-point-filters.tauri.spec.ts:407:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › ui_threshold_preset_500_forwards_to_real_ipc (5ms)
+  ✘  26 tests\e2e\library\touch-point-filters.tauri.spec.ts:460:3 › [Touch-Point/Tauri] Performance › query_latency_benchmark (3ms)
+  ✘  27 tests\e2e\library\touch-point-filters.tauri.spec.ts:590:3 › [Touch-Point/Tauri] Performance › heap_stable_under_filter_churn (3ms)
+  ✘  28 tests\e2e\memory-leak-soak.tauri.spec.ts:51:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_upload_analyze (3ms)
+  ✘  29 tests\e2e\memory-leak-soak.tauri.spec.ts:92:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_comparison_open_close (7ms)
+  ✘  30 tests\e2e\multi-fixture-perf.tauri.spec.ts:73:3 › [PerfWorkflow/Tauri] Full workflow baseline — native analysis › workflow_perf_baseline_tauri (3ms)
+  ✘  31 tests\e2e\perf-benchmark.tauri.spec.ts:74:3 › [Perf/Tauri] Idle heap per route › heap and DOM nodes at idle state — native Tauri (3ms)
+  ✘  32 tests\e2e\perf-benchmark.tauri.spec.ts:135:3 › [Perf/Tauri] Native analysis timing › WASM-free native analysis and uPlot init — real fixtures (3ms)
+  ✘  33 tests\e2e\perf-benchmark.tauri.spec.ts:219:3 › [Perf/Tauri] Navigation roundtrip — heap/node leak detection › 10 navigation cycles — heap and node growth (3ms)
+  -  34 tests\e2e\perf-benchmark.tauri.spec.ts:302:3 › [Perf/Tauri] Report generation timing › single-exp + comparison report generation — wall time, size, heap
+  ✘  35 tests\e2e\perf-benchmark.tauri.spec.ts:436:3 › [Perf/Tauri] History aggregation › append run to perf-history.jsonl and compare with previous (1ms)
+  -  36 tests\e2e\reports\comparison-report.tauri.spec.ts:311:3 › Real Native Comparison Report — feature + perf on new sub-tab › PDF generation + perf metrics on Comparison → Report sub-tab
+  -  37 tests\e2e\reports\comparison-report.tauri.spec.ts:348:3 › Real Native Comparison Report — feature + perf on new sub-tab › Excel generation + perf metrics on Comparison → Report sub-tab
+  -  38 tests\e2e\reports\comparison-report.tauri.spec.ts:379:3 › Real Native Comparison Report — feature + perf on new sub-tab › UI toggles + language switch on Comparison → Report sub-tab
+  -  39 tests\e2e\reports\comparison-workflow-release-gate.tauri.spec.ts:234:3 › Comparison Report — RELEASE GATE (full user workflow) › full user workflow: 4 fixtures → 4 settings phases → 7 exports
+  -  40 tests\e2e\reports\real-native-export.tauri.spec.ts:174:3 › Real Native Export › PDF has valid size and magic bytes
+  -  41 tests\e2e\reports\real-native-export.tauri.spec.ts:192:3 › Real Native Export › Excel has valid size and magic bytes
+  ✘  42 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:195:3 › Real Licensing IPC (no mocks) › licensing_check returns valid response from Rust (27ms)
+  ✘  43 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:237:3 › Real Licensing IPC (no mocks) › licensing_get_status is populated after licensing_check (19ms)
+  ✘  44 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:266:3 › Real Licensing IPC (no mocks) › licensing_machine_id returns a non-empty string (18ms)
+  ✘  45 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:282:3 › Real Licensing IPC (no mocks) › licensing features shape matches TypeScript types (19ms)
+  ✘  46 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:304:3 › Real Licensing IPC (no mocks) › licensing_was_ever_licensed returns boolean (18ms)
+  ✘  47 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:318:3 › Real Licensing IPC (no mocks) › licensing_can_save returns boolean (17ms)
+[tauri-e2e] Завершаем Tauri-процесс (PID=11620)...
+
+
+  1) tests\e2e\comparison\comparison-memory-release.tauri.spec.ts:58:3 › [Comparison/Tauri] Memory release › comparison_releases_heavy_data_on_unmount_and_rehydrates_on_return 
+
+    Error: page.waitForTimeout: Target page, context or browser has been closed
+
+       at base-test.tauri.ts:101
+
+       99 |             } catch {
+      100 |                 // Page might still be on about:blank (SecurityError) — retry after a short delay
+    > 101 |                 await page.waitForTimeout(500);
+          |                            ^
+      102 |             }
+      103 |         }
+      104 |         if (!ready) {
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:101:28
+
+  2) tests\e2e\database\save-dialog.tauri.spec.ts:60:3 › [SQLite] Save dialog — реальный бинарник › save_sst_to_sqlite_no_error 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  3) tests\e2e\database\save-dialog.tauri.spec.ts:83:3 › [SQLite] Save dialog — реальный бинарник › save_appears_in_library_after_save 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  4) tests\e2e\database\save-dialog.tauri.spec.ts:109:3 › [SQLite] Save dialog — реальный бинарник › save_metadata_preserved_in_library_card 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  5) tests\e2e\database\save-dialog.tauri.spec.ts:147:3 › [SQLite] Save dialog — реальный бинарник › save_persists_after_page_reload 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  6) tests\e2e\database\save-dialog.tauri.spec.ts:176:3 › [SQLite] Save dialog — реальный бинарник › save_then_load_from_library_shows_chart 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  7) tests\e2e\database\save-dialog.tauri.spec.ts:208:3 › [SQLite] Save dialog — реальный бинарник › save_grace_report_no_error 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  8) tests\e2e\database\save-dialog.tauri.spec.ts:229:3 › [SQLite] Save dialog — реальный бинарник › save_two_experiments_both_in_library 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  9) tests\e2e\db-scale-perf.tauri.spec.ts:44:3 › [DBScale/SMALL] Library performance with small DB › db_scale_library_perf_small 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  10) tests\e2e\full-workflow.tauri.spec.ts:62:3 › Full E2E Workflow (Tauri) › 1_upload_parse_chart_renders 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  11) tests\e2e\full-workflow.tauri.spec.ts:74:3 › Full E2E Workflow (Tauri) › 2_dashboard_tab_switching 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  12) tests\e2e\full-workflow.tauri.spec.ts:89:3 › Full E2E Workflow (Tauri) › 3_save_experiment_to_db 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  13) tests\e2e\full-workflow.tauri.spec.ts:104:3 › Full E2E Workflow (Tauri) › 4_library_filters_and_search 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  14) tests\e2e\full-workflow.tauri.spec.ts:188:3 › Full E2E Workflow (Tauri) › 5_single_exp_report_generation 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  15) tests\e2e\full-workflow.tauri.spec.ts:208:3 › Full E2E Workflow (Tauri) › 6_comparison_chart_with_two_experiments 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  16) tests\e2e\full-workflow.tauri.spec.ts:236:3 › Full E2E Workflow (Tauri) › 7_comparison_report_toggles_and_download 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  17) tests\e2e\full-workflow.tauri.spec.ts:296:3 › Full E2E Workflow (Tauri) › 8_comparison_report_language_switch 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  18) tests\e2e\library\touch-point-filters.tauri.spec.ts:154:3 › [Touch-Point/Tauri] Precompute + filter integration › save_path_writes_precomputed_columns 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  19) tests\e2e\library\touch-point-filters.tauri.spec.ts:191:3 › [Touch-Point/Tauri] Precompute + filter integration › has_crossing_filter_matches_reference_subset 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  20) tests\e2e\library\touch-point-filters.tauri.spec.ts:225:3 › [Touch-Point/Tauri] Precompute + filter integration › range_filters_exclude_pending_and_out_of_bounds_rows 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  21) tests\e2e\library\touch-point-filters.tauri.spec.ts:253:3 › [Touch-Point/Tauri] Precompute + filter integration › ui_sidebar_filter_forwards_to_real_ipc 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  22) tests\e2e\library\touch-point-filters.tauri.spec.ts:309:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_500_prunes_rows_below_peak_500cP 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  23) tests\e2e\library\touch-point-filters.tauri.spec.ts:338:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_dynamic_differs_from_fast_path 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  24) tests\e2e\library\touch-point-filters.tauri.spec.ts:392:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_below_min_viscosity_returns_empty 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  25) tests\e2e\library\touch-point-filters.tauri.spec.ts:407:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › ui_threshold_preset_500_forwards_to_real_ipc 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  26) tests\e2e\library\touch-point-filters.tauri.spec.ts:460:3 › [Touch-Point/Tauri] Performance › query_latency_benchmark 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  27) tests\e2e\library\touch-point-filters.tauri.spec.ts:590:3 › [Touch-Point/Tauri] Performance › heap_stable_under_filter_churn 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  28) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:195:3 › Real Licensing IPC (no mocks) › licensing_check returns valid response from Rust 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  29) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:237:3 › Real Licensing IPC (no mocks) › licensing_get_status is populated after licensing_check 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  30) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:266:3 › Real Licensing IPC (no mocks) › licensing_machine_id returns a non-empty string 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  31) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:282:3 › Real Licensing IPC (no mocks) › licensing features shape matches TypeScript types 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  32) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:304:3 › Real Licensing IPC (no mocks) › licensing_was_ever_licensed returns boolean 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  33) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:318:3 › Real Licensing IPC (no mocks) › licensing_can_save returns boolean 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  34) tests\e2e\memory-leak-soak.tauri.spec.ts:51:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_upload_analyze 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  35) tests\e2e\memory-leak-soak.tauri.spec.ts:92:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_comparison_open_close 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  36) tests\e2e\multi-fixture-perf.tauri.spec.ts:73:3 › [PerfWorkflow/Tauri] Full workflow baseline — native analysis › workflow_perf_baseline_tauri 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  37) tests\e2e\perf-benchmark.tauri.spec.ts:74:3 › [Perf/Tauri] Idle heap per route › heap and DOM nodes at idle state — native Tauri 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  38) tests\e2e\perf-benchmark.tauri.spec.ts:135:3 › [Perf/Tauri] Native analysis timing › WASM-free native analysis and uPlot init — real fixtures 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  39) tests\e2e\perf-benchmark.tauri.spec.ts:219:3 › [Perf/Tauri] Navigation roundtrip — heap/node leak detection › 10 navigation cycles — heap and node growth 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  40) tests\e2e\perf-benchmark.tauri.spec.ts:436:3 › [Perf/Tauri] History aggregation › append run to perf-history.jsonl and compare with previous 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  40 failed
+    tests\e2e\comparison\comparison-memory-release.tauri.spec.ts:58:3 › [Comparison/Tauri] Memory release › comparison_releases_heavy_data_on_unmount_and_rehydrates_on_return 
+    tests\e2e\database\save-dialog.tauri.spec.ts:60:3 › [SQLite] Save dialog — реальный бинарник › save_sst_to_sqlite_no_error 
+    tests\e2e\database\save-dialog.tauri.spec.ts:83:3 › [SQLite] Save dialog — реальный бинарник › save_appears_in_library_after_save 
+    tests\e2e\database\save-dialog.tauri.spec.ts:109:3 › [SQLite] Save dialog — реальный бинарник › save_metadata_preserved_in_library_card 
+    tests\e2e\database\save-dialog.tauri.spec.ts:147:3 › [SQLite] Save dialog — реальный бинарник › save_persists_after_page_reload 
+    tests\e2e\database\save-dialog.tauri.spec.ts:176:3 › [SQLite] Save dialog — реальный бинарник › save_then_load_from_library_shows_chart 
+    tests\e2e\database\save-dialog.tauri.spec.ts:208:3 › [SQLite] Save dialog — реальный бинарник › save_grace_report_no_error 
+    tests\e2e\database\save-dialog.tauri.spec.ts:229:3 › [SQLite] Save dialog — реальный бинарник › save_two_experiments_both_in_library 
+    tests\e2e\db-scale-perf.tauri.spec.ts:44:3 › [DBScale/SMALL] Library performance with small DB › db_scale_library_perf_small 
+    tests\e2e\full-workflow.tauri.spec.ts:62:3 › Full E2E Workflow (Tauri) › 1_upload_parse_chart_renders 
+    tests\e2e\full-workflow.tauri.spec.ts:74:3 › Full E2E Workflow (Tauri) › 2_dashboard_tab_switching 
+    tests\e2e\full-workflow.tauri.spec.ts:89:3 › Full E2E Workflow (Tauri) › 3_save_experiment_to_db 
+    tests\e2e\full-workflow.tauri.spec.ts:104:3 › Full E2E Workflow (Tauri) › 4_library_filters_and_search 
+    tests\e2e\full-workflow.tauri.spec.ts:188:3 › Full E2E Workflow (Tauri) › 5_single_exp_report_generation 
+    tests\e2e\full-workflow.tauri.spec.ts:208:3 › Full E2E Workflow (Tauri) › 6_comparison_chart_with_two_experiments 
+    tests\e2e\full-workflow.tauri.spec.ts:236:3 › Full E2E Workflow (Tauri) › 7_comparison_report_toggles_and_download 
+    tests\e2e\full-workflow.tauri.spec.ts:296:3 › Full E2E Workflow (Tauri) › 8_comparison_report_language_switch 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:154:3 › [Touch-Point/Tauri] Precompute + filter integration › save_path_writes_precomputed_columns 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:191:3 › [Touch-Point/Tauri] Precompute + filter integration › has_crossing_filter_matches_reference_subset 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:225:3 › [Touch-Point/Tauri] Precompute + filter integration › range_filters_exclude_pending_and_out_of_bounds_rows 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:253:3 › [Touch-Point/Tauri] Precompute + filter integration › ui_sidebar_filter_forwards_to_real_ipc 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:309:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_500_prunes_rows_below_peak_500cP 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:338:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_dynamic_differs_from_fast_path 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:392:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_below_min_viscosity_returns_empty 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:407:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › ui_threshold_preset_500_forwards_to_real_ipc 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:460:3 › [Touch-Point/Tauri] Performance › query_latency_benchmark 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:590:3 › [Touch-Point/Tauri] Performance › heap_stable_under_filter_churn 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:195:3 › Real Licensing IPC (no mocks) › licensing_check returns valid response from Rust 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:237:3 › Real Licensing IPC (no mocks) › licensing_get_status is populated after licensing_check 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:266:3 › Real Licensing IPC (no mocks) › licensing_machine_id returns a non-empty string 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:282:3 › Real Licensing IPC (no mocks) › licensing features shape matches TypeScript types 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:304:3 › Real Licensing IPC (no mocks) › licensing_was_ever_licensed returns boolean 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:318:3 › Real Licensing IPC (no mocks) › licensing_can_save returns boolean 
+    tests\e2e\memory-leak-soak.tauri.spec.ts:51:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_upload_analyze 
+    tests\e2e\memory-leak-soak.tauri.spec.ts:92:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_comparison_open_close 
+    tests\e2e\multi-fixture-perf.tauri.spec.ts:73:3 › [PerfWorkflow/Tauri] Full workflow baseline — native analysis › workflow_perf_baseline_tauri 
+    tests\e2e\perf-benchmark.tauri.spec.ts:74:3 › [Perf/Tauri] Idle heap per route › heap and DOM nodes at idle state — native Tauri 
+    tests\e2e\perf-benchmark.tauri.spec.ts:135:3 › [Perf/Tauri] Native analysis timing › WASM-free native analysis and uPlot init — real fixtures 
+    tests\e2e\perf-benchmark.tauri.spec.ts:219:3 › [Perf/Tauri] Navigation roundtrip — heap/node leak detection › 10 navigation cycles — heap and node growth 
+    tests\e2e\perf-benchmark.tauri.spec.ts:436:3 › [Perf/Tauri] History aggregation › append run to perf-history.jsonl and compare with previous 
+  7 skipped
+
+
+[stderr]
+[tauri-e2e] Не удалось завершить PID=11620: Command failed: taskkill /PID 11620 /T /F
+�訡��: �� 㤠���� ���� ����� "11620".
+
+

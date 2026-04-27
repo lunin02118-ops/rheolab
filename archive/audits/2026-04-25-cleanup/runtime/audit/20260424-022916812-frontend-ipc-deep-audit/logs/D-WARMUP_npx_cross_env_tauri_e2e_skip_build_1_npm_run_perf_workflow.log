@@ -1,0 +1,618 @@
+[2026-04-24T02:29:16.940Z] $ npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow
+exit_code=1
+duration_ms=654084
+[stdout]
+
+> rheolab-enterprise@0.2.0-beta.39 perf:workflow
+> npx playwright test --config playwright.tauri.config.ts
+
+[tauri-e2e] Бинарник актуален (TAURI_E2E_SKIP_BUILD=1 или исходники не изменились).
+[tauri-e2e] Запускаем приложение с CDP на порту 9222...
+[tauri-e2e] Ожидаем CDP на http://127.0.0.1:9222/json/version ...
+[tauri-e2e] ✓ CDP готов — http://127.0.0.1:9222
+[tauri-e2e] Native memory sampler PID=9304
+[tauri-e2e] Native memory output: D:\Development\Rheolab\outputs\e2e\perf\native-memory-1776997763993.jsonl
+
+Running 38 tests using 1 worker
+
+[tauri] [2026-04-24][02:29:28][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[tauri] [2026-04-24][02:29:28][reqwest::retry][TRACE] shouldn't retry!
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x   1 tests\e2e\comparison\comparison-memory-release.tauri.spec.ts:58:3 › [Comparison/Tauri] Memory release › comparison_releases_heavy_data_on_unmount_and_rehydrates_on_return (38.2s)
+[tauri] [2026-04-24][02:30:22][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[tauri] [2026-04-24][02:30:22][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x   2 tests\e2e\database\save-dialog.tauri.spec.ts:60:3 › [SQLite] Save dialog — реальный бинарник › save_sst_to_sqlite_no_error (38.1s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x   3 tests\e2e\database\save-dialog.tauri.spec.ts:83:3 › [SQLite] Save dialog — реальный бинарник › save_appears_in_library_after_save (38.1s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x   4 tests\e2e\database\save-dialog.tauri.spec.ts:109:3 › [SQLite] Save dialog — реальный бинарник › save_metadata_preserved_in_library_card (38.2s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x   5 tests\e2e\database\save-dialog.tauri.spec.ts:147:3 › [SQLite] Save dialog — реальный бинарник › save_persists_after_page_reload (38.2s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x   6 tests\e2e\database\save-dialog.tauri.spec.ts:176:3 › [SQLite] Save dialog — реальный бинарник › save_then_load_from_library_shows_chart (38.1s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x   7 tests\e2e\database\save-dialog.tauri.spec.ts:208:3 › [SQLite] Save dialog — реальный бинарник › save_grace_report_no_error (38.2s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x   8 tests\e2e\database\save-dialog.tauri.spec.ts:229:3 › [SQLite] Save dialog — реальный бинарник › save_two_experiments_both_in_library (38.1s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x   9 tests\e2e\db-scale-perf.tauri.spec.ts:44:3 › [DBScale/SMALL] Library performance with small DB › db_scale_library_perf_small (38.2s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x  10 tests\e2e\library\touch-point-filters.tauri.spec.ts:154:3 › [Touch-Point/Tauri] Precompute + filter integration › save_path_writes_precomputed_columns (38.2s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x  11 tests\e2e\library\touch-point-filters.tauri.spec.ts:191:3 › [Touch-Point/Tauri] Precompute + filter integration › has_crossing_filter_matches_reference_subset (38.2s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x  12 tests\e2e\library\touch-point-filters.tauri.spec.ts:225:3 › [Touch-Point/Tauri] Precompute + filter integration › range_filters_exclude_pending_and_out_of_bounds_rows (38.1s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x  13 tests\e2e\library\touch-point-filters.tauri.spec.ts:253:3 › [Touch-Point/Tauri] Precompute + filter integration › ui_sidebar_filter_forwards_to_real_ipc (38.2s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x  14 tests\e2e\library\touch-point-filters.tauri.spec.ts:309:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_500_prunes_rows_below_peak_500cP (38.1s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x  15 tests\e2e\library\touch-point-filters.tauri.spec.ts:338:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_dynamic_differs_from_fast_path (38.1s)
+[E2E] Tauri IPC proxy patch result: invoke-patched
+  x  16 tests\e2e\library\touch-point-filters.tauri.spec.ts:392:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_below_min_viscosity_returns_empty (38.1s)
+[tauri] [2026-04-24][02:39:58][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[tauri] [2026-04-24][02:39:58][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+  x  17 tests\e2e\library\touch-point-filters.tauri.spec.ts:407:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › ui_threshold_preset_500_forwards_to_real_ipc (10.8s)
+  x  18 tests\e2e\library\touch-point-filters.tauri.spec.ts:460:3 › [Touch-Point/Tauri] Performance › query_latency_benchmark (3ms)
+  x  19 tests\e2e\library\touch-point-filters.tauri.spec.ts:590:3 › [Touch-Point/Tauri] Performance › heap_stable_under_filter_churn (3ms)
+  x  20 tests\e2e\memory-leak-soak.tauri.spec.ts:51:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_upload_analyze (2ms)
+  x  21 tests\e2e\memory-leak-soak.tauri.spec.ts:92:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_comparison_open_close (3ms)
+  x  22 tests\e2e\multi-fixture-perf.tauri.spec.ts:73:3 › [PerfWorkflow/Tauri] Full workflow baseline — native analysis › workflow_perf_baseline_tauri (2ms)
+  x  23 tests\e2e\perf-benchmark.tauri.spec.ts:72:3 › [Perf/Tauri] Idle heap per route › heap and DOM nodes at idle state — native Tauri (2ms)
+  x  24 tests\e2e\perf-benchmark.tauri.spec.ts:133:3 › [Perf/Tauri] Native analysis timing › WASM-free native analysis and uPlot init — real fixtures (3ms)
+  x  25 tests\e2e\perf-benchmark.tauri.spec.ts:217:3 › [Perf/Tauri] Navigation roundtrip — heap/node leak detection › 10 navigation cycles — heap and node growth (2ms)
+  x  26 tests\e2e\perf-benchmark.tauri.spec.ts:295:3 › [Perf/Tauri] History aggregation › append run to perf-history.jsonl and compare with previous (2ms)
+  -  27 tests\e2e\reports\comparison-report.tauri.spec.ts:311:3 › Real Native Comparison Report — feature + perf on new sub-tab › PDF generation + perf metrics on Comparison → Report sub-tab
+  -  28 tests\e2e\reports\comparison-report.tauri.spec.ts:348:3 › Real Native Comparison Report — feature + perf on new sub-tab › Excel generation + perf metrics on Comparison → Report sub-tab
+  -  29 tests\e2e\reports\comparison-report.tauri.spec.ts:379:3 › Real Native Comparison Report — feature + perf on new sub-tab › UI toggles + language switch on Comparison → Report sub-tab
+  -  30 tests\e2e\reports\comparison-workflow-release-gate.tauri.spec.ts:234:3 › Comparison Report — RELEASE GATE (full user workflow) › full user workflow: 4 fixtures → 4 settings phases → 7 exports
+  -  31 tests\e2e\reports\real-native-export.tauri.spec.ts:174:3 › Real Native Export › PDF has valid size and magic bytes
+  -  32 tests\e2e\reports\real-native-export.tauri.spec.ts:192:3 › Real Native Export › Excel has valid size and magic bytes
+  x  33 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:195:3 › Real Licensing IPC (no mocks) › licensing_check returns valid response from Rust (20ms)
+  x  34 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:237:3 › Real Licensing IPC (no mocks) › licensing_get_status is populated after licensing_check (14ms)
+  x  35 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:266:3 › Real Licensing IPC (no mocks) › licensing_machine_id returns a non-empty string (14ms)
+  x  36 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:282:3 › Real Licensing IPC (no mocks) › licensing features shape matches TypeScript types (14ms)
+  x  37 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:304:3 › Real Licensing IPC (no mocks) › licensing_was_ever_licensed returns boolean (14ms)
+  x  38 tests\e2e\licensing\real-license-ipc.tauri.spec.ts:318:3 › Real Licensing IPC (no mocks) › licensing_can_save returns boolean (14ms)
+[tauri-e2e] Завершаем Tauri-процесс (PID=18436)...
+
+
+  1) tests\e2e\comparison\comparison-memory-release.tauri.spec.ts:58:3 › [Comparison/Tauri] Memory release › comparison_releases_heavy_data_on_unmount_and_rehydrates_on_return 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\comparison-comparison-memo-bb993-nt-and-rehydrates-on-return\error-context.md
+
+  2) tests\e2e\database\save-dialog.tauri.spec.ts:60:3 › [SQLite] Save dialog — реальный бинарник › save_sst_to_sqlite_no_error 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\database-save-dialog.tauri-ff9f1-save-sst-to-sqlite-no-error\error-context.md
+
+  3) tests\e2e\database\save-dialog.tauri.spec.ts:83:3 › [SQLite] Save dialog — реальный бинарник › save_appears_in_library_after_save 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\database-save-dialog.tauri-58623-pears-in-library-after-save\error-context.md
+
+  4) tests\e2e\database\save-dialog.tauri.spec.ts:109:3 › [SQLite] Save dialog — реальный бинарник › save_metadata_preserved_in_library_card 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\database-save-dialog.tauri-c3487-a-preserved-in-library-card\error-context.md
+
+  5) tests\e2e\database\save-dialog.tauri.spec.ts:147:3 › [SQLite] Save dialog — реальный бинарник › save_persists_after_page_reload 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\database-save-dialog.tauri-45ba2--persists-after-page-reload\error-context.md
+
+  6) tests\e2e\database\save-dialog.tauri.spec.ts:176:3 › [SQLite] Save dialog — реальный бинарник › save_then_load_from_library_shows_chart 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\database-save-dialog.tauri-5dd5b-ad-from-library-shows-chart\error-context.md
+
+  7) tests\e2e\database\save-dialog.tauri.spec.ts:208:3 › [SQLite] Save dialog — реальный бинарник › save_grace_report_no_error 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\database-save-dialog.tauri-dc180--save-grace-report-no-error\error-context.md
+
+  8) tests\e2e\database\save-dialog.tauri.spec.ts:229:3 › [SQLite] Save dialog — реальный бинарник › save_two_experiments_both_in_library 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\database-save-dialog.tauri-e99f5-experiments-both-in-library\error-context.md
+
+  9) tests\e2e\db-scale-perf.tauri.spec.ts:44:3 › [DBScale/SMALL] Library performance with small DB › db_scale_library_perf_small 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\db-scale-perf.tauri--DBSca-db2e0-db-scale-library-perf-small\error-context.md
+
+  10) tests\e2e\library\touch-point-filters.tauri.spec.ts:154:3 › [Touch-Point/Tauri] Precompute + filter integration › save_path_writes_precomputed_columns 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\library-touch-point-filter-5fd98--writes-precomputed-columns\error-context.md
+
+  11) tests\e2e\library\touch-point-filters.tauri.spec.ts:191:3 › [Touch-Point/Tauri] Precompute + filter integration › has_crossing_filter_matches_reference_subset 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\library-touch-point-filter-fe0f2-er-matches-reference-subset\error-context.md
+
+  12) tests\e2e\library\touch-point-filters.tauri.spec.ts:225:3 › [Touch-Point/Tauri] Precompute + filter integration › range_filters_exclude_pending_and_out_of_bounds_rows 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\library-touch-point-filter-96b3d-ding-and-out-of-bounds-rows\error-context.md
+
+  13) tests\e2e\library\touch-point-filters.tauri.spec.ts:253:3 › [Touch-Point/Tauri] Precompute + filter integration › ui_sidebar_filter_forwards_to_real_ipc 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\library-touch-point-filter-510f7-filter-forwards-to-real-ipc\error-context.md
+
+  14) tests\e2e\library\touch-point-filters.tauri.spec.ts:309:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_500_prunes_rows_below_peak_500cP 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\library-touch-point-filter-8ce93-runes-rows-below-peak-500cP\error-context.md
+
+  15) tests\e2e\library\touch-point-filters.tauri.spec.ts:338:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_dynamic_differs_from_fast_path 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\library-touch-point-filter-5a13d-amic-differs-from-fast-path\error-context.md
+
+  16) tests\e2e\library\touch-point-filters.tauri.spec.ts:392:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_below_min_viscosity_returns_empty 
+
+    Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/dashboard' cannot be created in a document with origin 'null' and URL 'chrome-error://chromewebdata/'.
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:290:30), <anonymous>:2:24)
+        at UtilityScript.evaluate (<anonymous>:292:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:254:24
+
+    Error Context: test-results\library-touch-point-filter-2c48a-min-viscosity-returns-empty\error-context.md
+
+  17) tests\e2e\library\touch-point-filters.tauri.spec.ts:407:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › ui_threshold_preset_500_forwards_to_real_ipc 
+
+    Error: page.waitForTimeout: Target page, context or browser has been closed
+
+       at base-test.tauri.ts:101
+
+       99 |             } catch {
+      100 |                 // Page might still be on about:blank (SecurityError) — retry after a short delay
+    > 101 |                 await page.waitForTimeout(500);
+          |                            ^
+      102 |             }
+      103 |         }
+      104 |         if (!ready) {
+        at D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:101:28
+
+  18) tests\e2e\library\touch-point-filters.tauri.spec.ts:460:3 › [Touch-Point/Tauri] Performance › query_latency_benchmark 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  19) tests\e2e\library\touch-point-filters.tauri.spec.ts:590:3 › [Touch-Point/Tauri] Performance › heap_stable_under_filter_churn 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  20) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:195:3 › Real Licensing IPC (no mocks) › licensing_check returns valid response from Rust 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  21) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:237:3 › Real Licensing IPC (no mocks) › licensing_get_status is populated after licensing_check 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  22) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:266:3 › Real Licensing IPC (no mocks) › licensing_machine_id returns a non-empty string 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  23) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:282:3 › Real Licensing IPC (no mocks) › licensing features shape matches TypeScript types 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  24) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:304:3 › Real Licensing IPC (no mocks) › licensing_was_ever_licensed returns boolean 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  25) tests\e2e\licensing\real-license-ipc.tauri.spec.ts:318:3 › Real Licensing IPC (no mocks) › licensing_can_save returns boolean 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+      27 |      
+      28 |     page: async ({}, use) => {
+    > 29 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      30 |         const ctx = browser.contexts()[0];
+      31 |
+      32 |         // Find the actual Tauri page (has __TAURI_INTERNALS__). In long combined
+        at Object.page (D:\Development\Rheolab\tests\e2e\licensing\real-license-ipc.tauri.spec.ts:29:40)
+
+  26) tests\e2e\memory-leak-soak.tauri.spec.ts:51:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_upload_analyze 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  27) tests\e2e\memory-leak-soak.tauri.spec.ts:92:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_comparison_open_close 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  28) tests\e2e\multi-fixture-perf.tauri.spec.ts:73:3 › [PerfWorkflow/Tauri] Full workflow baseline — native analysis › workflow_perf_baseline_tauri 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  29) tests\e2e\perf-benchmark.tauri.spec.ts:72:3 › [Perf/Tauri] Idle heap per route › heap and DOM nodes at idle state — native Tauri 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  30) tests\e2e\perf-benchmark.tauri.spec.ts:133:3 › [Perf/Tauri] Native analysis timing › WASM-free native analysis and uPlot init — real fixtures 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  31) tests\e2e\perf-benchmark.tauri.spec.ts:217:3 › [Perf/Tauri] Navigation roundtrip — heap/node leak detection › 10 navigation cycles — heap and node growth 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  32) tests\e2e\perf-benchmark.tauri.spec.ts:295:3 › [Perf/Tauri] History aggregation › append run to perf-history.jsonl and compare with previous 
+
+    Error: browserType.connectOverCDP: connect ECONNREFUSED 127.0.0.1:9222
+    Call log:
+    [2m  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222[22m
+
+
+       at base-test.tauri.ts:39
+
+      37 |      
+      38 |     browser: async ({}, use) => {
+    > 39 |         const browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+         |                                        ^
+      40 |         await use(browser);
+      41 |         // close() на CDP-подключении отключает Playwright, но не убивает приложение
+      42 |         // (приложение убивает teardown-скрипт)
+        at Object.browser (D:\Development\Rheolab\tests\e2e\base-test.tauri.ts:39:40)
+
+  32 failed
+    tests\e2e\comparison\comparison-memory-release.tauri.spec.ts:58:3 › [Comparison/Tauri] Memory release › comparison_releases_heavy_data_on_unmount_and_rehydrates_on_return 
+    tests\e2e\database\save-dialog.tauri.spec.ts:60:3 › [SQLite] Save dialog — реальный бинарник › save_sst_to_sqlite_no_error 
+    tests\e2e\database\save-dialog.tauri.spec.ts:83:3 › [SQLite] Save dialog — реальный бинарник › save_appears_in_library_after_save 
+    tests\e2e\database\save-dialog.tauri.spec.ts:109:3 › [SQLite] Save dialog — реальный бинарник › save_metadata_preserved_in_library_card 
+    tests\e2e\database\save-dialog.tauri.spec.ts:147:3 › [SQLite] Save dialog — реальный бинарник › save_persists_after_page_reload 
+    tests\e2e\database\save-dialog.tauri.spec.ts:176:3 › [SQLite] Save dialog — реальный бинарник › save_then_load_from_library_shows_chart 
+    tests\e2e\database\save-dialog.tauri.spec.ts:208:3 › [SQLite] Save dialog — реальный бинарник › save_grace_report_no_error 
+    tests\e2e\database\save-dialog.tauri.spec.ts:229:3 › [SQLite] Save dialog — реальный бинарник › save_two_experiments_both_in_library 
+    tests\e2e\db-scale-perf.tauri.spec.ts:44:3 › [DBScale/SMALL] Library performance with small DB › db_scale_library_perf_small 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:154:3 › [Touch-Point/Tauri] Precompute + filter integration › save_path_writes_precomputed_columns 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:191:3 › [Touch-Point/Tauri] Precompute + filter integration › has_crossing_filter_matches_reference_subset 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:225:3 › [Touch-Point/Tauri] Precompute + filter integration › range_filters_exclude_pending_and_out_of_bounds_rows 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:253:3 › [Touch-Point/Tauri] Precompute + filter integration › ui_sidebar_filter_forwards_to_real_ipc 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:309:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_500_prunes_rows_below_peak_500cP 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:338:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_dynamic_differs_from_fast_path 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:392:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › threshold_below_min_viscosity_returns_empty 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:407:3 › [Touch-Point/Tauri] Dynamic threshold (slow path) › ui_threshold_preset_500_forwards_to_real_ipc 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:460:3 › [Touch-Point/Tauri] Performance › query_latency_benchmark 
+    tests\e2e\library\touch-point-filters.tauri.spec.ts:590:3 › [Touch-Point/Tauri] Performance › heap_stable_under_filter_churn 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:195:3 › Real Licensing IPC (no mocks) › licensing_check returns valid response from Rust 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:237:3 › Real Licensing IPC (no mocks) › licensing_get_status is populated after licensing_check 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:266:3 › Real Licensing IPC (no mocks) › licensing_machine_id returns a non-empty string 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:282:3 › Real Licensing IPC (no mocks) › licensing features shape matches TypeScript types 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:304:3 › Real Licensing IPC (no mocks) › licensing_was_ever_licensed returns boolean 
+    tests\e2e\licensing\real-license-ipc.tauri.spec.ts:318:3 › Real Licensing IPC (no mocks) › licensing_can_save returns boolean 
+    tests\e2e\memory-leak-soak.tauri.spec.ts:51:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_upload_analyze 
+    tests\e2e\memory-leak-soak.tauri.spec.ts:92:3 › [LeakSoak/Tauri] Memory leak detection › memory_leak_comparison_open_close 
+    tests\e2e\multi-fixture-perf.tauri.spec.ts:73:3 › [PerfWorkflow/Tauri] Full workflow baseline — native analysis › workflow_perf_baseline_tauri 
+    tests\e2e\perf-benchmark.tauri.spec.ts:72:3 › [Perf/Tauri] Idle heap per route › heap and DOM nodes at idle state — native Tauri 
+    tests\e2e\perf-benchmark.tauri.spec.ts:133:3 › [Perf/Tauri] Native analysis timing › WASM-free native analysis and uPlot init — real fixtures 
+    tests\e2e\perf-benchmark.tauri.spec.ts:217:3 › [Perf/Tauri] Navigation roundtrip — heap/node leak detection › 10 navigation cycles — heap and node growth 
+    tests\e2e\perf-benchmark.tauri.spec.ts:295:3 › [Perf/Tauri] History aggregation › append run to perf-history.jsonl and compare with previous 
+  6 skipped
+
+
+[stderr]
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] ⚠ Could not set localStorage — page origin may be restricted
+[tauri-e2e] Не удалось завершить PID=18436: Command failed: taskkill /PID 18436 /T /F
+ERROR: The process "18436" not found.
+
+

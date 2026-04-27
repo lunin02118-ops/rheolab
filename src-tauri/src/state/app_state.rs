@@ -3,8 +3,8 @@
 use std::path::{Path, PathBuf};
 
 use crate::commands::licensing::LicenseEngine;
-use crate::db::{self, DbConn, DbPool};
 use crate::db::migration::MigrationResult;
+use crate::db::{self, DbConn, DbPool};
 
 // ── Bootstrap paths ──────────────────────────────────────────────────────
 
@@ -34,7 +34,11 @@ impl BootstrapPaths {
             .map(PathBuf::from)
             .unwrap_or_else(|| app_data_dir.join("rheolab.db"));
 
-        Ok(Self { app_data_dir, backups_dir, database_path })
+        Ok(Self {
+            app_data_dir,
+            backups_dir,
+            database_path,
+        })
     }
 }
 
@@ -121,7 +125,10 @@ impl AppState {
         let startup_result = tokio::task::block_in_place(|| {
             tauri::async_runtime::handle().block_on(engine.check_local_startup(pool))
         });
-        engine.diag(&format!("startup check result: status={:?}", startup_result.status));
+        engine.diag(&format!(
+            "startup check result: status={:?}",
+            startup_result.status
+        ));
         Some(engine)
     }
 

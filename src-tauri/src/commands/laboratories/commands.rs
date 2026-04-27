@@ -1,5 +1,6 @@
 //! Tauri command handlers for Laboratory CRUD.
 
+use crate::commands::licensing::require_write_license;
 use crate::error::Result;
 use crate::state::AppState;
 use crate::utils::validation::{validate_bounded_str, validate_uuid};
@@ -60,14 +61,22 @@ pub async fn laboratories_create(
     state: State<'_, AppState>,
     payload: LaboratoryUpsertPayload,
 ) -> Result<LaboratoryMutationResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: string length bounds
     validate_bounded_str(&payload.name, 255, "name")?;
-    if let Some(ref d) = payload.description { validate_bounded_str(d, 2000, "description")?; }
-    if let Some(ref l) = payload.location { validate_bounded_str(l, 500, "location")?; }
+    if let Some(ref d) = payload.description {
+        validate_bounded_str(d, 2000, "description")?;
+    }
+    if let Some(ref l) = payload.location {
+        validate_bounded_str(l, 500, "location")?;
+    }
 
     let name = payload.name.trim().to_string();
     if name.is_empty() {
-        return Ok(LaboratoryMutationResponse::err("Название лаборатории обязательно"));
+        return Ok(LaboratoryMutationResponse::err(
+            "Название лаборатории обязательно",
+        ));
     }
 
     let conn = state.pool_conn()?;
@@ -98,7 +107,9 @@ pub async fn laboratories_create(
 
     match get_laboratory(&conn, &id)? {
         Some(lab) => Ok(LaboratoryMutationResponse::ok(lab)),
-        None => Ok(LaboratoryMutationResponse::err("Insert succeeded but laboratory not found")),
+        None => Ok(LaboratoryMutationResponse::err(
+            "Insert succeeded but laboratory not found",
+        )),
     }
 }
 
@@ -108,15 +119,23 @@ pub async fn laboratories_update(
     id: String,
     payload: LaboratoryUpsertPayload,
 ) -> Result<LaboratoryMutationResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: validate ID format + string bounds
     validate_uuid(&id, "id")?;
     validate_bounded_str(&payload.name, 255, "name")?;
-    if let Some(ref d) = payload.description { validate_bounded_str(d, 2000, "description")?; }
-    if let Some(ref l) = payload.location { validate_bounded_str(l, 500, "location")?; }
+    if let Some(ref d) = payload.description {
+        validate_bounded_str(d, 2000, "description")?;
+    }
+    if let Some(ref l) = payload.location {
+        validate_bounded_str(l, 500, "location")?;
+    }
 
     let name = payload.name.trim().to_string();
     if name.is_empty() {
-        return Ok(LaboratoryMutationResponse::err("Название лаборатории обязательно"));
+        return Ok(LaboratoryMutationResponse::err(
+            "Название лаборатории обязательно",
+        ));
     }
 
     let conn = state.pool_conn()?;
@@ -151,7 +170,9 @@ pub async fn laboratories_update(
 
     match get_laboratory(&conn, &id)? {
         Some(lab) => Ok(LaboratoryMutationResponse::ok(lab)),
-        None => Ok(LaboratoryMutationResponse::err("Update succeeded but laboratory not found")),
+        None => Ok(LaboratoryMutationResponse::err(
+            "Update succeeded but laboratory not found",
+        )),
     }
 }
 
@@ -160,6 +181,8 @@ pub async fn laboratories_delete(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<LaboratoryDeleteResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: validate ID format
     validate_uuid(&id, "id")?;
 
@@ -187,5 +210,8 @@ pub async fn laboratories_delete(
     conn.execute("DELETE FROM Laboratory WHERE id = ?1", params![id])
         .map_err(|e| format!("SQL error: {e}"))?;
 
-    Ok(LaboratoryDeleteResponse { success: true, error: None })
+    Ok(LaboratoryDeleteResponse {
+        success: true,
+        error: None,
+    })
 }

@@ -20,23 +20,19 @@
 
 ## Текущее состояние
 
-Markdown-аудиты из этого каталога были удалены во время cleanup 2026-03-13, чтобы не держать в репозитории устаревшие отчёты, которые расходились с кодом.
+Актуальный кодовый аудит на 2026-04-25:
 
-Актуальный источник audit-данных теперь такой:
+- [`runtime/qa-reports/deep-audit-waves-2026-04-25.md`](../../runtime/qa-reports/deep-audit-waves-2026-04-25.md) — основной отчет по commit `6b0f0991e00cce45c0a65ccbc9de6860c85b4929`.
+- [`docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-25.md`](../performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-25.md) — актуальный frontend/IPC performance snapshot.
+- [`docs/performance/memory-performance-report-2026-04-25.md`](../performance/memory-performance-report-2026-04-25.md) — актуальный Tauri soak memory snapshot.
 
-- runtime-артефакты в `runtime/audit/<run-id>/`
-- audit-скрипты в `scripts/audit/`
-- итоговые решения по изменениям в `docs/plans/REFACTORING_PLAN_2026-03-13.md`
-- исторические сводки в `CHANGELOG.md`
+Исторические markdown-аудиты и старые runtime/output artefacts убраны в:
 
-## Отчёты рефакторинга 2026-Q2
+- [`archive/audits/2026-04-25-cleanup/`](../../archive/audits/2026-04-25-cleanup/)
 
-- [`REFACTORING_AUDIT_2026-04-18.md`](./REFACTORING_AUDIT_2026-04-18.md) — независимый аудит качества исполнения `docs/REFACTORING_DEEP_PLAN.md`. Выявил расхождения между заявленными WP-statuses и кодом.
-- [`REFACTORING_AUDIT_2026-04-19-FOLLOWUP.md`](./REFACTORING_AUDIT_2026-04-19-FOLLOWUP.md) — follow-up с устранением всех §5.1–5.2 замечаний + декомпозицией крупных Rust-файлов + финальной верификацией.
-- [`command-validation.md`](./command-validation.md) — инвентаризация всех 89 Tauri-команд по доменам валидации (WP-1.5 DoD).
-- [`W1-security-review.md`](./W1-security-review.md) — архивный security review.
+Причина cleanup: старые отчеты 2026-02-27..2026-04-24 расходились с текущим `HEAD` и свежими метриками 2026-04-25. Same-day отчет `runtime/qa-reports/audit-2026-04-25/AUDIT-REPORT.md` тоже перенесен в архив, потому что был сделан на commit `94c16713` и содержал более мягкий verdict, перекрытый более поздним deep-audit waves отчетом на `6b0f0991`.
 
-Baseline-snapshot метрик: `runtime/refactor-baseline/metrics.json` (воспроизводится через `node scripts/audit/snapshot-metrics.js`).
+Baseline-snapshot метрик остается в `runtime/refactor-baseline/metrics.json` и воспроизводится через `node scripts/audit/snapshot-metrics.js`.
 
 ## Смежные документы
 

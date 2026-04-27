@@ -34,10 +34,18 @@ pub struct OperatorMutationResponse {
 
 impl OperatorMutationResponse {
     pub fn ok(operator: StoredOperator) -> Self {
-        Self { success: true, operator: Some(operator), error: None }
+        Self {
+            success: true,
+            operator: Some(operator),
+            error: None,
+        }
     }
     pub fn err(msg: impl Into<String>) -> Self {
-        Self { success: false, operator: None, error: Some(msg.into()) }
+        Self {
+            success: false,
+            operator: None,
+            error: Some(msg.into()),
+        }
     }
 }
 

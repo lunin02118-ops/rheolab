@@ -20,6 +20,7 @@ import { test as base, expect, chromium } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 const CDP_PORT = parseInt(process.env.TAURI_CDP_PORT || '9222', 10);
+type TauriInvoke = (cmd: string, args?: unknown) => Promise<unknown>;
 
 // Minimal fixture: connects to Tauri via CDP, injects only auth/dialog mocks.
 // Licensing IPC flows through to real Rust.
@@ -156,7 +157,7 @@ const test = base.extend<{ page: Page }>({
                     if (typeof protoInvoke === 'function') raw = protoInvoke;
                 }
                 if (typeof raw === 'function') {
-                    (window as any).__e2eRealTauriInvoke = (raw as Function).bind(internals);
+                    (window as any).__e2eRealTauriInvoke = (raw as TauriInvoke).bind(internals);
                 }
             }
 

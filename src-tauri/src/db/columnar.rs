@@ -1,4 +1,4 @@
-﻿#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Columnar binary encoding + zstd compression for raw experiment points.
 //!
 //! ## Format v2 (uncompressed)
@@ -62,7 +62,8 @@ pub fn encode(raw_points: &[Value]) -> Result<Vec<u8>> {
     let bitmap_bytes = ((point_count as usize) + 7) / 8;
 
     // Build: values[ch_idx] = Vec<f64>, null_bitmaps[ch_idx] = Vec<u8>
-    let mut channel_values: Vec<Vec<f64>> = vec![Vec::with_capacity(raw_points.len()); channel_names.len()];
+    let mut channel_values: Vec<Vec<f64>> =
+        vec![Vec::with_capacity(raw_points.len()); channel_names.len()];
     let mut channel_bitmaps: Vec<Vec<u8>> = vec![vec![0u8; bitmap_bytes]; channel_names.len()];
 
     for (pt_idx, point) in raw_points.iter().enumerate() {
@@ -88,22 +89,28 @@ pub fn encode(raw_points: &[Value]) -> Result<Vec<u8>> {
     let mut buf: Vec<u8> = Vec::with_capacity(capacity);
 
     buf.write_all(MAGIC).map_err(|e| e.to_string())?;
-    buf.write_u32::<LittleEndian>(VERSION).map_err(|e| e.to_string())?;
-    buf.write_u32::<LittleEndian>(point_count).map_err(|e| e.to_string())?;
-    buf.write_u32::<LittleEndian>(channel_count).map_err(|e| e.to_string())?;
+    buf.write_u32::<LittleEndian>(VERSION)
+        .map_err(|e| e.to_string())?;
+    buf.write_u32::<LittleEndian>(point_count)
+        .map_err(|e| e.to_string())?;
+    buf.write_u32::<LittleEndian>(channel_count)
+        .map_err(|e| e.to_string())?;
 
     for name in &channel_names {
         let bytes = name.as_bytes();
-        buf.write_u16::<LittleEndian>(bytes.len() as u16).map_err(|e| e.to_string())?;
+        buf.write_u16::<LittleEndian>(bytes.len() as u16)
+            .map_err(|e| e.to_string())?;
         buf.write_all(bytes).map_err(|e| e.to_string())?;
     }
 
     for ch_idx in 0..channel_names.len() {
         // Write null bitmap first
-        buf.write_all(&channel_bitmaps[ch_idx]).map_err(|e| e.to_string())?;
+        buf.write_all(&channel_bitmaps[ch_idx])
+            .map_err(|e| e.to_string())?;
         // Then f64 values
         for &v in &channel_values[ch_idx] {
-            buf.write_f64::<LittleEndian>(v).map_err(|e| e.to_string())?;
+            buf.write_f64::<LittleEndian>(v)
+                .map_err(|e| e.to_string())?;
         }
     }
 
@@ -127,8 +134,7 @@ pub fn decode(bytes: &[u8]) -> Result<Vec<Value>> {
     }
 
     // Decompress.
-    let decompressed = zstd::decode_all(bytes)
-        .map_err(|e| format!("zstd decode error: {}", e))?;
+    let decompressed = zstd::decode_all(bytes).map_err(|e| format!("zstd decode error: {}", e))?;
 
     let mut cur = Cursor::new(decompressed);
 
@@ -220,8 +226,7 @@ pub fn decode_typed(bytes: &[u8]) -> Result<HashMap<String, Vec<Option<f64>>>> {
     }
 
     // Decompress.
-    let decompressed = zstd::decode_all(bytes)
-        .map_err(|e| format!("zstd decode error: {}", e))?;
+    let decompressed = zstd::decode_all(bytes).map_err(|e| format!("zstd decode error: {}", e))?;
 
     let mut cur = Cursor::new(decompressed);
 
@@ -252,8 +257,7 @@ pub fn decode_typed(bytes: &[u8]) -> Result<HashMap<String, Vec<Option<f64>>>> {
     }
 
     let bitmap_bytes = (point_count + 7) / 8;
-    let mut result: HashMap<String, Vec<Option<f64>>> =
-        HashMap::with_capacity(channel_count);
+    let mut result: HashMap<String, Vec<Option<f64>>> = HashMap::with_capacity(channel_count);
 
     for ch_name in channel_names {
         // v2: read null bitmap before values.
@@ -316,7 +320,13 @@ mod tests {
         assert_eq!(decoded.len(), 10);
         let eps = 1e-9;
         for (orig, got) in points.iter().zip(decoded.iter()) {
-            for key in ["time_sec", "viscosity_cp", "temperature_c", "shear_rate", "pressure_bar"] {
+            for key in [
+                "time_sec",
+                "viscosity_cp",
+                "temperature_c",
+                "shear_rate",
+                "pressure_bar",
+            ] {
                 let a = orig.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0);
                 let b = got.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0);
                 assert!((a - b).abs() < eps, "{key}: {a} vs {b}");
@@ -332,7 +342,9 @@ mod tests {
         let ratio = json_size as f64 / compressed_size as f64;
         tracing::info!(
             "25K points: JSON={} bytes, columnar+zstd={} bytes, ratio={:.1}x",
-            json_size, compressed_size, ratio
+            json_size,
+            compressed_size,
+            ratio
         );
         // Columnar+zstd should be at least 5x smaller than JSON for numeric data.
         assert!(ratio > 5.0, "Expected >5x compression, got {:.1}x", ratio);
@@ -351,19 +363,46 @@ mod tests {
         assert_eq!(decoded.len(), 3);
 
         // Point 0: all present
-        assert_eq!(decoded[0].get("time_sec").and_then(|v| v.as_f64()), Some(0.0));
-        assert_eq!(decoded[0].get("viscosity_cp").and_then(|v| v.as_f64()), Some(100.0));
-        assert_eq!(decoded[0].get("temperature_c").and_then(|v| v.as_f64()), Some(20.0));
+        assert_eq!(
+            decoded[0].get("time_sec").and_then(|v| v.as_f64()),
+            Some(0.0)
+        );
+        assert_eq!(
+            decoded[0].get("viscosity_cp").and_then(|v| v.as_f64()),
+            Some(100.0)
+        );
+        assert_eq!(
+            decoded[0].get("temperature_c").and_then(|v| v.as_f64()),
+            Some(20.0)
+        );
 
         // Point 1: viscosity missing (key absent), rest present
-        assert_eq!(decoded[1].get("time_sec").and_then(|v| v.as_f64()), Some(0.5));
-        assert!(decoded[1].get("viscosity_cp").is_none(), "viscosity should be absent for point 1");
-        assert_eq!(decoded[1].get("temperature_c").and_then(|v| v.as_f64()), Some(20.1));
+        assert_eq!(
+            decoded[1].get("time_sec").and_then(|v| v.as_f64()),
+            Some(0.5)
+        );
+        assert!(
+            decoded[1].get("viscosity_cp").is_none(),
+            "viscosity should be absent for point 1"
+        );
+        assert_eq!(
+            decoded[1].get("temperature_c").and_then(|v| v.as_f64()),
+            Some(20.1)
+        );
 
         // Point 2: temperature missing (key absent), rest present
-        assert_eq!(decoded[2].get("time_sec").and_then(|v| v.as_f64()), Some(1.0));
-        assert_eq!(decoded[2].get("viscosity_cp").and_then(|v| v.as_f64()), Some(102.0));
-        assert!(decoded[2].get("temperature_c").is_none(), "temperature should be absent for point 2");
+        assert_eq!(
+            decoded[2].get("time_sec").and_then(|v| v.as_f64()),
+            Some(1.0)
+        );
+        assert_eq!(
+            decoded[2].get("viscosity_cp").and_then(|v| v.as_f64()),
+            Some(102.0)
+        );
+        assert!(
+            decoded[2].get("temperature_c").is_none(),
+            "temperature should be absent for point 2"
+        );
     }
 
     #[test]
@@ -375,8 +414,16 @@ mod tests {
         let typed = decode_typed(&encoded).unwrap();
 
         // channel count and point count per channel must match.
-        for key in ["time_sec", "viscosity_cp", "temperature_c", "shear_rate", "pressure_bar"] {
-            let col = typed.get(key).unwrap_or_else(|| panic!("missing channel {key}"));
+        for key in [
+            "time_sec",
+            "viscosity_cp",
+            "temperature_c",
+            "shear_rate",
+            "pressure_bar",
+        ] {
+            let col = typed
+                .get(key)
+                .unwrap_or_else(|| panic!("missing channel {key}"));
             assert_eq!(col.len(), 20, "channel {key}: length mismatch");
         }
 
@@ -386,7 +433,10 @@ mod tests {
         for (i, pt) in points.iter().enumerate() {
             let expected = pt.get("viscosity_cp").and_then(|v| v.as_f64()).unwrap();
             let got = vis_col[i].expect("unexpected null");
-            assert!((expected - got).abs() < eps, "viscosity_cp[{i}]: {expected} vs {got}");
+            assert!(
+                (expected - got).abs() < eps,
+                "viscosity_cp[{i}]: {expected} vs {got}"
+            );
         }
 
         // decode_typed on empty bytes should return empty map.
@@ -406,13 +456,13 @@ mod tests {
 
         let vis = typed.get("viscosity_cp").unwrap();
         assert_eq!(vis[0], Some(100.0));
-        assert_eq!(vis[1], None);      // absent in point 1
+        assert_eq!(vis[1], None); // absent in point 1
         assert_eq!(vis[2], Some(102.0));
 
         let temp = typed.get("temperature_c").unwrap();
         assert_eq!(temp[0], Some(20.0));
         assert_eq!(temp[1], Some(20.1));
-        assert_eq!(temp[2], None);     // absent in point 2
+        assert_eq!(temp[2], None); // absent in point 2
     }
 
     /// Performance budget: encode + decode of 25 K points must complete within

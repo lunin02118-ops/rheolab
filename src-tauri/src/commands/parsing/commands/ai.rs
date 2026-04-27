@@ -16,7 +16,8 @@ use super::super::ai_mapper::{validate_ai_mapping_response, AiColumnMapper};
 use super::super::types::*;
 use super::candidate::{compare_candidates, finalize_candidate_response, ParseCandidate};
 use super::diagnostics::{
-    ai_failure_reason, base_ai_diagnostics, diagnostics_accepted, diagnostics_failed, diagnostics_rejected,
+    ai_failure_reason, base_ai_diagnostics, diagnostics_accepted, diagnostics_failed,
+    diagnostics_rejected,
 };
 use super::io::{parse_ai_candidate, parse_heuristic_candidate};
 
@@ -45,13 +46,7 @@ pub(super) async fn parse_with_optional_ai(
         // always go through the AI validation path so that unusual encodings or
         // ambiguous column layouts are caught even when the heuristic succeeds.
         if candidate.report.hard_valid && !candidate.report.suspicious && !has_inline_bytes {
-            return finalize_candidate_response(
-                candidate.clone(),
-                &filename,
-                &bytes,
-                false,
-                None,
-            );
+            return finalize_candidate_response(candidate.clone(), &filename, &bytes, false, None);
         }
     }
 
@@ -80,12 +75,22 @@ pub(super) async fn parse_with_optional_ai(
         Ok(mapping) => mapping,
         Err(error) => {
             let diagnostics = diagnostics_failed(base_diagnostics, ai_failure_reason(error));
-            return fallback_to_heuristic_or_error(&heuristic_candidate, &filename, &bytes, diagnostics);
+            return fallback_to_heuristic_or_error(
+                &heuristic_candidate,
+                &filename,
+                &bytes,
+                diagnostics,
+            );
         }
     };
     if let Err(error) = validate_ai_mapping_response(&ai_mapping, &ai_context_candidates) {
         let diagnostics = diagnostics_failed(base_diagnostics, ai_failure_reason(error));
-        return fallback_to_heuristic_or_error(&heuristic_candidate, &filename, &bytes, diagnostics);
+        return fallback_to_heuristic_or_error(
+            &heuristic_candidate,
+            &filename,
+            &bytes,
+            diagnostics,
+        );
     }
 
     let selected_candidate = match ai_context_candidates
@@ -102,7 +107,12 @@ pub(super) async fn parse_with_optional_ai(
                     ai_context_candidates.len()
                 ),
             );
-            return fallback_to_heuristic_or_error(&heuristic_candidate, &filename, &bytes, diagnostics);
+            return fallback_to_heuristic_or_error(
+                &heuristic_candidate,
+                &filename,
+                &bytes,
+                diagnostics,
+            );
         }
     };
 
@@ -118,7 +128,12 @@ pub(super) async fn parse_with_optional_ai(
         Ok(candidate) => candidate,
         Err(error) => {
             let diagnostics = diagnostics_failed(base_diagnostics, error);
-            return fallback_to_heuristic_or_error(&heuristic_candidate, &filename, &bytes, diagnostics);
+            return fallback_to_heuristic_or_error(
+                &heuristic_candidate,
+                &filename,
+                &bytes,
+                diagnostics,
+            );
         }
     };
 

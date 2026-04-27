@@ -1,8 +1,8 @@
-﻿//! Internal helpers for the export commands.
+//! Internal helpers for the export commands.
 
+use super::super::types::*;
 use crate::error::Result;
 use serde_json::Value;
-use super::super::types::*;
 
 /// Load experiment metadata (NO rawPoints) for a batch of specific IDs.
 pub(super) fn load_experiment_batch_no_raw(
@@ -26,7 +26,8 @@ pub(super) fn load_experiment_batch_no_raw(
          WHERE e.id IN ({})",
         phs
     );
-    let params_ref: Vec<&dyn rusqlite::ToSql> = ids.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+    let params_ref: Vec<&dyn rusqlite::ToSql> =
+        ids.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
     let mut stmt = conn.prepare(&sql)?;
 
     let rows: Vec<StoredExperiment> = stmt
@@ -47,11 +48,13 @@ pub(super) fn load_experiment_batch_no_raw(
                 _ => None,
             };
 
-            let water_params = row.get::<_, Option<String>>(14)?
+            let water_params = row
+                .get::<_, Option<String>>(14)?
                 .and_then(|s| serde_json::from_str::<Value>(&s).ok());
             let metrics = serde_json::from_str::<Value>(&row.get::<_, String>(18)?)
                 .unwrap_or_else(|_| serde_json::json!({}));
-            let calibration = row.get::<_, Option<String>>(19)?
+            let calibration = row
+                .get::<_, Option<String>>(19)?
                 .and_then(|s| serde_json::from_str::<Value>(&s).ok());
 
             Ok(StoredExperiment {

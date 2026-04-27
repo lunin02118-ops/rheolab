@@ -558,7 +558,12 @@ fn check_local_startup_is_strictly_local_no_http() {
         });
         {
             let conn = pool.get().unwrap();
-            upsert_system_state(&conn, DB_KEY_LICENSE, &serde_json::to_string(&db_record).unwrap()).unwrap();
+            upsert_system_state(
+                &conn,
+                DB_KEY_LICENSE,
+                &serde_json::to_string(&db_record).unwrap(),
+            )
+            .unwrap();
         }
 
         let rt = tokio::runtime::Runtime::new().unwrap();
@@ -586,7 +591,10 @@ fn check_local_startup_is_strictly_local_no_http() {
         let elapsed = start.elapsed();
 
         assert!(
-            matches!(result.status, LicenseStatus::Demo | LicenseStatus::DemoExpired),
+            matches!(
+                result.status,
+                LicenseStatus::Demo | LicenseStatus::DemoExpired
+            ),
             "Demo path should produce Demo or DemoExpired, got {:?}",
             result.status
         );

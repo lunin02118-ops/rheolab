@@ -1,0 +1,557 @@
+warning: unnecessary `pub(self)`
+   --> src\parser\rheo_parser\mod.rs:187:1
+    |
+187 | pub(self) use heuristics::parse_delimited_rows;
+    | ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#needless_pub_self
+    = note: `#[warn(clippy::needless_pub_self)]` on by default
+    = help: remove it
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\row_mapper\detection.rs:10:5
+   |
+10 |     Regex::new(r"(?i)time.*min|╨▓╤А╨╡╨╝╤П.*╨╝╨╕╨╜").expect("TIME_MIN_RE pattern is static and valid")
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+note: the lint level is defined here
+  --> src\parser\mod.rs:1:30
+   |
+ 1 | #![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+   |                              ^^^^^^^^^^^^^^^^^^^
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\row_mapper\detection.rs:13:5
+   |
+13 |     Regex::new(r"(?i)time.*(hr|hour)|╨▓╤А╨╡╨╝╤П.*╤З╨░╤Б").expect("TIME_HOUR_RE pattern is static and valid")
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: doc list item without indentation
+  --> src\parser\row_mapper\detection.rs:91:5
+   |
+91 | /// Returns true if data suggests minutes classification is wrong (i.e., values
+   |     ^
+   |
+   = help: if this is supposed to be its own paragraph, add a blank line
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_lazy_continuation
+   = note: `#[warn(clippy::doc_lazy_continuation)]` on by default
+help: indent this line
+   |
+91 | ///    Returns true if data suggests minutes classification is wrong (i.e., values
+   |     +++
+
+warning: doc list item without indentation
+  --> src\parser\row_mapper\detection.rs:92:5
+   |
+92 | /// are actually in seconds).
+   |     ^
+   |
+   = help: if this is supposed to be its own paragraph, add a blank line
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#doc_lazy_continuation
+help: indent this line
+   |
+92 | ///    are actually in seconds).
+   |     +++
+
+warning: manual `RangeInclusive::contains` implementation
+   --> src\parser\row_mapper\detection.rs:143:20
+    |
+143 |                 if avg_step >= 0.8 && avg_step <= 1.2 {
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(0.8..=1.2).contains(&avg_step)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_range_contains
+    = note: `#[warn(clippy::manual_range_contains)]` on by default
+
+warning: manual `!Range::contains` implementation
+   --> src\parser\row_mapper\detection.rs:374:8
+    |
+374 |     if first < 0.005 || first >= 1.0 || max_val >= 10.0 {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `!(0.005..1.0).contains(&first)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_range_contains
+
+warning: manual `!RangeInclusive::contains` implementation
+   --> src\parser\row_mapper\detection.rs:391:8
+    |
+391 |     if step_as_sec < 0.5 || step_as_sec > 60.0 {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `!(0.5..=60.0).contains(&step_as_sec)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_range_contains
+
+warning: used `expect()` on a `Result` value
+ --> src\parser\date_detector.rs:8:5
+  |
+8 | /     Regex::new(r"(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{2,4})|(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2})")
+9 | |         .expect("NUMERIC_DATE_RE pattern is static and valid")
+  | |______________________________________________________________^
+  |
+  = note: if this value is an `Err`, it will panic
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\date_detector.rs:12:5
+   |
+12 | /     Regex::new(r"(\d{1,2})[\s-]([A-Za-z╨Р-╨п╨░-╤П]{3})[\s-](\d{2,4})")
+13 | |         .expect("ALPHA_DATE_RE pattern is static and valid")
+   | |____________________________________________________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\date_detector.rs:16:5
+   |
+16 | /     Regex::new(r"([A-Za-z]{3,9})(\d{1,2})(\d{4})")
+17 | |         .expect("CONCAT_DATE_RE pattern is static and valid")
+   | |_____________________________________________________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on an `Option` value
+   --> src\parser\rheo_parser\csv_parser.rs:155:24
+    |
+155 |             let last = unique_data.last().expect("non-empty: element pushed before loop");
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on an `Option` value
+   --> src\parser\rheo_parser\csv_parser.rs:276:24
+    |
+276 |             let last = unique_data.last().expect("non-empty: element pushed before loop");
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on an `Option` value
+   --> src\parser\rheo_parser\workbook.rs:194:24
+    |
+194 |             let last = unique_data.last().expect("non-empty: element pushed before loop");
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on an `Option` value
+   --> src\parser\rheo_parser\workbook.rs:402:24
+    |
+402 |             let last = unique_data.last().expect("non-empty: element pushed before loop");
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used consecutive `str::replace` call
+  --> src\parser\geometry_verifier.rs:31:14
+   |
+31 |               .replace('@', "")
+   |  ______________^
+32 | |             .replace('(', "")
+33 | |             .replace(')', "")
+34 | |             .replace(' ', "");
+   | |_____________________________^ help: replace with: `replace(['@', '(', ')', ' '], "")`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_str_replace
+   = note: `#[warn(clippy::collapsible_str_replace)]` on by default
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src\parser\geometry_verifier.rs:118:23
+    |
+118 |     let median_k = if k_values.len() % 2 == 0 {
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `k_values.len().is_multiple_of(2)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_is_multiple_of
+    = note: `#[warn(clippy::manual_is_multiple_of)]` on by default
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\calibration\parsers\bsl.rs:18:5
+   |
+18 |     regex::Regex::new(r"(\d{2}\.\d{2}\.\d{4})").expect("BSL_DATE_RE pattern is static and valid")
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\calibration\parsers\chandler.rs:17:5
+   |
+17 |     regex::Regex::new(r"Last Calibration[:\s]+([^,]+)").expect("CHANDLER_DATE_RE1 pattern is static and valid")
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\calibration\parsers\chandler.rs:20:5
+   |
+20 |     regex::Regex::new(r"Calibration Date[:\s]+([^,]+)").expect("CHANDLER_DATE_RE2 pattern is static and valid")
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\calibration\parsers\chandler.rs:23:5
+   |
+23 |     regex::Regex::new(r"Date[:\s]+([^,]+)").expect("CHANDLER_DATE_RE3 pattern is static and valid")
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:67:79
+   |
+67 | ...yLock::new(|| Regex::new(r"(\d+(?:\.\d+)?)\(([A-Za-z0-9\-]+)\)").expect("RECIPE_REGEX pattern is static and valid"));
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:69:77
+   |
+69 | ...azyLock::new(|| Regex::new(r"(\d{2})\.(\d{2})(?:\.(\d{2,4}))?$").expect("DATE_REGEX pattern is static and valid"));
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:71:77
+   |
+71 | ...td::sync::LazyLock::new(|| Regex::new(r"@(\d+)[Cc]").expect("TEMP_REGEX pattern is static and valid"));
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:73:83
+   |
+73 | ...yLock::new(|| Regex::new(r"([A-Za-z╨Р-╨п╨░-╤П╤С╨Б]+)_\(([^)]+)\)").expect("FIELD_DEST_REGEX pattern is static and valid"));
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:75:80
+   |
+75 | ...std::sync::LazyLock::new(|| Regex::new(r"^\d+$").expect("TEST_ID_REGEX pattern is static and valid"));
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:77:82
+   |
+77 | ...:sync::LazyLock::new(|| Regex::new(r"^[A-Z]{2,4}$").expect("TEST_TYPE_REGEX pattern is static and valid"));
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:79:88
+   |
+79 | ...w(|| Regex::new(r"(?i)^(WG-\d+|HPG-\d+|HEC-\d+|CMC|╨У╨г╨Р╨а|Guar)").expect("GELLING_AGENT_PATTERN pattern is static and valid"));
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:80:86
+   |
+80 | ...|| Regex::new(r"(?i)^(WCL|XL-\d+|CL-\d+|Borate|Zirconate|Titanate|╨б╨и-\d+)").expect("CROSSLINKER_PATTERN pattern is static and valid"));
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:81:82
+   |
+81 | ...new(|| Regex::new(r"(?i)^(HT-\d+|EB-\d+|OX-\d+|Breaker|╨Ф╨╡╤Б╤В╤А╤Г╨║╤В╨╛╤А)").expect("BREAKER_PATTERN pattern is static and valid"));
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:82:81
+   |
+82 | ...LazyLock::new(|| Regex::new(r"(?i)^(Buffer|pH-\d+|╨С╤Г╤Д╨╡╤А)").expect("BUFFER_PATTERN pattern is static and valid"));
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:83:91
+   |
+83 | ...c::LazyLock::new(|| Regex::new(r"(?i)^FR-\d+").expect("FRICTION_REDUCER_PATTERN pattern is static and valid"));
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:84:87
+   |
+84 | ...sync::LazyLock::new(|| Regex::new(r"(?i)^KCl$").expect("CLAY_CONTROL_PATTERN pattern is static and valid"));
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: used `expect()` on a `Result` value
+  --> src\parser\filename_parser.rs:85:85
+   |
+85 | ...::LazyLock::new(|| Regex::new(r"(?i)^(THPS|TS-\d+)").expect("STABILIZER_PATTERN pattern is static and valid"));
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#expect_used
+
+warning: the loop variable `i` is used to index `raw_headers`
+  --> src\report_generator\excel\raw_data.rs:71:14
+   |
+71 |     for i in 0..header_count {
+   |              ^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#needless_range_loop
+   = note: `#[warn(clippy::needless_range_loop)]` on by default
+help: consider using an iterator and enumerate()
+   |
+71 -     for i in 0..header_count {
+71 +     for (i, <item>) in raw_headers.iter().enumerate().take(header_count) {
+   |
+
+warning: this function has too many arguments (8/7)
+   --> src\report_generator\excel\chart.rs:119:1
+    |
+119 | / pub(super) fn build_chart(
+120 | |     sheet: &mut Worksheet,
+121 | |     sheet_name: &str,
+122 | |     input: &ReportInput,
+...   |
+127 | |     last_row: u32,
+128 | | ) -> Result<(), XlsxError> {
+    | |__________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#too_many_arguments
+    = note: `#[warn(clippy::too_many_arguments)]` on by default
+
+warning: unnecessary closure used to substitute value for `Option::None`
+   --> src\report_generator\excel\stats.rs:235:28
+    |
+235 |               let visc_raw = cycle.viscosities.get(&key).copied()
+    |  ____________________________^
+236 | |                 .or_else(|| match *rate {
+237 | |                     40  => cycle.visc_at_40,
+238 | |                     100 => cycle.visc_at_100,
+239 | |                     170 => cycle.visc_at_170,
+240 | |                     _   => None,
+241 | |                 })
+    | |__________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unnecessary_lazy_evaluations
+    = note: `#[warn(clippy::unnecessary_lazy_evaluations)]` on by default
+help: use `or` instead
+    |
+236 ~                 .or(match *rate {
+237 +                     40  => cycle.visc_at_40,
+238 +                     100 => cycle.visc_at_100,
+239 +                     170 => cycle.visc_at_170,
+240 +                     _   => None,
+241 +                 })
+    |
+
+warning: unnecessary closure used to substitute value for `Option::None`
+   --> src\report_generator\pdf\template\stats.rs:108:28
+    |
+108 |               let visc_raw = c.viscosities.get(&key).copied()
+    |  ____________________________^
+109 | |                 .or_else(|| match *rate {
+110 | |                     40 => c.visc_at_40,
+111 | |                     100 => c.visc_at_100,
+112 | |                     170 => c.visc_at_170,
+113 | |                     _ => None,
+114 | |                 });
+    | |__________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unnecessary_lazy_evaluations
+help: use `or` instead
+    |
+109 ~                 .or(match *rate {
+110 +                     40 => c.visc_at_40,
+111 +                     100 => c.visc_at_100,
+112 +                     170 => c.visc_at_170,
+113 +                     _ => None,
+114 ~                 });
+    |
+
+warning: this `if` has identical blocks
+   --> src\report_generator\pdf\template\mod.rs:557:25
+    |
+557 | ...   } else if is_ru { format!("{:.dec$} {}", visc_converted, visc_unit, dec = visc_dec) } else { format!("{:.dec$} {}", visc_conv...
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: same as this
+   --> src\report_generator\pdf\template\mod.rs:557:100
+    |
+557 | ...unit, dec = visc_dec) } else { format!("{:.dec$} {}", visc_converted, visc_unit, dec = visc_dec) };
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#if_same_then_else
+    = note: `#[warn(clippy::if_same_then_else)]` on by default
+
+warning: casting to the same type is unnecessary (`f64` -> `f64`)
+   --> src\report_generator\pdf\template\mod.rs:616:61
+    |
+616 |                 let threshold_converted = convert_viscosity(settings.viscosity_threshold as f64, unit_system);
+    |                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `settings.viscosity_threshold`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#unnecessary_cast
+    = note: `#[warn(clippy::unnecessary_cast)]` on by default
+
+warning: redundant closure
+   --> src\report_generator\pdf\mod.rs:131:69
+    |
+131 |         let line_styles = input.settings.line_settings.as_ref().map(|ls| ChartLineStyles::from(ls));
+    |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `ChartLineStyles::from`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#redundant_closure
+    = note: `#[warn(clippy::redundant_closure)]` on by default
+
+warning: this expression creates a reference which is immediately dereferenced by the compiler
+   --> src\report_generator\pdf\mod.rs:254:55
+    |
+254 |     let typst_src = template::generate_typst_template(&input, &files, has_chart, config_out.as_ref(), ranges_out.as_ref());
+    |                                                       ^^^^^^ help: change this to: `input`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#needless_borrow
+    = note: `#[warn(clippy::needless_borrow)]` on by default
+
+warning: redundant closure
+   --> src\report_generator\chart_generator\common.rs:131:22
+    |
+131 |                 .map(|s| parse_line_style(s))
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the function itself: `parse_line_style`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#redundant_closure
+
+warning: the loop variable `j` is only used to index `data`
+   --> src\report_generator\chart_generator\common.rs:345:18
+    |
+345 |         for j in next_start..next_end {
+    |                  ^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+345 -         for j in next_start..next_end {
+345 +         for <item> in data.iter().take(next_end).skip(next_start) {
+    |
+
+warning: the loop variable `ch` is only used to index `avg_y`
+   --> src\report_generator\chart_generator\common.rs:351:19
+    |
+351 |         for ch in 0..5 { avg_y[ch] /= next_count; }
+    |                   ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+351 -         for ch in 0..5 { avg_y[ch] /= next_count; }
+351 +         for <item> in &mut avg_y { avg_y[ch] /= next_count; }
+    |
+
+warning: the loop variable `j` is used to index `data`
+   --> src\report_generator\chart_generator\common.rs:359:18
+    |
+359 |         for j in bucket_start..bucket_end {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+359 -         for j in bucket_start..bucket_end {
+359 +         for (j, <item>) in data.iter().enumerate().take(bucket_end).skip(bucket_start) {
+    |
+
+warning: useless conversion to the same type: `plotters::style::TextStyle<'_>`
+   --> src\report_generator\chart_generator\line\shared.rs:387:29
+    |
+387 |                 let style = TextStyle::from(("sans-serif", 11).into_font().color(&threshold_color))
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider removing `TextStyle::from()`: `("sans-serif", 11).into_font().color(&threshold_color)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_conversion
+    = note: `#[warn(clippy::useless_conversion)]` on by default
+
+warning: useless conversion to the same type: `plotters::style::TextStyle<'_>`
+   --> src\report_generator\chart_generator\line\shared.rs:404:35
+    |
+404 |                 let label_style = TextStyle::from(("sans-serif", 10).into_font().color(&label_color))
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider removing `TextStyle::from()`: `("sans-serif", 10).into_font().color(&label_color)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_conversion
+
+warning: useless conversion to the same type: `plotters::style::TextStyle<'_>`
+   --> src\report_generator\chart_generator\line\individual.rs:294:35
+    |
+294 |                 let label_style = TextStyle::from(("sans-serif", 10).into_font().color(&label_color))
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider removing `TextStyle::from()`: `("sans-serif", 10).into_font().color(&label_color)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_conversion
+
+warning: useless conversion to the same type: `plotters::style::TextStyle<'_>`
+   --> src\report_generator\chart_generator\line\individual.rs:319:29
+    |
+319 |                 let style = TextStyle::from(("sans-serif", 11).into_font().color(&threshold_color))
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider removing `TextStyle::from()`: `("sans-serif", 11).into_font().color(&threshold_color)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_conversion
+
+warning: useless conversion to the same type: `plotters::style::TextStyle<'_>`
+   --> src\report_generator\chart_generator\line\multi_experiment.rs:598:29
+    |
+598 |                 let style = TextStyle::from(("sans-serif", 11).into_font().color(&threshold_color))
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider removing `TextStyle::from()`: `("sans-serif", 11).into_font().color(&threshold_color)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_conversion
+
+warning: useless conversion to the same type: `plotters::style::TextStyle<'_>`
+   --> src\report_generator\chart_generator\line\multi_experiment.rs:618:35
+    |
+618 |                 let label_style = TextStyle::from(("sans-serif", 9).into_font().color(&label_color))
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider removing `TextStyle::from()`: `("sans-serif", 9).into_font().color(&label_color)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_conversion
+
+warning: useless conversion to the same type: `plotters::style::TextStyle<'_>`
+   --> src\report_generator\chart_generator\line\multi_experiment.rs:979:35
+    |
+979 |                 let label_style = TextStyle::from(("sans-serif", 10).into_font().color(&label_color))
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider removing `TextStyle::from()`: `("sans-serif", 10).into_font().color(&label_color)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_conversion
+
+warning: useless conversion to the same type: `plotters::style::TextStyle<'_>`
+    --> src\report_generator\chart_generator\line\multi_experiment.rs:1001:29
+     |
+1001 |                 let style = TextStyle::from(("sans-serif", 11).into_font().color(&threshold_color))
+     |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider removing `TextStyle::from()`: `("sans-serif", 11).into_font().color(&threshold_color)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#useless_conversion
+

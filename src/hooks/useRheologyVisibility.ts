@@ -36,8 +36,8 @@ export interface RheologyVisibility {
 }
 
 export function useRheologyVisibility({
-    previewMode,
-    captureMode,
+    previewMode: _previewMode,
+    captureMode: _captureMode,
     showTemperatureProp,
     showShearRateProp,
     showPressureProp,

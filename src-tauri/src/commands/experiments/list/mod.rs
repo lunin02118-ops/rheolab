@@ -1,5 +1,6 @@
-﻿//! List, count, and filter commands for experiments.
+//! List, count, and filter commands for experiments.
 
+use super::types::*;
 use crate::error::Result;
 use crate::state::AppState;
 use rusqlite::params;
@@ -7,16 +8,16 @@ use rusqlite::OptionalExtension;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 use tauri::State;
-use super::types::*;
 
-mod query;
 mod dynamic;
+mod query;
 pub(crate) use query::query_experiments_list_sql;
 
 /// 30-second TTL in-memory cache for `experiments_filter_metadata`.
 /// Avoids 8 sequential `SELECT DISTINCT` round-trips on every filter-panel refresh.
-static FILTER_META_CACHE: LazyLock<std::sync::Mutex<Option<(Instant, ExperimentsFilterMetadataResponse)>>> =
-    LazyLock::new(|| std::sync::Mutex::new(None));
+static FILTER_META_CACHE: LazyLock<
+    std::sync::Mutex<Option<(Instant, ExperimentsFilterMetadataResponse)>>,
+> = LazyLock::new(|| std::sync::Mutex::new(None));
 
 const FILTER_META_TTL: Duration = Duration::from_secs(30);
 
@@ -155,21 +156,16 @@ pub async fn experiments_list(
 }
 
 #[tauri::command]
-pub async fn experiments_count(
-    state: State<'_, AppState>,
-) -> Result<ExperimentsCountResponse> {
+pub async fn experiments_count(state: State<'_, AppState>) -> Result<ExperimentsCountResponse> {
     let conn = state.pool_conn()?;
-    let count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM Experiment", [], |row| row.get(0))?;
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM Experiment", [], |row| row.get(0))?;
     Ok(ExperimentsCountResponse {
         count: count as usize,
     })
 }
 
 #[tauri::command]
-pub async fn experiments_last_context(
-    state: State<'_, AppState>,
-) -> Result<LastContextResponse> {
+pub async fn experiments_last_context(state: State<'_, AppState>) -> Result<LastContextResponse> {
     let conn = state.pool_conn()?;
 
     // Find the most recently created experiment
@@ -201,15 +197,14 @@ pub async fn experiments_last_context(
     };
 
     // Load reagents for that experiment
-    let mut stmt = conn
-        .prepare(
-            "SELECT er.reagentId, er.reagentName, er.concentration, er.unit, \
+    let mut stmt = conn.prepare(
+        "SELECT er.reagentId, er.reagentName, er.concentration, er.unit, \
                     er.batchNumber, er.productionDate, \
                     rc.name \
              FROM ExperimentReagent er \
              LEFT JOIN ReagentCatalog rc ON er.reagentId = rc.id \
              WHERE er.experimentId = ?1",
-        )?;
+    )?;
 
     let reagents: Vec<LastContextReagent> = stmt
         .query_map(params![exp_id], |row| {
@@ -238,18 +233,15 @@ pub async fn experiments_last_context(
 }
 
 #[tauri::command]
-pub async fn experiments_water_sources(
-    state: State<'_, AppState>,
-) -> Result<WaterSourcesResponse> {
+pub async fn experiments_water_sources(state: State<'_, AppState>) -> Result<WaterSourcesResponse> {
     let conn = state.pool_conn()?;
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT DISTINCT waterSource FROM Experiment \
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT waterSource FROM Experiment \
              WHERE waterSource IS NOT NULL AND TRIM(waterSource) != '' \
              ORDER BY createdAt DESC \
              LIMIT 50",
-        )?;
+    )?;
 
     let water_sources: Vec<String> = stmt
         .query_map([], |row| row.get(0))?

@@ -106,11 +106,11 @@ const releaseGatePolicy = {
 const findingTemplates = {
   '00': {
     id: 'ENV-001',
-    title: 'Git worktree metadata is not resolvable in current shell',
+    title: 'Git worktree is dirty',
     domain: 'environment',
     severity: 'high',
-    impact: 'Blocks traceability and commit-level audit evidence generation',
-    fixStrategy: 'Normalize `.git` worktree pointer for target shell or run audit in canonical worktree',
+    impact: 'Release audit evidence is not tied to a reproducible committed tree',
+    fixStrategy: 'Commit, stash, or revert unrelated local changes and rerun the audit from a clean worktree',
   },
   '02': {
     id: 'ENV-004',
@@ -224,6 +224,22 @@ const findingTemplates = {
     impact: 'Known vulnerable Rust crates in release candidate',
     fixStrategy: 'Install/use cargo-audit and remediate vulnerable Rust dependencies',
   },
+  '24': {
+    id: 'SEC-GITLEAKS',
+    title: 'gitleaks reported source or history secrets',
+    domain: 'security',
+    severity: 'high',
+    impact: 'Secrets or private key material may be present in the release candidate or git history',
+    fixStrategy: 'Remove or rotate exposed secrets, purge history where required, or document a verified-safe allowlist',
+  },
+  '25': {
+    id: 'PERF-FRONTEND-IPC',
+    title: 'Frontend/IPC dynamic profiling failed',
+    domain: 'performance',
+    severity: 'medium',
+    impact: 'Release candidate lacks current Windows/Tauri dynamic frontend and IPC performance evidence',
+    fixStrategy: 'Rerun non-skipped frontend/IPC audit, fix harness regressions, and preserve workflow/native-memory artifacts',
+  },
 };
 
 function ensureDir(dir) {
@@ -266,6 +282,56 @@ function wrapCargo(subdir, cargoArgs) {
 
   const manifestPath = path.join(repoRoot, subdir, 'Cargo.toml').replace(/\\/g, '/');
   return `cargo ${cargoArgs} --manifest-path "${manifestPath}"`;
+}
+
+function quoteForShell(value) {
+  return `"${String(value).replace(/"/g, '\\"')}"`;
+}
+
+function fileExists(filePath) {
+  try {
+    return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function findPhpRuntime() {
+  const explicit = process.env.RHEOLAB_PHP_BIN;
+  if (explicit && fileExists(explicit)) {
+    return {
+      versionCommand: `${quoteForShell(explicit)} -v`,
+      lintCommand: `node scripts/audit/php-lint-license-server.js --php-bin=${quoteForShell(explicit)}`,
+    };
+  }
+
+  if (probeNative('php -v')) {
+    return {
+      versionCommand: 'php -v',
+      lintCommand: 'node scripts/audit/php-lint-license-server.js',
+    };
+  }
+
+  if (isWindows) {
+    const candidates = [
+      'C:\\tools\\php85\\php.exe',
+      'C:\\tools\\php84\\php.exe',
+      'C:\\tools\\php83\\php.exe',
+      'C:\\php\\php.exe',
+    ];
+    const found = candidates.find(fileExists);
+    if (found) {
+      return {
+        versionCommand: `${quoteForShell(found)} -v`,
+        lintCommand: `node scripts/audit/php-lint-license-server.js --php-bin=${quoteForShell(found)}`,
+      };
+    }
+  }
+
+  return {
+    versionCommand: hasPosixShell || !isWindows ? wrapBash('php -v') : 'php -v',
+    lintCommand: 'node scripts/audit/php-lint-license-server.js',
+  };
 }
 
 function readTail(logPath, lines = 12) {
@@ -335,14 +401,15 @@ function mergeFindings(existingFindings, generatedFindings) {
 
 function buildChecks(e2eEnv) {
   const cargoTargetDir = path.join(repoRoot, 'runtime', 'cargo-target');
-  const maybeCargoAudit = hasPosixShell || !isWindows
-    ? wrapBash('cd src-tauri && (cargo audit || (cargo install cargo-audit --quiet && cargo audit))')
-    : 'cargo audit';
+  const cargoAuditOutDir = path.join(outDir, 'cargo-audit').replace(/\\/g, '/');
+  const gitleaksOutDir = path.join(outDir, 'gitleaks').replace(/\\/g, '/');
+  const maybeCargoAudit = `node scripts/audit/run-cargo-audit-workspaces.js --out-dir "${cargoAuditOutDir}"`;
+  const phpRuntime = findPhpRuntime();
 
   return [
     {
       id: '00',
-      name: 'Git worktree check',
+      name: 'Git clean worktree check',
       phase: 'phase0',
       scope: 'environment',
       tool: 'git',
@@ -350,7 +417,7 @@ function buildChecks(e2eEnv) {
       preflight: true,
       quick: true,
       blocking: true,
-      command: 'git rev-parse --is-inside-work-tree',
+      command: 'node scripts/audit/check-clean-worktree.js',
     },
     {
       id: '01',
@@ -386,7 +453,7 @@ function buildChecks(e2eEnv) {
       preflight: true,
       quick: true,
       blocking: true,
-      command: hasPosixShell || !isWindows ? wrapBash('php -v') : 'php -v',
+      command: phpRuntime.versionCommand,
     },
     {
       id: '21',
@@ -564,6 +631,18 @@ function buildChecks(e2eEnv) {
       command: 'npm run perf:memory -- --skip-playwright',
     },
     {
+      id: '25',
+      name: 'Frontend/IPC dynamic profiling',
+      phase: 'phase4',
+      scope: 'performance',
+      tool: 'frontend-ipc-audit',
+      environments: ['windows'],
+      preflight: false,
+      quick: false,
+      blocking: false,
+      command: `node scripts/audit/run-frontend-ipc-deep-audit.js --windows-runner --run-id "${runId}-frontend-ipc"`,
+    },
+    {
       id: '17',
       name: 'Release dry-run (signed policy)',
       phase: 'phase5',
@@ -585,7 +664,7 @@ function buildChecks(e2eEnv) {
       preflight: false,
       quick: true,
       blocking: true,
-      command: 'node scripts/audit/php-lint-license-server.js',
+      command: phpRuntime.lintCommand,
     },
     {
       id: '19',
@@ -634,6 +713,18 @@ function buildChecks(e2eEnv) {
       quick: false,
       blocking: true,
       command: maybeCargoAudit,
+    },
+    {
+      id: '24',
+      name: 'gitleaks source/history',
+      phase: 'phase5',
+      scope: 'security',
+      tool: 'gitleaks',
+      environments: ['linux', 'windows'],
+      preflight: false,
+      quick: true,
+      blocking: true,
+      command: `node scripts/audit/run-gitleaks-gate.js --out-dir "${gitleaksOutDir}"`,
     },
   ];
 }
@@ -915,6 +1006,7 @@ function writeReleaseGateDecision(results, findings, checks, baselineRef) {
   }
 
   fs.writeFileSync(releaseGateMdPath, `${lines.join('\n')}\n`);
+  return payload;
 }
 
 async function main() {
@@ -1024,7 +1116,7 @@ async function main() {
   const mergedFindings = mergeFindings(readExistingFindings(), generatedFindings);
   fs.writeFileSync(findingsPath, `${JSON.stringify(mergedFindings, null, 2)}\n`);
 
-  writeReleaseGateDecision(results, mergedFindings, runList, baselineRef);
+  const releaseGateDecision = writeReleaseGateDecision(results, mergedFindings, runList, baselineRef);
 
   console.log(`[audit] mode: ${preflightOnly ? 'preflight-only' : quick ? 'quick' : 'full'}`);
   console.log(`[audit] output dir: ${toRel(outDir)}`);
@@ -1032,6 +1124,10 @@ async function main() {
   console.log(`[audit] metrics: ${toRel(metricsPath)}`);
   console.log(`[audit] findings: ${toRel(findingsPath)}`);
   console.log(`[audit] release gate: ${toRel(releaseGateMdPath)}`);
+
+  if (releaseGateDecision.decision === 'NO-GO') {
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {

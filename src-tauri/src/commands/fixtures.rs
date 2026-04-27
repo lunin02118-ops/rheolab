@@ -1,10 +1,10 @@
-﻿//! Test fixtures commands for desktop demo workflows.
+//! Test fixtures commands for desktop demo workflows.
 //!
 //! These commands provide local fixture file listing/reading for the
 //! desktop application.
 
-use crate::error::Result;
 use super::parsing::{parse_file_native, ParseFileResponse, ParseRequest};
+use crate::error::Result;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -135,9 +135,7 @@ pub async fn test_fixtures_read(filename: String) -> Result<FixtureReadResponse>
 }
 
 #[tauri::command]
-pub async fn test_fixtures_parse(
-    filename: String,
-) -> Result<ParseFileResponse> {
+pub async fn test_fixtures_parse(filename: String) -> Result<ParseFileResponse> {
     tokio::task::spawn_blocking(move || {
         let (normalized, bytes) = read_fixture_bytes(&filename)?;
         parse_file_native(ParseRequest {

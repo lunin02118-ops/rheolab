@@ -1,0 +1,144 @@
+[2026-04-24T02:04:27.039Z] wrapper start
+[2026-04-24T02:04:27.039Z] cwd=D:\Development\Rheolab
+[2026-04-24T02:04:27.039Z] command=npm.cmd exec tauri -- dev
+[2026-04-24T02:04:27.039Z] RHEOLAB_SKIP_VERSION_BUMP=
+[2026-04-24T02:04:27.043Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-24T02:04:27.044Z] using shell fallback: npm.cmd "exec" "tauri" "--" "dev"
+[2026-04-24T02:04:27.826Z] [stderr]      Running BeforeDevCommand (`npm run dev`)
+[2026-04-24T02:04:28.061Z] [stdout] 
+[2026-04-24T02:04:28.061Z] [stdout] > rheolab-enterprise@0.2.0-beta.39 dev
+[2026-04-24T02:04:28.061Z] [stdout] > vite
+[2026-04-24T02:04:28.061Z] [stdout] 
+[2026-04-24T02:04:28.421Z] [stdout] 
+[2026-04-24T02:04:28.422Z] [stdout]   [32m[1mVITE[22m v6.4.2[39m  [2mready in [0m[1m309[22m[2m[0m ms[22m
+[2026-04-24T02:04:28.422Z] [stdout] 
+[2026-04-24T02:04:28.422Z] [stdout]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m1420[22m/[39m
+[2026-04-24T02:04:31.848Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-24T02:04:31.922Z] [stderr]         Info Watching D:\Development\Rheolab\src-tauri for changes...
+[2026-04-24T02:04:32.912Z] [stderr] [1m[92m   Compiling[0m rheolab-core v0.1.0 (D:\Development\Rheolab\src\rust\rheolab-core)
+[2026-04-24T02:04:34.671Z] [stderr] [1m[96m    Building[0m [=======================> ] 822/825: rheolab…                                                            [1m[92m   Compiling[0m rheolab-enterprise v0.2.0-beta.39 (D:\Development\Rheolab\src-tauri)
+[2026-04-24T02:04:42.061Z] heartbeat: pid=15564 elapsed=15.0s
+[2026-04-24T02:04:46.628Z] [stdout] [2m07:04:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report-benchmark/index.html[22m
+[2026-04-24T02:04:47.142Z] [stderr] [1m[96m    Building[0m [=======================> ] 822/825: rheolab…[1m[96m    Building[0m [=======================> ] 823/825: rheolab…[1m[96m    Building[0m [=======================> ] 824/825: rheolab…                                                            [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 15.23s
+[2026-04-24T02:04:47.211Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-24T02:04:53.914Z] [stdout] [2026-04-24][02:04:53][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-24T02:04:54.174Z] [stdout] [2026-04-24][02:04:54][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-24T02:04:57.067Z] heartbeat: pid=15564 elapsed=30.0s
+[2026-04-24T02:05:12.074Z] heartbeat: pid=15564 elapsed=45.0s
+[2026-04-24T02:05:27.088Z] heartbeat: pid=15564 elapsed=60.0s
+[2026-04-24T02:05:42.092Z] heartbeat: pid=15564 elapsed=75.1s
+[2026-04-24T02:05:57.106Z] heartbeat: pid=15564 elapsed=90.1s
+[2026-04-24T02:06:12.111Z] heartbeat: pid=15564 elapsed=105.1s
+[2026-04-24T02:06:27.122Z] heartbeat: pid=15564 elapsed=120.1s
+[2026-04-24T02:06:42.123Z] heartbeat: pid=15564 elapsed=135.1s
+[2026-04-24T02:06:49.904Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/about/index.html[22m
+[2026-04-24T02:06:49.906Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/comparison/index.html[22m
+[2026-04-24T02:06:49.906Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/index.html[22m
+[2026-04-24T02:06:49.906Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/data-management/index.html[22m
+[2026-04-24T02:06:49.906Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/faq/index.html[22m
+[2026-04-24T02:06:49.906Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/interface/index.html[22m
+[2026-04-24T02:06:49.907Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/library/index.html[22m
+[2026-04-24T02:06:49.907Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/models/index.html[22m
+[2026-04-24T02:06:49.907Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/quick-start/index.html[22m
+[2026-04-24T02:06:49.909Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/troubleshooting/index.html[22m
+[2026-04-24T02:06:49.909Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/parsing/index.html[22m
+[2026-04-24T02:06:49.910Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/reports/index.html[22m
+[2026-04-24T02:06:49.910Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/globals.css[22m
+[2026-04-24T02:06:49.910Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/index.html[22m
+[2026-04-24T02:06:49.910Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/llms-full.txt[22m
+[2026-04-24T02:06:49.910Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/llms.txt[22m
+[2026-04-24T02:06:49.910Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/globals.css[22m
+[2026-04-24T02:06:49.910Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/robots.txt[22m
+[2026-04-24T02:06:49.911Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/site.webmanifest[22m
+[2026-04-24T02:06:49.911Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/sitemap-0.xml[22m
+[2026-04-24T02:06:49.911Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/sitemap-index.xml[22m
+[2026-04-24T02:06:49.911Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/download/latest/index.html[22m
+[2026-04-24T02:06:49.911Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/faq/index.html[22m
+[2026-04-24T02:06:49.911Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/privacy/index.html[22m
+[2026-04-24T02:06:49.911Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/team/index.html[22m
+[2026-04-24T02:06:49.911Z] [stdout] [2m07:06:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/terms/index.html[22m
+[2026-04-24T02:06:51.355Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/favicon.svg[22m
+[2026-04-24T02:06:51.358Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/llms-full.txt[22m
+[2026-04-24T02:06:51.358Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/llms.txt[22m
+[2026-04-24T02:06:51.359Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/og-image.svg[22m
+[2026-04-24T02:06:51.359Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/robots.txt[22m
+[2026-04-24T02:06:51.360Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/site.webmanifest[22m
+[2026-04-24T02:06:51.588Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/about/index.html[22m
+[2026-04-24T02:06:51.608Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/data-management/index.html[22m
+[2026-04-24T02:06:51.609Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/comparison/index.html[22m
+[2026-04-24T02:06:51.620Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/faq/index.html[22m
+[2026-04-24T02:06:51.644Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/interface/index.html[22m
+[2026-04-24T02:06:51.663Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/library/index.html[22m
+[2026-04-24T02:06:51.664Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/index.html[22m
+[2026-04-24T02:06:51.674Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/models/index.html[22m
+[2026-04-24T02:06:51.687Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/parsing/index.html[22m
+[2026-04-24T02:06:51.694Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/quick-start/index.html[22m
+[2026-04-24T02:06:51.705Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/reports/index.html[22m
+[2026-04-24T02:06:51.711Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/index.html[22m
+[2026-04-24T02:06:51.717Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/docs/troubleshooting/index.html[22m
+[2026-04-24T02:06:51.728Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/faq/index.html[22m
+[2026-04-24T02:06:51.733Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/sitemap-0.xml[22m
+[2026-04-24T02:06:51.734Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/sitemap-index.xml[22m
+[2026-04-24T02:06:51.746Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/team/index.html[22m
+[2026-04-24T02:06:51.747Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/privacy/index.html[22m
+[2026-04-24T02:06:51.757Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/terms/index.html[22m
+[2026-04-24T02:06:51.778Z] [stdout] [2m07:06:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mwebsite/dist/download/latest/index.html[22m
+[2026-04-24T02:06:57.131Z] heartbeat: pid=15564 elapsed=150.1s
+[2026-04-24T02:07:12.137Z] heartbeat: pid=15564 elapsed=165.1s
+[2026-04-24T02:07:26.792Z] [stdout] [2026-04-24][02:07:26][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[2026-04-24T02:07:26.793Z] [stdout] [2026-04-24][02:07:26][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+[2026-04-24T02:07:27.150Z] heartbeat: pid=15564 elapsed=180.1s
+[2026-04-24T02:07:33.733Z] [stdout] [2026-04-24][02:07:33][webview:forwardErrorToTauri@http://localhost:1420/src/lib/logger.ts:47:11][ERROR] [ComparisonReport] PDF generation failed: TauriError: Internal error
+[2026-04-24T02:07:33.733Z] [stdout]     at TauriError.from (http://localhost:1420/src/lib/tauri/errors.ts:57:42)
+[2026-04-24T02:07:33.734Z] [stdout]     at safeInvoke (http://localhost:1420/src/lib/tauri/core.ts:119:35)
+[2026-04-24T02:07:33.734Z] [stdout]     at async Object.generateComparisonPdf (http://localhost:1420/src/lib/tauri/reports.ts:32:20)
+[2026-04-24T02:07:33.734Z] [stdout]     at async tryGenerateComparisonPdfNative (http://localhost:1420/src/lib/reports/client.ts:65:17)
+[2026-04-24T02:07:33.734Z] [stdout]     at async generateComparisonPdfReportBlob (http://localhost:1420/src/lib/reports/client.ts:81:12)
+[2026-04-24T02:07:33.734Z] [stdout]     at async http://localhost:1420/src/components/comparison/reports/hooks/useComparisonReportExport.ts:185:20
+[2026-04-24T02:07:35.397Z] [stdout] [2026-04-24][02:07:35][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[2026-04-24T02:07:35.398Z] [stdout] [2026-04-24][02:07:35][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+[2026-04-24T02:07:41.627Z] [stdout] [2026-04-24][02:07:41][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[2026-04-24T02:07:41.629Z] [stdout] [2026-04-24][02:07:41][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+[2026-04-24T02:07:41.864Z] [stdout] [2026-04-24][02:07:41][webview:forwardErrorToTauri@http://localhost:1420/src/lib/logger.ts:47:11][ERROR] [ComparisonReport] PDF generation failed: TauriError: Internal error
+[2026-04-24T02:07:41.865Z] [stdout]     at TauriError.from (http://localhost:1420/src/lib/tauri/errors.ts:57:42)
+[2026-04-24T02:07:41.865Z] [stdout]     at safeInvoke (http://localhost:1420/src/lib/tauri/core.ts:119:35)
+[2026-04-24T02:07:41.865Z] [stdout]     at async Object.generateComparisonPdf (http://localhost:1420/src/lib/tauri/reports.ts:32:20)
+[2026-04-24T02:07:41.865Z] [stdout]     at async tryGenerateComparisonPdfNative (http://localhost:1420/src/lib/reports/client.ts:65:17)
+[2026-04-24T02:07:41.865Z] [stdout]     at async generateComparisonPdfReportBlob (http://localhost:1420/src/lib/reports/client.ts:81:12)
+[2026-04-24T02:07:41.865Z] [stdout]     at async http://localhost:1420/src/components/comparison/reports/hooks/useComparisonReportExport.ts:185:20
+[2026-04-24T02:07:42.156Z] heartbeat: pid=15564 elapsed=195.1s
+[2026-04-24T02:07:43.326Z] [stdout] [2026-04-24][02:07:43][webview:forwardErrorToTauri@http://localhost:1420/src/lib/logger.ts:47:11][ERROR] [ComparisonReport] PDF generation failed: TauriError: Internal error
+[2026-04-24T02:07:43.326Z] [stdout]     at TauriError.from (http://localhost:1420/src/lib/tauri/errors.ts:57:42)
+[2026-04-24T02:07:43.327Z] [stdout]     at safeInvoke (http://localhost:1420/src/lib/tauri/core.ts:119:35)
+[2026-04-24T02:07:43.327Z] [stdout]     at async Object.generateComparisonPdf (http://localhost:1420/src/lib/tauri/reports.ts:32:20)
+[2026-04-24T02:07:43.327Z] [stdout]     at async tryGenerateComparisonPdfNative (http://localhost:1420/src/lib/reports/client.ts:65:17)
+[2026-04-24T02:07:43.327Z] [stdout]     at async generateComparisonPdfReportBlob (http://localhost:1420/src/lib/reports/client.ts:81:12)
+[2026-04-24T02:07:43.327Z] [stdout]     at async http://localhost:1420/src/components/comparison/reports/hooks/useComparisonReportExport.ts:185:20
+[2026-04-24T02:07:49.558Z] [stdout] [2026-04-24][02:07:49][tao::platform_impl::platform::event_loop::runner][DEBUG] NewEvents emitted without explicit RedrawEventsCleared
+[2026-04-24T02:07:49.559Z] [stdout] [2026-04-24][02:07:49][tao::platform_impl::platform::event_loop::runner][DEBUG] RedrawEventsCleared emitted without explicit MainEventsCleared
+[2026-04-24T02:07:57.155Z] heartbeat: pid=15564 elapsed=210.1s
+[2026-04-24T02:08:12.170Z] heartbeat: pid=15564 elapsed=225.1s
+[2026-04-24T02:08:27.179Z] heartbeat: pid=15564 elapsed=240.1s
+[2026-04-24T02:08:42.179Z] heartbeat: pid=15564 elapsed=255.1s
+[2026-04-24T02:08:57.179Z] heartbeat: pid=15564 elapsed=270.1s
+[2026-04-24T02:09:12.182Z] heartbeat: pid=15564 elapsed=285.1s
+[2026-04-24T02:09:27.195Z] heartbeat: pid=15564 elapsed=300.2s
+[2026-04-24T02:09:42.199Z] heartbeat: pid=15564 elapsed=315.2s
+[2026-04-24T02:09:57.199Z] heartbeat: pid=15564 elapsed=330.2s
+[2026-04-24T02:10:12.206Z] heartbeat: pid=15564 elapsed=345.2s
+[2026-04-24T02:10:27.210Z] heartbeat: pid=15564 elapsed=360.2s
+[2026-04-24T02:10:42.212Z] heartbeat: pid=15564 elapsed=375.2s
+[2026-04-24T02:10:57.221Z] heartbeat: pid=15564 elapsed=390.2s
+[2026-04-24T02:11:12.222Z] heartbeat: pid=15564 elapsed=405.2s
+[2026-04-24T02:11:27.225Z] heartbeat: pid=15564 elapsed=420.2s
+[2026-04-24T02:11:42.226Z] heartbeat: pid=15564 elapsed=435.2s
+[2026-04-24T02:11:57.241Z] heartbeat: pid=15564 elapsed=450.2s
+[2026-04-24T02:12:12.247Z] heartbeat: pid=15564 elapsed=465.2s
+[2026-04-24T02:12:27.262Z] heartbeat: pid=15564 elapsed=480.2s
+[2026-04-24T02:12:42.271Z] heartbeat: pid=15564 elapsed=495.2s
+[2026-04-24T02:12:57.271Z] heartbeat: pid=15564 elapsed=510.2s
+[2026-04-24T02:13:12.278Z] heartbeat: pid=15564 elapsed=525.2s
+[2026-04-24T02:13:27.291Z] heartbeat: pid=15564 elapsed=540.3s
+[2026-04-24T02:13:42.294Z] heartbeat: pid=15564 elapsed=555.3s
+[2026-04-24T02:13:46.483Z] [stderr] [1m[91merror[0m: process didn't exit successfully: `target\debug\rheolab-enterprise.exe` (exit code: 0xffffffff)
+[2026-04-24T02:13:48.256Z] wrapper exit: code=4294967295 signal=null elapsed=561.2s

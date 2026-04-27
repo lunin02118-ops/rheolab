@@ -1,13 +1,17 @@
 //! Backup restore, import, and merge logic.
 
-use crate::commands::licensing::can_write_via_engine;
+use crate::commands::licensing::{can_write_via_engine, require_write_license};
 use crate::error::{AppError, Result};
 use crate::state::AppState;
 use crate::types::{BackupResult, MergeResult};
 use crate::utils::{get_pending_restore_path, log_restore};
 use chrono::Utc;
 use rusqlite;
-use std::{fs, io::ErrorKind, path::PathBuf};
+use std::{
+    fs,
+    io::ErrorKind,
+    path::{Path, PathBuf},
+};
 use tauri::{AppHandle, Manager, State};
 
 use super::validate::sanitize_backup_filename;
@@ -61,6 +65,33 @@ impl Drop for TempDirGuard {
     }
 }
 
+fn validate_restore_backup_integrity(path: &Path) -> Result<()> {
+    let conn =
+        rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+
+    let integrity: String = conn.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
+    if integrity != "ok" {
+        return Err(AppError::BadRequest(format!(
+            "Backup integrity check failed: {integrity}"
+        )));
+    }
+
+    let has_experiment_table: bool = conn
+        .query_row(
+            "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type='table' AND name='Experiment'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(false);
+    if !has_experiment_table {
+        return Err(AppError::BadRequest(
+            "Backup is not a RheoLab database".into(),
+        ));
+    }
+
+    Ok(())
+}
+
 /// Restore from a backup (schedules restore and requests app restart)
 #[tauri::command]
 pub async fn backup_restore(
@@ -68,6 +99,8 @@ pub async fn backup_restore(
     state: State<'_, AppState>,
     filename: String,
 ) -> Result<BackupResult> {
+    require_write_license(&state).await?;
+
     sanitize_backup_filename(&filename)?;
 
     let backup_path = state.backups_dir.join(&filename);
@@ -86,6 +119,8 @@ pub async fn backup_restore(
     if !backup_path.exists() {
         return Ok(BackupResult::err("Backup file not found"));
     }
+
+    validate_restore_backup_integrity(&backup_path)?;
 
     // Copy to pending restore location
     let pending_path = get_pending_restore_path(&app)?;

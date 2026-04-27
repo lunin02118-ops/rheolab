@@ -15,18 +15,18 @@ use std::sync::Arc;
 
 use crate::error::{AppError, Result};
 
-mod candidate;
-mod io;
 mod ai;
+mod candidate;
 mod diagnostics;
+mod io;
 
 use super::ai_mapper::{AiColumnMapper, GroqAiColumnMapper};
 use super::types::*;
 use super::{parse_cache_key, PARSE_CACHE};
 
+use ai::parse_with_optional_ai;
 use candidate::build_parse_candidate;
 use io::read_request_bytes;
-use ai::parse_with_optional_ai;
 
 use rheolab_core::parser::rheo_parser::parse_rheo_data;
 

@@ -1,13 +1,13 @@
-﻿//! Export commands for experiments.
+//! Export commands for experiments.
 
+use super::helpers::*;
+use super::types::*;
+use crate::commands::licensing::can_write_via_engine;
 use crate::error::{AppError, Result};
 use crate::state::AppState;
-use crate::commands::licensing::can_write_via_engine;
 use serde_json::{json, Value};
 use std::io::Write;
 use tauri::State;
-use super::types::*;
-use super::helpers::*;
 
 mod export_helpers;
 
@@ -16,22 +16,20 @@ pub async fn experiments_export_laboratories(state: State<'_, AppState>) -> Resu
     let conn = state.pool_conn()?;
 
     // Count experiments with no laboratory
-    let no_lab_count: i64 = conn
-        .query_row(
-            "SELECT COUNT(*) FROM Experiment WHERE laboratoryId IS NULL",
-            [],
-            |row| row.get(0),
-        )?;
+    let no_lab_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM Experiment WHERE laboratoryId IS NULL",
+        [],
+        |row| row.get(0),
+    )?;
 
     // Count experiments grouped by laboratory
-    let mut stmt = conn
-        .prepare(
-            "SELECT l.id, l.name, COUNT(*) as cnt \
+    let mut stmt = conn.prepare(
+        "SELECT l.id, l.name, COUNT(*) as cnt \
              FROM Experiment e \
              INNER JOIN Laboratory l ON e.laboratoryId = l.id \
              GROUP BY l.id, l.name \
              ORDER BY l.name COLLATE NOCASE",
-        )?;
+    )?;
 
     let mut laboratories: Vec<Value> = stmt
         .query_map([], |row| {
@@ -91,7 +89,10 @@ pub async fn experiments_export_to_file(
 
     let export_time = now_rfc3339();
     // File-safe timestamp: replace chars not valid in filenames
-    let ts_safe = export_time.chars().map(|c| if c == ':' || c == '.' { '-' } else { c }).collect::<String>();
+    let ts_safe = export_time
+        .chars()
+        .map(|c| if c == ':' || c == '.' { '-' } else { c })
+        .collect::<String>();
     let file_name = format!("export-{}.json", ts_safe);
     let file_path = exports_dir.join(&file_name);
     let file_path_str = file_path.to_string_lossy().to_string();
@@ -101,9 +102,13 @@ pub async fn experiments_export_to_file(
     // ──────────────────────────────────────────────
     let all_ids: Vec<String> = {
         let conn = state.pool_conn()?;
-        let include_no_lab = selected_lab_ids.iter().any(|id| id.as_str() == "__no_lab__");
+        let include_no_lab = selected_lab_ids
+            .iter()
+            .any(|id| id.as_str() == "__no_lab__");
         let real_ids: Vec<&String> = selected_lab_ids
-            .iter().filter(|id| id.as_str() != "__no_lab__").collect();
+            .iter()
+            .filter(|id| id.as_str() != "__no_lab__")
+            .collect();
 
         let (where_clause, params_raw): (String, Vec<String>) = if selected_lab_ids.is_empty() {
             (String::new(), vec![])
@@ -112,16 +117,24 @@ pub async fn experiments_export_to_file(
         } else if include_no_lab {
             let phs = real_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
             let ps = real_ids.iter().map(|s| (*s).clone()).collect();
-            (format!("WHERE (laboratoryId IS NULL OR laboratoryId IN ({}))", phs), ps)
+            (
+                format!("WHERE (laboratoryId IS NULL OR laboratoryId IN ({}))", phs),
+                ps,
+            )
         } else {
             let phs = real_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
             let ps = real_ids.iter().map(|s| (*s).clone()).collect();
             (format!("WHERE laboratoryId IN ({})", phs), ps)
         };
 
-        let sql = format!("SELECT id FROM Experiment {} ORDER BY testDate DESC", where_clause);
+        let sql = format!(
+            "SELECT id FROM Experiment {} ORDER BY testDate DESC",
+            where_clause
+        );
         let params_ref: Vec<&dyn rusqlite::ToSql> = params_raw
-            .iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+            .iter()
+            .map(|s| s as &dyn rusqlite::ToSql)
+            .collect();
         let mut stmt = conn.prepare(&sql)?;
         let ids: Vec<String> = stmt
             .query_map(params_ref.as_slice(), |row| row.get::<_, String>(0))?
@@ -165,22 +178,29 @@ pub async fn experiments_export_to_file(
 
                 exp.reagents = reagents_map.get(&exp.id).cloned().unwrap_or_default();
 
-                let reagents_json: Vec<Value> = exp.reagents.iter().map(|r| {
-                    let reagent_name = r.reagent_name.clone()
-                        .or_else(|| r.reagent.as_ref().map(|d| d.name.clone()))
-                        .unwrap_or_else(|| "Unknown".to_string());
-                    let reagent_category = r.category.clone().or_else(|| {
-                        r.reagent.as_ref().and_then(|d| d.category.clone())
-                    });
-                    json!({
-                        "reagentName": reagent_name,
-                        "reagentCategory": reagent_category,
-                        "concentration": r.concentration,
-                        "unit": r.unit,
-                        "batchNumber": r.batch_number,
-                        "productionDate": r.production_date
+                let reagents_json: Vec<Value> = exp
+                    .reagents
+                    .iter()
+                    .map(|r| {
+                        let reagent_name = r
+                            .reagent_name
+                            .clone()
+                            .or_else(|| r.reagent.as_ref().map(|d| d.name.clone()))
+                            .unwrap_or_else(|| "Unknown".to_string());
+                        let reagent_category = r
+                            .category
+                            .clone()
+                            .or_else(|| r.reagent.as_ref().and_then(|d| d.category.clone()));
+                        json!({
+                            "reagentName": reagent_name,
+                            "reagentCategory": reagent_category,
+                            "concentration": r.concentration,
+                            "unit": r.unit,
+                            "batchNumber": r.batch_number,
+                            "productionDate": r.production_date
+                        })
                     })
-                }).collect();
+                    .collect();
 
                 let duration_seconds = calculate_duration_seconds(&raw_points);
                 let avg_temperature_c = calculate_avg_temperature_c(&raw_points);

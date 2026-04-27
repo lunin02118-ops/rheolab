@@ -1,5 +1,5 @@
-use rusqlite::Connection;
 use super::error::MigrationError;
+use rusqlite::Connection;
 
 /// A single, versioned schema migration applied in monotonic order.
 ///

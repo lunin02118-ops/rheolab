@@ -91,13 +91,19 @@ pub(crate) fn read_cache(app_data_dir: &std::path::Path) -> Option<MachineIdCach
 
 pub(super) fn write_cache(app_data_dir: &std::path::Path, cache: &MachineIdCache) {
     let _ = std::fs::create_dir_all(app_data_dir);
-    let Ok(json) = serde_json::to_string(cache) else { return };
+    let Ok(json) = serde_json::to_string(cache) else {
+        return;
+    };
 
-    let Ok(key_bytes) = derive_cache_key() else { return; };
+    let Ok(key_bytes) = derive_cache_key() else {
+        return;
+    };
     let gcm_key = GcmKey::<Aes256Gcm>::from_slice(&key_bytes);
     let cipher = Aes256Gcm::new(gcm_key);
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-    let Ok(ciphertext) = cipher.encrypt(&nonce, json.as_bytes()) else { return };
+    let Ok(ciphertext) = cipher.encrypt(&nonce, json.as_bytes()) else {
+        return;
+    };
 
     let envelope = serde_json::json!({
         "v": 3u8,

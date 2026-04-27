@@ -19,11 +19,7 @@ pub trait ReagentRepository {
     fn list_all(&self, conn: &rusqlite::Connection) -> Result<Vec<StoredReagent>>;
 
     /// Find a single reagent by primary key.
-    fn find_by_id(
-        &self,
-        conn: &rusqlite::Connection,
-        id: &str,
-    ) -> Result<Option<StoredReagent>>;
+    fn find_by_id(&self, conn: &rusqlite::Connection, id: &str) -> Result<Option<StoredReagent>>;
 
     /// Return `true` if a reagent row with the given `id` exists.
     fn exists_by_id(&self, conn: &rusqlite::Connection, id: &str) -> Result<bool>;
@@ -76,11 +72,7 @@ impl ReagentRepository for SqliteReagentRepository {
         list_all(conn)
     }
 
-    fn find_by_id(
-        &self,
-        conn: &rusqlite::Connection,
-        id: &str,
-    ) -> Result<Option<StoredReagent>> {
+    fn find_by_id(&self, conn: &rusqlite::Connection, id: &str) -> Result<Option<StoredReagent>> {
         find_by_id(conn, id)
     }
 
@@ -135,10 +127,7 @@ pub(crate) fn list_all(conn: &rusqlite::Connection) -> Result<Vec<StoredReagent>
 
 /// Find a reagent by primary key.
 /// Previously `commands::reagents::helpers::get_reagent`.
-pub(crate) fn find_by_id(
-    conn: &rusqlite::Connection,
-    id: &str,
-) -> Result<Option<StoredReagent>> {
+pub(crate) fn find_by_id(conn: &rusqlite::Connection, id: &str) -> Result<Option<StoredReagent>> {
     conn.query_row(
         "SELECT id, name, category, manufacturer, country, description, \
                 activeSubstance, form, createdAt, updatedAt \
@@ -217,11 +206,7 @@ pub(crate) fn resolve_by_id_or_name(
     // Try by id first
     if let Some(iid) = id {
         let by_id = conn
-            .query_row(
-                &format!("{} WHERE id = ?1", SQL),
-                params![iid],
-                map_row,
-            )
+            .query_row(&format!("{} WHERE id = ?1", SQL), params![iid], map_row)
             .optional()
             .map_err(|e| format!("SQL error: {}", e))?;
 

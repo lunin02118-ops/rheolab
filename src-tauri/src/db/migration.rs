@@ -86,8 +86,9 @@ pub fn run_migrations(conn: &Connection) -> Result<MigrationResult, rusqlite::Er
     ) {
         Ok(r) => Some(r),
         Err(rusqlite::Error::QueryReturnedNoRows) => None,
-        Err(rusqlite::Error::SqliteFailure(_, Some(ref msg)))
-            if msg.contains("no such table") => None,
+        Err(rusqlite::Error::SqliteFailure(_, Some(ref msg))) if msg.contains("no such table") => {
+            None
+        }
         Err(e) => {
             // Any other error (corruption, I/O, …) is a real failure we
             // should not swallow.
@@ -108,7 +109,8 @@ pub fn run_migrations(conn: &Connection) -> Result<MigrationResult, rusqlite::Er
         tracing::warn!(
             "Database schema_version ({}) is newer than the binary's CURRENT_SCHEMA_VERSION ({}). \
              This is a downgrade — no migrations will be applied.",
-            stored_version, CURRENT_SCHEMA_VERSION
+            stored_version,
+            CURRENT_SCHEMA_VERSION
         );
     }
 
@@ -169,7 +171,9 @@ pub fn run_migrations(conn: &Connection) -> Result<MigrationResult, rusqlite::Er
     } else {
         tracing::info!(
             "Database schema ready (version: {}, app: {}, fresh_install: {})",
-            CURRENT_SCHEMA_VERSION, app_version, was_fresh_install,
+            CURRENT_SCHEMA_VERSION,
+            app_version,
+            was_fresh_install,
         );
     }
 
@@ -181,7 +185,6 @@ pub fn run_migrations(conn: &Connection) -> Result<MigrationResult, rusqlite::Er
         version_changed,
     })
 }
-
 
 #[cfg(test)]
 #[path = "migration_tests.rs"]

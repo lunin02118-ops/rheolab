@@ -71,7 +71,7 @@ test.describe('Full E2E Workflow', () => {
         await dashboard.goto();
         await dashboard.uploadFile(GRACE_REPORT);
         await dashboard.waitForAnalysis();
-        const exp2 = await dashboard.saveExperiment({ name: `WF-Search-2-${Date.now()}` });
+        await dashboard.saveExperiment({ name: `WF-Search-2-${Date.now()}` });
 
         // Navigate to Library
         await library.goto();
@@ -158,12 +158,12 @@ test.describe('Full E2E Workflow', () => {
         await dashboard.goto();
         await dashboard.uploadFile(CHANDLER_SST_63);
         await dashboard.waitForAnalysis();
-        const exp1 = await dashboard.saveExperiment({ name: `WF-Comp-1-${Date.now()}` });
+        await dashboard.saveExperiment({ name: `WF-Comp-1-${Date.now()}` });
 
         await dashboard.goto();
         await dashboard.uploadFile(GRACE_REPORT);
         await dashboard.waitForAnalysis();
-        const exp2 = await dashboard.saveExperiment({ name: `WF-Comp-2-${Date.now()}` });
+        await dashboard.saveExperiment({ name: `WF-Comp-2-${Date.now()}` });
 
         // Add both to comparison
         await comparison.goto();
@@ -185,12 +185,12 @@ test.describe('Full E2E Workflow', () => {
         await dashboard.goto();
         await dashboard.uploadFile(CHANDLER_SST_63);
         await dashboard.waitForAnalysis();
-        const exp1 = await dashboard.saveExperiment({ name: `WF-CmpRpt-1-${Date.now()}` });
+        await dashboard.saveExperiment({ name: `WF-CmpRpt-1-${Date.now()}` });
 
         await dashboard.goto();
         await dashboard.uploadFile(GRACE_REPORT);
         await dashboard.waitForAnalysis();
-        const exp2 = await dashboard.saveExperiment({ name: `WF-CmpRpt-2-${Date.now()}` });
+        await dashboard.saveExperiment({ name: `WF-CmpRpt-2-${Date.now()}` });
 
         // Comparison setup
         await comparison.goto();
@@ -244,7 +244,7 @@ test.describe('Full E2E Workflow', () => {
         await dashboard.goto();
         await dashboard.uploadFile(CHANDLER_SST_63);
         await dashboard.waitForAnalysis();
-        const exp1 = await dashboard.saveExperiment({ name: `WF-Lang-1-${Date.now()}` });
+        await dashboard.saveExperiment({ name: `WF-Lang-1-${Date.now()}` });
 
         await comparison.goto();
         await comparison.expectLoaded();

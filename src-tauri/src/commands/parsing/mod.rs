@@ -12,15 +12,15 @@ use std::num::NonZeroUsize;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::SystemTime;
 
-mod types;
-pub(crate) mod helpers;
-pub(crate) mod commands;
 pub(crate) mod ai_mapper;
+pub(crate) mod commands;
+pub(crate) mod helpers;
+mod types;
 
-pub use types::*;
-pub(crate) use commands::parse_file_native;
 #[doc(hidden)]
 pub use ai_mapper::{AiColumnMapper, StubAiColumnMapper};
+pub(crate) use commands::parse_file_native;
+pub use types::*;
 
 /// Tauri command entry-point.  The `#[tauri::command]` macro must live in the
 /// same module that is referenced by `generate_handler!`, so we keep a thin
@@ -33,7 +33,8 @@ pub async fn parsing_parse_file(
     // Resolve AI key server-side — never sent over IPC.
     let ai_key = {
         let conn = state.pool_conn()?;
-        let resolved = crate::commands::api_keys::resolve_active_ai_key(&conn, &state.app_data_dir, "groq");
+        let resolved =
+            crate::commands::api_keys::resolve_active_ai_key(&conn, &state.app_data_dir, "groq");
         if request.force_ai.unwrap_or(false) && resolved.is_none() {
             return Err("force_ai=true but no active Groq API key configured".into());
         }
@@ -105,8 +106,8 @@ fn validate_file_path(raw: &str) -> Result<std::path::PathBuf> {
             .to_string()
     }
 
-    let canonical = std::fs::canonicalize(raw)
-        .map_err(|e| format!("Invalid file path '{}': {}", raw, e))?;
+    let canonical =
+        std::fs::canonicalize(raw).map_err(|e| format!("Invalid file path '{}': {}", raw, e))?;
 
     if !canonical.is_file() {
         return Err(format!("Path '{}' does not point to a regular file", raw).into());
@@ -123,21 +124,28 @@ fn validate_file_path(raw: &str) -> Result<std::path::PathBuf> {
     ];
     if let Some(home) = dirs::home_dir() {
         let home_lower = normalized_path_for_compare(&home);
-        let sensitive_subdirs = [".ssh", ".gnupg", ".aws", "appdata\\local\\microsoft\\credentials"];
+        let sensitive_subdirs = [
+            ".ssh",
+            ".gnupg",
+            ".aws",
+            "appdata\\local\\microsoft\\credentials",
+        ];
         for subdir in &sensitive_subdirs {
             let blocked = format!("{}\\{}", home_lower, subdir);
             if path_lower.starts_with(&blocked) {
-                return Err(crate::error::AppError::BadRequest(
-                    format!("Access denied: path '{}' is inside a sensitive directory", raw),
-                ));
+                return Err(crate::error::AppError::BadRequest(format!(
+                    "Access denied: path '{}' is inside a sensitive directory",
+                    raw
+                )));
             }
         }
     }
     for prefix in blocked_prefixes {
         if path_lower.starts_with(prefix) {
-            return Err(crate::error::AppError::BadRequest(
-                format!("Access denied: path '{}' is inside a system directory", raw),
-            ));
+            return Err(crate::error::AppError::BadRequest(format!(
+                "Access denied: path '{}' is inside a system directory",
+                raw
+            )));
         }
     }
 
@@ -187,10 +195,8 @@ pub(crate) fn parse_cache_key(filename: &str, file_path: &str) -> Option<u64> {
 
 #[cfg(test)]
 mod tests {
+    use super::helpers::{build_summary, normalize_date_string, normalize_optional_date, round2};
     use super::*;
-    use super::helpers::{
-        normalize_date_string, normalize_optional_date, build_summary, round2,
-    };
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -312,7 +318,10 @@ mod tests {
     fn summary_zero_pressure_produces_no_pressure_range() {
         let pts = vec![pt(0.0, 50.0, 25.0, 0.0), pt(60.0, 100.0, 63.0, 0.0)];
         let s = build_summary(&pts);
-        assert!(s.pressure_range.is_none(), "zero pressure → no pressure range");
+        assert!(
+            s.pressure_range.is_none(),
+            "zero pressure → no pressure range"
+        );
     }
 
     #[test]
@@ -359,7 +368,10 @@ mod tests {
         let err = parse_file_native(req_no_ai("  ", Some("/any/path"), None))
             .unwrap_err()
             .to_string();
-        assert!(err.contains("Filename"), "expected Filename error, got: {err}");
+        assert!(
+            err.contains("Filename"),
+            "expected Filename error, got: {err}"
+        );
     }
 
     #[test]
@@ -394,14 +406,18 @@ mod tests {
         let result = validate_file_path("C:\\Windows\\System32\\notepad.exe");
         assert!(result.is_err(), "system dir must be blocked");
         let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("system directory"), "expected system dir error, got: {err_msg}");
+        assert!(
+            err_msg.contains("system directory"),
+            "expected system dir error, got: {err_msg}"
+        );
     }
 
     #[test]
     fn validate_file_path_blocks_ssh_dir() {
-        let result = validate_file_path(
-            &format!("{}/.ssh/id_rsa", dirs::home_dir().unwrap().display())
-        );
+        let result = validate_file_path(&format!(
+            "{}/.ssh/id_rsa",
+            dirs::home_dir().unwrap().display()
+        ));
         // Even if the file doesn't exist, canonicalize will fail first.
         // If it does exist, it should be blocked.
         assert!(result.is_err(), ".ssh dir must be blocked or not exist");
@@ -410,6 +426,9 @@ mod tests {
     #[test]
     fn validate_file_path_blocks_program_files() {
         let result = validate_file_path("C:\\Program Files\\test");
-        assert!(result.is_err(), "Program Files must be blocked or not exist");
+        assert!(
+            result.is_err(),
+            "Program Files must be blocked or not exist"
+        );
     }
 }

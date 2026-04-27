@@ -1,4 +1,4 @@
-﻿use crate::error::Result;
+use crate::error::Result;
 use chrono::Utc;
 use rusqlite::{params, Connection};
 use sha2::{Digest, Sha256};
@@ -25,7 +25,10 @@ pub(crate) fn content_fingerprint(data: &str) -> String {
 /// Avoids the 4× storage multiplier: Experiment table already holds the canonical data.
 pub(crate) fn compact_ref(experiment_id: &str, payload_json: &str) -> String {
     let fp = content_fingerprint(payload_json);
-    format!(r#"{{"experimentId":"{}","fingerprint":"{}"}}"#, experiment_id, fp)
+    format!(
+        r#"{{"experimentId":"{}","fingerprint":"{}"}}"#,
+        experiment_id, fp
+    )
 }
 
 /// Create an ImportBatch row. Returns the generated batch id.
@@ -70,7 +73,13 @@ pub(crate) fn finalise_import_batch(
     conn.execute(
         "UPDATE ImportBatch SET experimentsImported = ?1, duplicatesDetected = ?2, \
          status = ?3, updatedAt = ?4 WHERE id = ?5",
-        params![imported as i64, duplicates as i64, status, now_iso(), batch_id],
+        params![
+            imported as i64,
+            duplicates as i64,
+            status,
+            now_iso(),
+            batch_id
+        ],
     )?;
     Ok(())
 }
@@ -225,7 +234,14 @@ pub(crate) fn append_sync_outbox(
         "INSERT INTO SyncOutbox \
          (id, entityType, entityId, operation, payloadJson, status, retryCount, createdAt) \
          VALUES (?1, ?2, ?3, ?4, ?5, 'pending', 0, ?6)",
-        params![id, entity_type, entity_id, operation, payload_json, now_iso()],
+        params![
+            id,
+            entity_type,
+            entity_id,
+            operation,
+            payload_json,
+            now_iso()
+        ],
     )?;
     Ok(id)
 }

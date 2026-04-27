@@ -1,0 +1,36 @@
+
+тХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХР
+  RELEASE GATE тАФ Comparison Report workflow
+  Binary: src-tauri\target\release\rheolab-enterprise.exe
+  Spec:   tests/e2e/reports/comparison-workflow-release-gate.tauri.spec.ts
+тХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХРтХР
+
+[tauri-e2e] ╨С╨╕╨╜╨░╤А╨╜╨╕╨║ ╨░╨║╤В╤Г╨░╨╗╨╡╨╜ (TAURI_E2E_SKIP_BUILD=1 ╨╕╨╗╨╕ ╨╕╤Б╤Е╨╛╨┤╨╜╨╕╨║╨╕ ╨╜╨╡ ╨╕╨╖╨╝╨╡╨╜╨╕╨╗╨╕╤Б╤М).
+[tauri-e2e] ╨Ч╨░╨┐╤Г╤Б╨║╨░╨╡╨╝ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╨╡ ╤Б CDP ╨╜╨░ ╨┐╨╛╤А╤В╤Г 9222...
+[tauri-e2e] ╨Ю╨╢╨╕╨┤╨░╨╡╨╝ CDP ╨╜╨░ http://127.0.0.1:9222/json/version ...
+[tauri] 
+thread 'main' (7420) panicked at src\commands\licensing\types.rs:227:13:
+[licensing] FATAL: production binary compiled with dev integrity key.
+Set INTEGRITY_SECRET_KEY before building:
+$env:INTEGRITY_SECRET_KEY = 'your-prod-secret'; npm run tauri:build
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Error: [tauri-e2e] CDP ╨╜╨╡ ╨╛╤В╨▓╨╡╤В╨╕╨╗ ╨╜╨░ ╨┐╨╛╤А╤В╤Г 9222 ╨▓ ╤В╨╡╤З╨╡╨╜╨╕╨╡ 90000 ╨╝╤Б
+
+   at ..\..\scripts\test\tauri-e2e-setup.js:56
+
+  54 |                 setTimeout(attempt, 600);
+  55 |             } else {
+> 56 |                 reject(new Error(`[tauri-e2e] CDP ╨╜╨╡ ╨╛╤В╨▓╨╡╤В╨╕╨╗ ╨╜╨░ ╨┐╨╛╤А╤В╤Г ${port} ╨▓ ╤В╨╡╤З╨╡╨╜╨╕╨╡ ${timeoutMs} ╨╝╤Б`));
+     |                        ^
+  57 |             }
+  58 |         };
+  59 |         attempt();
+    at ClientRequest.scheduleRetry (D:\Development\Rheolab\scripts\test\tauri-e2e-setup.js:56:24)
+[tauri-e2e] ╨Ч╨░╨▓╨╡╤А╤И╨░╨╡╨╝ Tauri-╨┐╤А╨╛╤Ж╨╡╤Б╤Б (PID=12456)...
+[tauri-e2e] ╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╨╖╨░╨▓╨╡╤А╤И╨╕╤В╤М PID=12456: Command failed: taskkill /PID 12456 /T /F
+я┐╜шибя┐╜я┐╜: я┐╜я┐╜ удая┐╜я┐╜я┐╜я┐╜ я┐╜я┐╜я┐╜я┐╜ я┐╜я┐╜я┐╜я┐╜я┐╜ "12456".
+
+
+
+[release-gate] тЭМ FAILED (exit=1) тАФ release blocked
+[release-gate] inspect playwright-report/ for details

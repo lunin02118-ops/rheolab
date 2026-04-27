@@ -318,6 +318,9 @@ test.describe('[PerfWorkflow/Tauri] Full workflow baseline — native analysis',
             console.log(`\n── PDF: ${fx.displayName} ──`);
 
             await dashboard.goto();
+            if (await dashboard.chartTab.isVisible({ timeout: 2_000 }).catch(() => false)) {
+                await dashboard.switchTab('chart');
+            }
             await clearPerfMarks(page);
             const wallStart = Date.now();
 

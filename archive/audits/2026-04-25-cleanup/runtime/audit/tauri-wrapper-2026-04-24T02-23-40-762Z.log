@@ -1,0 +1,21 @@
+[2026-04-24T02:23:40.763Z] wrapper start
+[2026-04-24T02:23:40.763Z] cwd=D:\Development\Rheolab
+[2026-04-24T02:23:40.763Z] command=npm.cmd exec tauri -- dev
+[2026-04-24T02:23:40.763Z] RHEOLAB_SKIP_VERSION_BUMP=
+[2026-04-24T02:23:40.768Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-24T02:23:40.768Z] using shell fallback: npm.cmd "exec" "tauri" "--" "dev"
+[2026-04-24T02:23:41.562Z] [stderr]      Running BeforeDevCommand (`npm run dev`)
+[2026-04-24T02:23:41.571Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-24T02:23:41.646Z] [stderr]         Info Watching D:\Development\Rheolab\src-tauri for changes...
+[2026-04-24T02:23:41.839Z] [stdout] 
+[2026-04-24T02:23:41.839Z] [stdout] > rheolab-enterprise@0.2.0-beta.39 dev
+[2026-04-24T02:23:41.840Z] [stdout] > vite
+[2026-04-24T02:23:41.840Z] [stdout] 
+[2026-04-24T02:23:42.278Z] [stderr] [31merror when starting dev server:
+[2026-04-24T02:23:42.278Z] [stderr] Error: Port 1420 is already in use
+[2026-04-24T02:23:42.278Z] [stderr]     at Server.onError (file:///D:/Development/Rheolab/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:25023:18)
+[2026-04-24T02:23:42.278Z] [stderr]     at Server.emit (node:events:508:28)
+[2026-04-24T02:23:42.278Z] [stderr]     at emitErrorNT (node:net:1984:8)
+[2026-04-24T02:23:42.278Z] [stderr]     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)[39m
+[2026-04-24T02:23:42.309Z] [stderr]        Error The "beforeDevCommand" terminated with a non-zero status code.
+[2026-04-24T02:23:42.362Z] wrapper exit: code=1 signal=null elapsed=1.6s

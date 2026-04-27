@@ -1,4 +1,5 @@
-﻿use crate::db::repositories::reagents as repo;
+use crate::commands::licensing::require_write_license;
+use crate::db::repositories::reagents as repo;
 use crate::error::Result;
 use crate::state::AppState;
 use crate::utils::validation::{validate_bounded_str, validate_hash_id};
@@ -24,14 +25,26 @@ pub async fn reagents_create(
     state: State<'_, AppState>,
     payload: ReagentUpsertPayload,
 ) -> Result<ReagentMutationResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: string length bounds
     validate_bounded_str(&payload.name, 255, "name")?;
     validate_bounded_str(&payload.category, 255, "category")?;
-    if let Some(ref v) = payload.manufacturer { validate_bounded_str(v, 255, "manufacturer")?; }
-    if let Some(ref v) = payload.country { validate_bounded_str(v, 255, "country")?; }
-    if let Some(ref v) = payload.description { validate_bounded_str(v, 2000, "description")?; }
-    if let Some(ref v) = payload.active_substance { validate_bounded_str(v, 255, "activeSubstance")?; }
-    if let Some(ref v) = payload.form { validate_bounded_str(v, 255, "form")?; }
+    if let Some(ref v) = payload.manufacturer {
+        validate_bounded_str(v, 255, "manufacturer")?;
+    }
+    if let Some(ref v) = payload.country {
+        validate_bounded_str(v, 255, "country")?;
+    }
+    if let Some(ref v) = payload.description {
+        validate_bounded_str(v, 2000, "description")?;
+    }
+    if let Some(ref v) = payload.active_substance {
+        validate_bounded_str(v, 255, "activeSubstance")?;
+    }
+    if let Some(ref v) = payload.form {
+        validate_bounded_str(v, 255, "form")?;
+    }
 
     let name = payload.name.trim().to_string();
     let category = payload.category.trim().to_string();
@@ -84,7 +97,9 @@ pub async fn reagents_create(
             tx.commit()?;
             Ok(ReagentMutationResponse::ok(r))
         }
-        None => Ok(ReagentMutationResponse::err("Insert succeeded but reagent not found")),
+        None => Ok(ReagentMutationResponse::err(
+            "Insert succeeded but reagent not found",
+        )),
     }
 }
 
@@ -94,15 +109,27 @@ pub async fn reagents_update(
     id: String,
     payload: ReagentUpsertPayload,
 ) -> Result<ReagentMutationResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: validate ID format + string bounds
     validate_hash_id(&id, "id")?;
     validate_bounded_str(&payload.name, 255, "name")?;
     validate_bounded_str(&payload.category, 255, "category")?;
-    if let Some(ref v) = payload.manufacturer { validate_bounded_str(v, 255, "manufacturer")?; }
-    if let Some(ref v) = payload.country { validate_bounded_str(v, 255, "country")?; }
-    if let Some(ref v) = payload.description { validate_bounded_str(v, 2000, "description")?; }
-    if let Some(ref v) = payload.active_substance { validate_bounded_str(v, 255, "activeSubstance")?; }
-    if let Some(ref v) = payload.form { validate_bounded_str(v, 255, "form")?; }
+    if let Some(ref v) = payload.manufacturer {
+        validate_bounded_str(v, 255, "manufacturer")?;
+    }
+    if let Some(ref v) = payload.country {
+        validate_bounded_str(v, 255, "country")?;
+    }
+    if let Some(ref v) = payload.description {
+        validate_bounded_str(v, 2000, "description")?;
+    }
+    if let Some(ref v) = payload.active_substance {
+        validate_bounded_str(v, 255, "activeSubstance")?;
+    }
+    if let Some(ref v) = payload.form {
+        validate_bounded_str(v, 255, "form")?;
+    }
 
     let name = payload.name.trim().to_string();
     let category = payload.category.trim().to_string();
@@ -145,7 +172,17 @@ pub async fn reagents_update(
             name = ?1, category = ?2, manufacturer = ?3, country = ?4, \
             description = ?5, activeSubstance = ?6, form = ?7, updatedAt = ?8 \
          WHERE id = ?9",
-        params![name, category, manufacturer, country, description, active_substance, form, now, id],
+        params![
+            name,
+            category,
+            manufacturer,
+            country,
+            description,
+            active_substance,
+            form,
+            now,
+            id
+        ],
     )?;
 
     let reagent = get_reagent(&tx, &id)?;
@@ -160,7 +197,9 @@ pub async fn reagents_update(
             tx.commit()?;
             Ok(ReagentMutationResponse::ok(r))
         }
-        None => Ok(ReagentMutationResponse::err("Reagent disappeared after update")),
+        None => Ok(ReagentMutationResponse::err(
+            "Reagent disappeared after update",
+        )),
     }
 }
 
@@ -169,6 +208,8 @@ pub async fn reagents_delete(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<ReagentDeleteResponse> {
+    require_write_license(&state).await?;
+
     // WP-1.5: validate ID format
     validate_hash_id(&id, "id")?;
 
@@ -211,7 +252,11 @@ pub async fn reagents_delete(
 
     // V2 data flow: sync outbox for reagent deletion (after successful DELETE)
     crate::commands::data_flows::append_sync_outbox(
-        &tx, "reagent", &id, "delete", &format!(r#"{{"id":"{}"}}"#, id),
+        &tx,
+        "reagent",
+        &id,
+        "delete",
+        &format!(r#"{{"id":"{}"}}"#, id),
     )?;
 
     tx.commit()?;
@@ -220,15 +265,16 @@ pub async fn reagents_delete(
 
 #[tauri::command]
 pub async fn reagents_export(state: State<'_, AppState>) -> Result<Value> {
+    require_write_license(&state).await?;
+
     let conn = state.pool_conn()?;
     let exported_at = now_rfc3339();
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, name, category, manufacturer, country, description, \
+    let mut stmt = conn.prepare(
+        "SELECT id, name, category, manufacturer, country, description, \
                     activeSubstance, form, createdAt, updatedAt, extraFields \
              FROM ReagentCatalog ORDER BY LOWER(category), LOWER(name)",
-        )?;
+    )?;
 
     let reagents: Vec<Value> = stmt
         .query_map([], |row| {
@@ -258,10 +304,9 @@ pub async fn reagents_export(state: State<'_, AppState>) -> Result<Value> {
 }
 
 #[tauri::command]
-pub async fn reagents_import(
-    state: State<'_, AppState>,
-    reagents: Vec<Value>,
-) -> Result<Value> {
+pub async fn reagents_import(state: State<'_, AppState>, reagents: Vec<Value>) -> Result<Value> {
+    require_write_license(&state).await?;
+
     let total_processed = reagents.len();
     let conn = state.pool_conn()?;
 
@@ -325,7 +370,17 @@ pub async fn reagents_import(
                     description = ?4, activeSubstance = ?5, form = ?6, \
                     extraFields = ?7, updatedAt = ?8 \
                  WHERE id = ?9",
-                params![category, manufacturer, country, description, active_substance, form, extra_fields, now, existing_id],
+                params![
+                    category,
+                    manufacturer,
+                    country,
+                    description,
+                    active_substance,
+                    form,
+                    extra_fields,
+                    now,
+                    existing_id
+                ],
             )?;
             updated += 1;
         } else {
@@ -336,13 +391,11 @@ pub async fn reagents_import(
             let country = normalize_optional(string_field(&raw, "country"));
             let description = normalize_optional(string_field(&raw, "description"));
             let active_substance = normalize_optional(
-                string_field(&raw, "activeSubstance")
-                    .or(string_field(&raw, "active_substance")),
+                string_field(&raw, "activeSubstance").or(string_field(&raw, "active_substance")),
             );
             let form = normalize_optional(string_field(&raw, "form"));
             let extra_fields = normalize_optional(
-                string_field(&raw, "extraFields")
-                    .or(string_field(&raw, "extra_fields")),
+                string_field(&raw, "extraFields").or(string_field(&raw, "extra_fields")),
             );
 
             tx.execute(
@@ -369,6 +422,8 @@ pub async fn reagents_import(
 
 #[tauri::command]
 pub async fn reagents_seed(state: State<'_, AppState>) -> Result<Value> {
+    require_write_license(&state).await?;
+
     let conn = state.pool_conn()?;
     let inserted = seed_default_reagents(&conn)?;
     Ok(json!({ "success": true, "inserted": inserted }))

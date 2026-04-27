@@ -50,7 +50,10 @@ pub fn run() {
     // automatically (env var is appended to AdditionalBrowserArguments).
     if let Ok(e2e_args) = std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS") {
         if !e2e_args.is_empty() {
-            log_to_file(&format!("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS (E2E)={}", e2e_args));
+            log_to_file(&format!(
+                "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS (E2E)={}",
+                e2e_args
+            ));
         }
     }
 
@@ -66,7 +69,9 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::new()
                 .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::LogDir { file_name: Some("app.log".into()) },
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("app.log".into()),
+                    },
                 ))
                 .max_file_size(2_000_000) // rotate app.log at ~2 MB
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
@@ -88,8 +93,8 @@ mod type_export_tests {
     #[test]
     fn export_ts_bindings() {
         use specta_typescript::{BigIntExportBehavior, Typescript};
-        let out_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../src/types/generated.d.ts");
+        let out_path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/types/generated.d.ts");
         Typescript::default()
             .bigint(BigIntExportBehavior::Number)
             .framework_header(

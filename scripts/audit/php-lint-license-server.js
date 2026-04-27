@@ -9,6 +9,45 @@ const licenseRoot = path.join(repoRoot, 'license-server');
 const args = process.argv.slice(2);
 const reportPathArg = args.find((arg) => arg.startsWith('--report-json='));
 const reportPath = reportPathArg ? path.resolve(repoRoot, reportPathArg.split('=')[1]) : null;
+const phpBinArg = args.find((arg) => arg.startsWith('--php-bin='));
+
+function fileExists(filePath) {
+  try {
+    return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function findPhpBinary() {
+  const explicit = phpBinArg ? phpBinArg.slice('--php-bin='.length) : process.env.RHEOLAB_PHP_BIN;
+  if (explicit && fileExists(explicit)) {
+    return explicit;
+  }
+
+  const pathProbe = spawnSync('php', ['-v'], {
+    cwd: repoRoot,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: false,
+    encoding: 'utf8',
+  });
+  if (!pathProbe.error && pathProbe.status === 0) {
+    return 'php';
+  }
+
+  if (process.platform === 'win32') {
+    const candidates = [
+      'C:\\tools\\php85\\php.exe',
+      'C:\\tools\\php84\\php.exe',
+      'C:\\tools\\php83\\php.exe',
+      'C:\\php\\php.exe',
+    ];
+    const found = candidates.find(fileExists);
+    if (found) return found;
+  }
+
+  return 'php';
+}
 
 function writeReport(payload) {
   if (!reportPath) {
@@ -47,8 +86,8 @@ function walkPhpFiles(rootDir) {
   return files.sort();
 }
 
-function runPhpLint(filePath) {
-  return spawnSync('php', ['-l', filePath], {
+function runPhpLint(phpBin, filePath) {
+  return spawnSync(phpBin, ['-l', filePath], {
     cwd: repoRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: false,
@@ -68,7 +107,8 @@ function main() {
     process.exit(1);
   }
 
-  const phpVersion = spawnSync('php', ['-v'], {
+  const phpBin = findPhpBinary();
+  const phpVersion = spawnSync(phpBin, ['-v'], {
     cwd: repoRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: false,
@@ -76,7 +116,7 @@ function main() {
   });
 
   if (phpVersion.error || phpVersion.status !== 0) {
-    console.error('[php-lint] php runtime is unavailable in PATH');
+    console.error('[php-lint] php runtime is unavailable');
     if (phpVersion.error) {
       console.error(`[php-lint] ${phpVersion.error.message}`);
     }
@@ -85,7 +125,7 @@ function main() {
     }
     writeReport({
       status: 'runtime_unavailable',
-      reason: 'php runtime is unavailable in PATH',
+      reason: 'php runtime is unavailable',
       filesChecked: 0,
       failedFiles: [],
     });
@@ -104,11 +144,12 @@ function main() {
     process.exit(0);
   }
 
+  console.log(`[php-lint] using ${phpBin}`);
   console.log(`[php-lint] checking ${phpFiles.length} files`);
   const failures = [];
 
   for (const filePath of phpFiles) {
-    const result = runPhpLint(filePath);
+    const result = runPhpLint(phpBin, filePath);
     const relPath = path.relative(repoRoot, filePath).replace(/\\/g, '/');
 
     if (result.status === 0) {

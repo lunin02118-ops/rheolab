@@ -12,15 +12,14 @@
 //! `engine.check()`. No business logic remains on the frontend.
 
 use std::path::PathBuf;
-use tokio::sync::RwLock;
 use std::time::Instant;
+use tokio::sync::RwLock;
 
 use chrono::{NaiveDate, NaiveDateTime, Utc};
 
 use super::crypto::get_secure_last_check;
 use super::features::expired_features;
 use super::types::{LicenseCheckResult, LicenseSource, LicenseStatus};
-
 
 /// How long the cached check result is considered fresh (seconds).
 /// Within this window, `check()` returns instantly without any I/O.
@@ -75,7 +74,11 @@ impl LicenseEngine {
                 let _ = std::fs::remove_file(&path);
             }
         }
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        {
             let ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f");
             let _ = writeln!(f, "[{}] [LIC-DIAG] {}", ts, msg);
         }

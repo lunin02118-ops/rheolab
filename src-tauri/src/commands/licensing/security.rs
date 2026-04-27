@@ -11,12 +11,10 @@ use super::types::MAX_OFFLINE_DAYS;
 
 /// Parse a date string loosely: try "%Y-%m-%d" first, then take first 10 chars.
 fn parse_date_loose(s: &str) -> Option<NaiveDate> {
-    NaiveDate::parse_from_str(s, "%Y-%m-%d")
-        .ok()
-        .or_else(|| {
-            s.get(..10)
-                .and_then(|sub| NaiveDate::parse_from_str(sub, "%Y-%m-%d").ok())
-        })
+    NaiveDate::parse_from_str(s, "%Y-%m-%d").ok().or_else(|| {
+        s.get(..10)
+            .and_then(|sub| NaiveDate::parse_from_str(sub, "%Y-%m-%d").ok())
+    })
 }
 
 /// Returns `true` if the system clock appears to have been rolled back

@@ -1,8 +1,8 @@
-use chrono::{Datelike, NaiveDate};
 use super::types::{
     FilenameMetadataResponse, ParseSummary, ParsedPoint, RecipeComponentResponse, SummaryRange,
     SummaryRangeWithAvg, TimeRange,
 };
+use chrono::{Datelike, NaiveDate};
 
 pub(crate) fn normalize_optional_date(value: Option<&str>) -> Option<String> {
     value
@@ -127,20 +127,36 @@ pub(crate) fn build_summary(data: &[ParsedPoint]) -> ParseSummary {
         let c = point.temperature_c;
         let p = point.pressure_bar;
 
-        if t < time_min { time_min = t; }
-        if t > time_max { time_max = t; }
+        if t < time_min {
+            time_min = t;
+        }
+        if t > time_max {
+            time_max = t;
+        }
 
-        if v < visc_min { visc_min = v; }
-        if v > visc_max { visc_max = v; }
+        if v < visc_min {
+            visc_min = v;
+        }
+        if v > visc_max {
+            visc_max = v;
+        }
         visc_sum += v;
 
-        if c < temp_min { temp_min = c; }
-        if c > temp_max { temp_max = c; }
+        if c < temp_min {
+            temp_min = c;
+        }
+        if c > temp_max {
+            temp_max = c;
+        }
         temp_sum += c;
 
         if p > 0.0 {
-            if p < pres_min { pres_min = p; }
-            if p > pres_max { pres_max = p; }
+            if p < pres_min {
+                pres_min = p;
+            }
+            if p > pres_max {
+                pres_max = p;
+            }
             pres_count += 1;
         }
     }

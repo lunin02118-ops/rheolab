@@ -2,11 +2,11 @@
 //!
 //! Mirrors `detectCyclesWasmOrchestrator` / `make_cycle` helpers in the old worker.
 
+use rheolab_core::types::{RheoCycle, RheoStep};
 use rheolab_core::{
     detect_anchor_cycles_internal, detect_repeating_sequence_cycles_internal,
     detect_sst_cycles_internal, is_repeating_sequence_pattern, is_sst_pattern,
 };
-use rheolab_core::types::{RheoCycle, RheoStep};
 
 /// Orchestrates cycle detection — mirrors `detectCyclesWasmOrchestrator` in the worker.
 ///

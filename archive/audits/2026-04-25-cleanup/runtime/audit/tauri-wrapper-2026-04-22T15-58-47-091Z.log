@@ -1,0 +1,90 @@
+[2026-04-22T15:58:47.092Z] wrapper start
+[2026-04-22T15:58:47.092Z] cwd=D:\Development\Rheolab
+[2026-04-22T15:58:47.092Z] command=npm.cmd exec tauri -- dev
+[2026-04-22T15:58:47.092Z] RHEOLAB_SKIP_VERSION_BUMP=
+[2026-04-22T15:58:47.095Z] direct spawn failed (EINVAL), switching to shell fallback
+[2026-04-22T15:58:47.096Z] using shell fallback: npm.cmd "exec" "tauri" "--" "dev"
+[2026-04-22T15:58:47.820Z] [stderr]      Running BeforeDevCommand (`npm run dev`)
+[2026-04-22T15:58:48.044Z] [stdout] 
+[2026-04-22T15:58:48.044Z] [stdout] > rheolab-enterprise@0.2.0-beta.24 dev
+[2026-04-22T15:58:48.044Z] [stdout] > vite
+[2026-04-22T15:58:48.044Z] [stdout] 
+[2026-04-22T15:58:48.391Z] [stdout] [2m20:58:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because lockfile has changed
+[2026-04-22T15:58:48.441Z] [stdout] 
+[2026-04-22T15:58:48.442Z] [stdout]   [32m[1mVITE[22m v6.4.2[39m  [2mready in [0m[1m349[22m[2m[0m ms[22m
+[2026-04-22T15:58:48.442Z] [stdout] 
+[2026-04-22T15:58:48.442Z] [stdout]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m1420[22m/[39m
+[2026-04-22T15:58:51.854Z] [stderr]      Running DevCommand (`cargo  run --no-default-features --color always --`)
+[2026-04-22T15:58:51.922Z] [stderr]         Info Watching D:\Development\Rheolab\src-tauri for changes...
+[2026-04-22T15:58:52.878Z] [stderr] [1m[92m   Compiling[0m rheolab-core v0.1.0 (D:\Development\Rheolab\src\rust\rheolab-core)
+[2026-04-22T15:58:56.319Z] [stderr] [1m[96m    Building[0m [=======================> ] 822/825: rheolab…                                                            [1m[92m   Compiling[0m rheolab-enterprise v0.2.0-beta.24 (D:\Development\Rheolab\src-tauri)
+[2026-04-22T15:59:02.116Z] heartbeat: pid=16536 elapsed=15.0s
+[2026-04-22T15:59:17.124Z] heartbeat: pid=16536 elapsed=30.0s
+[2026-04-22T15:59:24.393Z] [stderr] [1m[96m    Building[0m [=======================> ] 822/825: rheolab…[1m[96m    Building[0m [=======================> ] 823/825: rheolab…[1m[96m    Building[0m [=======================> ] 824/825: rheolab…                                                            [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 32.48s
+[2026-04-22T15:59:24.448Z] [stderr] [1m[92m     Running[0m `target\debug\rheolab-enterprise.exe`
+[2026-04-22T15:59:31.966Z] [stdout] [2026-04-22][15:59:31][reqwest::connect][DEBUG] starting new connection: https://license.vizbuka.ru/
+[2026-04-22T15:59:32.130Z] heartbeat: pid=16536 elapsed=45.0s
+[2026-04-22T15:59:32.208Z] [stdout] [2026-04-22][15:59:32][reqwest::retry][TRACE] shouldn't retry!
+[2026-04-22T15:59:47.139Z] heartbeat: pid=16536 elapsed=60.0s
+[2026-04-22T16:00:02.154Z] heartbeat: pid=16536 elapsed=75.1s
+[2026-04-22T16:00:17.160Z] heartbeat: pid=16536 elapsed=90.1s
+[2026-04-22T16:00:32.175Z] heartbeat: pid=16536 elapsed=105.1s
+[2026-04-22T16:00:47.178Z] heartbeat: pid=16536 elapsed=120.1s
+[2026-04-22T16:01:02.186Z] heartbeat: pid=16536 elapsed=135.1s
+[2026-04-22T16:01:17.190Z] heartbeat: pid=16536 elapsed=150.1s
+[2026-04-22T16:01:32.201Z] heartbeat: pid=16536 elapsed=165.1s
+[2026-04-22T16:01:47.229Z] heartbeat: pid=16536 elapsed=180.1s
+[2026-04-22T16:02:02.241Z] heartbeat: pid=16536 elapsed=195.1s
+[2026-04-22T16:02:17.255Z] heartbeat: pid=16536 elapsed=210.2s
+[2026-04-22T16:02:32.256Z] heartbeat: pid=16536 elapsed=225.2s
+[2026-04-22T16:02:47.257Z] heartbeat: pid=16536 elapsed=240.2s
+[2026-04-22T16:03:02.264Z] heartbeat: pid=16536 elapsed=255.2s
+[2026-04-22T16:03:17.264Z] heartbeat: pid=16536 elapsed=270.2s
+[2026-04-22T16:03:32.278Z] heartbeat: pid=16536 elapsed=285.2s
+[2026-04-22T16:03:47.290Z] heartbeat: pid=16536 elapsed=300.2s
+[2026-04-22T16:04:02.305Z] heartbeat: pid=16536 elapsed=315.2s
+[2026-04-22T16:04:17.307Z] heartbeat: pid=16536 elapsed=330.2s
+[2026-04-22T16:04:32.312Z] heartbeat: pid=16536 elapsed=345.2s
+[2026-04-22T16:04:47.327Z] heartbeat: pid=16536 elapsed=360.2s
+[2026-04-22T16:05:02.338Z] heartbeat: pid=16536 elapsed=375.2s
+[2026-04-22T16:05:17.351Z] heartbeat: pid=16536 elapsed=390.3s
+[2026-04-22T16:05:32.354Z] heartbeat: pid=16536 elapsed=405.3s
+[2026-04-22T16:05:47.367Z] heartbeat: pid=16536 elapsed=420.3s
+[2026-04-22T16:06:02.374Z] heartbeat: pid=16536 elapsed=435.3s
+[2026-04-22T16:06:17.375Z] heartbeat: pid=16536 elapsed=450.3s
+[2026-04-22T16:06:32.376Z] heartbeat: pid=16536 elapsed=465.3s
+[2026-04-22T16:06:47.382Z] heartbeat: pid=16536 elapsed=480.3s
+[2026-04-22T16:07:02.397Z] heartbeat: pid=16536 elapsed=495.3s
+[2026-04-22T16:07:17.401Z] heartbeat: pid=16536 elapsed=510.3s
+[2026-04-22T16:07:32.414Z] heartbeat: pid=16536 elapsed=525.3s
+[2026-04-22T16:07:47.419Z] heartbeat: pid=16536 elapsed=540.3s
+[2026-04-22T16:08:02.420Z] heartbeat: pid=16536 elapsed=555.3s
+[2026-04-22T16:08:17.434Z] heartbeat: pid=16536 elapsed=570.3s
+[2026-04-22T16:08:32.442Z] heartbeat: pid=16536 elapsed=585.4s
+[2026-04-22T16:08:47.444Z] heartbeat: pid=16536 elapsed=600.4s
+[2026-04-22T16:09:02.444Z] heartbeat: pid=16536 elapsed=615.4s
+[2026-04-22T16:09:17.458Z] heartbeat: pid=16536 elapsed=630.4s
+[2026-04-22T16:09:32.469Z] heartbeat: pid=16536 elapsed=645.4s
+[2026-04-22T16:09:47.475Z] heartbeat: pid=16536 elapsed=660.4s
+[2026-04-22T16:10:02.478Z] heartbeat: pid=16536 elapsed=675.4s
+[2026-04-22T16:10:17.488Z] heartbeat: pid=16536 elapsed=690.4s
+[2026-04-22T16:10:32.490Z] heartbeat: pid=16536 elapsed=705.4s
+[2026-04-22T16:10:47.494Z] heartbeat: pid=16536 elapsed=720.4s
+[2026-04-22T16:11:02.499Z] heartbeat: pid=16536 elapsed=735.4s
+[2026-04-22T16:11:17.504Z] heartbeat: pid=16536 elapsed=750.4s
+[2026-04-22T16:11:32.529Z] heartbeat: pid=16536 elapsed=765.4s
+[2026-04-22T16:11:47.540Z] heartbeat: pid=16536 elapsed=780.4s
+[2026-04-22T16:12:02.544Z] heartbeat: pid=16536 elapsed=795.5s
+[2026-04-22T16:12:17.554Z] heartbeat: pid=16536 elapsed=810.5s
+[2026-04-22T16:12:32.559Z] heartbeat: pid=16536 elapsed=825.5s
+[2026-04-22T16:12:47.561Z] heartbeat: pid=16536 elapsed=840.5s
+[2026-04-22T16:13:02.572Z] heartbeat: pid=16536 elapsed=855.5s
+[2026-04-22T16:13:17.575Z] heartbeat: pid=16536 elapsed=870.5s
+[2026-04-22T16:13:32.579Z] heartbeat: pid=16536 elapsed=885.5s
+[2026-04-22T16:13:47.585Z] heartbeat: pid=16536 elapsed=900.5s
+[2026-04-22T16:14:02.589Z] heartbeat: pid=16536 elapsed=915.5s
+[2026-04-22T16:14:17.595Z] heartbeat: pid=16536 elapsed=930.5s
+[2026-04-22T16:14:32.596Z] heartbeat: pid=16536 elapsed=945.5s
+[2026-04-22T16:14:47.602Z] heartbeat: pid=16536 elapsed=960.5s
+[2026-04-22T16:14:48.532Z] [stderr] [1m[91merror[0m: process didn't exit successfully: `target\debug\rheolab-enterprise.exe` (exit code: 0xffffffff)
+[2026-04-22T16:14:50.531Z] wrapper exit: code=4294967295 signal=null elapsed=963.4s

@@ -9,20 +9,20 @@
 //!     existing CRUD operations, and
 //!   • Tauri commands for querying / managing the data from the frontend.
 
-mod helpers;
-mod types;
-mod import_batch;
 mod artifacts;
+mod conflicts;
+mod helpers;
+mod import_batch;
 mod search;
 mod sync;
-mod conflicts;
 #[cfg(test)]
 mod tests;
+mod types;
 
-pub(crate) use helpers::*;
-pub use types::*;
-pub use import_batch::*;
 pub use artifacts::*;
+pub use conflicts::*;
+pub(crate) use helpers::*;
+pub use import_batch::*;
 pub use search::*;
 pub use sync::*;
-pub use conflicts::*;
+pub use types::*;

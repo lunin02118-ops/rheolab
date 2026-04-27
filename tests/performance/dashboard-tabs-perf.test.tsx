@@ -163,7 +163,7 @@ function makeProps(overrides: Partial<DashboardContentProps> = {}): DashboardCon
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('UI-018 PERF — Dashboard tab navigation', () => {
-    it('full sweep (chart → table → recipe → water → report) with bounded renders', () => {
+    it('full sweep (chart → table → recipe → water → report) with bounded renders', async () => {
         render(<DashboardContent {...makeProps()} />);
 
         // Chart is the default tab, so MockChart has rendered once at this point.
@@ -174,16 +174,16 @@ describe('UI-018 PERF — Dashboard tab navigation', () => {
         };
 
         clickTab('TableTabButton');
-        expect(screen.getByTestId('MockRawDataTable')).toBeDefined();
+        expect(await screen.findByTestId('MockRawDataTable')).toBeDefined();
 
         clickTab('RecipeTabButton');
-        expect(screen.getByTestId('MockRecipePanel')).toBeDefined();
+        expect(await screen.findByTestId('MockRecipePanel')).toBeDefined();
 
         clickTab('WaterTabButton');
-        expect(screen.getByTestId('MockWaterAnalysisPanel')).toBeDefined();
+        expect(await screen.findByTestId('MockWaterAnalysisPanel')).toBeDefined();
 
         clickTab('ReportTabButton');
-        expect(screen.getByTestId('MockReportTab')).toBeDefined();
+        expect(await screen.findByTestId('MockReportTab')).toBeDefined();
 
         // Each tab component should render a modest number of times during
         // the full sweep — a tight bound that would catch an infinite loop
@@ -194,11 +194,12 @@ describe('UI-018 PERF — Dashboard tab navigation', () => {
         }
     });
 
-    it('re-clicking the active report tab does not multiply renders', () => {
+    it('re-clicking the active report tab does not multiply renders', async () => {
         render(<DashboardContent {...makeProps()} />);
         const reportBtn = screen.getByTestId('ReportTabButton');
 
         fireEvent.click(reportBtn);
+        await screen.findByTestId('MockReportTab');
         const renders1 = renderCounts.report;
 
         fireEvent.click(reportBtn);

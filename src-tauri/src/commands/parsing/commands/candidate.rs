@@ -9,9 +9,13 @@ use rheolab_core::parser::calibration::parse_calibration_from_buffer;
 use rheolab_core::parser::filename_parser::parse_filename;
 use rheolab_core::parser::physics_engine::enforce_physics_and_geometry;
 use rheolab_core::parser::types::ParsingResult;
-use rheolab_core::parser::validator::{build_candidate_validation_report, CandidateValidationReport};
+use rheolab_core::parser::validator::{
+    build_candidate_validation_report, CandidateValidationReport,
+};
 
-use super::super::helpers::{build_summary, map_filename_metadata, normalize_date_string, normalize_optional_date};
+use super::super::helpers::{
+    build_summary, map_filename_metadata, normalize_date_string, normalize_optional_date,
+};
 use super::super::types::*;
 
 #[derive(Debug, Clone)]
@@ -47,9 +51,21 @@ pub(super) fn compare_candidates(left: &ParseCandidate, right: &ParseCandidate) 
         .cmp(&right.report.hard_valid)
         .then_with(|| right_severe.cmp(&left_severe))
         .then_with(|| left.report.row_count.cmp(&right.report.row_count))
-        .then_with(|| left.report.mandatory_field_coverage.cmp(&right.report.mandatory_field_coverage))
-        .then_with(|| left.report.time_monotonicity_score.cmp(&right.report.time_monotonicity_score))
-        .then_with(|| left.report.physics_consistency_score.cmp(&right.report.physics_consistency_score))
+        .then_with(|| {
+            left.report
+                .mandatory_field_coverage
+                .cmp(&right.report.mandatory_field_coverage)
+        })
+        .then_with(|| {
+            left.report
+                .time_monotonicity_score
+                .cmp(&right.report.time_monotonicity_score)
+        })
+        .then_with(|| {
+            left.report
+                .physics_consistency_score
+                .cmp(&right.report.physics_consistency_score)
+        })
 }
 
 /// Convert a winning [`ParseCandidate`] into the IPC [`ParseFileResponse`].
@@ -81,7 +97,9 @@ pub(super) fn finalize_candidate_response(
         .collect();
 
     if points.is_empty() {
-        return Err(AppError::Parse("No valid data points found in file".to_string()));
+        return Err(AppError::Parse(
+            "No valid data points found in file".to_string(),
+        ));
     }
 
     let filename_parsed = parse_filename(filename);
@@ -91,31 +109,28 @@ pub(super) fn finalize_candidate_response(
         .as_deref()
         .map(normalize_date_string);
 
-    let calibration = parse_calibration_from_buffer(bytes)
-        .ok()
-        .map(|report| {
-            let calibration_date =
-                normalize_optional_date(Some(report.meta.last_cal_date.as_str()));
-            let raw_data = serde_json::to_string(&report.data).unwrap_or_else(|_| "[]".to_string());
+    let calibration = parse_calibration_from_buffer(bytes).ok().map(|report| {
+        let calibration_date = normalize_optional_date(Some(report.meta.last_cal_date.as_str()));
+        let raw_data = serde_json::to_string(&report.data).unwrap_or_else(|_| "[]".to_string());
 
-            CalibrationResponse {
-                device_type: report.meta.device_type,
-                r_squared: report.meta.r_squared,
-                slope: report.meta.slope,
-                intercept: report.meta.intercept,
-                hysteresis: report.meta.hysteresis,
-                stdev: report.meta.stdev,
-                status: report.status,
-                last_cal_date: if report.meta.last_cal_date.is_empty() {
-                    None
-                } else {
-                    Some(report.meta.last_cal_date)
-                },
-                calibration_date,
-                issues: report.issues,
-                raw_data,
-            }
-        });
+        CalibrationResponse {
+            device_type: report.meta.device_type,
+            r_squared: report.meta.r_squared,
+            slope: report.meta.slope,
+            intercept: report.meta.intercept,
+            hysteresis: report.meta.hysteresis,
+            stdev: report.meta.stdev,
+            status: report.status,
+            last_cal_date: if report.meta.last_cal_date.is_empty() {
+                None
+            } else {
+                Some(report.meta.last_cal_date)
+            },
+            calibration_date,
+            issues: report.issues,
+            raw_data,
+        }
+    });
 
     let summary = build_summary(&points);
     let normalized_test_date = candidate

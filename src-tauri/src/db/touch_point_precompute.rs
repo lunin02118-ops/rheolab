@@ -167,7 +167,9 @@ pub fn to_touch_inputs_from_columns(
     let mut out = Vec::with_capacity(len);
     for i in 0..len {
         let Some(time_sec) = times[i] else { continue };
-        let Some(viscosity_cp) = visc[i] else { continue };
+        let Some(viscosity_cp) = visc[i] else {
+            continue;
+        };
         let shear_rate = shear
             .and_then(|s| s.get(i).copied().flatten())
             .unwrap_or(0.0);
@@ -381,7 +383,11 @@ fn write_all_thresholds_empty(conn: &Connection, experiment_id: &str) -> rusqlit
          VALUES (?1, ?2, 0, NULL, NULL, NULL, ?3)",
     )?;
     for &threshold_cp in LIBRARY_TOUCH_THRESHOLDS_CP {
-        stmt.execute(params![experiment_id, threshold_cp as i64, TOUCH_PRECOMPUTE_VERSION])?;
+        stmt.execute(params![
+            experiment_id,
+            threshold_cp as i64,
+            TOUCH_PRECOMPUTE_VERSION
+        ])?;
     }
     Ok(())
 }
@@ -461,11 +467,7 @@ pub fn run_touch_point_backfill(conn: &Connection) -> rusqlite::Result<BackfillS
         match precompute_single(conn, id) {
             Ok(()) => stats.processed += 1,
             Err(e) => {
-                tracing::warn!(
-                    "touch-point backfill: skipping experiment {} — {}",
-                    id,
-                    e
-                );
+                tracing::warn!("touch-point backfill: skipping experiment {} — {}", id, e);
                 // Even on error we still mark the row as "computed" with
                 // empty values (legacy columns + all preset side rows),
                 // otherwise every startup retries it endlessly.

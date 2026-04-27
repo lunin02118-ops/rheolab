@@ -4,9 +4,9 @@
 //! Pure functions that return [`LicenseFeatures`] for each license type / status.
 //! No I/O, no side-effects.
 
-use super::types::{LicenseFeatures, LicenseType, DEMO_MAX_EXPERIMENTS};
 #[cfg(test)]
 use super::types::{LicenseCheckResult, LicenseStatus};
+use super::types::{LicenseFeatures, LicenseType, DEMO_MAX_EXPERIMENTS};
 
 // ── Feature presets ────────────────────────────────────────────────────
 

@@ -91,8 +91,8 @@ fn compute_machine_id_inner(app_data_dir: &std::path::Path) -> String {
 
     // Check on-disk cache: if the components_hash matches, hardware hasn't changed
     // since the last run.  The cache never stores the ID itself (S-4).
-    let cache_fresh = read_cache(app_data_dir)
-        .is_some_and(|c| c.version == 2 && c.components_hash == live_hash);
+    let cache_fresh =
+        read_cache(app_data_dir).is_some_and(|c| c.version == 2 && c.components_hash == live_hash);
 
     if !cache_fresh {
         tracing::info!("Machine ID cache: miss or stale — will write new cache");
@@ -110,7 +110,10 @@ fn compute_machine_id_inner(app_data_dir: &std::path::Path) -> String {
     {
         tracing::debug!(
             "[hw-id-v2] cpu={:?}  mobo={:?}  bios={:?}  → id={}",
-            cpu, mobo, bios, id
+            cpu,
+            mobo,
+            bios,
+            id
         );
     }
 

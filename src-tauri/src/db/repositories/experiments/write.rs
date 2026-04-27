@@ -2,7 +2,7 @@ use crate::commands::experiments::helpers::{
     calculate_avg_temperature_c, calculate_duration_seconds, calculate_max_temperature_c,
     now_rfc3339, short_hash,
 };
-use crate::commands::experiments::types::{LOCAL_USER_ID, StoredExperiment};
+use crate::commands::experiments::types::{StoredExperiment, LOCAL_USER_ID};
 use crate::error::Result;
 use rusqlite::params;
 
@@ -54,8 +54,7 @@ pub(crate) fn persist_experiment(
         .water_params
         .as_ref()
         .map(|v| serde_json::to_string(v).unwrap_or_default());
-    let metrics_json =
-        serde_json::to_string(&exp.metrics).unwrap_or_else(|_| "{}".to_string());
+    let metrics_json = serde_json::to_string(&exp.metrics).unwrap_or_else(|_| "{}".to_string());
     // P0 refactoring: rawPoints column is kept as '[]' sentinel — all point data
     // lives exclusively in ExperimentData (columnar-zstd blob). The column is NOT NULL
     // so we cannot use NULL; '[]' signals "look in ExperimentData".
@@ -198,11 +197,9 @@ pub(crate) fn persist_experiment(
     // filter sidebar can answer range queries without rescanning the
     // columnar blob. Failure is logged but non-fatal: the backfill task
     // will retry on next startup.
-    if let Err(e) = crate::db::touch_point_precompute::update_touch_point_row(
-        conn,
-        &exp.id,
-        &exp.raw_points,
-    ) {
+    if let Err(e) =
+        crate::db::touch_point_precompute::update_touch_point_row(conn, &exp.id, &exp.raw_points)
+    {
         tracing::warn!(
             "touch-point precompute (save-path) failed for {}: {}",
             exp.id,
@@ -226,12 +223,7 @@ pub(crate) fn persist_experiment(
         let category = reagent
             .category
             .clone()
-            .or_else(|| {
-                reagent
-                    .reagent
-                    .as_ref()
-                    .and_then(|d| d.category.clone())
-            });
+            .or_else(|| reagent.reagent.as_ref().and_then(|d| d.category.clone()));
 
         conn.execute(
             "INSERT INTO ExperimentReagent \

@@ -7,6 +7,7 @@ export default tseslint.config(
       "dist/**",
       "scripts/**",
       "src/rust/**/pkg/**",
+      "src/rust/**/target/**",
       "src-tauri/**",
       "node_modules/**",
       "coverage/**",

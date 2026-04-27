@@ -1,9 +1,9 @@
 #[cfg(test)]
-use super::helpers::*;
-#[cfg(test)]
 use super::conflicts::CONFLICT_STATUSES;
 #[cfg(test)]
-use super::sync::{OUTBOX_STATUSES, INBOX_STATUSES};
+use super::helpers::*;
+#[cfg(test)]
+use super::sync::{INBOX_STATUSES, OUTBOX_STATUSES};
 
 #[cfg(test)]
 use rusqlite::{params, Connection};
@@ -44,7 +44,8 @@ fn insert_test_user(conn: &Connection) {
     conn.execute(
         "INSERT OR IGNORE INTO User (id, email, name) VALUES ('admin', 'admin@test', 'Admin')",
         [],
-    ).unwrap();
+    )
+    .unwrap();
 }
 
 fn insert_test_experiment(conn: &Connection, id: &str) {
@@ -59,7 +60,8 @@ fn insert_test_experiment(conn: &Connection, id: &str) {
             id
         ),
         [],
-    ).unwrap();
+    )
+    .unwrap();
 }
 
 fn setup_test_db() -> Connection {
@@ -75,11 +77,25 @@ fn experiment_payload_versioning() {
     insert_test_experiment(&conn, "exp1");
 
     let id1 = create_experiment_payload(
-        &conn, "exp1", None, r#"{"version":1}"#, None, None, None, true,
+        &conn,
+        "exp1",
+        None,
+        r#"{"version":1}"#,
+        None,
+        None,
+        None,
+        true,
     )
     .unwrap();
     let id2 = create_experiment_payload(
-        &conn, "exp1", None, r#"{"version":2}"#, None, None, None, false,
+        &conn,
+        "exp1",
+        None,
+        r#"{"version":2}"#,
+        None,
+        None,
+        None,
+        false,
     )
     .unwrap();
 
@@ -100,10 +116,8 @@ fn parser_artifact_creation() {
     let conn = setup_test_db();
     insert_test_experiment(&conn, "exp2");
 
-    let id = create_parser_artifact(
-        &conn, "exp2", None, "1.0.0", "v1", r#"{"points":[]}"#,
-    )
-    .unwrap();
+    let id =
+        create_parser_artifact(&conn, "exp2", None, "1.0.0", "v1", r#"{"points":[]}"#).unwrap();
 
     let fp: String = conn
         .query_row(
@@ -120,14 +134,8 @@ fn parser_artifact_creation() {
 fn sync_outbox_append() {
     let conn = setup_test_db();
 
-    let id = append_sync_outbox(
-        &conn,
-        "experiment",
-        "exp1",
-        "create",
-        r#"{"name":"Test"}"#,
-    )
-    .unwrap();
+    let id =
+        append_sync_outbox(&conn, "experiment", "exp1", "create", r#"{"name":"Test"}"#).unwrap();
 
     let (status, retry): (String, i64) = conn
         .query_row(
@@ -169,8 +177,15 @@ fn report_artifact_creation() {
     insert_test_experiment(&conn, "exp3");
 
     let id = create_report_artifact(
-        &conn, "exp3", None, "pdf", Some("1.0"), None, Some("/reports/exp3.pdf"),
-        Some("abc123"), Some(102400),
+        &conn,
+        "exp3",
+        None,
+        "pdf",
+        Some("1.0"),
+        None,
+        Some("/reports/exp3.pdf"),
+        Some("abc123"),
+        Some(102400),
     )
     .unwrap();
 

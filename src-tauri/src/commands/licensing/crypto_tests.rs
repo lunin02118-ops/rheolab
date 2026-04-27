@@ -30,8 +30,8 @@ fn sign_with_dev_private_key(data: &[u8]) -> String {
     use sha2::Sha256;
 
     let private_der = include_bytes!("../../../keys/dev_private.der");
-    let private_key = rsa::RsaPrivateKey::from_pkcs8_der(private_der)
-        .expect("dev private key should be valid");
+    let private_key =
+        rsa::RsaPrivateKey::from_pkcs8_der(private_der).expect("dev private key should be valid");
     let signing_key = SigningKey::<Sha256>::new(private_key);
     let signature = signing_key.sign(data);
     base64::engine::general_purpose::STANDARD.encode(&*signature.to_bytes())
@@ -52,7 +52,8 @@ fn rsa_verify_tampered_payload_fails() {
     let original = r#"{"id":42,"type":"standard","customerName":"Test","expiresAt":"2027-01-01"}"#;
     let sig = sign_with_dev_private_key(original.as_bytes());
     // Tamper the payload
-    let tampered = r#"{"id":42,"type":"enterprise","customerName":"Test","expiresAt":"2099-01-01"}"#;
+    let tampered =
+        r#"{"id":42,"type":"enterprise","customerName":"Test","expiresAt":"2099-01-01"}"#;
     assert!(
         !verify_server_signature(tampered, &sig),
         "Tampered payload should fail RSA verification"
@@ -109,8 +110,9 @@ fn system_state_hmac_roundtrip() {
             value TEXT NOT NULL,
             signature TEXT NOT NULL,
             updatedAt TEXT NOT NULL
-        );"
-    ).unwrap();
+        );",
+    )
+    .unwrap();
 
     let value = r#"{"license":"data","expiresAt":"2027-01-01"}"#;
     upsert_system_state(&conn, "test_key", value).unwrap();
@@ -131,8 +133,9 @@ fn system_state_tamper_detected() {
             value TEXT NOT NULL,
             signature TEXT NOT NULL,
             updatedAt TEXT NOT NULL
-        );"
-    ).unwrap();
+        );",
+    )
+    .unwrap();
 
     upsert_system_state(&conn, "test_key", r#"{"valid":true}"#).unwrap();
 

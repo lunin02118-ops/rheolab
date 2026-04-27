@@ -1,0 +1,7 @@
+Audit started: 04/25/2026 14:22:42
+Node: v24.14.1
+NPM: 11.11.0
+Cargo: cargo 1.94.1 (29ea6fb6a 2026-03-24)
+Rust: rustc 1.94.1 (e408947bf 2026-03-25)
+Git: 94c16713e0708681ef6ba47caa7a4d12ba88a28f
+Branch: main

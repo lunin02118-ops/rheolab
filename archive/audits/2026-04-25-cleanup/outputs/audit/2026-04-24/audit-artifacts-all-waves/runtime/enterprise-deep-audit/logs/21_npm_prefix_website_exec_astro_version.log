@@ -1,0 +1,4 @@
+[2026-04-24T02:21:16.071Z] $ npm --prefix website exec -- astro --version
+  [42m[30m astro [39m[49m [32mv5.16.7[39m
+
+[2026-04-24T02:21:16.763Z] exit=0 signal=none timedOut=false
