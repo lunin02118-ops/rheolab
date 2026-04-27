@@ -350,5 +350,5 @@ pub async fn experiments_filter_metadata(
 }
 
 #[cfg(test)]
-#[path = "list_tests.rs"]
+#[path = "list_tests/mod.rs"]
 mod tests;
