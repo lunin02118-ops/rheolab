@@ -122,8 +122,6 @@ const content = `/**
 export const APP_VERSION = '${version}';
 export const BUILD_DATE = '${buildDate}';
 export const COMMIT_HASH = '${commitHash}';
-
-export const FULL_VERSION = \`v\${APP_VERSION} (\${BUILD_DATE})\`;
 `;
 
 fs.writeFileSync(versionFilePath, content);

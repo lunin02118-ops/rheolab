@@ -10,11 +10,10 @@ import type { ParseResult } from '@/lib/store/experiment-data-store';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { getAnalysisCache, setAnalysisCache } from '@/hooks/analysisCache';
 
-// The module-level cache lives in `./analysisCache.ts` so lightweight
-// consumers (layouts, stores) can clear it without pulling the analysis
-// client + Tauri bridge into the main bundle. Re-exports preserve the
-// historical import paths for callers that still reach through this hook.
-export { clearAnalysisCache, __resetAnalysisCache } from '@/hooks/analysisCache';
+// The module-level cache lives in `./analysisCache.ts`. The cache is now
+// imported directly from there by all production callers; only the test-only
+// reset helper is re-exported to preserve historical test import paths.
+export { __resetAnalysisCache } from '@/hooks/analysisCache';
 
 interface UseAnalysisPipelineProps {
     parseResult: ParseResult | null;

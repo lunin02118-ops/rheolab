@@ -1,0 +1,300 @@
+# Deep optimization audit — plan & baseline
+
+**Date:** 2026-04-27
+**Branch:** `main` @ `858f55c` (`0.2.0-beta.53`)
+**Run-id:** `20260427-deep-opt-baseline`
+**Goal:** measurable reduction in resource consumption (memory, bundle, native footprint, CPU) and overall code-base optimization.
+
+---
+
+## 0. Baseline snapshot
+
+### 0.1 Code metrics
+
+| Metric | Value |
+|---|---:|
+| Rust LOC (total) | 50 837 (203 files) |
+| Rust LOC `src-tauri/` | 27 389 (113 files) |
+| Rust LOC `src/rust/rheolab-core/` | 23 448 (90 files) |
+| TS/TSX LOC `src/` | 36 289 (243 files) |
+| Source bytes on disk | 3.62 MB |
+| Production `unwrap()` | 0 |
+| Production `expect()` | 49 (parser fallbacks) |
+| Production `panic!()` | 3 (only in `examples/`) |
+| TODO / unimplemented | 0 |
+| Mojibake | 0 |
+| IPC commands | 93 |
+| Files >500 LOC (Rust) | 20 |
+| Files >400 LOC (TS) | 8 |
+
+**Top-5 oversized Rust files (refactor candidates):**
+
+1. `src/rust/rheolab-core/src/report_generator/comparison/pdf_comparison.rs` — 1620 LOC
+2. `src-tauri/src/commands/experiments/list/list_tests.rs` — 1586 LOC
+3. `src/rust/rheolab-core/src/report_generator/chart_generator/line/multi_experiment.rs` — 1363 LOC
+4. `src/rust/rheolab-core/src/report_generator/comparison/excel_comparison.rs` — 1243 LOC
+5. `src/rust/rheolab-core/src/report_generator/formatters.rs` — 875 LOC
+
+**Top-3 oversized TS files:**
+
+1. `src/lib/utils/touch-point.ts` — 599 LOC
+2. `src/components/library/experiment-filters.tsx` — 523 LOC
+3. `src/lib/store/chart-settings-store.ts` — 423 LOC
+
+### 0.2 Release gate
+
+| | |
+|---|---|
+| Decision | **GO** |
+| Checks executed | 14 |
+| Checks passed | 14 |
+| Blocking failures | 0 |
+| Severity blockers | 0 |
+
+### 0.3 Bundle (frontend, after `npm run build`)
+
+| Asset | Size | Gzip |
+|---|---:|---:|
+| `main-*.js` | 273.50 KB | 86.79 KB |
+| `page-Bq54HiSG.js` | 141.03 KB | 40.87 KB |
+| `vendor-radix-*.js` | 115.52 KB | 36.99 KB |
+| `page-XEM2GAqG.js` | 105.37 KB | 26.95 KB |
+| `vendor-charts-*.js` | 52.54 KB | 23.38 KB |
+| `vendor-react-*.js` | 49.03 KB | 17.39 KB |
+| `DashboardContent-*.js` | 48.50 KB | 14.69 KB |
+| Other chunks | various | various |
+
+Build time: 18.19 s.
+
+### 0.4 Dependencies
+
+| Source | Outdated count |
+|---|---:|
+| npm (root deps) | ~28 |
+| cargo workspaces | TBD |
+
+### 0.5 Runtime performance (existing data)
+
+| Metric | Value | Source |
+|---|---:|---|
+| Native memory `totalWsMb` p95 | 562.57 MB | Apr 27 audit (codex) |
+| JS heap p95 | 9.73 MB | Apr 27 audit |
+| Renderer working set p95 | 162.79 MB | Apr 27 audit |
+| GPU working set p95 | 168.79 MB | Apr 27 audit |
+| Soak (20 runs) | 20 / 20 PASS | Apr 27 audit |
+| Idle heap Analysis route | 6.43 MB | Apr 25 benchmark |
+| Idle heap Library | 7.75 MB | Apr 25 benchmark |
+| Idle heap Comparison | 8.33 MB | Apr 25 benchmark |
+| Idle heap Settings | 7.81 MB | Apr 25 benchmark |
+| Navigation leak (5 cycles) | +2.71 MB / +3518 nodes | Apr 25 benchmark |
+
+Fresh `perf:benchmark` and `perf:soak:tauri` runs are scheduled in this baseline.
+
+---
+
+## 1. Phase plan
+
+### Phase 0 — Baseline collection (in progress)
+
+* enterprise audit quick — done
+* snapshot-metrics — done
+* bundle composition — done
+* npm outdated — done
+* cargo outdated — running
+* perf:benchmark — running
+* perf:soak:tauri — TODO
+* audit:frontend-ipc (deep, with rebuild) — optional, ~10 min
+* DB schema dump + EXPLAIN baseline — optional
+
+**Gate to enter Phase 1:** baseline JSON committed under `runtime/audit/20260427-deep-opt-baseline/`.
+
+### Phase 1 — Bundle and dead exports
+
+**Tooling:** `rollup-plugin-visualizer` (already in repo), add **`knip`** + **`ts-prune`** as dev-deps; add **`madge`** for module-dependency graph.
+
+**Targets:**
+
+* Bundle main + vendor reduced by ≥10 %.
+* Dead TS exports list with concrete delete suggestions.
+* Module dependency cycles list (acceptable: zero cycles).
+
+**Risk:** low. No prod logic touched.
+
+### Phase 2 — Architecture refactor (oversized files)
+
+**Targets per file:**
+
+| File | Plan |
+|---|---|
+| `pdf_comparison.rs` 1620 | split by report section: header / charts / tables / footer |
+| `multi_experiment.rs` 1363 | split by chart type: line / bar / scatter |
+| `excel_comparison.rs` 1243 | split by Excel sheet |
+| `formatters.rs` 875 | split by domain |
+| `touch_point_precompute.rs` 765 | split by precompute pipeline phase |
+| `touch-point.ts` 599 | split: pure utils / kalman / smoothing |
+| `experiment-filters.tsx` 523 | split by filter group |
+| `chart-settings-store.ts` 423 | split into store slices |
+
+**Goal:** Rust files >500 LOC: 20 → ≤10. TS files >400 LOC: 8 → ≤3.
+
+**Risk:** medium. Tests must remain green; ADR per refactor.
+
+### Phase 3 — Runtime performance
+
+**Targets:**
+
+| Metric | Now | Goal |
+|---|---:|---:|
+| Native memory `totalWsMb` p95 | 562.57 MB | <500 MB |
+| JS heap p95 | 9.73 MB | <8 MB |
+| Time-to-interactive (TTI) | TBD | −20 % |
+| React renders >16 ms | TBD | 0 |
+
+**Approach:** React Profiler runs, IPC waterfall analysis, lazy-load remaining heavy routes, fine-tune WebView2 args.
+
+**Risk:** medium. Possible UX regressions; full Playwright suite must pass.
+
+### Phase 4 — Database
+
+**Targets:**
+
+* EXPLAIN QUERY PLAN on top-10 read queries.
+* Audit existing indexes: any never-used? any missing?
+* VACUUM/ANALYZE strategy: when, how often.
+* Migration scaffold health: applied vs DDL.
+* Pagination correctness in `list_experiments`.
+* Dead columns/tables: manual review.
+
+**Risk:** medium-high. Touches schema. Strict migration tests + rollback plan.
+
+### Phase 5 — Dead code
+
+**Tools:** `knip`, `ts-prune`, `cargo-machete`, `cargo +nightly udeps`, existing `scripts/audit/orphan-commands.ps1`.
+
+**Targets:**
+
+* Dead TS exports (and tests for them).
+* Dead Rust deps in `Cargo.toml`.
+* Dead `pub` items / unused workspace members.
+* Dead test fixtures.
+* Dead i18n keys.
+* Orphan IPC commands.
+* Dead capabilities / permissions.
+
+**Risk:** low. Pure deletions, easy revert.
+
+### Phase 6 — Dependencies
+
+**Targets:**
+
+* Decision matrix per outdated package: bump / pin / replace / drop.
+* Heavy deps in bundle: candidates for replacement.
+* `npm dedupe` for duplicates.
+* Major-bump RFCs.
+
+**Risk:** medium. Major bumps need Playwright sweep.
+
+### Phase 7 — Resource fine-tuning
+
+After 1–6, point optimizations:
+
+* Memory: extra WebView2 args (only data-driven).
+* Disk: log rotation (already done), DB compaction, runtime/ cleanup policy.
+* CPU: SIMD flags, parallel iterators in core, criterion regressions check.
+* Network: license-server polling backoff, response caching.
+* Bundle: lazy-load remaining heavy routes (Comparison, Settings).
+
+**Risk:** low–medium per fix.
+
+### Phase 8 — Final report
+
+Sections:
+
+* Before / after metrics summary.
+* Applied optimizations (commit-by-commit).
+* ROI table: effort vs gain.
+* Roadmap for next 1–3 months.
+* Anti-patterns / "do not do" recommendations.
+
+Artifact: `docs/audit/2026-04-27-deep-optimization-final.md` plus run JSON.
+
+---
+
+## 2. Target KPIs
+
+| KPI | Now | Target |
+|---|---:|---:|
+| Native memory p95 | 562.57 MB | <500 MB (−11 %) |
+| JS heap p95 | 9.73 MB | <8 MB (−18 %) |
+| Bundle main + vendor | TBD | −10 % |
+| Files >500 LOC (Rust) | 20 | ≤10 (−50 %) |
+| Files >400 LOC (TS) | 8 | ≤3 (−63 %) |
+| Production `expect()` | 49 | ≤30 |
+| TTI | TBD | −20 % |
+| Test runtime | Vitest 13 s, cargo 36 s | no regression |
+
+## 3. Process safety
+
+* Each phase is a separate feature branch off `main`.
+* After every phase: all gates green (`tsc`, `eslint`, `vitest`, `cargo test`, `gitleaks`, enterprise-audit).
+* Squash-merge only after manual review.
+* Rollback: revert branch.
+* No UX regressions: Playwright suite must keep passing.
+
+## 4. Artifacts
+
+* This document — plan and baseline summary.
+* `runtime/audit/20260427-deep-opt-baseline/` — raw JSON / TSV / logs.
+* `runtime/refactor-baseline/metrics.json` — LOC / quality / oversize snapshot.
+* Fresh perf runs: `outputs/e2e/perf/benchmark-*.json`, soak summary.
+
+## 5. Status
+
+### Phase 0 — Baseline collection: **DONE** (2026-04-27)
+
+All baseline artefacts captured under `runtime/audit/20260427-deep-opt-baseline/`:
+
+* `metrics.json` — LOC, oversize, Rust quality counts
+* `bundle-audit-stdout.log` — production bundle composition
+* `npm-outdated.json`, `cargo-tree-*.txt` — dependency snapshots
+* `madge-circular-ts.txt` — **0 circular deps** (clean architecture)
+* `knip-report.txt`, `ts-prune-report.txt` — dead-code candidates
+* `perf-benchmark-stdout.log`, `perf-soak-stdout.log` — runtime perf baseline
+* `release-gate-decision.json` — GO (14/14 gates, 0 blockers)
+
+### Phase 1 — Dead code & unused exports: **in progress** (branch `audit/phase-1-dead-code`)
+
+Commits so far on the branch:
+
+| SHA | Subject | Δ |
+|---|---|---:|
+| `0a8f7be` | add knip, ts-prune, madge as dev tooling | +3 dev-deps |
+| `154211c` | remove 5 dead files identified by knip+ts-prune | −29.4 KB / −521 LOC |
+| `f740536` | remove 4 unused exports from `src/` | −19 lines |
+
+Files removed (manual review confirmed zero non-JSDoc imports):
+
+* `src/components/reports/ReportSettings.tsx` (17.5 KB) — replaced by `useReportExport`
+* `src/components/reports/ReportsPanel.tsx` (8.6 KB) — replaced by `ComparisonReportTab`
+* `src/lib/api-keys/helpers.ts` (250 B) — zombie after S-1 removal
+* `tests/api-keys/helpers.test.ts` (429 B) — placeholder for the deleted helpers
+* `scripts/build/modify-chart-template.ts` (2.6 KB) — no callers
+
+Exports removed (`ts-prune` + `grep` cross-check):
+
+* `useAnalysisPipeline.ts` — `clearAnalysisCache` re-export (callers go direct)
+* `lib/logger.ts` — `configureLogger`, `getLogLevel` (no callers)
+* `lib/version.ts` + `scripts/build/generate-version.js` template — `FULL_VERSION` (no callers)
+
+Verification after every commit: `tsc` clean, `eslint` clean (0 warnings), `vitest` 89/89 (1330 tests passing), `cargo test --lib` 322/322.
+
+Skipped intentionally (false positives or ad-hoc dev tools):
+
+* `Regents/` — TDS data scraping helpers (not source code, manual user data dump)
+* `scripts/{audit,build,debug,dev,test,utils,release}/*` — most are invoked transitively from `run-enterprise-deep-audit.js`, `release/build.ps1`, or documented as one-shot dev tools in `scripts/README.md`
+* `orphan-commands-report.txt` showing 91/91 IPC commands as "orphan" — false positive: the audit script does not parse the `register_tauri_commands!()` macro in `src-tauri/src/startup/commands_registry.rs`. All commands are verified registered (cargo test passes, IPC integration tests green).
+* Most `ts-prune` "unused exports" — they are types in barrel-files (`*/index.ts`, `tauri.d.ts`) consumed via `import type` paths the tool cannot statically resolve.
+
+### Phase 2+ — Pending
+
+Phases 2–8 unchanged from the plan above. Recommended next step: review and merge `audit/phase-1-dead-code` into `main`, then start Phase 2 with the highest-leverage Rust file (`pdf_comparison.rs`, 1620 LOC).

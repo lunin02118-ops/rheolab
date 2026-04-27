@@ -40,24 +40,10 @@ const LOG_EMOJI: Record<LogLevel, string> = {
 };
 
 // Default config — TRACE/DEBUG in dev, INFO+ in production
-let config: LoggerConfig = {
+const config: LoggerConfig = {
     level: isProduction ? 'INFO' : 'TRACE',
     enabled: true
 };
-
-/**
- * Configure the logger
- */
-export function configureLogger(newConfig: Partial<LoggerConfig>): void {
-    config = { ...config, ...newConfig };
-}
-
-/**
- * Get current log level
- */
-export function getLogLevel(): LogLevel {
-    return config.level;
-}
 
 /**
  * Check if a log level should be printed
