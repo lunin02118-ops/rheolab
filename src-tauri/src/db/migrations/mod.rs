@@ -3,6 +3,7 @@ pub mod r#trait;
 pub mod v0001_initial;
 pub mod v0002_touch_point_metrics;
 pub mod v0003_multi_threshold_touch_point;
+pub mod v0004_experiment_list_default_index;
 
 pub use error::MigrationError;
 pub use r#trait::Migration;
@@ -10,6 +11,7 @@ pub use r#trait::Migration;
 use v0001_initial::V0001Initial;
 use v0002_touch_point_metrics::V0002TouchPointMetrics;
 use v0003_multi_threshold_touch_point::V0003MultiThresholdTouchPoint;
+use v0004_experiment_list_default_index::V0004ExperimentListDefaultIndex;
 
 /// Ordered registry of all schema migrations, applied oldest-first on startup.
 ///
@@ -24,6 +26,7 @@ pub static MIGRATIONS: &[&dyn Migration] = &[
     &V0001Initial,
     &V0002TouchPointMetrics,
     &V0003MultiThresholdTouchPoint,
+    &V0004ExperimentListDefaultIndex,
 ];
 
 /// Returns the version of the last registered migration, or `0` if the

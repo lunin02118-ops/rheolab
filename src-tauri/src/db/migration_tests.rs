@@ -8,6 +8,7 @@ use crate::db::migrations::r#trait::Migration;
 use crate::db::migrations::v0001_initial::V1_DDL;
 use crate::db::migrations::v0002_touch_point_metrics::V0002TouchPointMetrics;
 use crate::db::migrations::v0003_multi_threshold_touch_point::V0003MultiThresholdTouchPoint;
+use crate::db::migrations::v0004_experiment_list_default_index::V0004ExperimentListDefaultIndex;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -511,6 +512,8 @@ fn schema_identity_with_raw_ddl() {
     // v0003 — multi-threshold TouchPointPrecompute side table + partial
     // indexes + copy-forward of legacy 50 cP data.
     V0003MultiThresholdTouchPoint.up(&conn_b).unwrap();
+    // v0004 — descending composite index for default Library list page.
+    V0004ExperimentListDefaultIndex.up(&conn_b).unwrap();
 
     fn dump(conn: &Connection) -> Vec<String> {
         let mut stmt = conn
