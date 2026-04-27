@@ -604,7 +604,7 @@ One ecosystem chain per session with a full regression gate after each.
 |---|---|---|---|---|
 | `700edbf` | `vite` + `@vitejs/plugin-react` | 6.3.5 + 4.6.0 | 7.3.2 + 5.2.0 | DONE |
 | `c2f6c66` | `typescript` | 5.9.3 | 6.0.3 | DONE |
-| — | `eslint` + `typescript-eslint` | 9.39.4 + 8.59.0 | 10.2.1 + 8.x | pending |
+| `99f3784` | `eslint` | 9.39.4 | 10.2.1 | DONE |
 | — | `@types/node` | 20.19.39 | 25.6.0 (Node 22 LTS API surface) | pending |
 | — | `vite` + `@vitejs/plugin-react` (v8 wave) | 7.3.2 + 5.2.0 | 8.0.10 + 6.0.1 | pending |
 
@@ -636,15 +636,34 @@ Verification: `tsc --noEmit` 0 errors, `eslint --max-warnings=0` clean,
 pdf,excel rheolab-core` 189/189, `cargo test --lib src-tauri`
 328/328.
 
+**ESLint 10 bump** (`99f3784`).  None of the breaking changes hit
+this codebase: we've been on flat config (`eslint.config.mjs`) since
+day one — zero `.eslintrc.*`, `.eslintignore`, or `/* eslint-env */`
+artefacts; we don't write custom rules so deprecated `context` /
+`SourceCode` API removals are no-ops; JSX reference tracking flagged
+zero new `no-unused-vars` / `no-undef` hits.  `typescript-eslint`
+8.59.0 stayed (its peer range already covered `eslint ^10.0.0`).
+
+`npm install` required `--legacy-peer-deps`: `madge@8.0.0` declares
+`peerOptional typescript@^5.4.4` and we're on TS 6.0.3 from Phase
+3.2.  Same `peerOptional` was warning during the TS 6 install
+(`c2f6c66`) but didn't block; bumping ESLint forces full tree
+re-resolve so npm now blocks instead.  `madge` is a dev-only graph
+analyser — its peerOptional is stale, runtime is unaffected.
+
+Verification: `eslint --max-warnings=0` 0 errors / 0 warnings,
+`tsc --noEmit` 0 errors, `vitest` 1334/1340, `npm run build` 11.52 s,
+`cargo test --features pdf,excel rheolab-core` 189/189, `cargo test
+--lib src-tauri` 328/328.
+
 ### Phase 3+ — Pending
 
 Recommended next steps in priority order:
 
 1. **Phase 3 continuation** — bump the remaining ecosystem chains one
-   at a time: `eslint` 9 → 10 + `typescript-eslint`, `@types/node`
-   20 → 25, then `vite` 7 → 8 last as the Rolldown wave.  Each must
-   pass the full gate (`tsc`, `eslint`, `vitest`, `cargo test --lib`,
-   `npm run build`) before merging.
+   at a time: `@types/node` 20 → 25, then `vite` 7 → 8 last as the
+   Rolldown wave.  Each must pass the full gate (`tsc`, `eslint`,
+   `vitest`, `cargo test --lib`, `npm run build`) before merging.
 2. **F6 / F7** — defer until profiling on production-size DB shows them.
 3. **Phase 4 / new oversized files** — if any new Rust file crosses
    the ~500 LOC budget in future work, give it the same split-on-merge
