@@ -15,14 +15,21 @@ pub(crate) mod helpers;
 mod stats;
 mod chart_page;
 mod raw_data;
+mod touch_points;
+
+#[cfg(test)]
+mod tests;
 
 use super::super::types::*;
-use super::super::formatters::{format_date, format_number, build_ramp_string, convert_viscosity, get_viscosity_unit, viscosity_decimals};
-use super::super::chart_generator::{ChartPoint, ChartConfig, ChartTouchPoint, ChartRanges};
-use plotters::style::RGBColor;
+use super::super::formatters::{format_date, format_number, build_ramp_string};
+use super::super::chart_generator::{ChartConfig, ChartRanges};
 use std::collections::HashMap;
 
 use helpers::escape_typst;
+
+// Re-export the chart touch-point helper for the parent `pdf` module
+// (`pdf/mod.rs` calls `template::calculate_touch_points_for_chart`).
+pub(super) use touch_points::calculate_touch_points_for_chart;
 
 pub(super) fn generate_typst_template(
     input: &ReportInput,
@@ -287,7 +294,12 @@ pub(crate) fn build_single_experiment_body(
     let stats = stats::build_stats_section(input, is_ru);
 
     // ── 6. Touch-points block (right side of page 1) ─────────────────────
-    let touch_points_block = build_touch_points_block(chart_config, is_ru, input.settings.show_touch_points, &input.settings.unit_system);
+    let touch_points_block = touch_points::build_touch_points_block(
+        chart_config,
+        is_ru,
+        input.settings.show_touch_points,
+        &input.settings.unit_system,
+    );
 
     // ── 7. Chart page + raw-data page ────────────────────────────────────
     let chart_page = chart_page::build_chart_page(input, has_chart, chart_config, chart_ranges, is_ru);
@@ -431,215 +443,3 @@ pub(crate) fn build_single_experiment_body(
     )
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use super::super::super::types::{DataPoint, ReportMetadata, ReportSettings};
-
-    fn minimal_report_input() -> ReportInput {
-        ReportInput {
-            raw_data: vec![
-                DataPoint { time_sec: 0.0, viscosity_cp: 100.0, temperature_c: Some(25.0), shear_rate: Some(100.0), shear_stress_pa: None, speed_rpm: None, pressure_bar: None, bath_temperature_c: None },
-                DataPoint { time_sec: 60.0, viscosity_cp: 150.0, temperature_c: Some(50.0), shear_rate: Some(75.0), shear_stress_pa: None, speed_rpm: None, pressure_bar: None, bath_temperature_c: None },
-            ],
-            metadata: ReportMetadata {
-                filename: "test.pdf".to_string(),
-                test_id: Some("T-1".to_string()),
-                ..Default::default()
-            },
-            cycle_results: vec![],
-            recipe: vec![],
-            water_params: None,
-            cycles: vec![],
-            settings: ReportSettings::default(),
-            chart_image_base64: None,
-            axis_values: None,
-        }
-    }
-
-    /// Determinism: running `generate_typst_template` twice must produce
-    /// byte-identical Typst source — no wall-clock values, no HashMap
-    /// iteration order, nothing else that could leak non-determinism.
-    #[test]
-    fn generate_typst_template_is_deterministic() {
-        let input = minimal_report_input();
-        let files = std::collections::HashMap::new();
-        let a = generate_typst_template(&input, &files, false, None, None);
-        let b = generate_typst_template(&input, &files, false, None, None);
-        assert_eq!(a.len(), b.len(), "length drift: {} vs {}", a.len(), b.len());
-        assert_eq!(a, b, "non-deterministic template output");
-    }
-
-    /// Refactor guarantee: the splitting of `generate_typst_template` into
-    /// `build_typst_globals + build_single_experiment_body` must be a pure
-    /// concat — the final string must match character-for-character what the
-    /// single monolithic function used to produce.
-    ///
-    /// This test pins the Phase 1.D refactor against drift: if a future
-    /// change to the globals block or body block diverges, we want a hard
-    /// failure before anyone ships a regressed PDF.
-    #[test]
-    fn generate_typst_template_equals_globals_plus_body_concat() {
-        let input = minimal_report_input();
-        let files = std::collections::HashMap::new();
-        let has_chart = false;
-        let total_pages = if has_chart { 2 } else { 1 };
-        let is_ru = input.settings.language == "ru";
-
-        let expected = generate_typst_template(&input, &files, has_chart, None, None);
-        let reassembled = format!(
-            "{}{}",
-            build_typst_globals(&input, total_pages),
-            build_single_experiment_body(&input, has_chart, None, None, is_ru),
-        );
-        assert_eq!(
-            expected, reassembled,
-            "globals + body concat diverges from generate_typst_template output"
-        );
-    }
-
-    /// The body must never emit globals: no `#set page`, no `#let
-    /// section_header`, no `#let report_header` / `#let report_footer`.
-    /// These belong to [`build_typst_globals`] and get emitted once per
-    /// document by the comparison assembler.
-    #[test]
-    fn body_does_not_emit_globals() {
-        let input = minimal_report_input();
-        let body = build_single_experiment_body(&input, false, None, None, false);
-        // Tokens that must live in globals, not body.
-        assert!(!body.contains("#set page("),   "body leaks '#set page('");
-        assert!(!body.contains("#let section_header"),   "body leaks section_header");
-        assert!(!body.contains("#let report_header"),    "body leaks report_header");
-        assert!(!body.contains("#let report_footer"),    "body leaks report_footer");
-        assert!(!body.contains("#let label(content)"),   "body leaks label helper");
-    }
-
-    /// Globals must contain exactly the expected tokens so comparison
-    /// report can rely on them.
-    #[test]
-    fn globals_contain_required_tokens() {
-        let input = minimal_report_input();
-        let globals = build_typst_globals(&input, 2);
-        assert!(globals.contains("#set page(paper: \"a4\""), "missing base page set");
-        assert!(globals.contains("#let section_header"), "missing section_header helper");
-        assert!(globals.contains("#let label(content)"), "missing label helper");
-        assert!(globals.contains("#let report_header"), "missing report_header");
-        assert!(globals.contains("#let report_footer"), "missing report_footer");
-        assert!(globals.contains("header: report_header"), "missing header binding on page");
-    }
-}
-
-/// Right-side “Control Points” table on page 1.
-///
-/// Returns an empty string when there is nothing to show.
-fn build_touch_points_block(
-    chart_config: Option<&ChartConfig>,
-    is_ru: bool,
-    show_touch_points: bool,
-    unit_system: &str,
-) -> String {
-    let Some(config) = chart_config else { return String::new(); };
-    if config.touch_points.is_empty() || !show_touch_points {
-        return String::new();
-    }
-
-    let visc_unit = get_viscosity_unit(unit_system);
-    let visc_dec = viscosity_decimals(unit_system) as usize;
-    let t_touch = if is_ru { "Контрольные точки" } else { "Control Points" };
-    let mut rows = String::new();
-    for tp in &config.touch_points {
-        let is_threshold = tp.label.contains("Порог") || tp.label.contains("Threshold");
-        let visc_converted = convert_viscosity(tp.viscosity, unit_system);
-        let value_col = if is_threshold {
-            if is_ru { format!("{:.1} мин", tp.time) } else { format!("{:.1} min", tp.time) }
-        } else if is_ru { format!("{:.dec$} {}", visc_converted, visc_unit, dec = visc_dec) } else { format!("{:.dec$} {}", visc_converted, visc_unit, dec = visc_dec) };
-        rows.push_str(&format!(
-            "[{}], [{}],\n",
-            escape_typst(&tp.label),
-            value_col
-        ));
-    }
-    format!(r##"
-  #section_header("{t_touch}")
-  #v(5pt)
-  #table(
-    columns: (2fr, 1fr),
-    stroke: 0.5pt + rgb("#E2E8F0"),
-    fill: none,
-    {rows}
-  )
-"##, t_touch = t_touch, rows = rows)
-}
-
-/// Calculate touch points for chart visualization using smart algorithm.
-///
-/// Filters by dominant shear rate (ignoring ramp segments) and detects the
-/// end of the initial viscosity ramp-up before searching for threshold crossing.
-pub(super) fn calculate_touch_points_for_chart(
-    points: &[ChartPoint],
-    settings: &ReportSettings,
-    is_ru: bool,
-    unit_system: &str,
-) -> Vec<ChartTouchPoint> {
-    use super::super::touch_point::{
-        TouchPointInput, TouchPointType, SmartTouchPointOptions,
-        calculate_smart_touch_points,
-    };
-
-    // Convert ChartPoint → TouchPointInput
-    let inputs: Vec<TouchPointInput> = points
-        .iter()
-        .map(|p| TouchPointInput {
-            time_min: p.time_min,
-            viscosity_cp: p.viscosity_cp,
-            shear_rate: p.shear_rate.unwrap_or(0.0),
-        })
-        .collect();
-
-    let results = calculate_smart_touch_points(
-        &inputs,
-        &SmartTouchPointOptions {
-            viscosity_threshold: settings.viscosity_threshold,
-            show_target_time: settings.show_target_time,
-            target_time: settings.target_time,
-            ..Default::default()
-        },
-    );
-
-    results
-        .into_iter()
-        .map(|r| match r.tp_type {
-            TouchPointType::Threshold => {
-                let visc_unit = get_viscosity_unit(unit_system);
-                let threshold_converted = convert_viscosity(settings.viscosity_threshold as f64, unit_system);
-                let threshold_display = threshold_converted.round() as i32;
-                let label = if is_ru {
-                    format!("Порог вязкости {} {}", threshold_display, visc_unit)
-                } else {
-                    format!("Viscosity Threshold {} {}", threshold_display, visc_unit)
-                };
-                ChartTouchPoint {
-                    time: r.time,
-                    viscosity: r.viscosity,
-                    label,
-                    color: RGBColor(16, 185, 129), // Green #10B981
-                }
-            }
-            TouchPointType::Target => {
-                let label = if is_ru {
-                    format!("Вязкость на {:.0} мин", settings.target_time)
-                } else {
-                    format!("Viscosity at {:.0} min", settings.target_time)
-                };
-                ChartTouchPoint {
-                    time: r.time,
-                    viscosity: r.viscosity,
-                    label,
-                    color: RGBColor(245, 158, 11), // Amber #F59E0B
-                }
-            }
-        })
-        .collect()
-}
