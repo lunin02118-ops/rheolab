@@ -333,11 +333,64 @@ Key empirical findings:
 * **F6 — LOW:** `ReagentCatalog ORDER BY LOWER(...)` does a temp-sort scan. Tiny table (<500 rows), defer until it shows on a profile.
 * **F7 — INFORMATIONAL:** Q4 list-with-`testType` filter does index seek + temp sort. Composite `(testType, createdAt, id)` would remove the sort but adds storage. No action.
 
+### Phase 4b / F5 v0004 migration — **DONE** (2026-04-27)
+
+Commit `ae5d93d`: new migration `v0004_experiment_list_default_index` adds
+`idx_experiment_createdat_id_desc ON Experiment(createdAt DESC, id DESC)`.
+`CURRENT_SCHEMA_VERSION` bumped 3 → 4. Three migration tests (creates index,
+plan uses it without `TEMP B-TREE`, idempotent re-run) plus a fix to
+`schema_identity_with_raw_ddl` to apply v0004 on the manual-DDL path.
+`cargo test --lib`: **328/328**.
+
+### Phase 5 — Dead-code (TS/JS surface): **DONE** (2026-04-27)
+
+Three commits, atomic and gated:
+
+| SHA | Subject | Δ |
+|---|---|---:|
+| `16bb034` | Phase 5a: drop 5 unused npm deps + 6 orphan scripts | −54 packages, −1054 LOC |
+| `6becbae` | Phase 5b: narrow licensing TS-side public API surface | −15 LOC, 0 cycles |
+| `1be5056` | Phase 5c: 5 internal-only demotions + 2 dead `default` exports | −15 LOC |
+| `19a6c1d` | Phase 5c continued: 2 unused barrel re-export lines + 3 useComparisonChartData helpers demoted | −11 LOC |
+
+Knip-report progression:
+
+| Section | Before Phase 5 | After Phase 5 | Δ |
+|---|---:|---:|---:|
+| Unused files | 57 | 51 | **−6** |
+| Unused dependencies | 3 | 0 | **−3** |
+| Unused devDependencies | 7 | 1 | **−6** |
+| Unused exports | 108 | **30** | **−78 (−72%)** |
+| Unlisted binaries | 3 | 1 | **−2** |
+| Unresolved imports | 4 | 2 | **−2** |
+
+Verification on every Phase 5 commit: `tsc` clean, `eslint --max-warnings=0`
+clean, `madge` 0 cycles, `vitest` 1334/1340 (parity with parent), `cargo test
+--lib` 328/328 (Phase 5a touched the JS surface only).
+
+Deferred (false positives or out-of-scope):
+
+* shadcn/ui re-exports (`Dialog*`, `Select*`, `AlertDialog*`, `Card*`,
+  `Table*`, `ScrollBar`) — convention; future code will use them.
+* `playwright.*.config.ts`, `postcss.config.mjs`, `runtime/*`, `website/*`,
+  `Regents/*`, most `scripts/{audit,build,debug,dev,test,utils,release}/*`
+  — invoked via CLI flags or transitively, not as TS imports.
+* `pdf-parse` devDep — only `Regents/extract_tds.js` (manual data dump per
+  AGENTS.md); leave until that workflow is retired.
+* Reserved future API (e.g. `temperatureDecimals`, `convertValue`,
+  `axisLabel`, `DATA_COLORS`, `API_RATES`, `ISO_RATES`, `GEOMETRY_PARAMS`,
+  `addLicenseSlot`, `clearMultiLicenseData`) — small surface, deleting
+  would erase work; defer to a separate "API trim" pass with explicit user
+  sign-off.
+
 ### Phase 2+ — Pending
 
 Recommended next steps in priority order:
 
-1. **F5 v0004 migration** — small targeted commit, low risk, future-proofs the Library page. Estimated ~30 LOC including migration test.
-2. **Phase 5 deep dead-code** — barrel files + `scripts/test/test-*.ts` audit. Low–medium risk, mostly grep + manual review.
-3. **Phase 6 dependency bumps** — minor / patch only, batch-by-batch with green gates. Medium risk.
-4. **Phase 2 refactoring** — `pdf_comparison.rs` (1620 LOC) → ≤500 LOC per section. Highest leverage but largest risk; requires its own feature branch and dedicated session.
+1. **Phase 6 — dependency bumps** — `npm outdated`, `cargo outdated` to
+   identify safe minor / patch upgrades. Batch-by-batch with green gates.
+   Medium risk; tractable in a single session.
+2. **Phase 2 — refactor `pdf_comparison.rs`** (1620 LOC) → ≤500 LOC per
+   section. Highest leverage but largest risk; requires its own feature
+   branch and dedicated session.
+3. **F6 / F7** — defer until profiling on production-size DB shows them.
