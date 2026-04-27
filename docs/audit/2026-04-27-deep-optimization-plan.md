@@ -596,13 +596,42 @@ in `mod.rs` so all 18 internal call sites (`formatters::format_number`,
 `formatters::convert_viscosity`, `formatters::resolve_units`,
 `formatters::decimals::TIME`, ...) keep working unchanged.
 
-### Phase 2+ — Pending
+### Phase 3 — Major-version bump pass
+
+One ecosystem chain per session with a full regression gate after each.
+
+| SHA | Chain | Before | After | Status |
+|---|---|---|---|---|
+| `700edbf` | `vite` + `@vitejs/plugin-react` | 6.3.5 + 4.6.0 | 7.3.2 + 5.2.0 | DONE |
+| — | `vite` + `@vitejs/plugin-react` (v8 wave) | 7.3.2 + 5.2.0 | 8.0.10 + 6.0.1 | pending |
+| — | `eslint` + `typescript-eslint` | 9.39.4 + 8.59.0 | 10.2.1 + 8.x | pending |
+| — | `typescript` | 5.9.3 | 6.0.3 | pending |
+| — | `@types/node` | 20.19.39 | 25.6.0 (Node 22 LTS API surface) | pending |
+
+**Vite 7 bump** (`700edbf`).  Vite 6 → 7 breaking changes audited and
+none affect this codebase: Node 18 was already unsupported (we run
+24.14.1); we use `rollupOptions.output.manualChunks` directly so
+`splitVendorChunkPlugin` removal is a no-op; no Sass anywhere
+(Tailwind 4 + PostCSS only); `build.target` is overridden explicitly
+to `chrome105`/`safari13` so the new `'baseline-widely-available'`
+default doesn't apply.  Vite 8 (npm `latest` tag) is the Rolldown
+preview line — saved for a separate session per `vite.dev/blog/announcing-vite8`.
+
+Verification: `npm run build` 12.53 s with full `manualChunks`
+splitting, `tsc` 0 errors, `eslint --max-warnings=0` clean, `vitest`
+1334/1340, `cargo test --features pdf,excel rheolab-core` 189/189,
+`cargo test --lib src-tauri` 328/328.
+
+### Phase 3+ — Pending
 
 Recommended next steps in priority order:
 
-1. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
-   ecosystem chain per session with full regression gate after each.
+1. **Phase 3 continuation** — bump the remaining ecosystem chains one
+   at a time (`typescript` 5 → 6, `eslint` 9 → 10, `@types/node` 20 →
+   25, then `vite` 7 → 8 last as the Rolldown wave).  Each must pass
+   the full gate (`tsc`, `eslint`, `vitest`, `cargo test --lib`,
+   `npm run build`) before merging.
 2. **F6 / F7** — defer until profiling on production-size DB shows them.
-3. **Phase 3 / new oversized files** — if any new Rust file crosses
+3. **Phase 4 / new oversized files** — if any new Rust file crosses
    the ~500 LOC budget in future work, give it the same split-on-merge
    treatment.  No file currently exceeds the budget.
