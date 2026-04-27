@@ -29,19 +29,18 @@ export function BackupManager() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
-    const [isDesktop, setIsDesktop] = useState(false);
     const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
     const bridge = getBridge();
+    // bridge.isDesktop is the source of truth — use it directly rather than
+    // mirroring into React state via a setState-in-effect round-trip.
+    const isDesktop = bridge.isDesktop;
+
     const mountedRef = useRef(true);
     useEffect(() => {
         mountedRef.current = true;
         return () => { mountedRef.current = false; };
     }, []);
-
-    useEffect(() => {
-        setIsDesktop(bridge.isDesktop);
-    }, [bridge.isDesktop]);
 
     const loadBackups = useCallback(async () => {
         if (!bridge.isDesktop) return;
@@ -54,9 +53,10 @@ export function BackupManager() {
     }, [bridge]);
 
     useEffect(() => {
-        if (isDesktop) {
-            void loadBackups();
-        }
+        if (!isDesktop) return;
+        // Defer through a microtask so any synchronous setState at the head
+        // of loadBackups runs after this effect body returns.
+        void Promise.resolve().then(loadBackups);
     }, [isDesktop, loadBackups]);
 
     const handleCreate = async () => {
