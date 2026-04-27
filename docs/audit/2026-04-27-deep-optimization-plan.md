@@ -494,7 +494,7 @@ Progress:
 | SHA | File | Before | After (max section) | Status |
 |---|---|---:|---:|---|
 | `06708df` | `pdf_comparison.rs` | 1620 LOC (1 file) | 5 files, max 583 LOC; production max 270 LOC | DONE |
-| — | `list_tests.rs` | 1586 LOC | — | pending |
+| `a794057` | `list_tests.rs` | 1586 LOC (1 file) | 9 files, max 302 LOC | DONE |
 | — | `multi_experiment.rs` (chart_generator) | 1363 LOC | — | pending |
 | — | `excel_comparison.rs` | 1243 LOC | — | pending |
 | — | `formatters.rs` | 875 LOC | — | pending |
@@ -514,13 +514,33 @@ Verification: `cargo check --features pdf` clean, `cargo test --lib
 clean, `vitest` 1334/1340.  Public API (`generate_comparison_pdf`)
 unchanged.
 
+`list_tests` split layout:
+
+| File | LOC | Responsibility |
+|---|---:|---|
+| `mod.rs` | 26 | Module declarations |
+| `fixtures.rs` | 170 | Shared `pub(super)` test helpers |
+| `basic.rs` | 129 | CRUD + pagination + simple filters (8 tests) |
+| `touch_point_filter.rs` | 230 | Touch-point filter behaviours (9 tests) |
+| `touch_point_stats.rs` | 117 | Library-wide stats snapshot (3 tests) |
+| `dynamic_threshold.rs` | 302 | User-configurable viscosity threshold (6 tests) |
+| `regression.rs` | 117 | Production-bug regressions (2 tests) |
+| `combat_thresholds.rs` | 281 | Combat: ALL fixtures × ALL preset thresholds (1 test) |
+| `combat_composite.rs` | 271 | Combat: composite threshold + time-window (1 test) |
+
+Verification: `cargo test --lib commands::experiments::list` 30/30,
+`cargo test --lib` 328/328, `tsc` clean, `eslint --max-warnings=0`
+clean, `vitest` 1334/1340.  Test paths preserved
+(`experiments::list::tests::<submodule>::<test_name>`) by keeping the
+parent declaration as `#[cfg(test)] #[path = "list_tests/mod.rs"] mod tests;`.
+
 ### Phase 2+ — Pending
 
 Recommended next steps in priority order:
 
-1. **Phase 2 continuation** — split the 4 remaining oversized Rust
-   files (`list_tests.rs`, `multi_experiment.rs`, `excel_comparison.rs`,
-   `formatters.rs`).  `list_tests.rs` is the next biggest target.
+1. **Phase 2 continuation** — split the 3 remaining oversized Rust
+   files (`multi_experiment.rs`, `excel_comparison.rs`, `formatters.rs`).
+   `multi_experiment.rs` is the next biggest target (1363 LOC).
 2. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
    ecosystem chain per session with full regression gate after each.
 3. **F6 / F7** — defer until profiling on production-size DB shows them.
