@@ -65,4 +65,3 @@ export function ComparisonLegend({ seriesConfig, hiddenSeries, toggleSeries }: C
     );
 }
 
-export default React.memo(ComparisonLegend);

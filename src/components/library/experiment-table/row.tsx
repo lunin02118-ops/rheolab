@@ -9,7 +9,7 @@ import { TEST_CATEGORY_LABELS, TEST_TYPE_LABELS, type TestCategory, type TestTyp
 import { CYCLE_TYPE_STYLES, DOMINANT_PATTERN_LABELS, type CycleTypeName } from '@/lib/analysis/constants';
 import type { ExperimentCardItem } from '@/types/experiment-list-item';
 
-export const TEST_CATEGORY_BADGE: Record<TestCategory, string> = {
+const TEST_CATEGORY_BADGE: Record<TestCategory, string> = {
     Fracturing: 'bg-orange-100 dark:bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-400 dark:border-orange-500/30',
     Drilling:   'bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-400 dark:border-blue-500/30',
     General:    'bg-muted/15 text-foreground/80 border-border/30',

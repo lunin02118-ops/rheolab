@@ -15,7 +15,7 @@ const sourceLabels = {
     default: ''
 };
 
-export function InstrumentBadge({ instrumentType }: { instrumentType?: string }) {
+function InstrumentBadge({ instrumentType }: { instrumentType?: string }) {
     if (!instrumentType || instrumentType === 'Rheometer') return null;
 
     return (
@@ -26,7 +26,7 @@ export function InstrumentBadge({ instrumentType }: { instrumentType?: string })
     );
 }
 
-export function GeometryBadge({ geometry, geometrySource }: {
+function GeometryBadge({ geometry, geometrySource }: {
     geometry?: string;
     geometrySource?: InstrumentInfo['geometrySource'];
 }) {
@@ -45,7 +45,7 @@ export function GeometryBadge({ geometry, geometrySource }: {
     );
 }
 
-export function FluidTypeBadge({ fluidType }: { fluidType?: string }) {
+function FluidTypeBadge({ fluidType }: { fluidType?: string }) {
     if (!fluidType) return null;
 
     return (

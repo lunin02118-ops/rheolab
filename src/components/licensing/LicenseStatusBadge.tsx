@@ -101,4 +101,3 @@ function getStatusConfig(
     }
 }
 
-export default LicenseStatusBadge;

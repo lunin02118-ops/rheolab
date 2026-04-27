@@ -37,7 +37,7 @@ function readNumber(record: UnknownRecord, keys: string[], fallback = 0): number
   return fallback;
 }
 
-export function normalizeDataPoints(data: unknown): ParseResult['data'] {
+function normalizeDataPoints(data: unknown): ParseResult['data'] {
   if (!Array.isArray(data)) return [];
 
   return data.map((point) => {
@@ -97,7 +97,7 @@ function normalizeRange(value: unknown): ParseResult['summary']['pressureRange']
   };
 }
 
-export function buildSummary(data: ParseResult['data']): ParseResult['summary'] {
+function buildSummary(data: ParseResult['data']): ParseResult['summary'] {
   if (!data || data.length === 0) {
     return {
       pointCount: 0,
