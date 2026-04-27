@@ -50,6 +50,8 @@ credentials.*
 # Allow the RSA public key for server-signature verification (embedded at build time)
 !src-tauri/keys/license_public.pem
 !src-tauri/keys/license_public.der
+# Allow the Tauri updater public verification key (required by fresh clones / build)
+!src-tauri/keys/updater.key.pub
 
 # debug
 npm-debug.log*

@@ -22,6 +22,7 @@ pub mod types;
 pub mod utils;
 
 use startup::logging::{log_to_file, rotate_startup_log};
+use tauri_plugin_log::log::LevelFilter;
 
 /// Initialize and run the Tauri application.
 pub fn run() {
@@ -42,7 +43,7 @@ pub fn run() {
     //   --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection  (wry defaults, must be re-declared)
     //   --disable-features=BackForwardCache,Vulkan                       (BFCache + Vulkan backend off)
     //   --disable-back-forward-cache                                     (canonical Chromium switch)
-    //   --js-flags=--max-old-space-size=256                              (V8 GC threshold)
+    //   --js-flags=--max-old-space-size=512                              (V8 heap ceiling)
     //   --renderer-process-limit=1                                       (single-window cap)
     //
     // WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS env var is used by the E2E harness
@@ -57,6 +58,20 @@ pub fn run() {
         }
     }
 
+    // Logging: app at Info in release / Debug in debug builds; dependencies
+    // (tauri, updater, reqwest, hyper, rustls, wry) muted to Warn in release
+    // so the rotated app.log stays small and signal-rich.
+    let app_log_level = if cfg!(debug_assertions) {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+    let dependency_log_level = if cfg!(debug_assertions) {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Warn
+    };
+
     let run_result = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
@@ -68,13 +83,21 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_log::Builder::new()
+                .clear_targets()
                 .target(tauri_plugin_log::Target::new(
                     tauri_plugin_log::TargetKind::LogDir {
                         file_name: Some("app.log".into()),
                     },
                 ))
+                .level(app_log_level)
+                .level_for("tauri", dependency_log_level)
+                .level_for("tauri_plugin_updater", dependency_log_level)
+                .level_for("reqwest", dependency_log_level)
+                .level_for("hyper", dependency_log_level)
+                .level_for("rustls", dependency_log_level)
+                .level_for("wry", dependency_log_level)
                 .max_file_size(2_000_000) // rotate app.log at ~2 MB
-                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(5))
                 .build(),
         )
         .setup(|app| startup::setup::run_app_setup(app))
