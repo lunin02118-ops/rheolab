@@ -482,12 +482,45 @@ and the upstream library involved.
 Verification on every batch: `tsc` clean, `eslint --max-warnings=0`
 clean, `vitest` 1334/1340 (parity with parent).
 
+### Phase 2 — Architecture refactor (oversized files): **IN PROGRESS** (2026-04-27)
+
+Refactor the 5 oversized Rust files (≥500 LOC) into focused modules.
+Each refactor is committed on its own feature branch and merged to
+`main` only after `cargo check`, `cargo test --lib`, `tsc`, `eslint`,
+and `vitest` are all green.
+
+Progress:
+
+| SHA | File | Before | After (max section) | Status |
+|---|---|---:|---:|---|
+| `06708df` | `pdf_comparison.rs` | 1620 LOC (1 file) | 5 files, max 583 LOC; production max 270 LOC | DONE |
+| — | `list_tests.rs` | 1586 LOC | — | pending |
+| — | `multi_experiment.rs` (chart_generator) | 1363 LOC | — | pending |
+| — | `excel_comparison.rs` | 1243 LOC | — | pending |
+| — | `formatters.rs` | 875 LOC | — | pending |
+
+`pdf_comparison` split layout:
+
+| File | Production / Total LOC | Responsibility |
+|---|---:|---|
+| `mod.rs` | 150 / 512 | Entry, orchestrator, integration tests, shared fixtures |
+| `chart_page.rs` | 270 / 314 | Page 1 — full-page landscape comparison chart |
+| `summary_page.rs` | 80 / 80 | Page 2 — portrait summary table |
+| `touch_points.rs` | 200 / 202 | Touch-point block + `canonical_to_internal` |
+| `chart_renderer.rs` | 260 / 583 | Multi-experiment chart SVG renderer + chart tests |
+
+Verification: `cargo check --features pdf` clean, `cargo test --lib
+--features pdf,excel` 189/189, `tsc` clean, `eslint --max-warnings=0`
+clean, `vitest` 1334/1340.  Public API (`generate_comparison_pdf`)
+unchanged.
+
 ### Phase 2+ — Pending
 
 Recommended next steps in priority order:
 
-1. **Phase 2 — refactor `pdf_comparison.rs`** (1620 LOC) → ≤500 LOC per
-   section. Highest impact but largest risk; needs its own feature branch.
+1. **Phase 2 continuation** — split the 4 remaining oversized Rust
+   files (`list_tests.rs`, `multi_experiment.rs`, `excel_comparison.rs`,
+   `formatters.rs`).  `list_tests.rs` is the next biggest target.
 2. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
    ecosystem chain per session with full regression gate after each.
 3. **F6 / F7** — defer until profiling on production-size DB shows them.
