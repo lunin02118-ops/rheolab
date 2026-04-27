@@ -19,14 +19,14 @@ const emptyMetadata: ExperimentsFilterMetadataResponse = {
     touchPointStats: {
         totalExperiments: 0,
         withCrossingCount: 0,
-        withTargetCount: 0,
+        withTargetViscosityCount: 0,
         crossingTimeMinMinutes: null,
         crossingTimeMaxMinutes: null,
         crossingViscosityMinCp: null,
         crossingViscosityMaxCp: null,
         viscosityAtTargetMinCp: null,
         viscosityAtTargetMaxCp: null,
-    } as ExperimentsFilterMetadataResponse['touchPointStats'],
+    },
 };
 
 describe('filter-metadata-cache', () => {
