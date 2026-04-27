@@ -295,6 +295,26 @@ Skipped intentionally (false positives or ad-hoc dev tools):
 * `orphan-commands-report.txt` showing 91/91 IPC commands as "orphan" — false positive: the audit script does not parse the `register_tauri_commands!()` macro in `src-tauri/src/startup/commands_registry.rs`. All commands are verified registered (cargo test passes, IPC integration tests green).
 * Most `ts-prune` "unused exports" — they are types in barrel-files (`*/index.ts`, `tauri.d.ts`) consumed via `import type` paths the tool cannot statically resolve.
 
+### Phase 4 — Database deep-dive (read-only audit): **DONE** (2026-04-27)
+
+Static analysis of schema + production query patterns. Full report: `docs/audit/2026-04-27-database-deep-dive.md`.
+
+Key findings:
+
+* **0 high-severity** issues. Hot path is solidly indexed (PK / composite / partial indexes).
+* **0 circular FKs**, all hot-path FKs are index-backed.
+* **Schema is well-engineered**: 45 indexes across 23 tables, every index justified by a documented `WHERE`-path. `Experiment` carries 17 (12 base + 5 partial v0002), `TouchPointPrecompute` 4 partial indexes (v0003).
+* 4 low / informational findings tracked for Phase 7 fine-tune (`LOWER(name)` footgun, 3 missing FK indexes on artifact tables, filter-metadata `DISTINCT`-fan-out, write-amplification monitoring).
+
+Decision: **no schema migration needed**. Two trivial 1-commit fixes can be folded into Phase 7 if desired:
+
+1. `db/repositories/reagents.rs::is_duplicate_name` — rewrite `LOWER(name) = LOWER(?)` → `name = ? COLLATE NOCASE`
+2. Frontend cache for `experiments_filter_metadata` result with cache-key = last experiment save timestamp
+
 ### Phase 2+ — Pending
 
-Phases 2–8 unchanged from the plan above. Recommended next step: review and merge `audit/phase-1-dead-code` into `main`, then start Phase 2 with the highest-leverage Rust file (`pdf_comparison.rs`, 1620 LOC).
+Phases 2, 3, 5–8 unchanged from the plan above. Recommended next steps:
+
+1. Apply F1+F3 from the DB deep-dive in a small Phase-7-style commit (low risk, ~30 lines).
+2. Start Phase 2 with the highest-leverage Rust file (`pdf_comparison.rs`, 1620 LOC) on a fresh feature branch.
+3. Run live `EXPLAIN QUERY PLAN` profiling on the seed DB before any heavier DB optimisation work.
