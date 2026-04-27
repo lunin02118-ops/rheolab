@@ -72,41 +72,41 @@ export default defineConfig(async () => ({
         : 'safari13',
     // Produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         main: path.resolve(__dirname, 'index.html'),
       },
       output: {
-        // Vite 8 + Rolldown removed the object form of manualChunks
-        // (`{ name: [pkg, ...] }`); only the function form is still
-        // supported (and itself deprecated — the long-term move is to
-        // Rolldown's `codeSplitting` option).  This function form
-        // reproduces the previous chunk groups by id-inspection so
-        // the cache-friendly vendor split survives the upgrade.
+        // Vite 8 + Rolldown.  Migrated off the deprecated function-form
+        // `manualChunks` (kept around as a compat shim) onto Rolldown's
+        // canonical `codeSplitting.groups` API — same vendor split,
+        // declarative regex tests, no JS callback overhead.
+        // Reference: https://rolldown.rs/in-depth/manual-code-splitting
         // openai is left alone — dynamic import() gives it its own
         // auto-generated chunk and we don't want to merge it here.
-        manualChunks: (id: string) => {
-          if (!id.includes('node_modules')) return undefined;
-
-          // Framework — changes least often, maximizes cache hits.
-          if (
-            /[/\\]node_modules[/\\](react|react-dom|react-router-dom|scheduler)[/\\]/.test(id)
-          ) {
-            return 'vendor-react';
-          }
-          // Charts — uplot is very small and fast.
-          if (/[/\\]node_modules[/\\]uplot[/\\]/.test(id)) {
-            return 'vendor-charts';
-          }
-          // Radix UI primitives — large but rarely change.
-          if (/[/\\]node_modules[/\\]@radix-ui[/\\]/.test(id)) {
-            return 'vendor-radix';
-          }
-          // date-fns — separate because it's locale-heavy.
-          if (/[/\\]node_modules[/\\]date-fns[/\\]/.test(id)) {
-            return 'vendor-date';
-          }
-          return undefined;
+        codeSplitting: {
+          groups: [
+            // Framework — changes least often, maximizes cache hits.
+            {
+              test: /[/\\]node_modules[/\\](react|react-dom|react-router-dom|scheduler)[/\\]/,
+              name: 'vendor-react',
+            },
+            // Charts — uplot is very small and fast.
+            {
+              test: /[/\\]node_modules[/\\]uplot[/\\]/,
+              name: 'vendor-charts',
+            },
+            // Radix UI primitives — large but rarely change.
+            {
+              test: /[/\\]node_modules[/\\]@radix-ui[/\\]/,
+              name: 'vendor-radix',
+            },
+            // date-fns — separate because it's locale-heavy.
+            {
+              test: /[/\\]node_modules[/\\]date-fns[/\\]/,
+              name: 'vendor-date',
+            },
+          ],
         },
       },
     },
