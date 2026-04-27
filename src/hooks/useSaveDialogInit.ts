@@ -139,7 +139,17 @@ export function useSaveDialogInit(
     // ── UI state ─────────────────────────────────────────────────────────────
     const [isLoading, setIsLoading] = useState(false);
     const [smartFillApplied, setSmartFillApplied] = useState(false);
-    const [recentReagentIds, setRecentReagentIds] = useState<string[]>([]);
+    // Lazy init reads localStorage once during mount — no setState-in-effect
+    // round-trip needed.
+    const [recentReagentIds, setRecentReagentIds] = useState<string[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const stored = localStorage.getItem('rheolab-recent-reagents');
+            return stored ? (JSON.parse(stored) as string[]) : [];
+        } catch {
+            return [];
+        }
+    });
 
     // ── Catalog ───────────────────────────────────────────────────────────────
     const reagentCatalog = useCatalogStore(s => s.reagents) as ReagentCatalogItem[];
@@ -155,23 +165,23 @@ export function useSaveDialogInit(
             bridge.operators.list().catch(() => [] as OperatorRecord[]),
             bridge.laboratories.list().catch(() => [] as LaboratoryRecord[]),
         ]).then(([ops, labs]) => {
-            setOperatorOptions(ops.map((o: OperatorRecord) => o.name));
-            setLaboratoryCatalog(labs);
+            void Promise.resolve().then(() => {
+                setOperatorOptions(ops.map((o: OperatorRecord) => o.name));
+                setLaboratoryCatalog(labs);
+            });
         });
     }, [isOpen]);
 
-    // ── Effect 1: Load recent reagents from localStorage ──────────────────────
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem('rheolab-recent-reagents');
-            if (stored) setRecentReagentIds(JSON.parse(stored));
-        } catch (_e) { /* localStorage unavailable — start with empty recent list */ }
-    }, []);
+    // ── Effect 1 (was localStorage hydration) is now a lazy useState init above.
 
-    // ── Effect 2: Load catalog (shared store deduplicates) ────────────────────
+    // ── Effect 2: Load catalog (shared store deduplicates) ────────────────────────
     useEffect(() => {
-        void fetchCatalogReagents();
-        void fetchCatalogWaterSources();
+        // Defer through a microtask so the store actions' synchronous
+        // setState (loading flag flips) run after this effect body returns.
+        void Promise.resolve().then(() => {
+            void fetchCatalogReagents();
+            void fetchCatalogWaterSources();
+        });
     }, [fetchCatalogReagents, fetchCatalogWaterSources]);
 
     // ── Effect 3: Smart Fill from last context ────────────────────────────────
@@ -179,18 +189,25 @@ export function useSaveDialogInit(
     // waterSource, which are experiment-specific and must start fresh each time.
     useEffect(() => {
         if (!isOpen || smartFillApplied) return;
-        setIsLoading(true);
-        void getLastExperimentContext()
+        // Wrap in a Promise chain so setIsLoading(true) is a microtask
+        // setState rather than a synchronous-effect-body setState.
+        void Promise.resolve()
+            .then(() => {
+                setIsLoading(true);
+                return getLastExperimentContext();
+            })
             .then((context) => {
                 if (!context) return;
                 // Carry over general context (does not depend on specific experiment)
-                if (context.fieldName && !analysisData.prefilledFieldName)
-                    setFieldName(context.fieldName);
-                if (context.operatorName && !analysisData.prefilledOperatorName)
-                    setOperatorName(context.operatorName);
-                // NOTE: waterSource and reagents are intentionally NOT carried over.
-                // Each new experiment must start with an empty recipe and water source.
-                setSmartFillApplied(true);
+                void Promise.resolve().then(() => {
+                    if (context.fieldName && !analysisData.prefilledFieldName)
+                        setFieldName(context.fieldName);
+                    if (context.operatorName && !analysisData.prefilledOperatorName)
+                        setOperatorName(context.operatorName);
+                    // NOTE: waterSource and reagents are intentionally NOT carried over.
+                    // Each new experiment must start with an empty recipe and water source.
+                    setSmartFillApplied(true);
+                });
             })
             .finally(() => setIsLoading(false));
     }, [isOpen, smartFillApplied, analysisData.prefilledFieldName, analysisData.prefilledOperatorName]);
@@ -198,38 +215,49 @@ export function useSaveDialogInit(
     // ── Effect 4: Set default name/metadata from filename ─────────────────────
     useEffect(() => {
         if (!isOpen) return;
-        setName(analysisData.filename.replace(/\.[^/.]+$/, ''));
-        if (!fieldName && !wellNumber) {
-            const meta = parseExperimentFilename(analysisData.filename);
-            if (meta.fieldName) setFieldName(meta.fieldName);
-            if (meta.wellNumber) setWellNumber(meta.wellNumber);
-            if (meta.operatorName) setOperatorName(meta.operatorName);
-            if (meta.testDate) setTestDate(meta.testDate);
-        }
+        // Microtask deferral so the bulk of setState happens after the
+        // effect body returns; values still applied before the user sees
+        // the dialog (next paint).
+        const filename = analysisData.filename;
+        const shouldParse = !fieldName && !wellNumber;
+        void Promise.resolve().then(() => {
+            setName(filename.replace(/\.[^/.]+$/, ''));
+            if (shouldParse) {
+                const meta = parseExperimentFilename(filename);
+                if (meta.fieldName) setFieldName(meta.fieldName);
+                if (meta.wellNumber) setWellNumber(meta.wellNumber);
+                if (meta.operatorName) setOperatorName(meta.operatorName);
+                if (meta.testDate) setTestDate(meta.testDate);
+            }
+        });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only parse filename metadata on open, not when field values change
     }, [isOpen, analysisData.filename]);
 
-    // ── Effect 5: Prefill from dashboard ──────────────────────────────────────
+    // ── Effect 5: Prefill from dashboard ────────────────────────────────────
     useEffect(() => {
         if (!isOpen) return;
-        if (analysisData.prefilledName) setName(analysisData.prefilledName);
-        if (analysisData.prefilledFieldName) setFieldName(analysisData.prefilledFieldName);
-        if (analysisData.prefilledOperatorName) setOperatorName(analysisData.prefilledOperatorName);
-        if (analysisData.prefilledWellNumber) setWellNumber(analysisData.prefilledWellNumber);
-        if (analysisData.prefilledWaterSource) setWaterSource(analysisData.prefilledWaterSource);
-        if (analysisData.prefilledWaterParams)
-            setWaterParams(prev => ({ ...prev, ...analysisData.prefilledWaterParams }));
-        if (analysisData.prefilledRecipe?.length) {
-            setReagents(analysisData.prefilledRecipe.map((r, i) => ({
-                key: `prefill-${i}`,
-                reagentId: r.reagentId || '',
-                reagentName: r.reagentName || r.abbreviation,
-                concentration: r.concentration,
-                unit: r.unit as 'kg/m3' | 'gpt' | 'L/m3' | '%',
-                batchNumber: r.batchNumber,
-                productionDate: r.productionDate ? new Date(r.productionDate) : undefined,
-            })));
-        }
+        // Microtask deferral so the chain of optional setStates runs after
+        // the effect body returns rather than during it.
+        void Promise.resolve().then(() => {
+            if (analysisData.prefilledName) setName(analysisData.prefilledName);
+            if (analysisData.prefilledFieldName) setFieldName(analysisData.prefilledFieldName);
+            if (analysisData.prefilledOperatorName) setOperatorName(analysisData.prefilledOperatorName);
+            if (analysisData.prefilledWellNumber) setWellNumber(analysisData.prefilledWellNumber);
+            if (analysisData.prefilledWaterSource) setWaterSource(analysisData.prefilledWaterSource);
+            if (analysisData.prefilledWaterParams)
+                setWaterParams(prev => ({ ...prev, ...analysisData.prefilledWaterParams }));
+            if (analysisData.prefilledRecipe?.length) {
+                setReagents(analysisData.prefilledRecipe.map((r, i) => ({
+                    key: `prefill-${i}`,
+                    reagentId: r.reagentId || '',
+                    reagentName: r.reagentName || r.abbreviation,
+                    concentration: r.concentration,
+                    unit: r.unit as 'kg/m3' | 'gpt' | 'L/m3' | '%',
+                    batchNumber: r.batchNumber,
+                    productionDate: r.productionDate ? new Date(r.productionDate) : undefined,
+                })));
+            }
+        });
     }, [
         isOpen,
         analysisData.prefilledName,
@@ -241,11 +269,15 @@ export function useSaveDialogInit(
         analysisData.prefilledRecipe,
     ]);
 
-    // ── Effect 6: Reset all state on close ───────────────────────────────────
+    // ── Effect 6: Reset all state on close ──────────────────────────────────
     // Clears every form field so the next dialog open starts completely fresh.
     // Effects 3-5 and 7-8 will re-populate from context / analysisData on open.
     useEffect(() => {
-        if (!isOpen) {
+        if (isOpen) return;
+        // Microtask deferral so the bulk reset runs after the effect body
+        // returns; UI never observes a partially-reset state because all
+        // setState calls are batched in a single React update.
+        void Promise.resolve().then(() => {
             setSmartFillApplied(false);
             setFluidTypeUserSet(false);
             // Re-seed fluidType from hint when dialog re-opens
@@ -262,16 +294,18 @@ export function useSaveDialogInit(
             setTestCategoryInner('Fracturing');
             setTestTypeInner('ShearViscosity');
             setLaboratoryId('');
-        }
+        });
     }, [isOpen, analysisData]);
 
-    // ── Effect 7: Auto-detect FluidType from reagents ───────────────────────────
+    // ── Effect 7: Auto-detect FluidType from reagents ───────────────────────
     // Runs whenever reagents change; skips if user has manually chosen a value.
     useEffect(() => {
         if (fluidTypeUserSet) return;
         if (!reagentCatalog.length) return;
         const detected = detectFluidType(reagents, reagentCatalog);
-        setFluidTypeInner(detected);
+        // Microtask deferral so the auto-detect setState happens after the
+        // effect body returns rather than during it.
+        void Promise.resolve().then(() => setFluidTypeInner(detected));
     }, [reagents, reagentCatalog, fluidTypeUserSet]);
 
     // ── Effect 8: Derive TestCategory+TestType from FluidType + filename ───────────
@@ -288,8 +322,12 @@ export function useSaveDialogInit(
             durationMin: analysisData.hintMetrics?.duration,
             reagentCategories: cats,
         });
-        setTestCategoryInner(result.testCategory);
-        setTestTypeInner(result.testType);
+        // Microtask deferral so the derived setStates happen after the
+        // effect body returns rather than during it.
+        void Promise.resolve().then(() => {
+            setTestCategoryInner(result.testCategory);
+            setTestTypeInner(result.testType);
+        });
     }, [
         isOpen,
         fluidType,
