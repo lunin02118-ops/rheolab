@@ -422,6 +422,41 @@ new), `cargo test --features pdf,excel rheolab-core` 189/189,
 `tsc --noEmit` 0 errors, `eslint --max-warnings=0` clean, `vitest`
 1334/1340.  No frontend touched.
 
+### Phase 2b / `touch_point_precompute` split — **DONE** (2026-04-28)
+
+After Phase 2 closed the five named oversized files (`pdf_comparison`,
+`list_tests`, `multi_experiment`, `excel_comparison`, `formatters`),
+a hygiene re-scan picked up `touch_point_precompute.rs` at **710
+LOC** — outside the original Phase 2 scope but well past the
+500-LOC budget the codebase has otherwise been holding.
+
+Split into a directory module with one submodule per concern:
+
+| File | LOC | Concern |
+|---|---:|---|
+| `mod.rs` | 71 | Module documentation + public re-exports |
+| `types.rs` | 58 | `TOUCH_PRECOMPUTE_VERSION` + `PrecomputedTouchPoint` |
+| `inputs.rs` | 80 | `to_touch_inputs*` adapters |
+| `compute.rs` | 75 | Pure-computation entry points |
+| `writer.rs` | 140 | Save-path persistence (legacy + side-table) |
+| `backfill.rs` | 121 | Startup backfill scan + recompute |
+| `tests.rs` | 228 | All 9 existing tests, unchanged |
+
+Public API preserved byte-for-byte via `pub use` re-exports on
+`mod.rs` — the six callers across `startup/setup.rs`,
+`repositories/experiments/write.rs`,
+`commands/experiments/list/dynamic.rs`,
+`list/list_tests/touch_point_filter.rs` and `crud_tests.rs` compile
+without any `use` statement edits.  Cross-module helpers
+(`write_legacy_row`, `write_all_thresholds_empty`,
+`write_all_thresholds`) are scoped `pub(super)` so the writer's
+internals stay invisible outside the directory.
+
+Verification: `cargo test --lib src-tauri` 338/338 (10 of which are
+the migrated touch-point tests, all green), `cargo test --features
+pdf,excel rheolab-core` 189/189, `tsc --noEmit` 0 errors,
+`eslint --max-warnings=0` clean, `vitest` 1334/1340.
+
 ### Phase 5 — Dead-code (TS/JS surface): **DONE** (2026-04-27)
 
 Three commits, atomic and gated:
@@ -789,9 +824,22 @@ deep-dive finding (F1–F3, F5–F7) is closed.  F4 stays informational
 (over-indexing observation, no action).  The remaining priorities are
 all reactive watchpoints:
 
-1. **Phase 4 / new oversized files** — if any new Rust file crosses
-   the ~500 LOC budget in future work, give it the same split-on-merge
-   treatment.  No file currently exceeds the budget.
-2. **Watch the deprecated chains** — `madge@8.0.0`'s `peerOptional`
+1. **Production Rust files still over 500 LOC** — hygiene re-scan
+   after the touch-point precompute split (Phase 2b) leaves five
+   production files in the 509–578 LOC range:
+   `report_generator/pdf/template/mod.rs` (578),
+   `commands/experiments/list/query.rs` (562),
+   `report_generator/comparison/pdf_comparison/chart_renderer.rs` (534),
+   `commands/licensing/engine/operations.rs` (510),
+   `commands/experiments/types.rs` (509).  All slightly over budget;
+   schedule into future passes when their growth rate or churn
+   makes a split obviously worth the diff cost.
+2. **Test files over 500 LOC** — four test files
+   (`backup/restore_tests.rs`, `licensing/licensing_tests.rs`,
+   `experiments/crud_tests.rs`, `licensing/engine/engine_tests.rs`)
+   exceed 500 LOC.  Test files are typically allowed to be larger
+   since each test is a focused scenario; split only if a test file
+   becomes hard to navigate.
+3. **Watch the deprecated chains** — `madge@8.0.0`'s `peerOptional`
    on TS 5 forced `--legacy-peer-deps` from Phase 3.3 onwards.  When
    `madge` (or its replacement) ships TS 6 support, drop the flag.
