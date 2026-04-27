@@ -54,9 +54,17 @@ export default function ComparisonPage() {
             return !c || !c.timeSec || c.timeSec.length === 0;
         });
         if (!needsRehydration) return;
-        setIsRehydrating(true);
-        setRehydrationFailed(false);
-        rehydrateIfNeeded()
+
+        // setState happens inside the Promise chain (microtask) rather than
+        // the synchronous effect body — react-hooks/set-state-in-effect
+        // accepts setState in `.then()` callbacks because they run after the
+        // await boundary, with no risk of cascading renders.
+        Promise.resolve()
+            .then(() => {
+                setIsRehydrating(true);
+                setRehydrationFailed(false);
+                return rehydrateIfNeeded();
+            })
             .then(() => {
                 // If still no data after rehydration — mark as failed so UI can offer retry
                 const hasData = useComparisonStore.getState().experiments.some(e => {

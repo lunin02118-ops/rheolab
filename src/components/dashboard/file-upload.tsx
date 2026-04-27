@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -41,12 +41,16 @@ export function FileUpload({ onFileProcessed, onError, isLoading, loadedFileName
 
     // When an external file load starts (demo/library), reset internal state so
     // externalLoading and loadedFileName can take control of the displayed state.
-    useEffect(() => {
+    // Uses the React 19 "adjusting state on prop change during render" pattern
+    // — see https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevExternalLoading, setPrevExternalLoading] = useState(externalLoading);
+    if (prevExternalLoading !== externalLoading) {
+        setPrevExternalLoading(externalLoading);
         if (externalLoading) {
             setInternalUploadState('idle');
             setInternalFileName(null);
         }
-    }, [externalLoading]);
+    }
 
     // Derive effective state: external state takes priority when internal is idle
     const uploadState: 'idle' | 'uploading' | 'success' | 'error' =

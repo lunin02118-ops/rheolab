@@ -5,7 +5,7 @@
  * Используется только в dev-сборке (!isProduction).
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -43,9 +43,17 @@ export function DevModeSection({
     onKeyChange,
     onActivate,
 }: DevModeSectionProps) {
-    const [devMode, setDevModeState] = useState(false);
-    const [slots, setSlots] = useState<LicenseSlot[]>([]);
-    const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
+    // Lazy-init from localStorage-backed helpers so we hydrate without an
+    // effect round-trip.  `slots` / `activeSlotId` only have meaningful
+    // values when dev-mode is on; otherwise they stay empty / null exactly
+    // as they did with the explicit `if (devEnabled) refreshSlots()` guard.
+    const [devMode, setDevModeState] = useState(isDevModeEnabled);
+    const [slots, setSlots] = useState<LicenseSlot[]>(() =>
+        isDevModeEnabled() ? getAllSlots() : [],
+    );
+    const [activeSlotId, setActiveSlotId] = useState<string | null>(() =>
+        isDevModeEnabled() ? (getActiveSlot()?.id ?? null) : null,
+    );
     const [removeConfirmSlotId, setRemoveConfirmSlotId] = useState<string | null>(null);
 
     const refreshSlots = useCallback(() => {
@@ -55,11 +63,10 @@ export function DevModeSection({
         setActiveSlotId(active?.id || null);
     }, []);
 
-    useEffect(() => {
-        const devEnabled = isDevModeEnabled();
-        setDevModeState(devEnabled);
-        if (devEnabled) refreshSlots();
-    }, [refreshSlots]);
+    // Mount hydration of dev-mode flag and slots is now lazy-init'd directly
+    // in the useState declarations above (`devMode`, `slots`, `activeSlotId`),
+    // so this useEffect — which only mirrored localStorage into React state —
+    // is no longer needed.
 
     const handleToggleDevMode = () => {
         const newState = !devMode;

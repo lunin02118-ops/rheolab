@@ -21,10 +21,12 @@ interface DiagResult {
 
 function UpdateDiagnosticPanel({ appVersion }: { appVersion: string }) {
     const [result, setResult] = useState<DiagResult | null>(null);
-    const [running, setRunning] = useState(false);
+    // Initial state is `true` because the auto-run useEffect below kicks off
+    // a diagnostic on mount.  The retry button toggles it explicitly in its
+    // event handler.
+    const [running, setRunning] = useState(true);
 
     async function runDiag() {
-        setRunning(true);
         const start = performance.now();
         const diag: DiagResult = { url: UPDATE_ENDPOINT, status: null, latencyMs: null, contentType: null, serverVersion: null, jsonOk: false, error: null };
         try {
@@ -70,7 +72,7 @@ function UpdateDiagnosticPanel({ appVersion }: { appVersion: string }) {
             <div className="flex items-center justify-between">
                 <span className="text-muted-foreground font-sans text-xs font-semibold uppercase tracking-wide">Диагностика соединения</span>
                 <button
-                    onClick={() => runDiag()}
+                    onClick={() => { setRunning(true); void runDiag(); }}
                     disabled={running}
                     className="text-muted-foreground hover:text-foreground flex items-center gap-1 disabled:opacity-40"
                 >
