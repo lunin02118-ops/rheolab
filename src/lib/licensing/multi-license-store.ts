@@ -42,7 +42,7 @@ function createSlotId(): string {
 /**
  * Загрузить состояние мульти-лицензий
  */
-export function loadMultiLicenseState(): MultiLicenseState | null {
+function loadMultiLicenseState(): MultiLicenseState | null {
     try {
         const encrypted = localStorage.getItem(STORAGE_KEY);
         if (!encrypted) return null;
@@ -73,7 +73,7 @@ export function loadMultiLicenseState(): MultiLicenseState | null {
 /**
  * Сохранить состояние мульти-лицензий
  */
-export function saveMultiLicenseState(state: MultiLicenseState): void {
+function saveMultiLicenseState(state: MultiLicenseState): void {
     try {
         const data = JSON.stringify(state);
         const encrypted = encrypt(data);
@@ -87,7 +87,7 @@ export function saveMultiLicenseState(state: MultiLicenseState): void {
 /**
  * Инициализировать пустое состояние
  */
-export function initMultiLicenseState(): MultiLicenseState {
+function initMultiLicenseState(): MultiLicenseState {
     return {
         slots: [],
         activeSlotId: null,

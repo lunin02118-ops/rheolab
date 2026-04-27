@@ -16,21 +16,8 @@ export type {
 } from './types';
 
 // Constants
-export {
-    DEMO_LIMITS,
-    GRACE_PERIOD_DAYS,
-} from './types';
+export { DEMO_LIMITS } from './types';
 
-// Multi-license store (dev mode only — used by LicenseSwitcher / LicenseActivationDialog)
-export {
-    isDevModeEnabled,
-    setDevMode,
-    getAllSlots,
-    getActiveSlot,
-    setActiveSlot,
-    addLicenseSlot,
-    removeLicenseSlot,
-    clearMultiLicenseData,
-    type LicenseSlot,
-    type MultiLicenseState,
-} from './multi-license-store';
+// Note: multi-license-store APIs are imported directly by
+// `components/licensing/DevModeSection.tsx` (single consumer);
+// no need to re-export them through this barrel.

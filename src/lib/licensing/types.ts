@@ -93,5 +93,3 @@ export const DEMO_LIMITS = {
     maxDays: 30,
     maxExperiments: 10,  // Максимум экспериментов в БД для Demo версии
 };
-
-export const GRACE_PERIOD_DAYS = 30;
