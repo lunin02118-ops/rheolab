@@ -44,7 +44,8 @@ ORDER BY createdAt DESC, id DESC
 LIMIT 50;
 
 .print
-.print ===== Q4. List filtered by testType =====
+.print ===== Q4. List filtered by testType (post-v0005) =====
+-- Should now use idx_experiment_testtype_createdat_id_desc and avoid temp sort.
 EXPLAIN QUERY PLAN
 SELECT id FROM Experiment
 WHERE testType = 'static'
@@ -135,7 +136,15 @@ EXPLAIN QUERY PLAN
 SELECT id FROM Experiment WHERE id IN ('a','b','c','d','e');
 
 .print
-.print ===== Q14. ReagentCatalog list (full table, ordered) =====
+.print ===== Q14. ReagentCatalog list (post-v0005) =====
+-- Should now use idx_reagent_category_name_nocase and avoid temp sort.
+EXPLAIN QUERY PLAN
+SELECT id, name, category FROM ReagentCatalog
+ORDER BY category COLLATE NOCASE, name COLLATE NOCASE;
+
+.print
+.print ===== Q14b. ReagentCatalog list with LOWER() (pre-v0005, comparison) =====
+-- Kept for plan diff demonstration only — production SQL no longer uses LOWER().
 EXPLAIN QUERY PLAN
 SELECT id, name, category FROM ReagentCatalog
 ORDER BY LOWER(category), LOWER(name);

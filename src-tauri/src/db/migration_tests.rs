@@ -9,6 +9,7 @@ use crate::db::migrations::v0001_initial::V1_DDL;
 use crate::db::migrations::v0002_touch_point_metrics::V0002TouchPointMetrics;
 use crate::db::migrations::v0003_multi_threshold_touch_point::V0003MultiThresholdTouchPoint;
 use crate::db::migrations::v0004_experiment_list_default_index::V0004ExperimentListDefaultIndex;
+use crate::db::migrations::v0005_reagent_and_testtype_indexes::V0005ReagentAndTestTypeIndexes;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -514,6 +515,8 @@ fn schema_identity_with_raw_ddl() {
     V0003MultiThresholdTouchPoint.up(&conn_b).unwrap();
     // v0004 — descending composite index for default Library list page.
     V0004ExperimentListDefaultIndex.up(&conn_b).unwrap();
+    // v0005 — F6/F7 reagent NOCASE + testType composite indexes.
+    V0005ReagentAndTestTypeIndexes.up(&conn_b).unwrap();
 
     fn dump(conn: &Connection) -> Vec<String> {
         let mut stmt = conn

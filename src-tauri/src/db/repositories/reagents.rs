@@ -107,10 +107,14 @@ impl ReagentRepository for SqliteReagentRepository {
 pub(crate) fn list_all(conn: &rusqlite::Connection) -> Result<Vec<StoredReagent>> {
     let mut stmt = conn
         .prepare(
+            // `COLLATE NOCASE` (not `LOWER()`) so SQLite uses the
+            // `idx_reagent_category_name_nocase` index added by v0005
+            // — see docs/audit/2026-04-27-database-explain-profile.md
+            // (finding F6).
             "SELECT id, name, category, manufacturer, country, description, \
                     activeSubstance, form, createdAt, updatedAt \
              FROM ReagentCatalog \
-             ORDER BY LOWER(category), LOWER(name)",
+             ORDER BY category COLLATE NOCASE, name COLLATE NOCASE",
         )
         .map_err(|e| format!("SQL error: {}", e))?;
 

@@ -330,8 +330,8 @@ Key empirical findings:
       ON Experiment(createdAt DESC, id DESC);
   ```
 
-* **F6 — LOW:** `ReagentCatalog ORDER BY LOWER(...)` does a temp-sort scan. Tiny table (<500 rows), defer until it shows on a profile.
-* **F7 — INFORMATIONAL:** Q4 list-with-`testType` filter does index seek + temp sort. Composite `(testType, createdAt, id)` would remove the sort but adds storage. No action.
+* **F6 — LOW:** `ReagentCatalog ORDER BY LOWER(...)` does a temp-sort scan. Tiny table (<500 rows), deferred at audit time. Resolved by **v0005** — see Phase 4c below.
+* **F7 — INFORMATIONAL:** Q4 list-with-`testType` filter does index seek + temp sort. Composite `(testType, createdAt, id)` would remove the sort but adds storage. Resolved by **v0005** — see Phase 4c below.
 
 ### Phase 4b / F5 v0004 migration — **DONE** (2026-04-27)
 
@@ -341,6 +341,45 @@ Commit `ae5d93d`: new migration `v0004_experiment_list_default_index` adds
 plan uses it without `TEMP B-TREE`, idempotent re-run) plus a fix to
 `schema_identity_with_raw_ddl` to apply v0004 on the manual-DDL path.
 `cargo test --lib`: **328/328**.
+
+### Phase 4c / F6 + F7 v0005 migration — **DONE** (2026-04-28)
+
+The two findings deferred at audit time ("tiny table" / "no action") were
+picked up after Phase 3 finished.  Even though the temp-sort scans are
+invisible on today's data sizes, the cost of fixing them is one
+`CREATE INDEX` statement each, and that closes the audit doc cleanly
+before future seeds grow the table.
+
+New migration `v0005_reagent_and_testtype_indexes` adds:
+
+```sql
+CREATE INDEX idx_reagent_category_name_nocase
+    ON ReagentCatalog(category COLLATE NOCASE, name COLLATE NOCASE);
+CREATE INDEX idx_experiment_testtype_createdat_id_desc
+    ON Experiment(testType, createdAt DESC, id DESC);
+```
+
+The reagents repository SQL (`db/repositories/reagents.rs::list_all`)
+is updated in the same commit to drop the `LOWER()` wrappers — the
+new index only matches the equivalent `COLLATE NOCASE` ordering, so
+the DDL change without the SQL change would leave the index unused.
+
+`CURRENT_SCHEMA_VERSION` bumped 4 → 5.  Four migration tests (both
+indexes exist; F6 catalog-list `EXPLAIN QUERY PLAN` uses the new
+index with no `TEMP B-TREE`; F7 testType-filtered list uses the
+composite index with no `TEMP B-TREE`; idempotent re-run does not
+duplicate indexes).  `migration_tests::schema_identity_with_raw_ddl`
+updated to apply v0005 on the manual-DDL path so the WP-4.1
+identity check stays meaningful.
+
+The `scripts/audit/explain-plan.sql` probe is amended — Q4 now
+asserts the post-v0005 plan, Q14 likewise, and a new Q14b keeps the
+pre-fix `LOWER()` shape for plan-diff comparison runs.
+
+Verification: `cargo test --lib src-tauri` **332/332** (328 + 4
+new), `cargo test --features pdf,excel rheolab-core` 189/189,
+`tsc --noEmit` 0 errors, `eslint --max-warnings=0` clean, `vitest`
+1334/1340, `npm run build` 7.35 s.
 
 ### Phase 5 — Dead-code (TS/JS surface): **DONE** (2026-04-27)
 
@@ -704,16 +743,11 @@ src-tauri` 328/328.
 
 ### Phase 3+ — Pending
 
-With Phase 3 complete, the remaining priorities are:
+With Phase 3 + Phase 4c complete, the remaining priorities are:
 
-1. **Migrate `manualChunks` to Rolldown's `codeSplitting`** — the
-   function form is currently in use and works, but is itself
-   deprecated.  When the Rolldown `codeSplitting` API stabilises
-   in a future Vite minor, port `vite.config.ts` over.
-2. **F6 / F7** — defer until profiling on production-size DB shows them.
-3. **Phase 4 / new oversized files** — if any new Rust file crosses
+1. **Phase 4 / new oversized files** — if any new Rust file crosses
    the ~500 LOC budget in future work, give it the same split-on-merge
    treatment.  No file currently exceeds the budget.
-4. **Watch the deprecated chains** — `madge@8.0.0`'s `peerOptional`
+2. **Watch the deprecated chains** — `madge@8.0.0`'s `peerOptional`
    on TS 5 forced `--legacy-peer-deps` from Phase 3.3 onwards.  When
    `madge` (or its replacement) ships TS 6 support, drop the flag.
