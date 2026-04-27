@@ -457,6 +457,35 @@ the migrated touch-point tests, all green), `cargo test --features
 pdf,excel rheolab-core` 189/189, `tsc --noEmit` 0 errors,
 `eslint --max-warnings=0` clean, `vitest` 1334/1340.
 
+### Phase 2c / `pdf/template/mod.rs` split — **DONE** (2026-04-28)
+
+Next biggest production file after Phase 2b: `report_generator/pdf/
+template/mod.rs` at **578 LOC**.  Two leaf concerns extracted into
+submodules:
+
+| File | LOC | Concern |
+|---|---:|---|
+| `mod.rs` | 389 | Orchestrator + `build_typst_globals` + `build_single_experiment_body` |
+| `touch_points.rs` | 125 | `build_touch_points_block`, `calculate_touch_points_for_chart` (new) |
+| `tests.rs` | 89 | 4 existing template tests, unchanged (new) |
+
+Visibility was kept identical so existing call sites compile without
+`use`-statement edits:
+  * `calculate_touch_points_for_chart` is `pub(in super::super)` inside
+    `touch_points.rs`, re-exported on `mod.rs` as `pub(super)` so the
+    `template::calculate_touch_points_for_chart(...)` call from
+    `pdf/mod.rs` resolves byte-identically.
+  * `build_touch_points_block` is `pub(super)` within the directory.
+
+`mod.rs` import block also tightened — dropped
+`{ChartPoint, ChartTouchPoint}`,
+`{convert_viscosity, get_viscosity_unit, viscosity_decimals}` and
+`plotters::style::RGBColor` (now used only by `touch_points.rs`).
+
+Verification: `cargo test --features pdf,excel rheolab-core` 189/189,
+`cargo test --lib src-tauri` 338/338, `tsc --noEmit` 0 errors,
+`eslint --max-warnings=0` clean.
+
 ### Phase 5 — Dead-code (TS/JS surface): **DONE** (2026-04-27)
 
 Three commits, atomic and gated:
@@ -825,15 +854,14 @@ deep-dive finding (F1–F3, F5–F7) is closed.  F4 stays informational
 all reactive watchpoints:
 
 1. **Production Rust files still over 500 LOC** — hygiene re-scan
-   after the touch-point precompute split (Phase 2b) leaves five
-   production files in the 509–578 LOC range:
-   `report_generator/pdf/template/mod.rs` (578),
+   after Phase 2b + Phase 2c leaves four production files in the
+   509–562 LOC range:
    `commands/experiments/list/query.rs` (562),
    `report_generator/comparison/pdf_comparison/chart_renderer.rs` (534),
    `commands/licensing/engine/operations.rs` (510),
-   `commands/experiments/types.rs` (509).  All slightly over budget;
-   schedule into future passes when their growth rate or churn
-   makes a split obviously worth the diff cost.
+   `commands/experiments/types.rs` (509).  All only slightly over
+   budget; schedule into future passes when their growth rate or
+   churn makes a split obviously worth the diff cost.
 2. **Test files over 500 LOC** — four test files
    (`backup/restore_tests.rs`, `licensing/licensing_tests.rs`,
    `experiments/crud_tests.rs`, `licensing/engine/engine_tests.rs`)
