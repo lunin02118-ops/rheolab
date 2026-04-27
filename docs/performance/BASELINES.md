@@ -1686,3 +1686,24 @@ npm run perf:compare -- outputs/e2e/perf/workflow-1773578897707-tauri.json outpu
 
 - Gate status: PASS
 - Report: `docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-26.md`
+
+## Baseline #27 — Frontend IPC Deep Audit (2026-04-28)
+
+**runId:** `2026-04-28-deep-opt-followup-frontend-ipc`
+**Workflow artifact:** `outputs/e2e/perf/workflow-1777326038029-tauri.json`
+**Native memory artifact:** `outputs/e2e/perf/native-memory-1777326063589.jsonl`
+
+### KPI (current p50/p95)
+
+| Metric | p50 | p95 |
+|---|---:|---:|
+| peakHeapMb | 9.90 | 9.93 |
+| peakNodes | 2016.00 | 2016.00 |
+| totalWallMs | 20178.00 | 20448.00 |
+| totalWsMb | 673.51 | 703.41 |
+| rendererWsMb | 205.29 | 208.25 |
+
+### Notes
+
+- Gate status: PASS
+- Report: `docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-28.md`
