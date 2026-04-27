@@ -1,6 +1,7 @@
 import type { ExperimentSavePayload, LastContext } from '@/types';
 import { toWirePayload } from './payload';
 import { getBridge } from '@/lib/tauri/bridge';
+import { resetExperimentFilterMetadataCache } from './filter-metadata-cache';
 import type {
   ExperimentDeleteResponse,
   ExperimentsFilterMetadataResponse,
@@ -43,11 +44,26 @@ export async function checkExperimentsExist(ids: string[]): Promise<ExperimentEx
 }
 
 export async function saveExperiment(payload: ExperimentSavePayload): Promise<ExperimentSaveResponse> {
-  return getBridge().experiments.save(toWirePayload(payload));
+  const result = await getBridge().experiments.save(toWirePayload(payload));
+  // Mirror the Rust-side `invalidate_filter_metadata_cache`: a successful
+  // save can introduce a brand-new distinct value (e.g. fluid type, water
+  // source) that the sidebar must surface immediately.
+  if (result.success) {
+    resetExperimentFilterMetadataCache();
+  }
+  return result;
 }
 
 export async function deleteExperiment(id: string): Promise<ExperimentDeleteResponse> {
-  return getBridge().experiments.delete(id);
+  const result = await getBridge().experiments.delete(id);
+  // Symmetric to save: deleting the last experiment carrying a distinct
+  // value should drop that value from the filter sidebar on the next
+  // mount.  Guard on `success` so a no-op response ("not found") still
+  // leaves the cache warm.
+  if (result.success) {
+    resetExperimentFilterMetadataCache();
+  }
+  return result;
 }
 
 export async function getExperimentsCount(): Promise<number> {
