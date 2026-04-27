@@ -262,6 +262,30 @@ All baseline artefacts captured under `runtime/audit/20260427-deep-opt-baseline/
 * `perf-benchmark-stdout.log`, `perf-soak-stdout.log` — runtime perf baseline
 * `release-gate-decision.json` — GO (14/14 gates, 0 blockers)
 
+**Phase 0 follow-up — `audit:frontend-ipc` deep run** (`370d513`,
+2026-04-28).  Optional Phase 0 task that was deferred at audit time
+(`perf:soak:tauri TODO`, `audit:frontend-ipc deep with rebuild`
+optional).  Ran the full pipeline:
+
+| Stage | Steps | Result |
+|---|---:|---|
+| Tauri debug rebuild | 1 — 72 s | PASS |
+| Workflow perf | 5 + 1 warmup | PASS |
+| Tauri soak | 3 | PASS |
+| Benchmark | 2 | PASS |
+| Memory aggregate | 1 | PASS |
+| Static scan | 375 files | 1 P2 finding (useMemo, false positive) |
+| **Gate** | — | **PASS** |
+
+KPI snapshot (current p50/p95): heap 9.90/9.93 MB, totalWallMs
+20178/20448 ms, totalWsMb 673.51/703.41 MB.  P3-001 (working
+set ≤ 600 MB p95) stays open as before — architecture-level
+follow-up, not a regression introduced by Phase 1–7 work.
+
+Artifacts at
+`docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-28.md`,
+`FRONTEND-IPC-DEEP-AUDIT-LATEST.md`, and `BASELINES.md` Baseline #27.
+
 ### Phase 1 — Dead code & unused exports: **in progress** (branch `audit/phase-1-dead-code`)
 
 Commits so far on the branch:
