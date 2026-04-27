@@ -157,9 +157,13 @@ pub(crate) fn is_duplicate_name(
     name: &str,
     exclude_id: Option<&str>,
 ) -> Result<bool> {
+    // Note: `name = ? COLLATE NOCASE` lets SQLite use the existing
+    // `idx_reagent_name_nocase ON ReagentCatalog(name COLLATE NOCASE)` index.
+    // Wrapping the column in `LOWER()` would defeat the index — see
+    // docs/audit/2026-04-27-database-deep-dive.md (finding F1).
     if let Some(exc) = exclude_id {
         conn.query_row(
-            "SELECT COUNT(*) FROM ReagentCatalog WHERE id != ?1 AND LOWER(name) = LOWER(?2)",
+            "SELECT COUNT(*) FROM ReagentCatalog WHERE id != ?1 AND name = ?2 COLLATE NOCASE",
             params![exc, name],
             |row| row.get::<_, i32>(0),
         )
@@ -167,7 +171,7 @@ pub(crate) fn is_duplicate_name(
         .map_err(|e| format!("SQL error: {}", e).into())
     } else {
         conn.query_row(
-            "SELECT COUNT(*) FROM ReagentCatalog WHERE LOWER(name) = LOWER(?1)",
+            "SELECT COUNT(*) FROM ReagentCatalog WHERE name = ?1 COLLATE NOCASE",
             params![name],
             |row| row.get::<_, i32>(0),
         )
@@ -243,3 +247,7 @@ fn row_to_reagent(row: &rusqlite::Row) -> rusqlite::Result<StoredReagent> {
         updated_at: row.get(9)?,
     })
 }
+
+#[cfg(test)]
+#[path = "reagents_tests.rs"]
+mod tests;
