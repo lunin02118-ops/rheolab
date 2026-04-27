@@ -497,7 +497,14 @@ Progress:
 | `a794057` | `list_tests.rs` | 1586 LOC (1 file) | 9 files, max 302 LOC | DONE |
 | `497c3e1` | `multi_experiment.rs` (chart_generator) | 1363 LOC (1 file) | 5 files, max 463 LOC | DONE |
 | `7e84268` | `excel_comparison.rs` | 1242 LOC (1 file) | 5 files, max 489 LOC | DONE |
-| — | `formatters.rs` | 875 LOC | — | pending |
+| `428ece7` | `formatters.rs` | 874 LOC (1 file) | 6 files, max 405 LOC | DONE |
+
+**Phase 2 complete.**  All 5 oversized Rust files identified in the
+original scan are split into focused modules under ~500 LOC each.
+Before: 1 file/section ranged from 875–1620 LOC.  After: max single
+section is 583 LOC (`pdf_comparison/chart_renderer.rs`, mostly tests),
+and the largest production-only file is 489 LOC
+(`excel_comparison/overlap_sheet.rs`).
 
 `pdf_comparison` split layout:
 
@@ -568,13 +575,34 @@ unchanged — only `generate_comparison_excel` crosses the module
 boundary; all internal types (`ChartDataLayout`, `TouchPointResult`,
 `SecondaryMetricInfo`) are `pub(super)`.
 
+`formatters` split layout (`report_generator`):
+
+| File | LOC | Responsibility |
+|---|---:|---|
+| `mod.rs` | 101 | Constants (`decimals`, `excel_formats`) + re-exports |
+| `numbers.rs` | 62 | `format_number`, `format_date`, `build_ramp_string` |
+| `time.rs` | 56 | `time_axis_unit`, `format_time_value` |
+| `units.rs` | 228 | All unit conversion (legacy + target-aware) |
+| `resolve.rs` | 84 | `ResolvedUnits` + `resolve_units` |
+| `tests.rs` | 405 | All 32 tests |
+
+Verification: `cargo test --lib --features pdf,excel` 189/189
+(rheolab-core), `cargo test --lib` 328/328 (src-tauri, after `cargo
+clean` of stale incremental rlibs), `tsc` clean, `eslint
+--max-warnings=0` clean, `vitest` 1334/1340.  Public API unchanged —
+every sub-module function is re-exported at the module root via `pub
+use`, and `decimals` / `excel_formats` stay as inline `pub mod` blocks
+in `mod.rs` so all 18 internal call sites (`formatters::format_number`,
+`formatters::convert_viscosity`, `formatters::resolve_units`,
+`formatters::decimals::TIME`, ...) keep working unchanged.
+
 ### Phase 2+ — Pending
 
 Recommended next steps in priority order:
 
-1. **Phase 2 continuation** — split the 1 remaining oversized Rust
-   file (`formatters.rs`, 875 LOC) — the smallest of the original
-   five and the only one left.
-2. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
+1. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
    ecosystem chain per session with full regression gate after each.
-3. **F6 / F7** — defer until profiling on production-size DB shows them.
+2. **F6 / F7** — defer until profiling on production-size DB shows them.
+3. **Phase 3 / new oversized files** — if any new Rust file crosses
+   the ~500 LOC budget in future work, give it the same split-on-merge
+   treatment.  No file currently exceeds the budget.
