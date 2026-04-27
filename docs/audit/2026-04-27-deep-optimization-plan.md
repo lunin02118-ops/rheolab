@@ -306,15 +306,38 @@ Key findings:
 * **Schema is well-engineered**: 45 indexes across 23 tables, every index justified by a documented `WHERE`-path. `Experiment` carries 17 (12 base + 5 partial v0002), `TouchPointPrecompute` 4 partial indexes (v0003).
 * 4 low / informational findings tracked for Phase 7 fine-tune (`LOWER(name)` footgun, 3 missing FK indexes on artifact tables, filter-metadata `DISTINCT`-fan-out, write-amplification monitoring).
 
-Decision: **no schema migration needed**. Two trivial 1-commit fixes can be folded into Phase 7 if desired:
+### Phase 4 follow-up — F1 + F3 applied: **DONE** (2026-04-27)
 
-1. `db/repositories/reagents.rs::is_duplicate_name` — rewrite `LOWER(name) = LOWER(?)` → `name = ? COLLATE NOCASE`
-2. Frontend cache for `experiments_filter_metadata` result with cache-key = last experiment save timestamp
+| Commit | Finding | What |
+|---|---|---|
+| `b56bada` | F1 | `is_duplicate_name`: `LOWER(name) = LOWER(?)` → `name = ? COLLATE NOCASE` + 3 regression tests |
+| `0725c58` | F3 | Frontend filter-metadata cache: extract state to `lib/experiments/filter-metadata-cache.ts`, wire `resetExperimentFilterMetadataCache` into `saveExperiment` / `deleteExperiment`, add 4 unit tests |
+
+Verification: `tsc` clean, `eslint` 0 warnings, `madge` 0 cycles, `vitest` 1334/1340, `cargo test --lib` 325/325.
+
+### Phase 4b — Live `EXPLAIN QUERY PLAN` profiling: **DONE** (2026-04-27)
+
+Ran `scripts/audit/explain-plan.sql` against `outputs/seed/rheolab-fixture-seed-small.db` (19 experiments, 152 TPP rows). Full report: `docs/audit/2026-04-27-database-explain-profile.md`.
+
+Key empirical findings:
+
+* **F1 verified live.** Q8 (post-fix): `SEARCH USING COVERING idx_reagent_name_nocase (name=?)`. Q8b (pre-fix): `SCAN USING COVERING idx_reagent_name_nocase`. Index lookup vs full covering scan — measurable proof.
+* **TPP partial indexes (v0003) all hit** (Q10a/b/c). Recent migration work pays off as designed.
+* **F5 — NEW finding (medium):** the default Library page (`ORDER BY createdAt DESC, id DESC LIMIT 50` with no `WHERE`) produces `SCAN + TEMP B-TREE FOR ORDER BY`. Invisible at 19 rows, latent risk at 10k+ experiments. Fix is a 1-line v0004 migration:
+
+  ```sql
+  CREATE INDEX IF NOT EXISTS idx_experiment_createdat_id_desc
+      ON Experiment(createdAt DESC, id DESC);
+  ```
+
+* **F6 — LOW:** `ReagentCatalog ORDER BY LOWER(...)` does a temp-sort scan. Tiny table (<500 rows), defer until it shows on a profile.
+* **F7 — INFORMATIONAL:** Q4 list-with-`testType` filter does index seek + temp sort. Composite `(testType, createdAt, id)` would remove the sort but adds storage. No action.
 
 ### Phase 2+ — Pending
 
-Phases 2, 3, 5–8 unchanged from the plan above. Recommended next steps:
+Recommended next steps in priority order:
 
-1. Apply F1+F3 from the DB deep-dive in a small Phase-7-style commit (low risk, ~30 lines).
-2. Start Phase 2 with the highest-leverage Rust file (`pdf_comparison.rs`, 1620 LOC) on a fresh feature branch.
-3. Run live `EXPLAIN QUERY PLAN` profiling on the seed DB before any heavier DB optimisation work.
+1. **F5 v0004 migration** — small targeted commit, low risk, future-proofs the Library page. Estimated ~30 LOC including migration test.
+2. **Phase 5 deep dead-code** — barrel files + `scripts/test/test-*.ts` audit. Low–medium risk, mostly grep + manual review.
+3. **Phase 6 dependency bumps** — minor / patch only, batch-by-batch with green gates. Medium risk.
+4. **Phase 2 refactoring** — `pdf_comparison.rs` (1620 LOC) → ≤500 LOC per section. Highest leverage but largest risk; requires its own feature branch and dedicated session.
