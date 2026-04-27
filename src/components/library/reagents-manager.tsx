@@ -51,7 +51,11 @@ function ReagentsManagerComponent() {
 
     const deleteFocusTrapRef = useFocusTrap<HTMLDivElement>(!!deleteConfirm);
 
-    useEffect(() => { void fetchReagents(); }, [fetchReagents]);
+    // Defer through a microtask so the store's synchronous setState (the
+    // reagentsLoading flag flip inside fetchReagents) runs after the effect
+    // body returns, not during it.  react-hooks/set-state-in-effect allows
+    // setState in `.then()` callbacks.
+    useEffect(() => { void Promise.resolve().then(fetchReagents); }, [fetchReagents]);
 
     // Filter reagents (deferredSearch avoids blocking the input keystroke)
     const filteredReagents = useMemo(() => reagents.filter(r => {

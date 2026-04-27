@@ -65,11 +65,14 @@ export function ViscosityThresholdSelector({
     const [draft, setDraft] = React.useState(value);
 
     // Sync draft ← parent when the parent value changes externally
-    // (e.g. preset click, filter reset).  Guard against stale closures
-    // by only updating when the canonical value actually differs.
-    React.useEffect(() => {
+    // (e.g. preset click, filter reset).  Uses the React 19 "adjusting state
+    // on prop change during render" pattern — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevValue, setPrevValue] = React.useState(value);
+    if (prevValue !== value) {
+        setPrevValue(value);
         setDraft(value);
-    }, [value]);
+    }
 
     /** Push a finalized value to the parent and sync draft. */
     const commitValue = (v: string) => {

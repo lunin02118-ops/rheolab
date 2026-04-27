@@ -58,13 +58,17 @@ export function LicenseActivationDialog({
         return () => { cancelled = true; };
     }, [open]);
 
-    // Reset state when dialog opens
-    useEffect(() => {
+    // Reset state when dialog opens — React 19 "adjusting state on prop
+    // change during render" pattern.  We only reset on the false→true
+    // transition (open), preserving previous behaviour exactly.
+    const [prevOpen, setPrevOpen] = useState(open);
+    if (prevOpen !== open) {
+        setPrevOpen(open);
         if (open) {
             setLicenseKey('');
             setActivationResult(null);
         }
-    }, [open]);
+    }
 
     // Форматирование ключа при вводе
     const handleKeyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

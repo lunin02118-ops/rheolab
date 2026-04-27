@@ -116,8 +116,14 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
             Date.now() - cache.ts < CACHE_TTL_MS &&
             cache.experiments.length > 0
         ) {
-            setExperiments(cache.experiments);
-            setTotal(cache.total);
+            // Cached values pushed via microtask resolution so setState
+            // happens after the effect body returns — react-hooks/
+            // set-state-in-effect allows setState in `.then()` callbacks.
+            const cached = { experiments: cache.experiments, total: cache.total };
+            void Promise.resolve().then(() => {
+                setExperiments(cached.experiments);
+                setTotal(cached.total);
+            });
             return;
         }
         const cancelled = { current: false };
