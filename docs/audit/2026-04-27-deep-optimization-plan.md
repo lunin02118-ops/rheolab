@@ -383,9 +383,9 @@ Deferred (false positives or out-of-scope):
   would erase work; defer to a separate "API trim" pass with explicit user
   sign-off.
 
-### Phase 6 — npm dependency bumps (semver-safe): **DONE** (2026-04-27)
+### Phase 6 — npm dependency bumps: **DONE** (2026-04-27)
 
-Cherry-picked into 4 atomic batches by ownership area, with all gates
+Cherry-picked into 7 atomic batches by ownership area, with all gates
 re-run after each batch:
 
 | SHA | Batch | Packages | Δ |
@@ -394,32 +394,50 @@ re-run after each batch:
 | `b035745` | 2 — tooling | `eslint`, `typescript-eslint`, `@tauri-apps/cli`, `@types/node`, `@types/react` | 5 |
 | `8a4e564` | 3 — runtime | `react-router-dom`, `@tanstack/react-virtual`, `zod`, `zustand` | 4 |
 | `75d180c` | 4 — styling | `tailwindcss`, `@tailwindcss/postcss`, `tailwind-merge` | 3 |
+| `679b8e4` | 5 — react patch | `react`, `react-dom` 19.2.1 → 19.2.5 (pinned exactly) | 2 |
+| `c7923e2` | 6 — `lucide-react` | 0.561 → 1.11 (stability stamp, no API break) | 1 |
+| `84491e8` | 7 — `jsdom` | 27 → 29 (dev-only test env, two-major spread) | 1 |
 
-**17 packages bumped**, all within existing semver caret ranges.
-Verification on every batch: `tsc` clean, `eslint --max-warnings=0` clean,
-`vitest` 1334/1340 (parity with parent).
+**21 packages bumped** (16 minor/patch within semver, 3 patches restored
+to exact-pin discipline, 2 well-contained majors).  Verification on every
+batch: `tsc` clean, `eslint --max-warnings=0` clean, `vitest` 1334/1340
+(parity with parent).
 
-Deferred (require explicit decision — major-version bumps):
+#### Audit gate (2026-04-27, post-Phase 6)
 
-* `@vitejs/plugin-react` 4 → 6, `vite` 6 → 8 — Vite major chain
-* `eslint` 9 → 10, `eslint-plugin-react-hooks` 5 → 7 — lint major chain
-* `typescript` 5 → 6 — language major; rerun all gates needed
-* `jsdom` 27 → 29 — test-env major
-* `lucide-react` 0.561 → 1.x — 0.x → 1.x is a stable-API stamp, not a
-  breaking move per CHANGELOG, but still warrants a focused review
-* `@types/node` 20 → 25 — node-types must match the Node runtime, defer
-  until the Node LTS pin is reviewed
-* `react` 19.2.1 → 19.2.5, `react-dom` 19.2.1 → 19.2.5 — pinned exactly
-  (no caret); patch but explicit pin → defer to user
+* `cargo audit` — **0 vulnerabilities** (884 crates).
+* `npm audit --omit=dev` — **0 vulnerabilities** in production deps.
+* The 2 moderate advisories `npm audit` reports are devDep-only (test
+  infra) and out of scope for the production-deps gate per AGENTS.md.
+
+#### Attempted but reverted
+
+* **`eslint-plugin-react-hooks` 5 → 7.1.1** — installed, then reverted.
+  The 7.x line introduces the new `react-hooks/set-state-in-effect` rule
+  which flags **65 errors** across the codebase (e.g.
+  `src/hooks/useSaveDialogInit.ts:291` calling `setState` synchronously
+  inside `useEffect`).  This is a real breaking change requiring a
+  focused rule-by-rule refactor, not a pure dep bump; deferred.
+
+#### Deferred (require focused sessions)
+
+* `@vitejs/plugin-react` 4 → 6, `vite` 6 → 8 — Vite major chain; needs
+  config + plugin compatibility review.
+* `eslint` 9 → 10, `eslint-plugin-react-hooks` 5 → 7 — see above; the new
+  rules are valuable but the cleanup is a separate work item.
+* `typescript` 5 → 6 — language major; rerun every gate plus careful
+  diff of emitted error messages and lib.d.ts changes.
+* `@types/node` 20 → 25 — node-types must match the Node runtime; defer
+  until the Node LTS pin is reviewed.
 
 ### Phase 2+ — Pending
 
 Recommended next steps in priority order:
 
-1. **Phase 2 — refactor `pdf_comparison.rs`** (1620 LOC) → ≤500 LOC per
-   section. Highest leverage but largest risk; requires its own feature
-   branch and dedicated session.
-2. **Major-version bump pass** (Phase 6 deferred items above) — one
-   ecosystem chain per session (Vite, ESLint, TypeScript), with full
-   regression gate after each.
-3. **F6 / F7** — defer until profiling on production-size DB shows them.
+1. **react-hooks 7.x refactor** (65 `set-state-in-effect` errors) — high
+   leverage for code-quality, can be tackled file-by-file.
+2. **Phase 2 — refactor `pdf_comparison.rs`** (1620 LOC) → ≤500 LOC per
+   section. Highest impact but largest risk; needs its own feature branch.
+3. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
+   ecosystem chain per session with full regression gate after each.
+4. **F6 / F7** — defer until profiling on production-size DB shows them.
