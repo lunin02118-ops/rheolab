@@ -209,7 +209,7 @@ console.log(`\n  Manifest saved locally: ${localManifest}`);
 // ── Pre-upload validation ──────────────────────────────────────────────────────
 if (!FROM_MANIFEST) {
     const exeSize      = statSync(exePath).size;
-    const MIN_EXE_SIZE = 1   * 1024 * 1024;  //   1 MB
+    const MIN_EXE_SIZE = 512 * 1024;          // 512 KB  (NSIS-compressed Tauri bundles can be < 1 MiB)
     const MAX_EXE_SIZE = 500 * 1024 * 1024;  // 500 MB
 
     const validationErrors = [];

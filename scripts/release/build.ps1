@@ -30,7 +30,8 @@ if (Test-Path $keysFile) {
         if ($_ -match '^\s*([^#=\s]+)\s*=\s*(.+)$') {
             $k = $Matches[1].Trim(); $v = $Matches[2].Trim()
             if ($k -eq 'INTEGRITY_SECRET_KEY' -and -not $IntegrityKey) { $IntegrityKey = $v }
-            if ($k -eq 'BETA_CHANNEL_SECRET') { $env:BETA_CHANNEL_SECRET = $v }
+            if ($k -eq 'BETA_CHANNEL_SECRET')  { $env:BETA_CHANNEL_SECRET  = $v }
+            if ($k -eq 'ALPHA_CHANNEL_SECRET') { $env:ALPHA_CHANNEL_SECRET = $v }
             if ($k -eq 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD') { $signingKeyPassword = $v }
         }
     }
@@ -152,5 +153,42 @@ if ($installer) {
     }
 } else {
     Write-Host '  WARNING: Could not locate installer .exe' -ForegroundColor Yellow
+}
+
+# ── Smoke test: verify the release binary actually starts ──────────────────
+Write-Host '  Smoke testing release binary...' -ForegroundColor Yellow
+$logFile   = Join-Path $env:LOCALAPPDATA 'com.rheolab.enterprise\startup.log'
+$prevLen   = if (Test-Path $logFile) { (Get-Item $logFile).Length } else { 0 }
+$releaseExe = Join-Path $repoRoot 'src-tauri\target\release\rheolab-enterprise.exe'
+if (-not (Test-Path $releaseExe)) {
+    Write-Host '  WARNING: release exe not found for smoke test — skipping.' -ForegroundColor Yellow
+} else {
+    $smokeProc = Start-Process -FilePath $releaseExe -PassThru -ErrorAction SilentlyContinue
+    $started   = $false
+    for ($i = 0; $i -lt 15; $i++) {
+        Start-Sleep -Seconds 1
+        if (Test-Path $logFile) {
+            $raw = Get-Content $logFile -Raw -ErrorAction SilentlyContinue
+            if ($raw.Length -gt $prevLen -and
+                $raw.Substring($prevLen) -match 'Setup completed successfully') {
+                $started = $true; break
+            }
+        }
+    }
+    $smokeProc | Stop-Process -Force -ErrorAction SilentlyContinue
+    if ($started) {
+        Write-Host '  Smoke test PASSED — binary starts correctly.' -ForegroundColor Green
+    } else {
+        Write-Host ''
+        Write-Host '  SMOKE TEST FAILED: binary did not reach "Setup completed" within 15 s.' -ForegroundColor Red
+        Write-Host "  Check: $logFile" -ForegroundColor Yellow
+        Write-Host '  Common causes:' -ForegroundColor Yellow
+        Write-Host '    - ALPHA_CHANNEL_SECRET missing from scripts\dev\.env.keys' -ForegroundColor Red
+        Write-Host '    - BETA_CHANNEL_SECRET  missing from scripts\dev\.env.keys' -ForegroundColor Red
+        Write-Host '    - INTEGRITY_SECRET_KEY is the dev sentinel' -ForegroundColor Red
+        Write-Host ''
+        Write-Host '  DO NOT PUBLISH this build.' -ForegroundColor Red
+        exit 1
+    }
 }
 Write-Host ''

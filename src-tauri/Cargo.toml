@@ -1,6 +1,6 @@
 [package]
 name = "rheolab-enterprise"
-version = "0.2.0-beta.8"
+version = "0.2.0-beta.10"
 description = "RheoLab Enterprise - Professional Rheology Analysis Software"
 authors = ["RheoLab Team"]
 license = "Proprietary"
@@ -116,6 +116,8 @@ opt-level = 2
 opt-level = 1
 [profile.dev.package.rheolab-core]
 opt-level = 1
+
+
 
 
 
