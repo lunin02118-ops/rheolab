@@ -495,7 +495,7 @@ Progress:
 |---|---|---:|---:|---|
 | `06708df` | `pdf_comparison.rs` | 1620 LOC (1 file) | 5 files, max 583 LOC; production max 270 LOC | DONE |
 | `a794057` | `list_tests.rs` | 1586 LOC (1 file) | 9 files, max 302 LOC | DONE |
-| — | `multi_experiment.rs` (chart_generator) | 1363 LOC | — | pending |
+| `497c3e1` | `multi_experiment.rs` (chart_generator) | 1363 LOC (1 file) | 5 files, max 463 LOC | DONE |
 | — | `excel_comparison.rs` | 1243 LOC | — | pending |
 | — | `formatters.rs` | 875 LOC | — | pending |
 
@@ -534,13 +534,30 @@ clean, `vitest` 1334/1340.  Test paths preserved
 (`experiments::list::tests::<submodule>::<test_name>`) by keeping the
 parent declaration as `#[cfg(test)] #[path = "list_tests/mod.rs"] mod tests;`.
 
+`multi_experiment` split layout (`chart_generator::line`):
+
+| File | LOC | Responsibility |
+|---|---:|---|
+| `mod.rs` | 98 | `ExperimentSeries` + entry fn (dispatch + LTTB downsample) |
+| `dash_inject.rs` | 143 | SVG `stroke-dasharray` injector (post-processor) |
+| `shared_axis.rs` | 460 | Shared-axis renderer body |
+| `individual_axis.rs` | 463 | Individual-axis renderer body |
+| `tests.rs` | 257 | All 7 tests (incl. dash-leak regression) |
+
+Verification: `cargo test --lib --features pdf,excel` 189/189
+(rheolab-core), `cargo test --lib` 328/328 (src-tauri), `tsc` clean,
+`eslint --max-warnings=0` clean, `vitest` 1334/1340.  Public API
+unchanged — `line/mod.rs` still re-exports
+`{ExperimentSeries, generate_multi_experiment_chart_svg}` from
+`multi_experiment`.
+
 ### Phase 2+ — Pending
 
 Recommended next steps in priority order:
 
-1. **Phase 2 continuation** — split the 3 remaining oversized Rust
-   files (`multi_experiment.rs`, `excel_comparison.rs`, `formatters.rs`).
-   `multi_experiment.rs` is the next biggest target (1363 LOC).
+1. **Phase 2 continuation** — split the 2 remaining oversized Rust
+   files (`excel_comparison.rs`, `formatters.rs`).
+   `excel_comparison.rs` is the next biggest target (1243 LOC).
 2. **Major-version bump pass** (Vite, ESLint, TypeScript) — one
    ecosystem chain per session with full regression gate after each.
 3. **F6 / F7** — defer until profiling on production-size DB shows them.
