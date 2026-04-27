@@ -58,8 +58,10 @@ function UpdateDiagnosticPanel({ appVersion }: { appVersion: string }) {
         setRunning(false);
     }
 
-    // Auto-run on mount
-    useEffect(() => { void runDiag(); }, []);
+    // Auto-run on mount.  Defer through a microtask so the setState calls
+    // inside runDiag (post-await) run via .then() rather than being reached
+    // transitively from the synchronous effect body.
+    useEffect(() => { void Promise.resolve().then(runDiag); }, []);
 
     const ok = result && result.jsonOk && result.serverVersion;
     const newer = ok && result.serverVersion

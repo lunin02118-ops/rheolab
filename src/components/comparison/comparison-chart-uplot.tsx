@@ -175,6 +175,30 @@ function ComparisonChartUPlotInner({
         });
     }, []);
 
+    // The four uPlot callbacks below all read/write brushRangeRef.current.
+    // Hoisting them to useCallback (event-handler context) keeps the
+    // react-hooks/refs rule happy — accessing refs inside the uPlotOptions
+    // useMemo factory itself is forbidden as it counts as render context.
+    const xScaleAuto = useCallback(
+        (_u: uPlot) => brushRangeRef.current === null,
+        [],
+    );
+    const xScaleRange = useCallback(
+        (_u: uPlot, dataMin: number, dataMax: number): [number, number] => {
+            const br = brushRangeRef.current;
+            return br ?? [dataMin, dataMax];
+        },
+        [],
+    );
+    const handleZoom = useCallback((min: number, max: number) => {
+        brushRangeRef.current = [min, max];
+        setBrushRange([min, max]);
+    }, []);
+    const handleZoomReset = useCallback(() => {
+        brushRangeRef.current = null;
+        setBrushRange(null);
+    }, []);
+
     const { uPlotData, seriesConfig, axesConfig, touchPoints } = useComparisonChartData({
         debouncedExperiments,
         primaryMetric,
@@ -199,6 +223,12 @@ function ComparisonChartUPlotInner({
         ? Math.max(0, chartSize.width - plotBbox.left - plotBbox.width)
         : 20;
 
+    // The two react-hooks/refs disables inside this useMemo (below) are for
+    // false positives: the rule cannot prove that the closures captured
+    // into uPlot's scales/plugins are invoked asynchronously by uPlot's
+    // event loop (drawAxes hook, scale auto/range, zoom-plugin events) and
+    // never during React render.  All ref reads happen at uPlot-callback
+    // time, which is event-handler context per React semantics.
     const uPlotOptions = useMemo<uPlot.Options>(() => {
         // x-scale: allow auto-ranging only when no brush is active.
         // When brush is active `auto()` returns false, so uPlot's internal
@@ -209,11 +239,8 @@ function ComparisonChartUPlotInner({
         const scales: Record<string, uPlot.Scale> = {
             x: {
                 time: false,
-                auto: (_u: uPlot) => brushRangeRef.current === null,
-                range: (_u: uPlot, dataMin: number, dataMax: number) => {
-                    const br = brushRangeRef.current;
-                    return br ?? [dataMin, dataMax];
-                },
+                auto: xScaleAuto,
+                range: xScaleRange,
             },
         };
         // Register y-scales from axes config
@@ -283,16 +310,11 @@ function ComparisonChartUPlotInner({
                     isDark,
                 }),
                 zoomPlugin({
-                    // zoomPlugin already called setScale internally; we only need
-                    // to sync brushRangeRef and refresh the brush UI.
-                    onZoom: (min, max) => {
-                        brushRangeRef.current = [min, max];
-                        setBrushRange([min, max]);
-                    },
-                    onReset: () => {
-                        brushRangeRef.current = null;
-                        setBrushRange(null);
-                    },
+                    // zoomPlugin already called setScale internally; we only
+                    // need to sync brushRangeRef and refresh the brush UI —
+                    // see handleZoom / handleZoomReset above.
+                    onZoom: handleZoom,
+                    onReset: handleZoomReset,
                 }),
                 touchPointsPlugin({
                     touchPoints,
@@ -313,7 +335,7 @@ function ComparisonChartUPlotInner({
             axes: axesConfig,
             series: seriesConfig
         };
-    }, [axesConfig, seriesConfig, touchPoints, viscosityThreshold, showTouchPoints, targetTime, primaryMetric, comparisonAxisMode, readPlotBbox, isDark, timeFormat]);
+    }, [axesConfig, seriesConfig, touchPoints, viscosityThreshold, showTouchPoints, targetTime, primaryMetric, comparisonAxisMode, readPlotBbox, isDark, timeFormat, xScaleAuto, xScaleRange, handleZoom, handleZoomReset]);
 
     return (
         <div className="flex flex-col h-full w-full">

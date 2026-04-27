@@ -57,17 +57,24 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<uPlot | null>(null);
-    // Keep refs to the latest data and size so chart recreation always uses
-    // fresh values, preventing stale-data flashes and wrong sizing.
+    // Refs to the latest data, size, and onInit callback so the chart-
+    // creation effect always reads fresh values without needing them as
+    // deps (which would cause unnecessary chart recreation on every render).
     const dataRef = useRef<uPlot.AlignedData>(data);
-    dataRef.current = data;
     const sizeRef = useRef<{ width?: number; height?: number }>({ width, height });
-    sizeRef.current = { width, height };
-    // Keep onInit in a ref so the options-effect closure always calls the
-    // latest callback without needing it as a dep (which would cause unnecessary
-    // chart recreation on every parent re-render).
     const onInitRef = useRef<((u: uPlot) => void) | undefined>(onInit);
-    onInitRef.current = onInit;
+
+    // Flush the latest values into the refs after every render.  Effects
+    // run in declaration order, so this flush completes before the
+    // structural chart-creation effect below executes (when its `options`
+    // dep changes), preserving the original "always fresh values" guarantee
+    // without writing to refs during render (which the new react-hooks/refs
+    // rule flags as a side effect).
+    useEffect(() => {
+        dataRef.current = data;
+        sizeRef.current = { width, height };
+        onInitRef.current = onInit;
+    });
 
     // Initialize and destroy chart when structural options change.
     // Size changes are handled separately via setSize to avoid full recreation.

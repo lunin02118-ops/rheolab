@@ -5,7 +5,7 @@
  * Thin orchestrator — delegates translations, axes, and series assembly
  * to dedicated modules in `./chart-options/`.
  */
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type uPlot from 'uplot';
 import { tooltipPlugin } from '@/components/charts/plugins/tooltip';
 import { zoomPlugin } from '@/components/charts/plugins/zoom';
@@ -83,19 +83,21 @@ export function useRheologyChartOptions({
         captureMode,
         scaleName: undefined, // will be set inside the memo
     });
-    // Sync on every render — cheap object assignment.
-    touchPointsRef.current = {
-        touchPoints,
-        viscosityThreshold,
-        displayUnit: viscosityDisplayUnit,
-        showTouchPoints,
-        targetTime,
-        pdfMode,
-        captureMode,
-        isDark: resolvedTheme === 'dark',
-        language,
-        scaleName: touchPointsRef.current.scaleName, // preserve computed scale name
-    };
+
+    useEffect(() => {
+        touchPointsRef.current = {
+            ...touchPointsRef.current, // preserve scaleName computed inside the memo
+            touchPoints,
+            viscosityThreshold,
+            displayUnit: viscosityDisplayUnit,
+            showTouchPoints,
+            targetTime,
+            pdfMode,
+            captureMode,
+            isDark: resolvedTheme === 'dark',
+            language,
+        };
+    });
 
     return useMemo<uPlot.Options>(() => {
         const isDark = !pdfMode && !captureMode && resolvedTheme === 'dark';
