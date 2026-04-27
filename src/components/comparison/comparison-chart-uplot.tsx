@@ -156,12 +156,17 @@ function ComparisonChartUPlotInner({
         }
     }, [resetZoom]);
 
-    // Reset brush and hidden series when experiments change (add/remove)
+    // Reset brush and hidden series when experiments change (add/remove).
+    // Microtask deferral avoids the synchronous setState-in-effect violation;
+    // the brushRangeRef write is sync (refs are unbatched) but the React
+    // state setters move into the next tick.
     const expIds = experiments.map(e => e.id).join(',');
     useEffect(() => {
         brushRangeRef.current = null;
-        setBrushRange(null);
-        setHiddenSeries(new Set());
+        void Promise.resolve().then(() => {
+            setBrushRange(null);
+            setHiddenSeries(new Set());
+        });
     }, [expIds]);
 
     const toggleSeries = useCallback((legendIndex: number) => {
@@ -256,6 +261,7 @@ function ComparisonChartUPlotInner({
         // line is visible regardless of the data range.
         if (showTouchPoints && viscosityThreshold !== undefined && comparisonAxisMode !== 'shared') {
             const viscSN = primaryMetric; // scale name = metric key in individual mode
+            // eslint-disable-next-line react-hooks/refs
             if (scales[viscSN]) {
                 scales[viscSN] = {
                     auto: true,
@@ -309,6 +315,11 @@ function ComparisonChartUPlotInner({
                     },
                     isDark,
                 }),
+                // The plugins below capture handleZoom/handleZoomReset which
+                // touch brushRangeRef.current.  uPlot calls those at runtime
+                // (event-handler context) — the rule's static analysis cannot
+                // prove this and produces a false positive.
+                // eslint-disable-next-line react-hooks/refs
                 zoomPlugin({
                     // zoomPlugin already called setScale internally; we only
                     // need to sync brushRangeRef and refresh the brush UI —

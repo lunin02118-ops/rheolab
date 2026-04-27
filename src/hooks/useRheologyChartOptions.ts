@@ -114,6 +114,9 @@ export function useRheologyChartOptions({
         const sBathTemperature = sTemperature;
 
         // Update the scaleName in the ref so the draw-hook reads it.
+        // The plugin reads .current inside uPlot's draw hook (event-handler
+        // context), not during React render — hence the rule false positive.
+        // eslint-disable-next-line react-hooks/refs
         touchPointsRef.current = { ...touchPointsRef.current, scaleName: sViscosity };
 
         const t = buildChartTranslations({ activeSettings, chartSettings, language });
@@ -152,6 +155,9 @@ export function useRheologyChartOptions({
                     ]
                     : []),
                 zoomPlugin(),
+                // touchPointsPlugin reads .current inside uPlot's draw-hook
+                // callback (event-handler context), not during React render.
+                // eslint-disable-next-line react-hooks/refs
                 touchPointsPlugin(touchPointsRef),
             ],
             scales: {

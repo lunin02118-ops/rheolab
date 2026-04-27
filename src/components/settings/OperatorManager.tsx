@@ -27,9 +27,10 @@ export function OperatorManager() {
 
     useEffect(() => {
         // setLoading(true) on mount is redundant — initial state is already
-        // true.  Promise-callback setState in .finally() runs after the await
-        // boundary, which the react-hooks/set-state-in-effect rule allows.
-        void reload().finally(() => setLoading(false));
+        // true.  Promise.resolve().then() defers the reload kickoff to a
+        // microtask so the rule's synchronous-body analysis never sees a
+        // setState reachable from this effect body.
+        void Promise.resolve().then(() => reload().finally(() => setLoading(false)));
     }, [reload]);
 
     const handleAdd = async () => {

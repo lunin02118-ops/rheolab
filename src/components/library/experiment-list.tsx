@@ -125,6 +125,10 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
         count: viewMode === 'grid' ? rows.length : 0,
         estimateSize: () => 400, // ExperimentCard ~380px + 20px gap
         overscan: 2,
+        // TanStack's useWindowVirtualizer API requires a synchronous read
+        // of the scroll margin during render; the rule cannot reason about
+        // the library's internal scheduling.
+        // eslint-disable-next-line react-hooks/refs
         scrollMargin: parentOffsetRef.current,
     });
 

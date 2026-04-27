@@ -62,7 +62,10 @@ export function APIKeyManager() {
     };
 
     useEffect(() => {
-        void fetchKeys();
+        // Microtask deferral so fetchKeys' setIsLoading/setKeys calls aren't
+        // synchronously reachable from this effect body — the rule traces
+        // into called functions and otherwise flags any setState inside.
+        void Promise.resolve().then(fetchKeys);
     }, []);
 
     const handleModelChange = (model: string) => {

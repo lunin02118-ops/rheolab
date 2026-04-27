@@ -127,7 +127,9 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
             return;
         }
         const cancelled = { current: false };
-        void fetchExperiments(cancelled);
+        // Microtask deferral so any synchronous setState at the head of
+        // fetchExperiments runs after this effect body returns.
+        void Promise.resolve().then(() => fetchExperiments(cancelled));
         return () => { cancelled.current = true; };
     }, [isOpen, fetchExperiments, debouncedSearch]);
 

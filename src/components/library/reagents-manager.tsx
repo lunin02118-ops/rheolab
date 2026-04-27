@@ -98,6 +98,10 @@ function ReagentsManagerComponent() {
         return items;
     }, [groupedReagents, filteredReagents.length]);
 
+    // TanStack's @tanstack/react-virtual hooks haven't been updated to the
+    // new react-hooks 7.x conventions yet — this is a known compat warning,
+    // not a real bug.  Tracked upstream in tanstack/virtual.
+    // eslint-disable-next-line react-hooks/incompatible-library
     const virtualizer = useVirtualizer({
         count: flatItems.length,
         getScrollElement: () => scrollParentRef.current,

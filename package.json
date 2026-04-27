@@ -101,7 +101,7 @@
     "@vitest/coverage-v8": "^4.1.5",
     "@vitest/ui": "^4.1.5",
     "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
     "exceljs": "^4.4.0",
     "jsdom": "^29.1.0",
     "knip": "^6.7.0",

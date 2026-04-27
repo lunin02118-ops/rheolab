@@ -19,6 +19,24 @@ interface ExperimentTableProps {
     onSortChange?: (field: string, dir: 'asc' | 'desc') => void;
 }
 
+/**
+ * Module-scope sort indicator so the rule react-hooks/static-components is
+ * satisfied — function expressions defined inside a component are flagged
+ * because every render creates a new component identity, which would force
+ * remounts and lose state in real children.  This component is stateless
+ * and accepts everything via props, so it's safe to hoist.
+ */
+function SortIcon({ field, sortBy, sortDir }: {
+    field: string;
+    sortBy: string | null;
+    sortDir: 'asc' | 'desc';
+}) {
+    if (sortBy !== field) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-30" />;
+    return sortDir === 'asc'
+        ? <ArrowUp className="w-3 h-3 ml-1 text-purple-600 dark:text-purple-400" />
+        : <ArrowDown className="w-3 h-3 ml-1 text-purple-600 dark:text-purple-400" />;
+}
+
 export function ExperimentTable({ experiments, onDelete, sortBy = null, sortDir = 'desc', onSortChange }: ExperimentTableProps) {
     const [deleteTarget, setDeleteTarget] = useState<ExperimentCardItem | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -33,12 +51,11 @@ export function ExperimentTable({ experiments, onDelete, sortBy = null, sortDir 
         onSortChange?.(field, newDir);
     };
 
-    const SortIcon = ({ field }: { field: SortField }) => {
-        if (sortBy !== field) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-30" />;
-        return sortDir === 'asc'
-            ? <ArrowUp className="w-3 h-3 ml-1 text-purple-600 dark:text-purple-400" />
-            : <ArrowDown className="w-3 h-3 ml-1 text-purple-600 dark:text-purple-400" />;
-    };
+    // SortIcon is hoisted to module scope (see SortIcon definition below the
+    // component) and receives sortBy/sortDir as props — keeps the rule
+    // react-hooks/static-components happy: "Cannot create components during
+    // render" was previously triggered for every <SortIcon /> reference
+    // because the function expression was redeclared on every render.
 
     const handleDelete = async () => {
         if (!deleteTarget) return;
@@ -142,6 +159,10 @@ export function ExperimentTable({ experiments, onDelete, sortBy = null, sortDir 
         count: experiments.length,
         estimateSize: () => ROW_HEIGHT,
         overscan: 8,
+        // TanStack's useWindowVirtualizer API requires a synchronous read
+        // of the scroll margin during render; the rule cannot reason about
+        // the library's internal scheduling.
+        // eslint-disable-next-line react-hooks/refs
         scrollMargin: parentOffsetRef.current,
     });
 
@@ -170,37 +191,37 @@ export function ExperimentTable({ experiments, onDelete, sortBy = null, sortDir 
                     <thead>
                         <tr className="border-b border-border/50">
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('name')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Название<SortIcon field="name" /></button>
+                                <button type="button" onClick={() => handleSort('name')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Название<SortIcon field="name" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'testDate' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('testDate')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Дата<SortIcon field="testDate" /></button>
+                                <button type="button" onClick={() => handleSort('testDate')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Дата<SortIcon field="testDate" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'instrumentType' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('instrumentType')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Прибор<SortIcon field="instrumentType" /></button>
+                                <button type="button" onClick={() => handleSort('instrumentType')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Прибор<SortIcon field="instrumentType" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'geometry' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('geometry')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Геометрия<SortIcon field="geometry" /></button>
+                                <button type="button" onClick={() => handleSort('geometry')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Геометрия<SortIcon field="geometry" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'fluidType' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('fluidType')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Тип жидкости<SortIcon field="fluidType" /></button>
+                                <button type="button" onClick={() => handleSort('fluidType')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Тип жидкости<SortIcon field="fluidType" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'testCategory' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('testCategory')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Тип<SortIcon field="testCategory" /></button>
+                                <button type="button" onClick={() => handleSort('testCategory')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Тип<SortIcon field="testCategory" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'testType' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('testType')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Испытание<SortIcon field="testType" /></button>
+                                <button type="button" onClick={() => handleSort('testType')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Испытание<SortIcon field="testType" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'dominantPattern' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('dominantPattern')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Методика<SortIcon field="dominantPattern" /></button>
+                                <button type="button" onClick={() => handleSort('dominantPattern')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Методика<SortIcon field="dominantPattern" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'durationSeconds' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('durationSeconds')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Время<SortIcon field="durationSeconds" /></button>
+                                <button type="button" onClick={() => handleSort('durationSeconds')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Время<SortIcon field="durationSeconds" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'avgTemperatureC' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('avgTemperatureC')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Темп.<SortIcon field="avgTemperatureC" /></button>
+                                <button type="button" onClick={() => handleSort('avgTemperatureC')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Темп.<SortIcon field="avgTemperatureC" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="text-xs font-semibold text-foreground uppercase tracking-wider" aria-sort={sortBy === 'avgViscosity' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => handleSort('avgViscosity')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Сред. вязк.<SortIcon field="avgViscosity" /></button>
+                                <button type="button" onClick={() => handleSort('avgViscosity')} className="w-full px-3 py-3 flex items-center justify-center hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-400 rounded select-none">Сред. вязк.<SortIcon field="avgViscosity" sortBy={sortBy} sortDir={sortDir} /></button>
                             </th>
                             <th scope="col" className="px-3 py-3 text-xs font-semibold text-foreground uppercase tracking-wider text-center">Действия</th>
                         </tr>

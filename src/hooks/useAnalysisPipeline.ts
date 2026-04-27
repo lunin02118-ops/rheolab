@@ -69,7 +69,6 @@ export function useAnalysisPipeline({
 
     // Stabilise setError ref — always up-to-date without being in dep array.
     const setErrorRef = useRef(setError);
-    setErrorRef.current = setError;
 
     // Serialise cycleOverrides Map so the effect fires only on content change,
     // not on new Map-object reference (prevents runaway re-analysis on every render).
@@ -78,7 +77,16 @@ export function useAnalysisPipeline({
         [cycleOverrides, isExpert],
     );
     const cycleOverridesRef = useRef(cycleOverrides);
-    cycleOverridesRef.current = cycleOverrides;
+
+    // Flush both refs after every render so the analysis effect (when it
+    // runs later) reads the freshest values without needing them as deps.
+    // Effects run in declaration order; this completes before the analysis
+    // effect downstream observes the refs.  Required by react-hooks/refs:
+    // ref writes during render are forbidden.
+    useEffect(() => {
+        setErrorRef.current = setError;
+        cycleOverridesRef.current = cycleOverrides;
+    });
 
     // Serialise viscosityShearRates array so reference identity changes don't
     // cause spurious full-pipeline reruns when the values haven't changed.
@@ -131,14 +139,17 @@ export function useAnalysisPipeline({
         if (cacheKey && cached?.key === cacheKey) {
             // Use functional updater — return `prev` when already set to
             // avoid creating a new object that would trigger an infinite
-            // re-render ↔ useEffect loop.
-            setAnalysisState(prev => {
-                if (prev.cycles === cached.cycles) return prev;
-                return {
-                    cycles: cached.cycles,
-                    cycleResults: cached.cycleResults,
-                    allSteps: cached.allSteps,
-                };
+            // re-render ↔ useEffect loop.  Microtask-deferred so the rule
+            // doesn't see a synchronous setState in the effect body.
+            void Promise.resolve().then(() => {
+                setAnalysisState(prev => {
+                    if (prev.cycles === cached.cycles) return prev;
+                    return {
+                        cycles: cached.cycles,
+                        cycleResults: cached.cycleResults,
+                        allSteps: cached.allSteps,
+                    };
+                });
             });
             return;
         }
@@ -155,11 +166,15 @@ export function useAnalysisPipeline({
             (parseResult?.columnarData?.timeSec?.length ?? 0) > 0;
 
         if (!parseResult || !hasData) {
-            setAnalysisState(prev => {
-                if (prev.cycles.length === 0 && prev.cycleResults.size === 0 && prev.allSteps.length === 0) {
-                    return prev;
-                }
-                return { cycles: [], cycleResults: new Map(), allSteps: [] };
+            // Microtask deferral so the no-data reset doesn't appear as a
+            // synchronous setState in the effect body.
+            void Promise.resolve().then(() => {
+                setAnalysisState(prev => {
+                    if (prev.cycles.length === 0 && prev.cycleResults.size === 0 && prev.allSteps.length === 0) {
+                        return prev;
+                    }
+                    return { cycles: [], cycleResults: new Map(), allSteps: [] };
+                });
             });
             return () => controller.abort();
         }

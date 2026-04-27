@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
+﻿import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { Activity, BarChart3 } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
 import type { CalibrationDataPoint } from '@/types/calibration';
@@ -53,16 +53,21 @@ function AccuracyChart({ data, width, height, stressAt100cP, isDark = true }: Ac
     const upPath = smoothPath(upCycle.filter(d => isFinite(d.shearStress) && isFinite(d.error)).map(d => [sx(d.shearStress), sy(d.error)]));
     const downPath = smoothPath(downCycle.filter(d => isFinite(d.shearStress) && isFinite(d.error)).map(d => [sx(d.shearStress), sy(d.error)]));
 
-    // Precompute pixel positions for all points for nearest-point lookup
-    const upPts = useMemo(() => upCycle.filter(d => isFinite(d.shearStress) && isFinite(d.error))
-        .map(d => ({ d, px: sx(d.shearStress), py: sy(d.error), isUp: true })), [upCycle, sx, sy]);
-    const downPts = useMemo(() => downCycle.filter(d => isFinite(d.shearStress) && isFinite(d.error))
-        .map(d => ({ d, px: sx(d.shearStress), py: sy(d.error), isUp: false })), [downCycle, sx, sy]);
-    const allPts = useMemo(() => [...upPts, ...downPts], [upPts, downPts]);
+    // Precompute pixel positions for all points for nearest-point lookup.
+    // No useMemo here: sx/sy are recreated by mkScale() on every render so
+    // the deps would change every render anyway, defeating memoization.
+    // The point set is small (≤ 100 calibration points) so inline is fine.
+    const upPts = upCycle.filter(d => isFinite(d.shearStress) && isFinite(d.error))
+        .map(d => ({ d, px: sx(d.shearStress), py: sy(d.error), isUp: true }));
+    const downPts = downCycle.filter(d => isFinite(d.shearStress) && isFinite(d.error))
+        .map(d => ({ d, px: sx(d.shearStress), py: sy(d.error), isUp: false }));
+    const allPts = [...upPts, ...downPts];
 
     const [active, setActive] = useState<{ d: CalibrationDataPoint; px: number; py: number; isUp: boolean } | null>(null);
 
-    const handleMouseMove = useCallback((e: React.MouseEvent<SVGRectElement>) => {
+    // No useCallback: allPts is recreated every render (sx/sy aren't
+    // stable), so memoization can't help.  The handler is small.
+    const handleMouseMove = (e: React.MouseEvent<SVGRectElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const mx = e.clientX - rect.left; // relative to SVG origin (already offset by PAD in the g transform)
         const my = e.clientY - rect.top;
@@ -76,7 +81,7 @@ function AccuracyChart({ data, width, height, stressAt100cP, isDark = true }: Ac
         }
         if (best && bestDist < 60) setActive(best);
         else setActive(null);
-    }, [allPts]);
+    };
 
     const tooltipPos: TooltipPos | null = active
         ? { left: active.px + PAD.l, top: active.py + PAD.t }
@@ -191,15 +196,16 @@ function LinearityChart({ data, width, height, stressAt100cP, isDark = true }: L
         return `${fwd} ${bwd} Z`;
     })() : '';
 
-    // Pixel positions for scatter dots
-    const scatterPts = useMemo(() =>
-        withSignal.filter(d => isFinite(d.shearStress))
-            .map(d => ({ d, px: sx(d.signal!), py: syL(d.shearStress) })),
-        [withSignal, sx, syL]);
+    // Pixel positions for scatter dots.  See note above: sx/syL are not
+    // stable, so useMemo would not help.
+    const scatterPts = withSignal.filter(d => isFinite(d.shearStress))
+        .map(d => ({ d, px: sx(d.signal!), py: syL(d.shearStress) }));
 
     const [active, setActive] = useState<{ d: CalibrationDataPoint; px: number; py: number } | null>(null);
 
-    const handleMouseMove = useCallback((e: React.MouseEvent<SVGRectElement>) => {
+    // No useCallback: scatterPts is recreated every render (sx/syL aren't
+    // stable), so memoization can't help.
+    const handleMouseMove = (e: React.MouseEvent<SVGRectElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         // Find nearest by X distance only (Recharts-style)
@@ -211,7 +217,7 @@ function LinearityChart({ data, width, height, stressAt100cP, isDark = true }: L
         }
         if (best && bestDist < 40) setActive(best);
         else setActive(null);
-    }, [scatterPts]);
+    };
 
     const tooltipPos: TooltipPos | null = active
         ? { left: active.px + PAD.l, top: active.py + PAD.t }
