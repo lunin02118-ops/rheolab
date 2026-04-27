@@ -605,8 +605,15 @@ One ecosystem chain per session with a full regression gate after each.
 | `700edbf` | `vite` + `@vitejs/plugin-react` | 6.3.5 + 4.6.0 | 7.3.2 + 5.2.0 | DONE |
 | `c2f6c66` | `typescript` | 5.9.3 | 6.0.3 | DONE |
 | `99f3784` | `eslint` | 9.39.4 | 10.2.1 | DONE |
-| — | `@types/node` | 20.19.39 | 25.6.0 (Node 22 LTS API surface) | pending |
-| — | `vite` + `@vitejs/plugin-react` (v8 wave) | 7.3.2 + 5.2.0 | 8.0.10 + 6.0.1 | pending |
+| `c28d36e` | `@types/node` | 20.19.39 | 25.6.0 (TS 6.0-aligned) | DONE |
+| `49098a5` | `vite` + `@vitejs/plugin-react` (v8 wave) | 7.3.2 + 5.2.0 | 8.0.10 + 6.0.1 | DONE |
+
+**Phase 3 complete.**  All 5 ecosystem chains bumped to their
+latest stable majors: Vite 7→08, TypeScript 5→6, ESLint 9→10,
+@types/node 20→25, plus the Rolldown wave.  The full regression
+gate (tsc, eslint, vitest, build, cargo) ran green after each chain.
+Production build time dropped 12.53 s → 8.60 s (−31 %) thanks to
+Rolldown + Oxc.
 
 **Vite 7 bump** (`700edbf`).  Vite 6 → 7 breaking changes audited and
 none affect this codebase: Node 18 was already unsupported (we run
@@ -656,15 +663,57 @@ Verification: `eslint --max-warnings=0` 0 errors / 0 warnings,
 `cargo test --features pdf,excel rheolab-core` 189/189, `cargo test
 --lib src-tauri` 328/328.
 
+**@types/node 25 bump** (`c28d36e`).  Aligned the type surface with
+the Node 24.14.1 runtime we actually run.  npm publishes a `ts6.0`
+dist-tag pinned to `25.6.0` — exact match for our TS 6.0.3.  Vite 7
+and Vitest 4 both peer-allow `>=22.12.0`, which 25 satisfies.
+
+Verification: `tsc --noEmit` 0 errors, `eslint --max-warnings=0`
+clean, `vitest` 1334/1340, `npm run build` 13.75 s, `cargo test
+--features pdf,excel rheolab-core` 189/189, `cargo test --lib
+src-tauri` 328/328.
+
+**Vite 8 bump (Rolldown wave)** (`49098a5`).  Final chain.  Vite 8
+ships Rolldown + Oxc minifier + Lightning CSS minifier in place of
+the esbuild + Rollup pipeline.
+
+Breaking change that hit our config: object form
+`build.rollupOptions.output.manualChunks` was removed.  Migrated to
+the function form `(id: string) => 'vendor-x'` which inspects
+`node_modules` paths via regex — produces the same chunk groups
+(`vendor-react`, `vendor-charts`, `vendor-radix`, `vendor-date`).
+The function form is itself deprecated; long-term migration target
+is Rolldown's `codeSplitting` option, captured in code comments for
+a future session.
+
+No other Vite 8 breakage observed: default browser target raise was
+irrelevant (we override `build.target` explicitly), Oxc/Lightning
+CSS minification produced clean output, CommonJS interop tightening
+left our build/tests passing untouched.
+
+Production build time: 12.53 s (Vite 7) → 8.60 s (Vite 8) —
+**−31 %** off the wall-clock budget.  Bundle size shifted
+(`main` 271 kB → 125 kB; `vendor-react` 49 kB → 178 kB now correctly
+captures scheduler) but total gzip footprint is roughly stable.
+
+Verification: `tsc --noEmit` 0 errors (after annotating `(id:
+string)` for the new function form), `eslint --max-warnings=0`
+clean, `vitest` 1334/1340, `npm run build` 8.60 s, `cargo test
+--features pdf,excel rheolab-core` 189/189, `cargo test --lib
+src-tauri` 328/328.
+
 ### Phase 3+ — Pending
 
-Recommended next steps in priority order:
+With Phase 3 complete, the remaining priorities are:
 
-1. **Phase 3 continuation** — bump the remaining ecosystem chains one
-   at a time: `@types/node` 20 → 25, then `vite` 7 → 8 last as the
-   Rolldown wave.  Each must pass the full gate (`tsc`, `eslint`,
-   `vitest`, `cargo test --lib`, `npm run build`) before merging.
+1. **Migrate `manualChunks` to Rolldown's `codeSplitting`** — the
+   function form is currently in use and works, but is itself
+   deprecated.  When the Rolldown `codeSplitting` API stabilises
+   in a future Vite minor, port `vite.config.ts` over.
 2. **F6 / F7** — defer until profiling on production-size DB shows them.
 3. **Phase 4 / new oversized files** — if any new Rust file crosses
    the ~500 LOC budget in future work, give it the same split-on-merge
    treatment.  No file currently exceeds the budget.
+4. **Watch the deprecated chains** — `madge@8.0.0`'s `peerOptional`
+   on TS 5 forced `--legacy-peer-deps` from Phase 3.3 onwards.  When
+   `madge` (or its replacement) ships TS 6 support, drop the flag.
