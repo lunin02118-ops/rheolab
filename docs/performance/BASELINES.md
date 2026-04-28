@@ -1707,3 +1707,114 @@ npm run perf:compare -- outputs/e2e/perf/workflow-1773578897707-tauri.json outpu
 
 - Gate status: PASS
 - Report: `docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-28.md`
+
+---
+
+## AlphaBaseline-0.2.2-alpha.2 — Sprint 0 / S0-5 (2026-04-28)
+
+**runId family:** `1777393597912`–`1777393927970` (workflow) + `1777393713364`–`1777393764457` (soak) + `1777393927970` (benchmark)
+**Дата:** 2026-04-28 21:26–21:32 (UTC+5)
+**Описание:** First measurement after Sprint 0 deliverables: BUDGETS.md
+contract, P14 large-IPC lint, P10 release-profile per-package opt-level=3
+overrides for `rheolab-core` + the entire Typst stack, and tracing/perf
+instrumentation on the comparison-export pipeline.
+**Коммит:** `ca2496e` (`perf(reports): instrument comparison-export pipeline`)
+**Linked baseline file:** see `outputs/e2e/perf/workflow-1777393625306-tauri.json`
+
+> **Режим:** Tauri E2E debug build (per `tauri.e2e.conf.json`), Playwright + WebView2 → CDP.
+> Workflow / soak runs use `TAURI_E2E_SKIP_BUILD=1` against the freshly
+> built debug binary at `src-tauri/target/debug/rheolab-enterprise.exe`.
+> P10 release-profile overrides are **NOT** exercised by this baseline —
+> the release binary at `src-tauri/target/release/rheolab-enterprise.exe`
+> (signed installer 10.36 MB, raw exe 30.39 MB) gets opt-level=3 for
+> `rheolab-core` + 14 typst/font/plotters packages, but the perf-suite
+> measures the debug build that uses `[profile.dev.package.*]`.
+> Concrete impact of P10 will land with the first Sprint 1 native PDF
+> microbench that runs against the release binary.
+
+### Условия теста
+
+| Параметр | Значение |
+|---|---|
+| Конфиг | `playwright.tauri.config.ts`, `playwright.tauri-soak.config.ts`, `playwright.benchmark.config.ts` |
+| Режим | Tauri native (WebView2 → CDP), debug E2E build |
+| Бинарь | `src-tauri/target/debug/rheolab-enterprise.exe` (E2E debug, 57.83 s build) |
+| Workers | 1 (последовательно) |
+| Фикстуры (workflow) | 6 инструментов (Chandler SST/SWB, Grace, Brookfield 4, BSL, Ofite 1100) + comparison-3 + 2× PDF |
+| Runs | 1 warmup + 3 measure workflow, 3 soak, 1 benchmark (5 nav cycles) |
+| Hardware | Windows 11 dev box (см. `FRONTEND-IPC-DEEP-AUDIT-LATEST.md` для конфигурации) |
+
+### KPI — workflow scenario (3 measure runs, excludes warmup)
+
+| Metric | p50 | p95 | Peak | Δ vs Apr 28 audit p50 |
+|---|---:|---:|---:|---:|
+| `peakHeapMb` | **9.81** | 9.84 | 9.84 | −0.09 (noise) |
+| `peakNodes` | **1646** | 1650 | 1650 | −370 (−18%) |
+| `totalWallMs` | **19,173** | 19,267 | 19,267 | −1,005 (−5%) |
+| `totalWsMb` | **558.04** | 724.78 | 730.84 | −115 (−17%) |
+| `tauriWsMb` | **63.09** | 66.45 | 66.84 | n/a |
+| `webview2RendererWsMb` | **126.87** | 202.89 | 206.79 | −78 (−38%) |
+| `tauriCpuSec` | **3.75** | 5.891 | 6.047 | n/a |
+| PDF export wallMs (per-step, n=6) | **1571** | 1844 | — | n/a |
+
+> **Honesty note on the deltas:** Sprint 0 changes are mostly inert with
+> respect to debug E2E behaviour — P10 affects release only, the lint and
+> tracing::instrument macros add no observable runtime cost, and the
+> withPerf TS wrappers are sub-ms.  The 17–38% improvements over the
+> Apr 28 audit are consistent with **measurement noise / quieter test
+> machine state**, not a Sprint-0 win.  Audit-V2 baseline captured the
+> worst-of-three; this baseline captures the best-of-three on a less
+> loaded box.  Treat the **better numbers** as the new fence: any Sprint-1
+> regression from these p50s is real and must be explained.
+
+### KPI — soak scenario (3 runs, 24 native-memory samples)
+
+| Metric | p50 | p95 | Peak |
+|---|---:|---:|---:|
+| `totalWsMb` | **450.89** | 456.94 | 458.18 |
+| `tauriWsMb` | **61.49** | 61.91 | 61.96 |
+| `webview2RendererWsMb` | **103.93** | 107.07 | 107.34 |
+
+### KPI — benchmark scenario (5 nav cycles, leak detection)
+
+| Metric | Value |
+|---|---:|
+| Idle heap — Analysis route | 6.34 MB / 554 nodes |
+| Idle heap — Library route | 7.25 MB / 670 nodes |
+| Idle heap — Comparison route | 7.79 MB / 963 nodes |
+| Idle heap — Settings route | 8.65 MB / 1133 nodes |
+| Analysis fixture (Chandler SST) | heapDelta=+0.61 MB, nodesDelta=+380, analysisMs=0 (cache hit) |
+| Navigation leak (5 cycles) | baseline 9.38 MB / 1513 nodes → final 11.69 MB / 4998 nodes |
+| Navigation leak Δ | **+2.31 MB / +3485 nodes** over 5 cycles |
+
+> **Navigation leak**: nodes grow by ~700 per cycle (linear).  This
+> already lives in the Remediation Backlog (`P3-001`) and is the kind of
+> footprint Sprint 4's "thin store + columnar" plan will go after.
+
+### Binary size — first measurement post-P10
+
+| Artifact | Size | Note |
+|---|---:|---|
+| `rheolab-enterprise.exe` (release) | **30.39 MB** | First measurement; pre-P10 size unknown — Sprint 1 will compare against this. |
+| NSIS installer (signed) | **10.36 MB** | The "~80 MB" estimate noted in BUDGETS.md was wrong; real installer is 8× smaller. |
+| Cargo build wall time (cold release with P10) | **5 m 10 s** | First clean release build with the new opt-level=3 packages; subsequent incremental builds will be much faster. |
+
+### Команда для сравнения с этим baseline
+
+```powershell
+# Single-run shape:
+$env:TAURI_E2E_SKIP_BUILD = "1"
+npm run perf:workflow:tauri
+npm run perf:soak:tauri
+npm run perf:benchmark
+# Then:
+npm run perf:compare -- outputs/e2e/perf/workflow-1777393625306-tauri.json outputs/e2e/perf/workflow-<NEW_RUN_ID>-tauri.json
+```
+
+### Sprint 0 deliverable cross-reference
+
+* `docs/performance/BUDGETS.md` (this run replaces 7 of the 14 TBD values).
+* `npm run audit:large-ipc` — passes (1 finding, all suppressed: REP-001).
+* `cargo test --lib` — 381/381 passing (P10 didn't break anything).
+* `npm run test` — 1348/1354 passing (6 skipped) (withPerf wrappers don't break Vitest).
+* `npm run version:validate` — clean (`0.2.2-alpha.2` agrees across 4 dependents).

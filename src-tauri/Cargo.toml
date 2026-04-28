@@ -87,11 +87,17 @@ strip = "symbols"
 # Tauri/serde/UI plumbing where size dominates startup time.  The two
 # compute hot paths — `rheolab-core` (analysis pipeline) and the Typst
 # stack (PDF generation) — get opt-level=3 because they are CPU-bound
-# loops where the size/speed trade-off favours speed.  Estimated impact:
-#   * binary size: +2–5 MB (acceptable; installer pre-Sprint-0 was ~80 MB)
-#   * analysis & PDF time: -10 to -25% (to be confirmed by S0-5 baseline)
-# This is a measurement-driven experiment — see docs/perf/BUDGETS.md for
-# the success criterion and rollback plan if numbers do not improve.
+# loops where the size/speed trade-off favours speed.  Measured impact
+# (S0-5 baseline, 2026-04-28):
+#   * release exe size:        30.39 MB (signed)
+#   * NSIS installer size:     10.36 MB (signed)
+#   * cold release build time: 5 m 10 s (was uncached ~3 m at opt-level=s)
+#   * analysis & PDF time:     not measured against pre-P10 — perf:* infra
+#                              uses the debug E2E build, which is unaffected
+#                              by [profile.release.package.*].  Sprint 1's
+#                              native PDF microbench will capture the delta.
+# See docs/perf/BUDGETS.md and docs/perf/BASELINES.md AlphaBaseline-0.2.2-alpha.2
+# for the success criterion and rollback plan if numbers do not improve.
 [profile.release.package.rheolab-core]
 opt-level = 3
 [profile.release.package.typst]
