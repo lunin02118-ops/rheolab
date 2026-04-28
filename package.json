@@ -41,6 +41,7 @@
     "audit:bundle": "node scripts/test/run-bundle-audit.js",
     "audit:enterprise:quick": "node scripts/audit/run-enterprise-deep-audit.js --quick",
     "audit:frontend-ipc": "node scripts/audit/run-frontend-ipc-deep-audit.js",
+    "audit:large-ipc": "node scripts/audit/check-large-ipc-contracts.mjs",
     "qa:autonomous": "node scripts/dev/run-autonomous-cycle.js",
     "release:prepare": "node scripts/release/prepare-production.js",
     "prerelease:prepare": "node scripts/version/validate.js",
