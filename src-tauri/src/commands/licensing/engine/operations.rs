@@ -381,6 +381,15 @@ impl LicenseEngine {
     /// across the network `.await`** to `deactivate_online`.  This avoids
     /// occupying one of the 8 pool slots for the duration of the HTTP
     /// timeout (up to ~30 s) while other IPC commands compete for a slot.
+    ///
+    /// **Online-only contract (audit-preflight OPS-001)**: server-side
+    /// unbind is **mandatory** when a license key is locally stored. If
+    /// the server is unreachable the deactivation is refused and local
+    /// state is preserved.  Previously the function logged "will retry"
+    /// on network failure but cleared the local row anyway, leaving the
+    /// server bound to a machine that no longer thinks it owns the
+    /// license — the user could not then re-activate on a different
+    /// machine because the server still reported the binding as live.
     pub async fn deactivate(&self, db_pool: &DbPool) -> Result<LicenseCheckResult> {
         // Scope 1: read the stored key (sync, sub-millisecond), then drop conn.
         let stored_key: Option<String> = {
@@ -392,15 +401,24 @@ impl LicenseEngine {
         };
 
         // Network round-trip — no DB connection held.
+        // Server unbind is REQUIRED before we touch local state.  See the
+        // function-level OPS-001 note for rationale.
         if let Some(ref key) = stored_key {
-            // Best-effort server deactivation — don't fail if offline
-            match deactivate_online(key, &self.app_data_dir).await {
-                Ok(_) => tracing::info!("License deactivated on server"),
-                Err(e) => tracing::warn!("Server deactivation failed (will retry): {}", e),
+            if let Err(e) = deactivate_online(key, &self.app_data_dir).await {
+                tracing::warn!("Server deactivation refused (offline?): {}", e);
+                return Err(AppError::License(
+                    "Не удалось отвязать лицензию от сервера. Деактивация \
+                     требует подключения к интернету: иначе машина останется \
+                     привязана на сервере и активация на другом устройстве \
+                     будет отклонена. Подключитесь к сети и повторите."
+                        .to_string(),
+                ));
             }
+            tracing::info!("License deactivated on server");
         }
 
         // Scope 2: delete row + check demo — fresh connection, short hold.
+        // Reached only after the server confirmed (or there was nothing to unbind).
         let result = {
             let conn = db_pool.get().map_err(AppError::Pool)?;
             delete_system_state(&conn, DB_KEY_LICENSE)?;
