@@ -94,6 +94,7 @@ license-server/.phpunit.result.cache
 # Test outputs and reports
 /outputs/
 /runtime/audit/
+/runtime/build/
 /runtime/dev/
 /runtime/node/
 /runtime/qa/
