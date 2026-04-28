@@ -20,11 +20,32 @@ use serde::Serialize;
 
 /// Current schema version embedded at compile time.
 ///
-/// Increment this constant **and** add a corresponding `V{N}_MIGRATION` block
-/// to `run_migrations` whenever a destructive schema change is needed (e.g.
-/// `ALTER TABLE`, dropping a column, changing a column type).
-/// Pure additions (new tables / indexes) are safe to add directly to V1_DDL
-/// using `IF NOT EXISTS` without bumping the version.
+/// **Audit-v2 DB-006 — schema change policy (FROZEN):**
+///
+/// `V1_DDL` is **frozen** as of schema_version 1 and reflects the schema of
+/// the very first install of this application.  It exists **only** to bring
+/// a fresh database up to that historical baseline; the rest of the
+/// migration registry walks the DB forward from there.
+///
+/// **Every** schema change — destructive *or* purely additive (new tables,
+/// new indexes, new triggers, new computed columns, new partial indexes,
+/// added/dropped columns, type changes, FK additions, new views, default-data
+/// seeds) — **MUST**:
+///
+/// 1. Live in a brand-new `V{N+1}_MIGRATION` module under
+///    `src-tauri/src/db/migrations/v{N+1}_<descr>.rs`.
+/// 2. Be appended to the `MIGRATIONS` registry in
+///    `src-tauri/src/db/migrations/mod.rs` so `run_migrations` walks it
+///    on next startup.
+/// 3. Bump `CURRENT_SCHEMA_VERSION` by exactly one.
+///
+/// Adding "harmless" `CREATE … IF NOT EXISTS` statements directly to
+/// `V1_DDL` is **forbidden**: it (a) silently desyncs production databases
+/// already running schema_version ≥ 1, (b) bypasses the per-migration
+/// regression tests, and (c) is invisible to the audit-trail produced by
+/// the migration registry.  Reviewers must reject any PR that mutates
+/// `V1_DDL` without an accompanying `CURRENT_SCHEMA_VERSION` bump and a
+/// fresh migration module.
 pub const CURRENT_SCHEMA_VERSION: i64 = 7;
 
 /// Information returned after a successful migration run.
