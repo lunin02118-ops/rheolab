@@ -277,51 +277,48 @@ impl LicenseEngine {
 
     // ── Activate ───────────────────────────────────────────────────────
 
-    /// Activate a license key: call the server, store in DB, return result.
+    /// Activate a license key: call the server, **verify the RSA signature**,
+    /// store in DB, return result.
+    ///
+    /// **Audit-v2 LIC-003 — hard RSA gate:**
+    ///
+    /// Before this fix, `activate()` accepted any server response with
+    /// `success: true`, extracted the licence fields from the *unsigned*
+    /// top-level `data["license"]` JSON, and wrote them straight to the
+    /// local DB.  An adversary who could redirect or MITM
+    /// `LICENSE_SERVER_URL` (rogue DNS, hostile proxy, compromised
+    /// network) would inject any feature set they liked — including
+    /// `developer` / `superuser` tier flags — and the freshly cached
+    /// state would grant write/export permissions for the rest of the
+    /// process before the next boot's load-time RSA gate caught it.
+    ///
+    /// New contract: activation **demands** a non-empty `signedPayload`
+    /// and `signature`, RSA-verifies them against the pinned public key
+    /// **before** any DB write, and uses the *parsed signed payload* as
+    /// the sole source of truth for licence fields (the unsigned
+    /// top-level `license` field is ignored entirely).  This matches the
+    /// recovery path's existing contract — there is no longer an
+    /// activation route that is laxer than recovery.
     pub async fn activate(&self, key: &str, db_pool: &DbPool) -> Result<LicenseCheckResult> {
         let data = activate_online(key, &self.app_data_dir).await?;
 
-        if data["success"].as_bool() != Some(true) {
-            return Err(data["error"]
-                .as_str()
-                .unwrap_or("Activation failed")
-                .to_string()
-                .into());
-        }
+        // ── Audit-v2 LIC-003 hard RSA gate (MUST run before any DB write) ──
+        let (signed_payload, signature, license) = match validate_activation_response(&data) {
+            Ok(v) => v,
+            Err(e) => {
+                self.diag(&format!("activate: rejected — {e}"));
+                return Err(e);
+            }
+        };
+        self.diag(&format!(
+            "activate: RSA verified, signedPayload len={}",
+            signed_payload.len()
+        ));
 
-        // Extract license info from server response
-        let license = data
-            .get("license")
-            .cloned()
-            .unwrap_or(serde_json::json!({}));
-        let signature = data["signature"].as_str().unwrap_or("");
-
-        // Store the canonical signed payload exactly as the server produced it.
-        //
-        // Since v0.1.524 the server includes a `signedPayload` field in the response
-        // containing the verbatim `json_encode($licenseData, ...)` string that was
-        // RSA-signed.  We store that directly so byte-for-byte RSA verification works
-        // regardless of JSON key ordering or serialiser differences.
-        //
-        // Fallback for older server versions: re-serialise the `license` Value.
-        // serde_json uses IndexMap (preserves key order) so in practice this matches
-        // PHP's json_encode output for typical ASCII/Cyrillic data.
-        let server_gave_payload = data["signedPayload"].is_string();
-        let signed_payload = data["signedPayload"]
-            .as_str()
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| {
-                self.diag("activate: server did NOT return signedPayload — using Rust JSON fallback (RSA will likely fail on next launch!)");
-                serde_json::to_string(&license).unwrap_or_default()
-            });
-        if server_gave_payload {
-            self.diag(&format!(
-                "activate: server returned signedPayload (len={})",
-                signed_payload.len()
-            ));
-        }
-
-        // Build license record for DB storage
+        // Build license record for DB storage from the SIGNED payload only.
+        // The unsigned `data["license"]` top-level field is intentionally
+        // ignored — only fields covered by the RSA signature can be
+        // trusted, otherwise a MITM could substitute the unsigned half.
         let license_type_str = license["type"].as_str().unwrap_or("standard").to_string();
         let license_type = LicenseType::from_str_loose(&license_type_str);
 
@@ -600,5 +597,275 @@ impl LicenseEngine {
             ),
             show_warning: false,
         })
+    }
+}
+
+// ── Audit-v2 LIC-003: pure validator for activation responses ──────────────
+
+/// Gates the JSON returned by `activate_online`.
+///
+/// Returns `Ok((signed_payload, signature, license_value))` when **all**
+/// of the following hold:
+///   1. `data["success"] == true`,
+///   2. `data["signedPayload"]` is a non-empty string,
+///   3. `data["signature"]` is a non-empty string,
+///   4. `verify_server_signature(signed_payload, signature)` returns true
+///      against the pinned public key,
+///   5. `signed_payload` parses as valid JSON.
+///
+/// On any failure returns a typed `AppError::License(...)` describing
+/// the rejection.  Extracted as a free function so the LIC-003 contract
+/// can be unit-tested without standing up a mock HTTP server (see
+/// `validate_activation_response_*` regression tests in this module).
+///
+/// The returned `license_value` is the **parsed signed payload**, not
+/// `data["license"]`.  This is intentional: only fields covered by the
+/// RSA signature are trustworthy, so the DB record must be built from
+/// `license_value` alone.
+fn validate_activation_response(data: &Value) -> Result<(String, String, Value)> {
+    if data["success"].as_bool() != Some(true) {
+        return Err(data["error"]
+            .as_str()
+            .unwrap_or("Activation failed")
+            .to_string()
+            .into());
+    }
+
+    let signed_payload = data["signedPayload"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            AppError::License(
+                "Сервер не вернул подписанный payload — активация отклонена (LIC-003)".into(),
+            )
+        })?;
+
+    let signature = data["signature"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            AppError::License(
+                "Сервер не вернул подпись — активация отклонена (LIC-003)".into(),
+            )
+        })?;
+
+    if !verify_server_signature(signed_payload, signature) {
+        return Err(AppError::License(
+            "Подпись сервера некорректна — активация отклонена (LIC-003)".into(),
+        ));
+    }
+
+    let license: Value = serde_json::from_str(signed_payload).map_err(|_| {
+        AppError::License("Сервер вернул неразбираемый payload (LIC-003)".into())
+    })?;
+
+    Ok((signed_payload.to_string(), signature.to_string(), license))
+}
+
+#[cfg(test)]
+mod activate_tests {
+    //! Audit-v2 LIC-003 regression guards for `validate_activation_response`.
+    //!
+    //! These exercise the pure validator without going through the HTTP
+    //! layer, so we can assert the contract on synthetic responses that a
+    //! real server (or a malicious MITM) might produce.
+
+    use super::*;
+    use serde_json::json;
+
+    /// Helper: sign with the dev private key (counterpart of the dev public
+    /// key embedded into release/debug binaries via `RSA_PUBLIC_KEY_DER`).
+    fn sign_with_dev_private_key(data: &[u8]) -> String {
+        use base64::Engine;
+        use rsa::pkcs1v15::SigningKey;
+        use rsa::pkcs8::DecodePrivateKey;
+        use rsa::signature::{SignatureEncoding, Signer};
+        use sha2::Sha256;
+
+        let private_der = include_bytes!("../../../../keys/dev_private.der");
+        let private_key = rsa::RsaPrivateKey::from_pkcs8_der(private_der)
+            .expect("dev private key should be valid");
+        let signing_key = SigningKey::<Sha256>::new(private_key);
+        let signature = signing_key.sign(data);
+        base64::engine::general_purpose::STANDARD.encode(&*signature.to_bytes())
+    }
+
+    /// Happy path: server returns `success:true` + valid `signedPayload` +
+    /// matching `signature` → validator returns the parsed payload as the
+    /// licence Value.
+    #[test]
+    fn validate_activation_response_accepts_correctly_signed_payload() {
+        let payload = r#"{"id":42,"type":"standard","customerName":"Acme","expiresAt":"2099-12-31"}"#;
+        let signature = sign_with_dev_private_key(payload.as_bytes());
+        let data = json!({
+            "success": true,
+            "signedPayload": payload,
+            "signature": signature,
+            // unsigned `license` field intentionally NOT present — validator
+            // must work without it.
+        });
+
+        let (sp, sig, lic) = validate_activation_response(&data).expect("must accept valid payload");
+        assert_eq!(sp, payload);
+        assert!(!sig.is_empty());
+        assert_eq!(lic["id"], 42);
+        assert_eq!(lic["type"], "standard");
+        assert_eq!(lic["customerName"], "Acme");
+    }
+
+    /// `success: false` short-circuits with the server's error message.
+    #[test]
+    fn validate_activation_response_rejects_success_false() {
+        let data = json!({
+            "success": false,
+            "error": "key_already_used",
+        });
+        let err = validate_activation_response(&data).unwrap_err().to_string();
+        assert!(
+            err.contains("key_already_used"),
+            "must surface server error message; got: {err}"
+        );
+    }
+
+    /// **The headline LIC-003 regression**: server response with `success:true`
+    /// but no `signedPayload` MUST be refused.  Pre-fix this fell back to a
+    /// Rust-side serialisation of `data["license"]` and the unsigned fields
+    /// were trusted; post-fix it is a hard error before any DB write.
+    #[test]
+    fn validate_activation_response_rejects_missing_signed_payload() {
+        let data = json!({
+            "success": true,
+            "license": {"id": 1, "type": "developer"}, // unsigned junk
+            "signature": "AAAA",
+        });
+        let err = validate_activation_response(&data).unwrap_err().to_string();
+        assert!(
+            err.contains("signedPayload") || err.contains("LIC-003"),
+            "must explicitly reject missing signedPayload; got: {err}"
+        );
+    }
+
+    /// Empty `signedPayload` string is also a refusal — the field must be
+    /// non-empty content the server actually signed.
+    #[test]
+    fn validate_activation_response_rejects_empty_signed_payload() {
+        let data = json!({
+            "success": true,
+            "signedPayload": "",
+            "signature": "AAAA",
+        });
+        let err = validate_activation_response(&data).unwrap_err().to_string();
+        assert!(
+            err.contains("signedPayload") || err.contains("LIC-003"),
+            "empty signedPayload must be refused; got: {err}"
+        );
+    }
+
+    /// Missing `signature` field → refuse.
+    #[test]
+    fn validate_activation_response_rejects_missing_signature() {
+        let payload = r#"{"id":1,"type":"standard"}"#;
+        let data = json!({
+            "success": true,
+            "signedPayload": payload,
+            // no signature
+        });
+        let err = validate_activation_response(&data).unwrap_err().to_string();
+        assert!(
+            err.contains("подпись")
+                || err.contains("signature")
+                || err.contains("LIC-003"),
+            "must reject missing signature; got: {err}"
+        );
+    }
+
+    /// Forged signature (signed against different bytes) → refuse.
+    /// This is the actual MITM scenario the audit identified: an attacker
+    /// who intercepts the activation HTTP response and substitutes the
+    /// payload with their preferred features cannot also forge a valid
+    /// RSA signature without the server's private key.
+    #[test]
+    fn validate_activation_response_rejects_forged_signature() {
+        let real_payload = r#"{"id":1,"type":"standard"}"#;
+        let attacker_payload = r#"{"id":1,"type":"developer","features":{"export_pdf":true}}"#;
+        // Attacker keeps the legitimate signature but swaps the payload.
+        let real_sig = sign_with_dev_private_key(real_payload.as_bytes());
+        let data = json!({
+            "success": true,
+            "signedPayload": attacker_payload,
+            "signature": real_sig,
+        });
+        let err = validate_activation_response(&data).unwrap_err().to_string();
+        assert!(
+            err.contains("Подпись")
+                || err.contains("signature")
+                || err.contains("LIC-003"),
+            "MITM substitution must fail RSA verify; got: {err}"
+        );
+    }
+
+    /// Garbage Base64 signature → refuse without panic.
+    #[test]
+    fn validate_activation_response_rejects_garbage_signature() {
+        let payload = r#"{"id":1,"type":"standard"}"#;
+        let data = json!({
+            "success": true,
+            "signedPayload": payload,
+            "signature": "this-is-not-valid-base64!!!",
+        });
+        let err = validate_activation_response(&data).unwrap_err().to_string();
+        assert!(
+            err.contains("Подпись")
+                || err.contains("signature")
+                || err.contains("LIC-003"),
+            "garbage signature must Err, never panic; got: {err}"
+        );
+    }
+
+    /// `signedPayload` is RSA-valid but not parseable JSON → refuse.
+    /// Catches the case where a legitimate server has a serialiser bug or
+    /// an attacker chose a non-JSON "payload" they could sign.
+    #[test]
+    fn validate_activation_response_rejects_non_json_payload() {
+        let payload = "definitely-not-json";
+        let signature = sign_with_dev_private_key(payload.as_bytes());
+        let data = json!({
+            "success": true,
+            "signedPayload": payload,
+            "signature": signature,
+        });
+        let err = validate_activation_response(&data).unwrap_err().to_string();
+        assert!(
+            err.contains("payload") || err.contains("LIC-003"),
+            "non-JSON payload must be refused; got: {err}"
+        );
+    }
+
+    /// Headline anti-MITM proof: validator returns the **signed** payload's
+    /// fields, not whatever an attacker put in the unsigned top-level
+    /// `data["license"]`.  Even if we leave a forged `license` field next
+    /// to a legitimate signed payload, the returned `license_value`
+    /// reflects only the signed half.
+    #[test]
+    fn validate_activation_response_uses_signed_payload_not_unsigned_license() {
+        let signed = r#"{"id":1,"type":"standard","features":{"export_pdf":false}}"#;
+        let signature = sign_with_dev_private_key(signed.as_bytes());
+        let data = json!({
+            "success": true,
+            "signedPayload": signed,
+            "signature": signature,
+            // attacker-injected unsigned half
+            "license": {"id": 1, "type": "developer", "features": {"export_pdf": true}},
+        });
+        let (_, _, lic) =
+            validate_activation_response(&data).expect("signed payload accepted");
+        assert_eq!(
+            lic["type"], "standard",
+            "must use SIGNED type, not unsigned `license.type`"
+        );
+        assert_eq!(
+            lic["features"]["export_pdf"], false,
+            "must use SIGNED features, not unsigned `license.features`"
+        );
     }
 }
