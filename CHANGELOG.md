@@ -6,6 +6,32 @@
 
 ---
 
+## [0.2.0-alpha.1] — 2026-04-28
+
+> Первый alpha-build после deep-optimization sprint (Phase 0-7). Только для Superuser-лицензии (project owner personal tier). Беты не будет, пока ручное тестирование не подтвердит стабильность — после этого следующая версия станет `0.2.0-beta.X`.
+
+### Добавлено
+- **DB-индексы (Phase 4b/4d)**: Три новых миграции `v0004` (default Library list composite index), `v0005` (`COLLATE NOCASE` индексы для `ReagentCatalog` и `Experiment.testType`), `v0006` (FK-индексы для `importBatchId` на `ExperimentPayload` / `ParserArtifact` / `ReportArtifact`). Все hot-path queries в `EXPLAIN QUERY PLAN` теперь используют index seek без `TEMP B-TREE` сортировок.
+- **F1 fix**: `is_duplicate_name` (импорт каталога реагентов) переведён с `LOWER()`-обёртки на `COLLATE NOCASE`, теперь корректно использует `idx_reagent_category_name_nocase`.
+- **F3**: Filter-metadata cache invalidation на фронтенде — `ExperimentFilters` и `ExperimentList` делят один module-level promise-кэш с явным TTL, без лишних IPC-дёргов при изменении состояния списка.
+
+### Изменено
+- **Phase 5a**: Удалено 5 неиспользуемых npm-зависимостей и 6 orphan-скриптов (`-54 packages, -1054 LOC`).
+- **Phase 7a**: Закрыто 65/65 violations `eslint-plugin-react-hooks 7.x` — устранены `setState-in-effect` и `refs-in-render` паттерны в charts, useSaveDialogInit, BackupManager и ещё 11 файлах.
+- **Refactor**: Разбиты три oversize Rust-файла — `touch_point_precompute.rs` (765 → 7 модулей), `pdf_comparison.rs` (1620 → 5 модулей), `report_generator/pdf/template/mod.rs` (646 → 3 модуля). Public API не менялся.
+
+### Инфраструктура (только для разработчиков)
+- **Phase 3 ecosystem bumps**: Vite 6→7→8 (Rolldown bundler), `@vitejs/plugin-react` 5→6, TypeScript 5→6, ESLint 9→10, `@types/node` 20→25, `typescript-eslint` 8.59.1, jsdom 27→29.
+- **Phase 6 dep batches**: react/react-dom 19.2.1→19.2.5, lucide-react 0.561→1.11, ещё 17 пакетов в minor/patch ladder.
+- **Audit hardening (Phase 0)**: Frontend-IPC deep audit gate PASS, gitleaks triaged, security-best-practices baseline зафиксирован в `docs/audit/2026-04-27-deep-optimization-plan.md`.
+- **Performance regression hunt (Phase 3 follow-up)**: Apples-to-apples сравнение pre/post Phase 3 показало no regression на heap, DOM nodes, wall time или CPU. Benchmark suite leak slope улучшился с +2.7 → -0.1 MB/round. Полный отчёт: `docs/performance/PHASE-3-PERFORMANCE-DELTA-2026-04-28.md`.
+
+### Известные ограничения
+- В alpha-канал попадают только Superuser-лицензии (project owner personal tier). Beta/stable пользователи не получат это обновление автоматически.
+- `madge@8.0.0` всё ещё требует `--legacy-peer-deps` для установки из-за устаревшего peerOptional на старый typescript-eslint.
+
+---
+
 ## [0.2.0-beta.24] — 2026-04-22
 
 ### Исправлено

@@ -1,6 +1,6 @@
 [package]
 name = "rheolab-enterprise"
-version = "0.2.0-beta.53"
+version = "0.2.0-alpha.1"
 description = "RheoLab Enterprise - Professional Rheology Analysis Software"
 authors = ["RheoLab Team"]
 license = "Proprietary"
