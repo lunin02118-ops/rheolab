@@ -82,6 +82,49 @@ lto = "thin"
 opt-level = "s"
 strip = "symbols"
 
+# ── Per-package release optimisations (Sprint 0 / P10 experiment) ────────────
+# Workspace defaults to opt-level="s" (size) since most of the binary is
+# Tauri/serde/UI plumbing where size dominates startup time.  The two
+# compute hot paths — `rheolab-core` (analysis pipeline) and the Typst
+# stack (PDF generation) — get opt-level=3 because they are CPU-bound
+# loops where the size/speed trade-off favours speed.  Estimated impact:
+#   * binary size: +2–5 MB (acceptable; installer pre-Sprint-0 was ~80 MB)
+#   * analysis & PDF time: -10 to -25% (to be confirmed by S0-5 baseline)
+# This is a measurement-driven experiment — see docs/perf/BUDGETS.md for
+# the success criterion and rollback plan if numbers do not improve.
+[profile.release.package.rheolab-core]
+opt-level = 3
+[profile.release.package.typst]
+opt-level = 3
+[profile.release.package.typst-pdf]
+opt-level = 3
+[profile.release.package.typst-utils]
+opt-level = 3
+[profile.release.package.typst-syntax]
+opt-level = 3
+[profile.release.package.typst-timing]
+opt-level = 3
+[profile.release.package.comemo]
+opt-level = 3
+[profile.release.package.ecow]
+opt-level = 3
+# Font rendering pipeline (Typst dependency)
+[profile.release.package.ttf-parser]
+opt-level = 3
+[profile.release.package.rustybuzz]
+opt-level = 3
+[profile.release.package.icu_properties]
+opt-level = 3
+[profile.release.package.icu_normalizer]
+opt-level = 3
+[profile.release.package.icu_segmenter]
+opt-level = 3
+[profile.release.package.kurbo]
+opt-level = 3
+# Chart SVG generation (analysis-adjacent)
+[profile.release.package.plotters]
+opt-level = 3
+
 # ── Per-package debug optimisations ──────────────────────────────────────────
 # Typst and its font/layout sub-crates are compute-heavy; at opt-level=0
 # (default debug profile) PDF compilation takes 5+ minutes in tests.
