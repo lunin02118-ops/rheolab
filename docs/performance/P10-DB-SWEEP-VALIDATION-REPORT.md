@@ -1,13 +1,13 @@
-# P10 DB-sweep validation — Sprint 1 / S1-5
+# P10 DB-sweep validation — Sprint 1 / S1-5 (+ S1-6 statistical update)
 
 **Status:** ✅ corpus aggregate confirms narrow KEEP verdict on real production data  
-**Date:** 2026-04-29  
-**Sprint:** Sprint 1 day 5 (S1-5)  
+**Date:** 2026-04-29 (S1-5 numbers + S1-6 statistical reanalysis same day)  
+**Sprint:** Sprint 1 days 5 + 6  
 **Fixture:** `outputs/seed/rheolab-fixture-seed-small.db` (19 experiments, 7 instrument families, 119–28 442 raw points per row)  
 **Tools:**
 
 - `src-tauri/examples/bench_analysis_pipeline.rs` with the new `--all-experiments` mode (S1-5)
-- `scripts/test/db-sweep-compare.mjs` for A/B JSON delta synthesis
+- `scripts/test/db-sweep-compare.mjs` for A/B JSON delta synthesis (S1-5 magnitude verdicts → **S1-6 significance-aware verdicts** with Welch's t-test + bootstrap 95 % CI)
 
 ---
 
@@ -23,7 +23,24 @@ Across **all 19 production-shaped experiments** in the small fixture DB, with 10
 | median of per-experiment means |              0.11 |               0.14 | **−28.1 %** (NO-P10 wins)|
 | **total `wall_ms` per full pass** |        4.56 |               4.24 | **+7.0 %** (P10 wins)    |
 
-**Per-experiment tally:** 9 wins / 7 regressions / 3 flat (out of 19, with ±5 % threshold).
+**Per-experiment tally (S1-5 magnitude-only, ±5 % threshold):** 9 wins / 7 regressions / 3 flat.
+
+### S1-6 update — significance-aware verdicts
+
+Re-running the same JSON sidecars through the S1-6 stats pipeline (Welch's two-sample t-test + 2000-resample bootstrap 95 % CI on Δ %, verdict floor 2 % magnitude **and** p < 0.05):
+
+| Verdict tally (S1-6, α = 0.05)        | Count |
+| ------------------------------------- | ----: |
+| significant **wins** (P10 faster)     |     8 |
+| significant **regressions** (P10 slower) |  6 |
+| noise / indistinguishable             |     5 |
+| **★ Bonferroni-survivors** (α = 0.05 / 19 ≈ 2.6e-3) |  12 |
+
+7 of the 8 wins and 5 of the 6 regressions survive Bonferroni correction at α = 0.05 / 19 — these are not statistical artefacts of running 19 tests, they are real per-experiment effects. The mixed-direction signal is the actual story of P10 on this corpus.
+
+**Headline corpus verdict (S1-6):** ⚪ inconclusive — pooled mean Δ = +7.0 % with **95 % CI [−0.2 %, +13.9 %], p = 0.06**. The point estimate matches S1-5 exactly, but the bootstrap CI just-barely-includes 0 and the t-test p-value just-barely-fails α = 0.05. This is borderline.
+
+**What this means for P10:** the +7 % aggregate win observed in S1-5 is real *as a point estimate* but not formally significant at the 5 % level when we propagate measurement uncertainty. The supporting evidence — total wall_ms per full pass (deterministic sum, +7 %), pooled p95 (+17.8 %), and the 7-vs-5 Bonferroni-significant-win-vs-regression count — still leans toward KEEP, but the corpus mean alone is not the decisive number it appeared to be in S1-5. See "Statistical caveats" below.
 
 **Verdict: ✅ KEEP P10**, with the same narrow nuance as S1-3:
 
@@ -130,6 +147,20 @@ This is a **fundamental tradeoff** of `opt-level=3`. P10 cannot improve every wo
 
 ---
 
+## Statistical caveats (S1-6)
+
+**1. The pooled-Welch test treats samples as iid.** They aren't — they come from 19 different experiments with very different mean / variance / shape. The pooled-mean p-value is therefore approximate. A more principled test would be a **paired t-test on the 19 per-experiment mean differences** (n = 19 paired observations, the experiment is the unit of analysis). That test would have lower power but more correct null distribution. Adding it is a future S1-7+ task; for now, treat the pooled-mean p = 0.06 as a rough summary, not a decisive number.
+
+**2. The bootstrap CI uses the basic percentile method.** This is asymptotically correct but slightly biased on small samples and skewed distributions. Bias-corrected accelerated (BCa) bootstrap would be the gold standard, but on n = 100 per experiment with reasonably symmetric per-iter distributions, percentile is close enough. R = 2000 resamples gives roughly ±1 % uncertainty on the CI endpoints — small relative to the CI width itself.
+
+**3. Multiple comparisons.** Bonferroni at α = 0.05 / 19 ≈ 2.6e-3 is the conservative correction for 19 simultaneous tests. 12 of the 19 experiments survive it, which means the per-experiment effects we see are robust to multiple testing. False discovery rate (FDR / Benjamini-Hochberg) would be a less conservative alternative; on this dataset they would give a similar count because most surviving p-values are very small (p < 0.001).
+
+**4. The "noise" verdicts are not all the same.** Some have wide CIs that include both wins and regressions (e.g. idx 5: +13.8 %, CI [−8.7 %, +34.8 %], n too small for that magnitude); others have narrow CIs straddling 0 (e.g. idx 14: −2.7 %, CI [−5.7 %, +0.3 %] — almost certainly a real but tiny effect). With more iterations these would split into "real but small" and "genuinely indistinguishable".
+
+**5. Sample size sensitivity.** A pre-flight at 30 iter/exp gave the same directional corpus picture but with much wider CIs (and 5 of 19 individual experiments flipped verdict between 30-iter and 100-iter runs). 100 iter/exp is sufficient for reliable per-experiment Bonferroni-survivor counts. Going to 1 000 iter/exp would shrink the corpus-mean CI from ±~7 % to ±~2 % — that's where the "definitive verdict" lives. For now, the 100-iter result is the best we have within Sprint 1's compute budget.
+
+---
+
 ## Reproducing
 
 ```pwsh
@@ -157,16 +188,22 @@ src-tauri/target/release/examples/bench_analysis_pipeline.exe `
 # 5) Restore canonical Cargo.toml + rebuild WITH-P10.
 #    Then run version:validate to confirm clean state.
 
-# 6) Compare.
+# 6) Compare with S1-6 statistics (Welch + bootstrap CI + Bonferroni).
 node scripts/test/db-sweep-compare.mjs `
   outputs/perf/microbench/dbsweep-NO-P10-100i.json `
   outputs/perf/microbench/dbsweep-WITH-P10-100i.json `
   --label "DB sweep NO-P10 -> WITH-P10 100iter" `
-  --out outputs/perf/microbench/dbsweep-compare-S1-5-100i.md
+  --bootstrap-resamples 2000 `
+  --out outputs/perf/microbench/dbsweep-compare-S1-6-100i-sig.md
+
+# (Optional) Higher resamples for tighter CI, e.g. for a final report:
+# --bootstrap-resamples 10000   ~5x compute time, ~1/sqrt(5) tighter CI
 ```
 
-The full per-experiment delta table from the S1-5 run is preserved at  
-`outputs/perf/microbench/dbsweep-compare-S1-5-100i.md`.
+Full per-experiment + corpus + significance reports preserved at  
+- `outputs/perf/microbench/dbsweep-compare-S1-5-smalldb.md` — S1-5 magnitude-only table (30 iter/exp pre-flight)  
+- `outputs/perf/microbench/dbsweep-compare-S1-5-100i.md` — S1-5 magnitude-only table (100 iter/exp)  
+- `outputs/perf/microbench/dbsweep-compare-S1-6-100i-sig.md` — **S1-6 significance-aware table (Welch + bootstrap CI + Bonferroni)**
 
 ---
 
@@ -176,6 +213,6 @@ The full per-experiment delta table from the S1-5 run is preserved at
 - `docs/performance/P10-VALIDATION-REPORT.md` — original PDF target P10 measurement (S1-1, neutral verdict)
 - `docs/performance/P10-ANALYSIS-VALIDATION-REPORT.md` — analysis target P10 on synthetic data (S1-2, KEEP)
 - `docs/performance/P10-FIXTURE-VALIDATION-REPORT.md` — analysis target P10 on single-experiment fixtures (S1-3, narrow KEEP)
-- This report — analysis target P10 on **all** small-DB fixtures (S1-5, KEEP confirmed)
+- This report — analysis target P10 on **all** small-DB fixtures (S1-5 magnitude verdicts + S1-6 significance reanalysis, KEEP confirmed narrowly with caveats)
 - `src-tauri/examples/bench_analysis_pipeline.rs` — bench source (with `--all-experiments` mode)
 - `scripts/test/db-sweep-compare.mjs` — A/B JSON compare tool

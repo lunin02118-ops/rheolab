@@ -305,4 +305,4 @@ absolute numbers are not directly comparable to microbench numbers.
 - `src-tauri/examples/bench_comparison_pdf.rs` — PDF bench source.
 - `src-tauri/examples/bench_analysis_pipeline.rs` — analysis bench source (synthetic + single-fixture + `--all-experiments` sweep).
 - `scripts/test/run-rust-microbench.mjs` — the multi-target orchestrator.
-- `scripts/test/db-sweep-compare.mjs` — A/B JSON compare for `--all-experiments` sidecars.
+- `scripts/test/db-sweep-compare.mjs` — A/B JSON compare for `--all-experiments` sidecars (S1-5 magnitude verdicts + S1-6 Welch's t-test + bootstrap 95 % CI + Bonferroni-survivor count).
