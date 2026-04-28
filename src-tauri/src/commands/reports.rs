@@ -22,6 +22,14 @@ use rheolab_core::report_generator::ReportInput;
 use tauri::State;
 
 /// Inner implementation used by tests — returns raw bytes.
+///
+/// Sprint 0 / S0-6: `tracing::instrument` makes the spawn_blocking
+/// boundary measurable.  `skip_all` keeps the heavy `ReportInput`
+/// out of the span fields (it is megabytes-sized after Float64Array
+/// expansion).  The rheolab-core call itself is not instrumented —
+/// keeping that crate tracing-free is intentional (it is the
+/// foundation crate; we measure it from the boundary instead).
+#[tracing::instrument(level = "info", skip_all, name = "reports::pdf::spawn_blocking")]
 async fn generate_pdf_bytes(input: ReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
         rheolab_core::report_generator::generate_pdf_from_input(&input)
@@ -32,6 +40,7 @@ async fn generate_pdf_bytes(input: ReportInput) -> Result<Vec<u8>> {
 }
 
 /// Inner implementation used by tests — returns raw bytes.
+#[tracing::instrument(level = "info", skip_all, name = "reports::excel::spawn_blocking")]
 async fn generate_excel_bytes(input: ReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
         rheolab_core::report_generator::generate_excel_from_input(&input)
@@ -42,6 +51,17 @@ async fn generate_excel_bytes(input: ReportInput) -> Result<Vec<u8>> {
 }
 
 /// Inner implementation used by tests — returns raw comparison PDF bytes.
+///
+/// Sprint 0 / S0-6: span field `n_experiments` lets us correlate Rust
+/// time spent vs comparison size.  Sprint 1's by-ids native pipeline
+/// will use exactly this metric to prove the saving over the current
+/// "TS builds full input" path.
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    name = "reports::comparison::pdf::spawn_blocking",
+    fields(n_experiments = input.experiments.len())
+)]
 async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
         rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
@@ -54,6 +74,12 @@ async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<V
 }
 
 /// Inner implementation used by tests — returns raw comparison XLSX bytes.
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    name = "reports::comparison::excel::spawn_blocking",
+    fields(n_experiments = input.experiments.len())
+)]
 async fn generate_comparison_excel_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
         rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {

@@ -149,6 +149,40 @@ const DEFAULT_SECTION_TOGGLES: ComparisonSectionToggles = {
     showRheology: true,
 };
 
+// ── Sprint 0 / S0-6: comparison-flow perf instrumentation ──────────────────
+//
+// Lightweight wrapper around an async stage of the comparison-export
+// pipeline.  Emits `performance.measure` entries (visible in DevTools →
+// Performance) and a `logger.debug` line so headless workflow tests can
+// grep durations.  Names use the stable `cmp:` prefix so a Sprint-1
+// perf:compare run can filter the User Timing entries deterministically.
+//
+// The architectural goal of Sprint 1+ is to push the heavy `buildPayload`
+// stage into Rust (native by-ids comparison reports), so we measure it
+// **separately** from the IPC roundtrip and save-dialog stages.  The
+// expected shape after Sprint 1: `cmp:pdf:buildPayload` collapses to a
+// few ms, `cmp:pdf:ipcRoundtrip` absorbs what was previously TS work.
+async function withPerf<T>(name: string, fn: () => Promise<T>): Promise<T> {
+    const startMark = `cmp:${name}:start`;
+    const endMark = `cmp:${name}:end`;
+    performance.mark(startMark);
+    try {
+        return await fn();
+    } finally {
+        performance.mark(endMark);
+        try {
+            const m = performance.measure(`cmp:${name}`, startMark, endMark);
+            logger.debug(`[perf:cmp] ${name}: ${m.duration.toFixed(1)} ms`);
+        } catch {
+            // performance.measure can throw if a same-named mark was
+            // cleared by a parallel call.  Keep the failure non-fatal —
+            // report generation must never break because of instrumentation.
+        }
+        performance.clearMarks(startMark);
+        performance.clearMarks(endMark);
+    }
+}
+
 // ── Hook ───────────────────────────────────────────────────────────────────
 
 export function useComparisonReportExport(options: UseComparisonReportExportOptions) {
@@ -274,12 +308,17 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setIsExporting(true);
         setExportError(null);
         try {
-            const blob = await generateComparisonPdfReportBlob(await buildPayload('pdf'));
-            await saveBlob({
+            // S0-6 split: TS adapter (buildPayload) is what Sprint 1's
+            // by-ids native pipeline will eliminate.  Keeping it as its
+            // own measurement makes the win quantifiable.
+            const payload = await withPerf('pdf:buildPayload', () => buildPayload('pdf'));
+            const blob = await withPerf('pdf:ipcRoundtrip',
+                () => generateComparisonPdfReportBlob(payload));
+            await withPerf('pdf:saveBlob', () => saveBlob({
                 blob,
                 filename: `${baseFilename}.pdf`,
                 filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
-            });
+            }));
         } catch (err) {
             logger.error('[ComparisonReport] PDF generation failed:', err);
             const msg = err instanceof Error ? err.message : String(err);
@@ -297,12 +336,14 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setIsExcelExporting(true);
         setExportError(null);
         try {
-            const blob = await generateComparisonExcelReportBlob(await buildPayload('excel'));
-            await saveBlob({
+            const payload = await withPerf('excel:buildPayload', () => buildPayload('excel'));
+            const blob = await withPerf('excel:ipcRoundtrip',
+                () => generateComparisonExcelReportBlob(payload));
+            await withPerf('excel:saveBlob', () => saveBlob({
                 blob,
                 filename: `${baseFilename}.xlsx`,
                 filters: [{ name: 'Excel Spreadsheet', extensions: ['xlsx'] }],
-            });
+            }));
         } catch (err) {
             logger.error('[ComparisonReport] Excel generation failed:', err);
             const msg = err instanceof Error ? err.message : String(err);
@@ -331,12 +372,16 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setExportError(null);
         try {
             const items: SaveBlobItem[] = [];
-            const pdfBlob = await generateComparisonPdfReportBlob(await buildPayload('pdf'));
+            const pdfPayload = await withPerf('all:pdf:buildPayload', () => buildPayload('pdf'));
+            const pdfBlob = await withPerf('all:pdf:ipcRoundtrip',
+                () => generateComparisonPdfReportBlob(pdfPayload));
             items.push({ blob: pdfBlob, filename: `${baseFilename}.pdf` });
-            const excelBlob = await generateComparisonExcelReportBlob(await buildPayload('excel'));
+            const excelPayload = await withPerf('all:excel:buildPayload', () => buildPayload('excel'));
+            const excelBlob = await withPerf('all:excel:ipcRoundtrip',
+                () => generateComparisonExcelReportBlob(excelPayload));
             items.push({ blob: excelBlob, filename: `${baseFilename}.xlsx` });
 
-            await saveBlobsToDir(items);
+            await withPerf('all:saveBlobsToDir', () => saveBlobsToDir(items));
         } catch (err) {
             logger.error('[ComparisonReport] Combined export failed:', err);
             const msg = err instanceof Error ? err.message : String(err);
