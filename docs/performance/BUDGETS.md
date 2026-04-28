@@ -133,6 +133,22 @@ long tasks is worse than 5 paths producing 6 each.
 | `docs/perf/BASELINES.md` AlphaBaseline-0.2.2-alpha.2 entry | **done** — S0-5 measurements |
 | Replace TBD values in this file with first real measurements | **done** (memory, workflow latency, PDF latency, peakNodes, peakHeap, CPU) |
 
+## Sprint 1 deliverables tracker
+
+> **Sprint 1 was scoped to fill ~13 TBD entries above.** Mid-sprint, scope shifted to **deep P10 release-profile validation** with reusable microbench infrastructure. The TBDs listed in sections B / C / D above are inherited by Sprint 2 — see `SPRINT-2-PLANNING.md`. Sprint 1 retrospective lives at `SPRINT-1-RETROSPECTIVE.md`.
+
+| Deliverable | Status |
+|---|---|
+| `bench_comparison_pdf.rs` cargo example + PDF target P10 microbench | **done** — commit `5951fb5` (S1-1) |
+| `bench_analysis_pipeline.rs` cargo example + synthetic API RP 39 P10 microbench | **done** — commit `91c6522` (S1-2) |
+| `--load-fixture` mode (real production data via `decode_typed`) | **done** — commit `52d2614` (S1-3) |
+| `pub fn run_full_analysis_kernel` refactor (eliminates bench drift risk) | **done** — commit `b7f1c0b` (S1-4) |
+| `--all-experiments` DB sweep + `db-sweep-compare.mjs` corpus validation tool | **done** — commit `e34cec7` (S1-5) |
+| Welch t-test + bootstrap 95 % CI + Bonferroni in `db-sweep-compare.mjs` | **done** — commit `f6e9f46` (S1-6) |
+| **Final P10 verdict (post-S1-6):** ✅ **KEEP, narrowly.** Pooled mean Δ = +7.0 % (95 % CI [-0.2 %, +13.9 %], p = 0.06 — borderline non-significant); supporting evidence (deterministic +7 % full-pass total, +17.8 % p95 tail, 7 Bonferroni-significant wins vs 5 regressions) tips the balance. See `P10-DB-SWEEP-VALIDATION-REPORT.md`. | **closed** |
+| Fill ~13 TBD entries in sections B / C / D above | **deferred to Sprint 2** — original scope, dropped in favour of P10 deep-dive. |
+| Pre-P10 vs post-P10 binary-size delta (mentioned at the bottom of this file) | **partially done** — bench example showed +6 % code size; full release-installer delta still pending. Sprint 2 candidate. |
+
 ## Binary size note (corrected)
 
 An earlier draft of this document estimated the installer at “~80 MB”. The

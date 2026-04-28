@@ -296,6 +296,8 @@ absolute numbers are not directly comparable to microbench numbers.
 
 ## See also
 
+- `docs/performance/SPRINT-1-RETROSPECTIVE.md` — what Sprint 1 delivered, learned, and deferred (the bench harness was Sprint 1's core deliverable).
+- `docs/performance/SPRINT-2-PLANNING.md` — backlog of BUDGETS.md TBDs the bench harness will help fill in Sprint 2.
 - `docs/performance/BUDGETS.md` — formal performance contract.
 - `docs/performance/BASELINES.md` — captured baselines (debug E2E).
 - `docs/performance/P10-VALIDATION-REPORT.md` — PDF target P10 measurement.
