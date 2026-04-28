@@ -1,26 +1,37 @@
 #!/usr/bin/env node
 /**
- * Sprint 1 / S1-1 — orchestrator for the comparison-PDF microbench.
+ * Sprint 1 / S1-1 + S1-2 — orchestrator for native Rust microbenches.
  *
- * Runs `bench_comparison_pdf` (the cargo example built into
- * `src-tauri/target/release/examples/`) across a configurable sweep of
+ * Runs one of the cargo examples built into
+ * `src-tauri/target/release/examples/` across a configurable sweep of
  * fixture sizes and writes the per-fixture JSON sidecars + an
  * aggregated index file to `outputs/perf/microbench/`.
+ *
+ * Supported targets (`--target`):
+ *   - `pdf`       (default) — `bench_comparison_pdf`, S1-1
+ *   - `analysis`            — `bench_analysis_pipeline`, S1-2
+ *
+ * Both targets share the same JSON sidecar shape (n_experiments,
+ * duration_hours, total_points, iterations, wall_ms{p50,p95,...},
+ * samples) and only differ in the `schema` slug — so compare mode is
+ * target-agnostic and just refuses to mix sweeps from different
+ * targets.
  *
  * Two modes:
  *   1. **Sweep mode** (default) — runs every fixture in `--fixtures`
  *      with `--iterations` reps each, dumps one JSON per fixture, and
- *      writes a `microbench-sweep-<label>-<ts>.json` index.
+ *      writes a `microbench-sweep-<target>-<label>-<ts>.json` index.
  *   2. **Compare mode** — given two existing sweep indexes via
  *      `--compare WITH NO`, computes per-fixture deltas and renders a
  *      Markdown report (stdout, plus optionally `--output PATH`).
  *
  * Usage:
- *   node scripts/test/run-pdf-microbench.mjs               # default sweep
- *   node scripts/test/run-pdf-microbench.mjs --label NO-P10
- *   node scripts/test/run-pdf-microbench.mjs --compare \
- *     outputs/perf/microbench/microbench-sweep-WITH-P10-1234.json \
- *     outputs/perf/microbench/microbench-sweep-NO-P10-1235.json \
+ *   node scripts/test/run-rust-microbench.mjs --target pdf      # PDF sweep (default)
+ *   node scripts/test/run-rust-microbench.mjs --target analysis # analysis sweep
+ *   node scripts/test/run-rust-microbench.mjs --target pdf --label WITH-P10
+ *   node scripts/test/run-rust-microbench.mjs --compare \
+ *     outputs/perf/microbench/microbench-sweep-pdf-WITH-P10-1234.json \
+ *     outputs/perf/microbench/microbench-sweep-pdf-NO-P10-1235.json \
  *     --output docs/performance/P10-VALIDATION-REPORT.md
  *
  * Why a JS orchestrator and not a shell script: keeps Windows / macOS
@@ -35,25 +46,59 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const EXAMPLE_BIN = join(
-    ROOT,
-    'src-tauri',
-    'target',
-    'release',
-    'examples',
-    process.platform === 'win32' ? 'bench_comparison_pdf.exe' : 'bench_comparison_pdf',
-);
 const OUT_DIR = join(ROOT, 'outputs', 'perf', 'microbench');
+
+/**
+ * Target registry.  Each target points at a cargo example binary +
+ * the schema slug its JSON sidecar advertises.  Keep keys lowercase;
+ * they appear verbatim in CLI args, npm scripts, and JSON filenames.
+ */
+const TARGETS = {
+    pdf: {
+        binary: 'bench_comparison_pdf',
+        schema: 'rheolab.microbench.pdf_comparison.v1',
+        sweepSchema: 'rheolab.microbench.pdf_comparison.sweep.v1',
+        defaultFixtures: [
+            { n: 3, durationHours: 4 },
+            { n: 5, durationHours: 4 },
+            { n: 10, durationHours: 4 },
+        ],
+        humanName: 'comparison PDF',
+    },
+    analysis: {
+        binary: 'bench_analysis_pipeline',
+        schema: 'rheolab.microbench.analysis_pipeline.v1',
+        sweepSchema: 'rheolab.microbench.analysis_pipeline.sweep.v1',
+        defaultFixtures: [
+            { n: 1, durationHours: 4 },
+            { n: 1, durationHours: 12 },
+            { n: 5, durationHours: 4 },
+        ],
+        humanName: 'analysis pipeline',
+    },
+};
+
+function binaryPath(target) {
+    const t = TARGETS[target];
+    if (!t) {
+        throw new Error(`unknown target: ${target} (expected: ${Object.keys(TARGETS).join(', ')})`);
+    }
+    return join(
+        ROOT,
+        'src-tauri',
+        'target',
+        'release',
+        'examples',
+        process.platform === 'win32' ? `${t.binary}.exe` : t.binary,
+    );
+}
 
 // ── CLI parsing ─────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
     const out = {
-        fixtures: [
-            { n: 3,  durationHours: 4 },
-            { n: 5,  durationHours: 4 },
-            { n: 10, durationHours: 4 },
-        ],
+        target: 'pdf',
+        fixtures: null,           // will be filled from TARGETS[target].defaultFixtures if not set
         iterations: 5,
         label: null,
         outputReport: null,
@@ -69,6 +114,13 @@ function parseArgs(argv) {
             return argv[++i];
         };
         switch (a) {
+            case '--target':
+                out.target = next();
+                if (!TARGETS[out.target]) {
+                    console.error(`unknown target '${out.target}' (expected: ${Object.keys(TARGETS).join(', ')})`);
+                    process.exit(2);
+                }
+                break;
             case '--iterations':
                 out.iterations = parseInt(next(), 10);
                 break;
@@ -107,20 +159,30 @@ function parseArgs(argv) {
                 process.exit(2);
         }
     }
+    if (out.fixtures === null) {
+        out.fixtures = TARGETS[out.target].defaultFixtures;
+    }
     return out;
 }
 
 function printHelp() {
-    console.log(`Usage: node scripts/test/run-pdf-microbench.mjs [OPTIONS]
+    console.log(`Usage: node scripts/test/run-rust-microbench.mjs [OPTIONS]
+
+Targets:
+  --target NAME         pdf | analysis (default: pdf)
+                        pdf      → bench_comparison_pdf       (S1-1)
+                        analysis → bench_analysis_pipeline    (S1-2)
 
 Sweep mode (default):
   --fixtures LIST       Comma-separated fixtures, e.g. "3,5,10" or "3x4,5x4,10x8"
-                        (default: "3x4,5x4,10x4" — n experiments x duration hours)
+                        (per-target defaults — see TARGETS table)
   --iterations N        Iterations per fixture (default: 5)
   --label TEXT          Tag written into each JSON sidecar (e.g. "WITH-P10")
 
 Compare mode:
-  --compare WITH NO     Diff two sweep index files; print a Markdown delta report
+  --compare WITH NO     Diff two sweep index files; print a Markdown delta report.
+                        Both indexes must come from the same target — cross-target
+                        comparison is rejected (different fixtures, different schema).
   --output PATH         (compare mode) Write the Markdown report to PATH instead of stdout
 
   -h, --help            Show this help`);
@@ -128,15 +190,17 @@ Compare mode:
 
 // ── Sweep mode ──────────────────────────────────────────────────────────────
 
-function runFixture({ n, durationHours }, iterations, label, ts) {
-    if (!existsSync(EXAMPLE_BIN)) {
+function runFixture(target, { n, durationHours }, iterations, label, ts) {
+    const exe = binaryPath(target);
+    const t = TARGETS[target];
+    if (!existsSync(exe)) {
         throw new Error(
-            `Example binary not found: ${EXAMPLE_BIN}\n` +
-            `Build it with: cargo build --release --example bench_comparison_pdf --manifest-path src-tauri/Cargo.toml`,
+            `Example binary not found: ${exe}\n` +
+            `Build it with: cargo build --release --example ${t.binary} --manifest-path src-tauri/Cargo.toml`,
         );
     }
 
-    const sidecar = join(OUT_DIR, `microbench-pdf-n${n}-${ts}.json`);
+    const sidecar = join(OUT_DIR, `microbench-${target}-n${n}-h${durationHours}-${ts}.json`);
     const args = [
         '--n', String(n),
         '--iterations', String(iterations),
@@ -147,28 +211,37 @@ function runFixture({ n, durationHours }, iterations, label, ts) {
         args.push('--label', label);
     }
 
-    process.stderr.write(`[microbench] n=${n} duration=${durationHours}h iters=${iterations}${label ? ` label=${label}` : ''}\n`);
+    process.stderr.write(`[microbench:${target}] n=${n} duration=${durationHours}h iters=${iterations}${label ? ` label=${label}` : ''}\n`);
     const t0 = Date.now();
-    const proc = spawnSync(EXAMPLE_BIN, args, { stdio: ['ignore', 'inherit', 'inherit'] });
+    const proc = spawnSync(exe, args, { stdio: ['ignore', 'inherit', 'inherit'] });
     const wallSec = ((Date.now() - t0) / 1000).toFixed(1);
     if (proc.status !== 0) {
-        throw new Error(`bench_comparison_pdf exited with code ${proc.status} (n=${n})`);
+        throw new Error(`${t.binary} exited with code ${proc.status} (n=${n})`);
     }
-    process.stderr.write(`[microbench] n=${n} done in ${wallSec}s — wrote ${sidecar}\n`);
+    process.stderr.write(`[microbench:${target}] n=${n} done in ${wallSec}s — wrote ${sidecar}\n`);
 
-    return JSON.parse(readFileSync(sidecar, 'utf8'));
+    const doc = JSON.parse(readFileSync(sidecar, 'utf8'));
+    if (doc.schema !== t.schema) {
+        throw new Error(
+            `unexpected schema in ${sidecar}: got '${doc.schema}', expected '${t.schema}' (binary version mismatch?)`,
+        );
+    }
+    return doc;
 }
 
 function runSweep(opts) {
     mkdirSync(OUT_DIR, { recursive: true });
     const ts = Date.now();
     const labelSlug = opts.label ? opts.label.replace(/[^a-zA-Z0-9._-]/g, '_') : 'unlabeled';
+    const target = opts.target;
+    const targetDef = TARGETS[target];
 
-    const results = opts.fixtures.map((fx) => runFixture(fx, opts.iterations, opts.label, ts));
+    const results = opts.fixtures.map((fx) => runFixture(target, fx, opts.iterations, opts.label, ts));
 
-    const indexPath = join(OUT_DIR, `microbench-sweep-${labelSlug}-${ts}.json`);
+    const indexPath = join(OUT_DIR, `microbench-sweep-${target}-${labelSlug}-${ts}.json`);
     const indexDoc = {
-        schema: 'rheolab.microbench.pdf_comparison.sweep.v1',
+        schema: targetDef.sweepSchema,
+        target,
         label: opts.label,
         timestamp: new Date(ts).toISOString(),
         platform: process.platform,
@@ -178,17 +251,22 @@ function runSweep(opts) {
         results,
     };
     writeFileSync(indexPath, JSON.stringify(indexDoc, null, 2), 'utf8');
-    process.stderr.write(`[microbench] sweep complete — index: ${indexPath}\n`);
+    process.stderr.write(`[microbench:${target}] sweep complete — index: ${indexPath}\n`);
 
-    // Compact stdout summary so a CI log can copy-paste it.
+    // Compact stdout summary so a CI log can copy-paste it.  We pick
+    // a target-appropriate trailing metric column: bytes for PDF,
+    // detected cycles for analysis.
+    const trailing = target === 'pdf'
+        ? { header: 'pdf_bytes mean', value: (r) => r.pdf_bytes_mean.toFixed(0) }
+        : { header: 'cycles/trace ', value: (r) => String(r.cycles_per_trace ?? '—') };
     console.log('');
-    console.log(`# microbench sweep — ${opts.label ?? '(unlabeled)'}`);
+    console.log(`# microbench:${target} sweep — ${opts.label ?? '(unlabeled)'} (${targetDef.humanName})`);
     console.log('');
-    console.log('| n_experiments | total_points | iterations | wall_ms p50 | wall_ms p95 | wall_ms mean | pdf_bytes mean |');
-    console.log('|--------------:|-------------:|-----------:|------------:|------------:|-------------:|---------------:|');
+    console.log(`| n | total_points | iterations | wall_ms p50 | wall_ms p95 | wall_ms mean | ${trailing.header} |`);
+    console.log('|--:|-------------:|-----------:|------------:|------------:|-------------:|--------------:|');
     for (const r of results) {
         console.log(
-            `| ${r.n_experiments} | ${r.total_points} | ${r.iterations} | ${r.wall_ms.p50.toFixed(1)} | ${r.wall_ms.p95.toFixed(1)} | ${r.wall_ms.mean.toFixed(1)} | ${r.pdf_bytes_mean.toFixed(0)} |`,
+            `| ${r.n_experiments} | ${r.total_points} | ${r.iterations} | ${r.wall_ms.p50.toFixed(1)} | ${r.wall_ms.p95.toFixed(1)} | ${r.wall_ms.mean.toFixed(1)} | ${trailing.value(r)} |`,
         );
     }
     console.log('');
@@ -203,8 +281,12 @@ function loadSweep(path) {
         throw new Error(`sweep index not found: ${path}`);
     }
     const doc = JSON.parse(readFileSync(path, 'utf8'));
-    if (doc.schema !== 'rheolab.microbench.pdf_comparison.sweep.v1') {
-        throw new Error(`unexpected schema in ${path}: ${doc.schema}`);
+    const supportedSchemas = Object.values(TARGETS).map((t) => t.sweepSchema);
+    if (!supportedSchemas.includes(doc.schema)) {
+        throw new Error(
+            `unexpected schema in ${path}: '${doc.schema}'\n` +
+            `expected one of: ${supportedSchemas.join(', ')}`,
+        );
     }
     return doc;
 }
@@ -233,12 +315,21 @@ function runCompare(opts) {
     const withDoc = loadSweep(opts.compare.with);
     const noDoc = loadSweep(opts.compare.no);
 
+    if (withDoc.schema !== noDoc.schema) {
+        throw new Error(
+            `cannot compare across targets: WITH-P10 schema='${withDoc.schema}', NO-P10 schema='${noDoc.schema}' — both must come from the same --target`,
+        );
+    }
+    const target = withDoc.target ?? '(unknown)';
+    const targetHuman = (TARGETS[target] && TARGETS[target].humanName) ?? target;
+
     // Match fixtures by (n, durationHours) — same shape only.
     const fixtureKey = (r) => `${r.n_experiments}x${r.duration_hours}`;
     const noByKey = new Map(noDoc.results.map((r) => [fixtureKey(r), r]));
 
     let md = '';
-    md += '# P10 Validation Report — comparison-PDF microbench delta\n\n';
+    md += `# P10 Validation Report — ${targetHuman} microbench delta\n\n`;
+    md += `**Target:** \`${target}\` (${targetHuman})  \n`;
     md += `**WITH-P10 sweep:** \`${opts.compare.with}\`  \n`;
     md += `**NO-P10 sweep:** \`${opts.compare.no}\`  \n`;
     md += `**WITH-P10 timestamp:** ${withDoc.timestamp}  \n`;

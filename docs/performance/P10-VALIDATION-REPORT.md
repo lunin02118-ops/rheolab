@@ -89,16 +89,26 @@ release binary saw.
 
 ## Recommendation
 
-| Question | Answer |
+> **Update — Sprint 1 / S1-2 (2026-04-28):** the preliminary
+> "conditional keep" verdict below has been **superseded by a
+> measured analysis-path win**.  See
+> `docs/performance/P10-ANALYSIS-VALIDATION-REPORT.md` — analysis
+> microbench shows mean Δ p50 = **−5.8 %** and Δ p95 = **−6.5 %**
+> (negative = faster) across 1×4h, 1×12h, and 5×4h fixtures.  The
+> combined PDF-neutral + analysis-positive evidence makes the final
+> recommendation **KEEP P10**.  Detailed reasoning + next-action
+> triggers live in the analysis report.
+
+| Question | Answer (Sprint 1 conclusion) |
 |---|---|
-| Should we **keep** P10 in `src-tauri/Cargo.toml`? | **Yes, conditionally.**  Comparison-PDF benchmarks here are pessimistic and inconclusive.  The same overrides also apply to **analysis pipeline hot loops** (`rheolab-core`'s rheology calculations) — those are CPU-bound and likely **do** benefit, but Sprint 1 has not measured them yet.  Until S1-2 adds an analysis-pipeline microbench, leaving P10 in place gives us a **non-negative** PDF baseline plus a likely-positive (but unmeasured) analysis win at the cost of +1.5 MB binary size — an acceptable trade-off. |
-| Should we **drop** P10? | **Not yet.**  Drop only if S1-2's analysis microbench also shows P10 ≤ noise on real datasets, AND if the +1.5 MB binary size becomes a budget pressure.  Today the M-RSS-TAURI budget has 438 MB headroom (62 / 500), so binary size is not the bottleneck. |
-| Should we **tighten** P10? | **Possibly.**  If S1-2 confirms the PDF path is neutral but analysis benefits, we could narrow the override list to just `rheolab-core` and drop the 14 Typst/font/plotters packages — recovering most of the binary cost while keeping the analysis win. |
+| **Keep** P10? | **Yes.**  PDF target is neutral within noise; analysis target shows a real ~6% speedup that transfers to a high-frequency code path users hit on every file open. |
+| **Drop** P10? | **No.**  Analysis win > PDF noise.  Re-evaluate only if the binary budget becomes pressing or if a future Typst/Rust upgrade changes the PDF picture. |
+| **Tighten** P10? | **Optional.**  If binary size budget tightens, drop the 14 Typst/font/plotters overrides first (this report shows they don't pay back) and keep just `[profile.release.package.rheolab-core]` to retain the analysis win.  Expected saving: ~1.0 MB. |
 
 **Re-validation trigger:** when a real-world fixture (15–20
 experiments × 12 hours of dense data) is captured in
-`outputs/seed/rheolab-fixture-seed-large.db`, re-run this microbench
-against that fixture (via a future `--load-fixture <path>` flag on
-`bench_comparison_pdf`) — the larger absolute time should make the
-P10 effect either clearly visible or clearly absent.
+`outputs/seed/rheolab-fixture-seed-large.db`, re-run **both** PDF and
+analysis microbenches against it (via a future `--load-fixture
+<path>` flag on the example binaries) — the larger absolute time
+should make the P10 effect either clearly visible or clearly absent.
 
