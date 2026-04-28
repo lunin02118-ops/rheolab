@@ -12,6 +12,7 @@ const fs = require('fs');
 const ROOT = path.resolve(__dirname, '../..');
 const PID_FILE = path.join(ROOT, '.tauri-e2e.pid');
 const SAMPLER_PID_FILE = path.join(ROOT, '.tauri-e2e-sampler.pid');
+const DB_PATH_FILE = path.join(ROOT, '.tauri-e2e-db.path');
 
 module.exports = async function globalTeardown() {
     // ── 1. Остановить sampler нативной памяти ─────────────────────────────
@@ -54,5 +55,36 @@ module.exports = async function globalTeardown() {
     } catch (err) {
         // Процесс мог уже завершиться сам
         console.warn(`[tauri-e2e] Не удалось завершить PID=${pid}: ${err.message}`);
+    }
+
+    // ── 3. Убрать изолированную E2E-DB ────────────────────────────────────
+    //   `tauri-e2e-setup.js` пишет путь временной DB в .tauri-e2e-db.path
+    //   (только если она была им же выделена под isolation — caller-provided
+    //   пути не отслеживаются и удаляются той гармонией, что их создала).
+    //   Удаляем main DB-файл вместе со всеми SQLite сайдкарами (-wal, -shm, -journal).
+    if (fs.existsSync(DB_PATH_FILE)) {
+        let dbPath = '';
+        try {
+            dbPath = fs.readFileSync(DB_PATH_FILE, 'utf8').trim();
+        } catch { /* ignore */ }
+        try { fs.unlinkSync(DB_PATH_FILE); } catch { /* ignore */ }
+
+        if (dbPath) {
+            const sidecars = ['', '-wal', '-shm', '-journal'].map((sfx) => `${dbPath}${sfx}`);
+            let removed = 0;
+            for (const file of sidecars) {
+                try {
+                    if (fs.existsSync(file)) {
+                        fs.unlinkSync(file);
+                        removed += 1;
+                    }
+                } catch (rmErr) {
+                    console.warn(`[tauri-e2e] Не удалось удалить ${file}: ${rmErr.message}`);
+                }
+            }
+            if (removed > 0) {
+                console.log(`[tauri-e2e] ✓ Изолированная DB удалена (${removed} файлов): ${dbPath}`);
+            }
+        }
     }
 };

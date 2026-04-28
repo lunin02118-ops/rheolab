@@ -135,7 +135,9 @@ __pycache__/
 # Tauri E2E (CDP runner)
 .tauri-e2e.pid
 .tauri-e2e-sampler.pid
+.tauri-e2e-db.path
 outputs/e2e/perf/native-memory-*.jsonl
+outputs/e2e/temp-db/
 
 # Database files
 prisma/*.db

@@ -33,6 +33,24 @@ const PID_FILE = path.join(ROOT, '.tauri-e2e.pid');
 const SAMPLER_PID_FILE = path.join(ROOT, '.tauri-e2e-sampler.pid');
 const SAMPLER_SCRIPT = path.join(ROOT, 'scripts', 'test', 'tauri-native-memory-sampler.ps1');
 
+/**
+ * Side-channel file used to communicate the per-run temp-DB path to the
+ * teardown script so it can clean up the file after Playwright exits.
+ *
+ * If the calling harness has already set `RHEOLAB_E2E_DB_PATH` (e.g.
+ * `tauri-db-scale-setup.js` for the scale suite, or a developer who wants
+ * to point at a hand-crafted seed), we do NOT overwrite it — only the
+ * paths *we* allocate are tracked here for deletion.
+ */
+const DB_PATH_FILE = path.join(ROOT, '.tauri-e2e-db.path');
+
+/** Allocate a fresh, isolated temp DB path for this E2E run. */
+function allocateIsolatedDbPath() {
+    const dir = path.join(ROOT, 'outputs', 'e2e', 'temp-db');
+    fs.mkdirSync(dir, { recursive: true });
+    return path.join(dir, `e2e-${Date.now()}-${process.pid}.db`);
+}
+
 /** Ждёт, пока CDP-эндпоинт ответит /json/version */
 function waitForCdp(port, timeoutMs = 60_000) {
     return new Promise((resolve, reject) => {
@@ -129,6 +147,47 @@ module.exports = async function globalSetup() {
         console.log('[tauri-e2e] Бинарник актуален (TAURI_E2E_SKIP_BUILD=1 или исходники не изменились).');
     }
 
+    // ── 2. DB isolation — never let an E2E run touch the production DB ────
+    //   Tauri resolves `app_data_dir` from the bundle identifier
+    //   (`com.rheolab.enterprise`), which on Windows points at
+    //   `%APPDATA%\com.rheolab.enterprise`.  By default the app uses
+    //   `<app_data_dir>/rheolab.db`, but the Rust bootstrap honours
+    //   `RHEOLAB_E2E_DB_PATH` as an explicit override
+    //   (see src-tauri/src/state/app_state.rs::BootstrapPaths::resolve).
+    //
+    //   If we don't override it here, the E2E binary opens the user's
+    //   real production DB.  In the past this turned a successful
+    //   release-gate run into a downgrade trap: dev / E2E binaries
+    //   migrated the production DB to a newer schema version, after
+    //   which the previously-installed (older) build refused to open
+    //   it with "schema_version (N) is newer than the binary's
+    //   CURRENT_SCHEMA_VERSION (M); refusing to open".
+    //
+    //   We allocate a fresh, empty DB per run under
+    //   `outputs/e2e/temp-db/` and let `run_migrations` apply every
+    //   migration from scratch.  Cleanup happens in
+    //   `tauri-e2e-teardown.js`, which reads `.tauri-e2e-db.path`.
+    //
+    //   Callers that need a hand-crafted seed (`tauri-db-scale-setup.js`)
+    //   set `RHEOLAB_E2E_DB_PATH` themselves before invoking us; in
+    //   that case we honour their choice and do NOT track the path
+    //   for cleanup (the seeded DB lives outside our temp dir and is
+    //   managed by the calling harness).
+    const callerProvidedDbPath = (process.env.RHEOLAB_E2E_DB_PATH || '').trim();
+    let isolatedDbPath = null;
+    if (callerProvidedDbPath) {
+        console.log(`[tauri-e2e] Honouring caller-provided RHEOLAB_E2E_DB_PATH=${callerProvidedDbPath}`);
+    } else {
+        isolatedDbPath = allocateIsolatedDbPath();
+        process.env.RHEOLAB_E2E_DB_PATH = isolatedDbPath;
+        try {
+            fs.writeFileSync(DB_PATH_FILE, isolatedDbPath, 'utf8');
+        } catch (writeErr) {
+            console.warn(`[tauri-e2e] Не удалось записать ${DB_PATH_FILE}: ${writeErr.message}`);
+        }
+        console.log(`[tauri-e2e] Isolated DB: ${isolatedDbPath}`);
+    }
+
     // ── 3. Запуск приложения с CDP ─────────────────────────────────────────
     console.log(`[tauri-e2e] Запускаем приложение с CDP на порту ${CDP_PORT}...`);
     const child = spawn(BINARY_PATH, [], {
@@ -143,6 +202,8 @@ module.exports = async function globalSetup() {
             // E2E bypass: skip native Rust license gate so experiments_save works
             // without a real license in the test DB. Mirror of RHEOLAB_E2E_MOCK_REPORTS.
             RHEOLAB_E2E_SKIP_LICENSE_GATE: '1',
+            // DB isolation — see the long comment above the spawn block.
+            RHEOLAB_E2E_DB_PATH: process.env.RHEOLAB_E2E_DB_PATH,
         },
         detached: false,
         stdio: 'pipe',
