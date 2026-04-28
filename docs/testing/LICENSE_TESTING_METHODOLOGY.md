@@ -84,7 +84,7 @@ phpunit --configuration license-server/phpunit.xml
 - `license-server/api/update-channel.php`
 - `license-server/releases.htaccess`
 
-На сегодня в репозитории есть расхождение между token-aware PHP router и активным Apache rewrite, поэтому ручная проверка beta-канала обязательна после любых изменений в updater routing.
+2026-04-19 `releases.htaccess` был унифицирован: все update-запросы идут через token-aware `api/update-channel.php`. Подробности — `docs/RELEASE_AND_DEPLOY.md` § «Актуальный update-routing». Ручная проверка beta-канала всё равно обязательна после любых изменений в updater routing — но как валидация PHP-роутера, не как проверка drift'а.
 
 ### Offline / tamper scenarios
 

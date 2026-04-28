@@ -121,21 +121,22 @@ https://license.vizbuka.ru/releases/v1/update/{{target}}-{{arch}}/update
 /var/www/license-server/releases/v1/update/windows-x86_64/
 ```
 
-### Важное расхождение, которое нужно знать
+### Актуальный update-routing (унифицирован 2026-04-19)
 
-Сейчас в репозитории существуют две модели маршрутизации:
+Ранее в репо жили две параллельные модели (активный htaccess без token check + token-aware PHP на обочине).  2026-04-19 `license-server/releases.htaccess` был переписан так, что все update-запросы идут через token-aware PHP-роутер:
 
-1. `license-server/releases.htaccess`
-   - активный Apache rewrite
-   - выбирает `stable.json`/`beta.json` по `X-Update-Channel`
-   - токен не проверяет
+```apache
+RewriteRule ^v1/update/([^/]+)/update$ /api/update-channel.php?target=$1 [L,QSA]
+```
 
-2. `license-server/api/update-channel.php`
-   - умеет валидировать `X-Update-Token`
-   - умеет fail-closed downgrade с beta на stable
-   - но не является текущим дефолтным rewrite-путём
+Результат:
 
-Пока это не унифицировано, документация должна отражать реальное поведение сервера, а не желаемое.
+- **`license-server/api/update-channel.php`** — **единственный легитимный update endpoint**.
+  Валидирует `X-Update-Token` (HMAC-SHA256, 5-мин окно), выбирает alpha.json / beta.json / stable.json,  fail-closed downgrade на stable при токен-ошибке.
+- **`license-server/releases.htaccess`** — онль передаёт запрос в PHP-роутер.  Сам никакого channel routing не делает — это делалось раньше и являлось bypass'ом токен проверки; убрано.
+- Legacy-клиенты (≤ 0.1.497) отдельным rewrite отдают stable.json — это ok, эти версии предшествовали channel-routing полностью.
+
+Операционное примечание: pre-channel-routing билды клиента (собранные ДО 2026-04-19, это commit `2b5ab94` в desktop-репо) не знают про `X-Update-Channel` / `X-Update-Token` и поэтому всегда будут получать stable.json (default fallback). Чтобы такой бинарь поднялся до канала beta/alpha, его нужно один раз переустановить вручную — после этого auto-update работает штатно.
 
 ## 5. Типовой сценарий релиза
 
