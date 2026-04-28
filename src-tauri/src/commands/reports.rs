@@ -128,12 +128,24 @@ pub async fn reports_generate_excel(
     Ok(tauri::ipc::Response::new(bytes))
 }
 
+// Architectural note (audit-v2 REP-001):
+// `input` is `serde_json::Value` rather than the typed
+// `ComparisonReportInput` on purpose.  REP-001 demands we count
+// `experiments.len()` BEFORE the second-pass deserialisation that
+// builds the heavy `ComparisonExperimentEntry` struct tree (~2 KB
+// each).  Switching to a typed parameter would force Tauri to allocate
+// the full 100k-entry `Vec<ComparisonExperimentEntry>` before our gate
+// sees the count, defeating the anti-DoS pre-deserialise check.
+// The Excel sibling (`reports_generate_comparison_excel`) uses the
+// typed parameter because its experiment-tree is roughly half the size
+// and the same payload-bomb risk does not apply.
 /// Generate a PDF comparison report from multiple experiments.
 ///
 /// Returns raw PDF bytes via `tauri::ipc::Response` for zero-copy transfer to
 /// the frontend.  License-gated identically to the single-experiment path
 /// **plus** the audit-v2 REP-001 per-feature gates: `comparison`,
 /// `export_pdf`, and `max_comparison_experiments`.
+// LARGE-IPC-EXCEPTION: REP-001 anti-DoS pre-deserialise count check (see note above).
 #[tauri::command]
 pub async fn reports_generate_comparison_pdf(
     state: State<'_, AppState>,
