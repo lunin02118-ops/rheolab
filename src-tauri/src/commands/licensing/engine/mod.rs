@@ -183,6 +183,29 @@ impl LicenseEngine {
         // Intentionally NOT updating cache_time — the next check() call will
         // bypass the TTL fast-path and run the full online validation.
     }
+
+    /// Force the next `check()` call to bypass the TTL fast-path.
+    ///
+    /// Audit-v2 LIC-002: callers that mutate state which feeds the next
+    /// `check()` (e.g. `register_experiment` decrementing the demo
+    /// counter) must invalidate `cache_time` so the freshly-computed
+    /// status reflects the new DB state instead of the stale cached
+    /// one.  The cached *value* is preserved so a UI listener does not
+    /// flicker to "loading…" — only the TTL marker is cleared.
+    pub(super) async fn invalidate_cache_time(&self) {
+        let mut t = self.cache_time.write().await;
+        *t = None;
+    }
+
+    /// Test-only: read the current cache_time without touching it.
+    ///
+    /// Production code never needs this — `check()` reads it directly
+    /// behind the `cache_time` lock.  Exposed for regression tests that
+    /// need to assert the TTL marker has been (in)validated.
+    #[cfg(test)]
+    pub(super) async fn cache_time_for_test(&self) -> Option<Instant> {
+        *self.cache_time.read().await
+    }
 }
 
 // ── Free helpers (used by impl blocks in submodules) ───────────────────

@@ -605,3 +605,58 @@ fn check_local_startup_is_strictly_local_no_http() {
         );
     }
 }
+
+// ── Audit-v2 LIC-002 ──────────────────────────────────────────────────
+
+/// `invalidate_cache_time` must drop the TTL marker (`cache_time = None`)
+/// while leaving the cached *value* intact.  This is the primitive that
+/// `register_experiment` uses to force the next `check()` past its
+/// 120-second TTL fast-path after the demo counter is bumped.
+#[test]
+fn invalidate_cache_time_clears_only_the_marker() {
+    use crate::commands::licensing::types::{LicenseSource, LicenseStatus};
+
+    let tmp = tempfile::tempdir().unwrap();
+    let engine = LicenseEngine::new(tmp.path().to_path_buf());
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+
+    // Populate cache + cache_time as a real `check()` call would.
+    let cached_value = LicenseCheckResult {
+        status: LicenseStatus::Demo,
+        source: LicenseSource::Demo,
+        features: crate::commands::licensing::features::demo_features(),
+        key: None,
+        license_type: None,
+        customer_name: None,
+        expires_at: None,
+        days_remaining: None,
+        experiments_remaining: Some(7),
+        message: None,
+        show_warning: false,
+    };
+    rt.block_on(engine.set_cache(cached_value.clone()));
+
+    // Pre-condition: cache_time IS Some after set_cache.
+    assert!(
+        rt.block_on(engine.cache_time_for_test()).is_some(),
+        "set_cache must populate cache_time"
+    );
+
+    // Act: invalidate.
+    rt.block_on(engine.invalidate_cache_time());
+
+    // Post-condition: cache_time is None, cached value is preserved.
+    assert!(
+        rt.block_on(engine.cache_time_for_test()).is_none(),
+        "invalidate_cache_time must clear cache_time"
+    );
+    let still_cached = rt.block_on(engine.cached());
+    assert!(
+        still_cached.is_some(),
+        "invalidate_cache_time must NOT drop the cached value"
+    );
+    let still_cached = still_cached.unwrap();
+    assert_eq!(still_cached.status, LicenseStatus::Demo);
+    assert_eq!(still_cached.experiments_remaining, Some(7));
+}

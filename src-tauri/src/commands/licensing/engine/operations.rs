@@ -246,14 +246,30 @@ impl LicenseEngine {
     /// Increment the demo experiment counter and re-check.
     /// In demo mode, this decrements `experiments_remaining`.
     /// In licensed mode (no DemoState), this is a no-op re-check.
+    ///
+    /// Audit-v2 LIC-002: after the counter is incremented we explicitly
+    /// invalidate `cache_time` so the subsequent `check()` cannot return
+    /// a stale TTL-cached result.  Previously the stored DB count moved
+    /// to N+1 but `check()`'s 120-second TTL fast-path returned the
+    /// pre-increment cached result, so `experiments_remaining` reported
+    /// to the UI (and to any guard relying on the cached state) lagged
+    /// behind reality — at the boundary case `remaining = 1 → 0` this
+    /// could permit one extra write before the cache caught up.
     pub async fn register_experiment(&self, db_pool: &DbPool) -> Result<LicenseCheckResult> {
+        let mut counter_advanced = false;
         if let Some(cached) = self.cached().await {
             if cached.status == LicenseStatus::Demo {
                 let conn = db_pool.get().map_err(AppError::Pool)?;
-                if let Err(e) = increment_demo_experiments(&conn) {
-                    tracing::warn!("Failed to increment demo counter: {}", e);
+                match increment_demo_experiments(&conn) {
+                    Ok(_) => counter_advanced = true,
+                    Err(e) => tracing::warn!("Failed to increment demo counter: {}", e),
                 }
             }
+        }
+        if counter_advanced {
+            // Drop the TTL marker so the next check() does the full
+            // DB read instead of returning the stale Demo cache.
+            self.invalidate_cache_time().await;
         }
         // Re-check to update cache with new experiment count
         Ok(self.check(db_pool).await)
