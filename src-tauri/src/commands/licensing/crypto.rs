@@ -111,8 +111,30 @@ pub(super) fn verify_server_signature(canonical_json: &str, base64_sig: &str) ->
 
 // ── Key derivation ─────────────────────────────────────────────────────
 
+/// Resolve the HMAC integrity key used for `SystemState` signing.
+///
+/// **Release builds** always return the compile-time `DEFAULT_INTEGRITY_KEY`.
+/// **Debug / test builds** allow `INTEGRITY_SECRET_KEY` env override so a
+/// developer can rotate keys for local experiments without rebuilding.
+///
+/// Audit-v2 SEC-004: previously the runtime env was honoured in all
+/// builds.  An attacker controlling the process environment of a release
+/// install could substitute the HMAC key, which silently breaks tamper
+/// detection on every record protected only by HMAC (DemoState,
+/// was-licensed flag, secure-storage cache).  Records that also carry
+/// the server's RSA `signedPayload` remain protected — the engine has
+/// an HMAC-rescue path keyed on RSA verification — but anything HMAC-
+/// only is exposed.  Pinning to the compile-time key in release closes
+/// that hole.  Real key rotation now requires a release rebuild, which
+/// is the correct ceremony for a secret of this importance.
 pub(super) fn get_integrity_key() -> String {
-    std::env::var("INTEGRITY_SECRET_KEY").unwrap_or_else(|_| DEFAULT_INTEGRITY_KEY.to_string())
+    #[cfg(debug_assertions)]
+    {
+        if let Ok(k) = std::env::var("INTEGRITY_SECRET_KEY") {
+            return k;
+        }
+    }
+    DEFAULT_INTEGRITY_KEY.to_string()
 }
 
 // ── HMAC integrity ─────────────────────────────────────────────────────

@@ -18,6 +18,62 @@ fn hmac_sign_verify() {
     assert!(!verify_signature("tampered-value", &sig));
 }
 
+/// Audit-v2 SEC-004 regression guard.
+///
+/// In **release** builds the `INTEGRITY_SECRET_KEY` env var must NOT be
+/// honoured by `get_integrity_key` — the compile-time
+/// `DEFAULT_INTEGRITY_KEY` is the only key used.  We prove this by
+/// signing under an env override and then verifying with the env removed:
+/// in release the override is ignored at sign-time, so the signature was
+/// made with `DEFAULT_INTEGRITY_KEY` and verifies cleanly without any
+/// env at verify-time.  Compiles only when `debug_assertions` is OFF
+/// (runs under `cargo test --release`).
+#[cfg(not(debug_assertions))]
+#[test]
+fn integrity_key_env_override_is_ignored_in_release() {
+    use std::env;
+
+    let value = r#"{"firstLaunchDate":"2026-01-01","experimentsCount":5}"#;
+
+    // SAFETY: env mutation is safe here because cargo test serialises
+    // tests within a crate when state is shared, and no other test
+    // reads INTEGRITY_SECRET_KEY concurrently.
+    unsafe { env::set_var("INTEGRITY_SECRET_KEY", "DIFFERENT_KEY_should_be_ignored_xx") };
+    let sig = sign_data(value);
+    unsafe { env::remove_var("INTEGRITY_SECRET_KEY") };
+
+    // Release mode: sign_data ignored the env, signed with
+    // DEFAULT_INTEGRITY_KEY; verify_signature also reads
+    // DEFAULT_INTEGRITY_KEY now → must succeed.
+    assert!(
+        verify_signature(value, &sig),
+        "RELEASE builds must IGNORE INTEGRITY_SECRET_KEY env override — \
+         sign_data must use DEFAULT_INTEGRITY_KEY regardless (audit-v2 SEC-004)",
+    );
+}
+
+/// Audit-v2 SEC-004 sibling test — debug behaviour: the override IS
+/// honoured (so a developer can rotate keys for local testing).
+/// Confirms the dev path remains usable.
+#[cfg(debug_assertions)]
+#[test]
+fn integrity_key_env_override_changes_signature_in_debug() {
+    use std::env;
+
+    let value = "test-value-for-key-rotation";
+    let default_sig = sign_data(value);
+
+    unsafe { env::set_var("INTEGRITY_SECRET_KEY", "another-32byte-dev-rotation-key!!") };
+    let env_sig = sign_data(value);
+    unsafe { env::remove_var("INTEGRITY_SECRET_KEY") };
+
+    assert_ne!(
+        default_sig, env_sig,
+        "DEBUG builds must honour INTEGRITY_SECRET_KEY env override so \
+         developers can rotate keys without rebuilding",
+    );
+}
+
 // ── RSA server-signature verification tests (F-07 / P2-3 group S) ──
 
 /// Helper: sign data with the dev private key (counterpart of the embedded public key).

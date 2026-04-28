@@ -21,7 +21,12 @@ const DEV_ALPHA_CHANNEL_KEY: &str = "rheolab-alpha-channel-dev-key-00";
 ///   `$env:INTEGRITY_SECRET_KEY = "your-prod-secret"; npm run tauri:build`
 ///
 /// Falls back to the dev sentinel if the env var is not set (dev/test only).
-/// Runtime env var override is still respected — allows key rotation without rebuild.
+///
+/// **Release: pinned at compile time** (audit-v2 SEC-004).  Runtime
+/// override of `INTEGRITY_SECRET_KEY` is honoured only in debug/test
+/// builds — see `crypto::get_integrity_key`.  Real key rotation now
+/// requires a release rebuild, which prevents env-poisoning attacks
+/// from substituting the HMAC key on a customer machine.
 pub(super) const DEFAULT_INTEGRITY_KEY: &str = match option_env!("INTEGRITY_SECRET_KEY") {
     Some(k) => k,
     None => DEV_INTEGRITY_KEY,
