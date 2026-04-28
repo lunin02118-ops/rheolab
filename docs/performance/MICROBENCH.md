@@ -92,8 +92,9 @@ npm run db:seed:small
     --load-fixture outputs/seed/rheolab-fixture-seed-small.db `
     --experiment-index 0 --iterations 1 --quiet
 
-# 3. Run a fixture-mode sweep manually (orchestrator doesn't yet
-# automate fixture-mode sweeps; one experiment index per invocation)
+# 3a. Run a single-experiment fixture sweep manually (orchestrator
+# doesn't yet automate fixture-mode sweeps; one experiment index per
+# invocation)
 foreach ($idx in 3,4,14) {
     & "src-tauri/target/release/examples/bench_analysis_pipeline.exe" `
         --load-fixture outputs/seed/rheolab-fixture-seed-small.db `
@@ -114,6 +115,39 @@ The PDF target does **not** support `--load-fixture` yet — comparison
 PDFs require a `ComparisonReportInput` struct that the TS adapter
 builds, which we don't yet have a way to dump from production.
 Adding that is a future Sprint task.
+
+#### `--all-experiments` (S1-5, full DB sweep)
+
+The analysis bench also accepts `--all-experiments` to sweep **every**
+row in the fixture DB in one invocation, producing per-experiment
+stats + a corpus-level aggregate (pooled `p50` / `p95` / `mean`,
+median of per-experiment means, and total `wall_ms` per full pass).
+
+```pwsh
+# Sweep all 19 experiments in small.db, 100 iter each, JSON sidecar.
+& "src-tauri/target/release/examples/bench_analysis_pipeline.exe" `
+    --load-fixture outputs/seed/rheolab-fixture-seed-small.db `
+    --all-experiments --iterations 100 `
+    --label "WITH-P10 100i" `
+    --json outputs/perf/microbench/dbsweep-WITH-P10-100i.json --quiet
+
+# Compare two sweeps (NO-P10 baseline vs WITH-P10 current) into a
+# per-experiment + corpus delta markdown report.
+node scripts/test/db-sweep-compare.mjs `
+    outputs/perf/microbench/dbsweep-NO-P10-100i.json `
+    outputs/perf/microbench/dbsweep-WITH-P10-100i.json `
+    --label "S1-5 100iter" `
+    --out outputs/perf/microbench/dbsweep-compare.md
+```
+
+`--all-experiments` requires `--load-fixture` and forces `--n=1`
+(one trace per pass = one experiment's data).  Broken rows (decode
+failure, missing required channel, 0 points) are **skipped** with a
+stderr warning so a single bad experiment doesn't kill the sweep.
+The JSON sidecar uses a different shape than the single-experiment
+mode — see `scripts/test/db-sweep-compare.mjs` for the consumer
+schema (`mode == "all_experiments"`, `experiments[]` array, `corpus`
+block).
 
 ### A vs B comparison
 
@@ -267,6 +301,8 @@ absolute numbers are not directly comparable to microbench numbers.
 - `docs/performance/P10-VALIDATION-REPORT.md` — PDF target P10 measurement.
 - `docs/performance/P10-ANALYSIS-VALIDATION-REPORT.md` — analysis target P10 measurement on synthetic data.
 - `docs/performance/P10-FIXTURE-VALIDATION-REPORT.md` — analysis target P10 measurement on real fixtures (S1-3, narrows the verdict).
+- `docs/performance/P10-DB-SWEEP-VALIDATION-REPORT.md` — analysis target P10 across **all** experiments in `small.db` (S1-5, confirms KEEP narrowly).
 - `src-tauri/examples/bench_comparison_pdf.rs` — PDF bench source.
-- `src-tauri/examples/bench_analysis_pipeline.rs` — analysis bench source.
+- `src-tauri/examples/bench_analysis_pipeline.rs` — analysis bench source (synthetic + single-fixture + `--all-experiments` sweep).
 - `scripts/test/run-rust-microbench.mjs` — the multi-target orchestrator.
+- `scripts/test/db-sweep-compare.mjs` — A/B JSON compare for `--all-experiments` sidecars.

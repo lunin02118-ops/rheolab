@@ -5,6 +5,15 @@
 > Re-run with `npm run perf:microbench:analysis:build` followed by the
 > commands at the bottom of this report.  See `docs/performance/MICROBENCH.md`
 > for fixture-mode CLI documentation.
+>
+> **Update (S1-5, 2026-04-29):** the narrow KEEP verdict in this report
+> was based on **3 hand-picked experiments**.  S1-5 widens the sample
+> to **all 19 experiments** in `small.db` (1 900 timed samples per arm
+> at 100 iter/exp) and confirms the verdict at the corpus level: P10
+> wins +7 % on pooled mean and +18 % on p95 tail latency, even though
+> 7 of 19 individual experiments still regress.  See
+> `docs/performance/P10-DB-SWEEP-VALIDATION-REPORT.md` for the full
+> per-experiment + corpus-aggregate analysis.
 
 ## TL;DR
 
@@ -208,6 +217,7 @@ canonical re-run path.
 
 - `docs/performance/P10-ANALYSIS-VALIDATION-REPORT.md` — synthetic-mode validation (positive result on 5×4h).
 - `docs/performance/P10-VALIDATION-REPORT.md` — PDF target validation (neutral).
+- `docs/performance/P10-DB-SWEEP-VALIDATION-REPORT.md` — full-DB sweep (S1-5, 19 experiments × 100 iter, corpus aggregate KEEP).
 - `docs/performance/MICROBENCH.md` — bench tooling guide.
 - `src-tauri/examples/bench_analysis_pipeline.rs` — `--load-fixture` implementation.
 - `outputs/perf/microbench/fixture-mode/` — raw JSON sidecars from the sweeps above.
