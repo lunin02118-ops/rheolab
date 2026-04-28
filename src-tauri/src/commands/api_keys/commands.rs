@@ -394,10 +394,22 @@ async fn validate_provider_key(provider: &str, key: &str) -> Result<ApiKeyValida
         )));
     }
 
+    // Endpoint resolution policy:
+    //   * Release builds → hard-coded `GROQ_BASE_URL` only.  An attacker who
+    //     can set the process environment must NOT be able to redirect a
+    //     stored bearer token to an arbitrary host.
+    //   * Debug / test builds → allow `GROQ_BASE_URL` env override so local
+    //     development and integration tests can point at mock servers.
+    //
+    // See audit-preflight SEC-003 (and prior wave-3 finding W3-12).
+    #[cfg(any(debug_assertions, test))]
     let url = std::env::var("GROQ_BASE_URL")
         .ok()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| GROQ_BASE_URL.to_string());
+    #[cfg(not(any(debug_assertions, test)))]
+    let url = GROQ_BASE_URL.to_string();
+
     let endpoint = format!("{}/chat/completions", url.trim_end_matches('/'));
 
     let client = reqwest::Client::builder()
