@@ -16,7 +16,16 @@ export type ApiKeyCreatePayload = { name: string; key: string; provider: string 
 
 export type ApiKeyDeleteResponse = { success: boolean; error?: string | null }
 
-export type ApiKeyItem = { id: string; name: string; key: string; provider: string; isActive: boolean; createdAt: string; updatedAt: string }
+export type ApiKeyItem = { id: string; name: string; key: string; provider: string; isActive: boolean; createdAt: string; updatedAt: string; 
+/**
+ * `false` when the stored ciphertext could not be decrypted on the
+ * current machine — the row is still visible in the list (audit-v2
+ * SEC-003 turned this into a non-destructive flag) so the user can
+ * see the orphan and choose to delete or re-create.  Defaults to
+ * `true` for newly-created/updated keys (those go through `encode_key`
+ * successfully by definition).
+ */
+isDecryptable?: boolean }
 
 export type ApiKeyMutationResponse = { success: boolean; key?: ApiKeyItem | null; error?: string | null }
 

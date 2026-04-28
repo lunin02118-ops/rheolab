@@ -10,6 +10,18 @@ pub struct ApiKeyItem {
     pub is_active: bool,
     pub created_at: String,
     pub updated_at: String,
+    /// `false` when the stored ciphertext could not be decrypted on the
+    /// current machine — the row is still visible in the list (audit-v2
+    /// SEC-003 turned this into a non-destructive flag) so the user can
+    /// see the orphan and choose to delete or re-create.  Defaults to
+    /// `true` for newly-created/updated keys (those go through `encode_key`
+    /// successfully by definition).
+    #[serde(default = "default_is_decryptable")]
+    pub is_decryptable: bool,
+}
+
+fn default_is_decryptable() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
