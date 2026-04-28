@@ -1,6 +1,6 @@
 # IPC surface — RheoLab Enterprise
 
-> Проверено против `src-tauri/src/startup/commands_registry.rs` на коммите `0.2.0-beta.21`.
+> Проверено против `src-tauri/src/startup/commands_registry.rs` на коммите `0.2.1-beta.1`.
 > Авторитетный список всегда — сам макрос `register_tauri_commands!()`; этот документ — агрегированная навигация для разработки и аудита.
 
 ## Как читать
@@ -83,7 +83,7 @@
 | `reagents_list` | Список активных реагентов (с категорией и единицами). | LOW |
 | `reagents_create` | Создать кастомный реагент. | MED |
 | `reagents_update` | Изменить имя / категорию / default dose. | MED |
-| `reagents_delete` | Soft-delete реагент (флагом `isActive = 0`). | MED |
+| `reagents_delete` | Hard-delete реагент из `ReagentCatalog`; отказывает с ошибкой если реагент привязан к экспериментам. | MED |
 | `reagents_export` | Экспорт каталога в JSON. | LOW |
 | `reagents_import` | Импорт каталога из JSON (merge по имени). | MED |
 | `reagents_seed` | Пересеять defaults (admin / диагностика). | MED |
@@ -131,7 +131,9 @@
 | Command | Назначение | Risk | License gate |
 |---|---|---|---|
 | `reports_generate_pdf` | Построить PDF-отчёт (до 6 локалей графиков, опционально калибровка). | LOW | feature:reportPdf |
-| `reports_generate_excel` | Построить многолистовой XLSX. | LOW | feature:reportExcel |
+| `reports_generate_excel` | Построить многолистовый XLSX. | LOW | feature:reportExcel |
+| `reports_generate_comparison_pdf` | Comparison-отчёт PDF по группе экспериментов (ADR-0010). Нативный pipeline в `rheolab-core::report_generator::comparison`. | LOW | feature:reportPdf |
+| `reports_generate_comparison_excel` | Comparison-отчёт XLSX (Сводная таблица + per-experiment листы). | LOW | feature:reportExcel |
 
 ---
 
@@ -168,10 +170,11 @@
 | Command | Назначение | Risk |
 |---|---|---|
 | `licensing_machine_id` | Собрать и вернуть hex-fingerprint текущей машины. | LOW |
+| `licensing_debug_fingerprint` | Детальный дамп компонентов fingerprint’а (CPU/Motherboard/BIOS/MAC) для диагностики проблем активации. | LOW |
 | `licensing_was_ever_licensed` | `true`, если БД когда-либо была активирована (флаг в `SystemState`). | LOW |
 | `licensing_checkpoint_db` | Снапшот БД — используется before-deactivate hook. | HIGH |
-| `licensing_reset_experiments` | Сбросить счётчик эксп. для trial (только dev). | HIGH |
-| `licensing_reset_all_experiments` | Полный reset experimenта + артефактов. | HIGH |
+| `licensing_reset_experiments` | Удалить все эксперименты текущего пользователя (LOCAL_USER_ID) + их reagent-линки. Шлюз `require_write_license`. | HIGH |
+| `licensing_reset_all_experiments` | Полный reset experimentа + артефактов. | HIGH |
 
 ### 11.2 V2 engine
 
