@@ -1,7 +1,7 @@
 /**
  * Tests for src/lib/reports/comparison-experiment-adapter.ts
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/analysis/client', () => ({
     analyzeData: vi.fn().mockResolvedValue({ cycles: [], results: new Map(), allSteps: [] }),
@@ -10,11 +10,21 @@ import type { Experiment, ColumnarData } from '@/types';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import {
     experimentToReportBuildContext,
+    clearComparisonAnalysisCache,
+    getComparisonAnalysisCacheSize,
     type ComparisonExperimentContextOverrides,
 } from '@/lib/reports/comparison-experiment-adapter';
 import { analyzeData } from '@/lib/analysis/client';
 
 const analyzeDataMock = vi.mocked(analyzeData);
+
+// PERF-002: the analysis cache is module-scoped and persists across
+// `experimentToReportBuildContext` calls.  Existing tests assume a fresh
+// state per test (e.g. they verify `analyzeData` was called); reset the
+// cache between every test so cache-state never bleeds across cases.
+beforeEach(() => {
+    clearComparisonAnalysisCache();
+});
 
 // ── Fixtures ─────────────────────────────────────────────────────────────
 
@@ -239,5 +249,118 @@ describe('experimentToReportBuildContext', () => {
 
         const [, , settings] = analyzeDataMock.mock.calls[0];
         expect(settings.viscosityShearRates).toEqual([40, 100, 170]);
+    });
+});
+
+// ── PERF-002: analysis cache tests ───────────────────────────────────────
+describe('experimentToReportBuildContext — analysis cache (PERF-002)', () => {
+    it('skips analyzeData on second call with identical inputs (cache hit)', async () => {
+        analyzeDataMock.mockClear();
+        const exp = makeExperiment({ updatedAt: '2026-01-15T12:00:00Z' } as Partial<Experiment>);
+        const overrides = makeOverrides();
+
+        await experimentToReportBuildContext(exp, overrides);
+        await experimentToReportBuildContext(exp, overrides);
+
+        // First call: cache miss → analyzeData runs.
+        // Second call: cache hit → analyzeData is NOT called again.
+        expect(analyzeDataMock).toHaveBeenCalledTimes(1);
+        expect(getComparisonAnalysisCacheSize()).toBe(1);
+    });
+
+    it('re-runs analyzeData when updatedAt changes (cache invalidation)', async () => {
+        analyzeDataMock.mockClear();
+        const overrides = makeOverrides();
+
+        await experimentToReportBuildContext(
+            makeExperiment({ updatedAt: '2026-01-15T12:00:00Z' } as Partial<Experiment>),
+            overrides,
+        );
+        await experimentToReportBuildContext(
+            makeExperiment({ updatedAt: '2026-01-16T12:00:00Z' } as Partial<Experiment>),
+            overrides,
+        );
+
+        expect(analyzeDataMock).toHaveBeenCalledTimes(2);
+        expect(getComparisonAnalysisCacheSize()).toBe(2);
+    });
+
+    it('re-runs analyzeData when geometry changes (cache invalidation)', async () => {
+        analyzeDataMock.mockClear();
+        const baseExp = makeExperiment({ updatedAt: '2026-01-15T12:00:00Z' } as Partial<Experiment>);
+        const overrides = makeOverrides();
+
+        await experimentToReportBuildContext(
+            { ...baseExp, geometry: 'R1B5' } as unknown as Experiment,
+            overrides,
+        );
+        await experimentToReportBuildContext(
+            { ...baseExp, geometry: 'R1B1' } as unknown as Experiment,
+            overrides,
+        );
+
+        expect(analyzeDataMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('re-runs analyzeData when shear rates change (cache invalidation)', async () => {
+        analyzeDataMock.mockClear();
+        const exp = makeExperiment({ updatedAt: '2026-01-15T12:00:00Z' } as Partial<Experiment>);
+
+        await experimentToReportBuildContext(exp, {
+            ...makeOverrides(),
+            reportViscosityRates: [40, 100, 170],
+        });
+        await experimentToReportBuildContext(exp, {
+            ...makeOverrides(),
+            reportViscosityRates: [40, 100, 170, 220],
+        });
+
+        expect(analyzeDataMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('treats shear-rate ORDER as identical (cache hit on reordering)', async () => {
+        // Cache key sorts the rates so [170, 40, 100] and [40, 100, 170]
+        // hash to the same key — analysis should not re-run.
+        analyzeDataMock.mockClear();
+        const exp = makeExperiment({ updatedAt: '2026-01-15T12:00:00Z' } as Partial<Experiment>);
+
+        await experimentToReportBuildContext(exp, {
+            ...makeOverrides(),
+            reportViscosityRates: [40, 100, 170],
+        });
+        await experimentToReportBuildContext(exp, {
+            ...makeOverrides(),
+            reportViscosityRates: [170, 40, 100],
+        });
+
+        expect(analyzeDataMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not cache when columnarData is missing (no analysis ran)', async () => {
+        analyzeDataMock.mockClear();
+        const exp = makeExperiment({
+            columnarData: undefined,
+            updatedAt: '2026-01-15T12:00:00Z',
+        } as unknown as Partial<Experiment>);
+
+        await experimentToReportBuildContext(exp, makeOverrides());
+
+        expect(analyzeDataMock).not.toHaveBeenCalled();
+        expect(getComparisonAnalysisCacheSize()).toBe(0);
+    });
+
+    it('clearComparisonAnalysisCache empties the cache so the next call re-analyses', async () => {
+        analyzeDataMock.mockClear();
+        const exp = makeExperiment({ updatedAt: '2026-01-15T12:00:00Z' } as Partial<Experiment>);
+
+        await experimentToReportBuildContext(exp, makeOverrides());
+        expect(getComparisonAnalysisCacheSize()).toBe(1);
+
+        clearComparisonAnalysisCache();
+        expect(getComparisonAnalysisCacheSize()).toBe(0);
+
+        await experimentToReportBuildContext(exp, makeOverrides());
+        // Two analyzeData calls total: first miss, clear, second miss again.
+        expect(analyzeDataMock).toHaveBeenCalledTimes(2);
     });
 });

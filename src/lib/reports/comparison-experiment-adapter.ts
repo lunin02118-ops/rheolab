@@ -57,6 +57,88 @@ interface StoredCalibrationLite {
     status?: string;
 }
 
+// ── Analysis cache ─────────────────────────────────────────────────────────
+//
+// Comparison report exports run the full Grace analysis pipeline once
+// per experiment per export.  When the same selection is exported in
+// PDF and Excel back-to-back (the dominant flow) the analysis runs
+// twice for every experiment; for a 5-experiment comparison that's
+// 5 redundant analyses on the second click.
+//
+// PERF-002 (audit-preflight): cache the analysis output keyed by
+// (expId, updatedAt, geometry, sorted shear-rates).  The key includes
+// `updatedAt` so editing an experiment invalidates its cache entry on
+// the next access; it includes the shear-rate set so switching expert
+// mode rates also invalidates.  All other inputs to `analyzeData` are
+// constants (beginner-mode detection settings) so they don't need to
+// be in the key.
+//
+// Cap is small: comparison views rarely exceed a few dozen experiments
+// at once; 50 entries is generous and keeps memory bounded.  LRU
+// eviction is implemented via Map's insertion-order semantics:
+// re-inserting on hit moves a key to the end; oldest is at the front.
+
+interface AnalysisCacheValue {
+    readonly cycles: ReportBuildContext['cycles'];
+    readonly cycleResultsMapped: ReportBuildContext['cycleResultsMapped'];
+}
+
+const ANALYSIS_CACHE_CAP = 50;
+const analysisCache = new Map<string, AnalysisCacheValue>();
+
+function buildAnalysisCacheKey(
+    expId: string,
+    updatedAt: string,
+    geometryKey: string,
+    shearRates: readonly number[],
+): string {
+    const ratesSig = [...shearRates]
+        .sort((a, b) => a - b)
+        .map((r) => r.toFixed(2))
+        .join(',');
+    return `${expId}|${updatedAt}|${geometryKey}|${ratesSig}`;
+}
+
+function analysisCacheGet(key: string): AnalysisCacheValue | undefined {
+    const v = analysisCache.get(key);
+    if (!v) return undefined;
+    // LRU touch: move to end of insertion order.
+    analysisCache.delete(key);
+    analysisCache.set(key, v);
+    return v;
+}
+
+function analysisCacheSet(key: string, value: AnalysisCacheValue): void {
+    if (analysisCache.has(key)) analysisCache.delete(key);
+    analysisCache.set(key, value);
+    while (analysisCache.size > ANALYSIS_CACHE_CAP) {
+        const oldest = analysisCache.keys().next().value;
+        if (oldest === undefined) break;
+        analysisCache.delete(oldest);
+    }
+}
+
+/**
+ * Clear the comparison-adapter analysis cache.
+ *
+ * Useful for tests and for the (currently unused) "regenerate all"
+ * code path that wants to force a re-analysis even when nothing in the
+ * cache key has changed.
+ */
+export function clearComparisonAnalysisCache(): void {
+    analysisCache.clear();
+}
+
+/**
+ * Inspect the current analysis cache size — exposed for tests only.
+ * Do not consume from production code.
+ *
+ * @internal
+ */
+export function getComparisonAnalysisCacheSize(): number {
+    return analysisCache.size;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function safeRecord(value: unknown): Record<string, unknown> {
@@ -187,14 +269,6 @@ export async function experimentToReportBuildContext(
         try {
             const geometryKey =
                 typeof record.geometry === 'string' ? (record.geometry as string) : 'R1B5';
-            const rheoPoints = columnarToRheoPoints(columnar);
-
-            const detectionSettings = {
-                stepSplitting: true,
-                splitStartDuration: 30,
-                splitEndDuration: 30,
-                minDurationForSplit: 90,
-            };
 
             // Use the *same* shear-rate list the comparison-report header is
             // built from. Otherwise the Rust pipeline only computes viscosities
@@ -206,27 +280,57 @@ export async function experimentToReportBuildContext(
             // those and they would only pollute the report.
             const analysisShearRates = overrides.reportViscosityRates
                 .filter((r) => Number.isFinite(r) && r > 0);
-            const expertSettings = {
-                pointsToAverage: 0,
-                viscosityShearRates: analysisShearRates.length > 0
-                    ? analysisShearRates
-                    : [...DEFAULT_VISCOSITY_SHEAR_RATES] as number[],
-                kIndexType: 'K_ind' as const,
-                stepSplitting: true,
-                splitStartDuration: 30,
-                splitEndDuration: 30,
-                minDurationForSplit: 90,
-            };
+            const effectiveRates = analysisShearRates.length > 0
+                ? analysisShearRates
+                : ([...DEFAULT_VISCOSITY_SHEAR_RATES] as number[]);
 
-            const result = await analyzeData(
-                rheoPoints,
+            // PERF-002: short-circuit if we already analysed this exact
+            // (experiment, updatedAt, geometry, shearRates) combination
+            // earlier in this session.
+            const updatedAt = typeof record.updatedAt === 'string'
+                ? (record.updatedAt as string)
+                : '';
+            const cacheKey = buildAnalysisCacheKey(
+                exp.id,
+                updatedAt,
                 geometryKey,
-                expertSettings,
-                detectionSettings,
+                effectiveRates,
             );
+            const cached = analysisCacheGet(cacheKey);
+            if (cached) {
+                cycles = cached.cycles;
+                cycleResultsMapped = cached.cycleResultsMapped;
+            } else {
+                const rheoPoints = columnarToRheoPoints(columnar);
 
-            cycles = result.cycles;
-            cycleResultsMapped = mapCycleResults(result.results);
+                const detectionSettings = {
+                    stepSplitting: true,
+                    splitStartDuration: 30,
+                    splitEndDuration: 30,
+                    minDurationForSplit: 90,
+                };
+
+                const expertSettings = {
+                    pointsToAverage: 0,
+                    viscosityShearRates: effectiveRates,
+                    kIndexType: 'K_ind' as const,
+                    stepSplitting: true,
+                    splitStartDuration: 30,
+                    splitEndDuration: 30,
+                    minDurationForSplit: 90,
+                };
+
+                const result = await analyzeData(
+                    rheoPoints,
+                    geometryKey,
+                    expertSettings,
+                    detectionSettings,
+                );
+
+                cycles = result.cycles;
+                cycleResultsMapped = mapCycleResults(result.results);
+                analysisCacheSet(cacheKey, { cycles, cycleResultsMapped });
+            }
         } catch (e) {
             console.warn(`[comparison-adapter] analysis failed for ${exp.id}:`, e);
         }
