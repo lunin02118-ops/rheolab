@@ -259,23 +259,26 @@ pub async fn licensing_checkpoint_db(state: State<'_, AppState>) -> Result<Simpl
     }
 }
 
-/// Reset (delete) experiments for a user. If user_id is None, uses LOCAL_USER_ID.
+/// Reset (delete) the experiments belonging to the local user.
+///
+/// **IPC scope tightening (audit-preflight SEC-002)**: this command no longer
+/// accepts an arbitrary `user_id` argument.  RheoLab Enterprise is a
+/// single-user desktop application — every row is owned by `LOCAL_USER_ID` —
+/// so accepting a caller-supplied identifier was an unused IPC parameter
+/// that allowed the webview (or a compromised page) to wipe experiments
+/// for any value it chose.  The function now hard-codes `LOCAL_USER_ID`.
 #[tauri::command]
-pub async fn licensing_reset_experiments(
-    state: State<'_, AppState>,
-    user_id: Option<String>,
-) -> Result<SimpleResult> {
+pub async fn licensing_reset_experiments(state: State<'_, AppState>) -> Result<SimpleResult> {
     require_write_license(&state).await?;
 
     use rusqlite::params;
     let conn = state.pool_conn()?;
-    let uid = user_id.unwrap_or_else(|| LOCAL_USER_ID.to_string());
 
     let tx = conn.unchecked_transaction()?;
 
     let count: i64 = tx.query_row(
         "SELECT COUNT(*) FROM Experiment WHERE userId = ?1",
-        params![uid],
+        params![LOCAL_USER_ID],
         |row| row.get(0),
     )?;
 
@@ -283,10 +286,13 @@ pub async fn licensing_reset_experiments(
     tx.execute(
         "DELETE FROM ExperimentReagent WHERE experimentId IN \
          (SELECT id FROM Experiment WHERE userId = ?1)",
-        params![uid],
+        params![LOCAL_USER_ID],
     )?;
 
-    tx.execute("DELETE FROM Experiment WHERE userId = ?1", params![uid])?;
+    tx.execute(
+        "DELETE FROM Experiment WHERE userId = ?1",
+        params![LOCAL_USER_ID],
+    )?;
 
     tx.commit()?;
 
