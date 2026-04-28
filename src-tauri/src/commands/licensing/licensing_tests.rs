@@ -465,6 +465,45 @@ fn maybe_increment_ignores_env_bypass_in_release() {
     );
 }
 
+/// Audit-v2 E2E-001 regression guard.
+///
+/// In **release** builds `is_e2e_mode()` must return `false` regardless
+/// of how `RHEOLAB_E2E_SKIP_LICENSE_GATE` is set in the process
+/// environment.  This prevents a malicious launcher / installer / shim
+/// from suppressing the auto-updater path on a production install — the
+/// updater is the channel by which we ship security fixes, so allowing
+/// an env var to silence it would let an attacker freeze a victim on a
+/// known-vulnerable version.
+///
+/// Compiles only under `cargo test --release` so the debug-mode body
+/// (which legitimately honours the env var for Playwright fixtures) is
+/// not exercised here.
+///
+/// SAFETY note: this test mutates `RHEOLAB_E2E_SKIP_LICENSE_GATE`, the
+/// same env var used by `maybe_increment_ignores_env_bypass_in_release`
+/// above.  Both tests run only in release, where the function-under-test
+/// **ignores** the env var entirely — so even if the two tests race on
+/// the env mutation, the assertions are independent of the observed env
+/// state and remain correct.
+#[cfg(not(debug_assertions))]
+#[test]
+fn is_e2e_mode_returns_false_in_release_regardless_of_env() {
+    use std::env;
+
+    // Set the env var that would activate e2e mode in a debug build.
+    unsafe { env::set_var("RHEOLAB_E2E_SKIP_LICENSE_GATE", "1") };
+    let result = is_e2e_mode();
+    unsafe { env::remove_var("RHEOLAB_E2E_SKIP_LICENSE_GATE") };
+
+    assert!(
+        !result,
+        "RELEASE builds must IGNORE RHEOLAB_E2E_SKIP_LICENSE_GATE — \
+         is_e2e_mode() must return false even when the env is set so \
+         the auto-updater path cannot be suppressed by process env \
+         (audit-v2 E2E-001)"
+    );
+}
+
 // ── Group R: RSA verify_server_signature unit tests ────────────────
 //
 // Tests for the RSA verification layer.  The round-trip test (R-1) requires

@@ -68,6 +68,49 @@ pub(crate) async fn require_write_license(state: &AppState) -> Result<()> {
     }
 }
 
+/// Returns the [`LicenseFeatures`] currently in effect for this process.
+///
+/// **Audit-v2 REP-001:** the report-generation IPCs used to gate solely
+/// on `can_write_via_engine` (which says "Active OR Grace OR Demo, fine"),
+/// but never inspected the per-feature flags or per-feature limits.  A
+/// Demo licence (`export_pdf=true, max_comparison_experiments=3`) and a
+/// Standard licence (`export_pdf=true, max_comparison_experiments=8`)
+/// were treated identically, and a malicious or buggy frontend could
+/// hand the native PDF engine an unbounded comparison list and watch
+/// memory go through the roof.
+///
+/// `current_features` is the per-feature counterpart of
+/// `can_write_via_engine`: it returns the cached features so individual
+/// IPCs can enforce the exact flags the licence grants.
+///
+/// Behaviour:
+/// * In debug builds with `RHEOLAB_E2E_SKIP_LICENSE_GATE=1` → returns
+///   [`features::full_features`].  Mirrors the bypass that
+///   `can_write_via_engine` honours for Playwright fixtures.  Release
+///   builds do **not** honour this env var, matching audit-v2 LIC-001.
+/// * If the engine has produced a cached `LicenseCheckResult` → returns
+///   that result's `features` (already correct for Active / Grace / Demo
+///   / Expired / Revoked).
+/// * Otherwise (engine not yet attached, cache empty before first
+///   `check()` call) → returns [`features::expired_features`] which
+///   denies everything.  Fail-closed by default.
+pub(crate) async fn current_features(state: &AppState) -> types::LicenseFeatures {
+    #[cfg(debug_assertions)]
+    {
+        if std::env::var("RHEOLAB_E2E_SKIP_LICENSE_GATE").as_deref() == Ok("1") {
+            return features::full_features();
+        }
+    }
+
+    match state.license_engine.as_ref() {
+        Some(engine) => match engine.cached().await {
+            Some(result) => result.features,
+            None => features::expired_features(),
+        },
+        None => features::expired_features(),
+    }
+}
+
 // ── License gate for write/export commands (F-08) ──────────────────────
 
 /// Synchronous license gate used **only** from unit tests.
@@ -523,9 +566,26 @@ pub async fn get_update_channel(state: State<'_, AppState>) -> Result<UpdateChan
 /// destabilise Playwright tests — most importantly, the Tauri auto-updater
 /// (which can trigger a WebView2 navigation to `edge://downloads/hub` mid-run
 /// and break CDP-based test fixtures).
+///
+/// **Audit-v2 E2E-001:** the env-driven detection is gated to
+/// `cfg(any(debug_assertions, test))`.  In a `cargo build --release`
+/// binary this command **always** returns `false`, even if the user
+/// (or a malicious launcher) sets `RHEOLAB_E2E_SKIP_LICENSE_GATE=1` in
+/// their environment.  This prevents the auto-updater suppression path
+/// from being toggled on a production install via a process env var,
+/// which would let an attacker freeze the install at a known-vulnerable
+/// version.  The IPC remains exposed (the Specta-generated bindings
+/// require it) but its release-mode body is a constant `false`.
 #[tauri::command]
 pub fn is_e2e_mode() -> bool {
-    std::env::var("RHEOLAB_E2E_SKIP_LICENSE_GATE").as_deref() == Ok("1")
+    #[cfg(any(debug_assertions, test))]
+    {
+        std::env::var("RHEOLAB_E2E_SKIP_LICENSE_GATE").as_deref() == Ok("1")
+    }
+    #[cfg(not(any(debug_assertions, test)))]
+    {
+        false
+    }
 }
 
 // ── Security regression tests (P2-3 groups G, D) ──────────────────────

@@ -5,8 +5,16 @@
 //!
 //! Raw bytes are returned via `tauri::ipc::Response` to avoid JSON serialization
 //! overhead (eliminates triple-copy: Vec<u8> → JSON number array → JS Array → Uint8Array).
+//!
+//! **Audit-v2 REP-001 — per-feature gating:** every report IPC checks
+//! both `can_write_via_engine` (Active/Grace/Demo gate) **and** the
+//! relevant `LicenseFeatures` flag for the kind of report being
+//! produced.  Comparison commands additionally enforce the licence's
+//! `max_comparison_experiments` so a malicious or buggy frontend
+//! cannot hand the native engine an unbounded experiment list and
+//! exhaust memory.
 
-use crate::commands::licensing::can_write_via_engine;
+use crate::commands::licensing::{can_write_via_engine, current_features};
 use crate::error::{AppError, Result};
 use crate::state::AppState;
 use rheolab_core::report_generator::comparison::ComparisonReportInput;
@@ -65,6 +73,15 @@ pub async fn reports_generate_pdf(
     if !can_write_via_engine(&state).await {
         return Err(AppError::License("required".into()));
     }
+    // Audit-v2 REP-001: per-feature gate — even an active license can
+    // legitimately have `export_pdf=false` (e.g. an "expired" tier
+    // computed for grace-window licences).  Reject early.
+    let features = current_features(&state).await;
+    if !features.export_pdf {
+        return Err(AppError::License(
+            "PDF export is not included in your current licence (REP-001)".into(),
+        ));
+    }
     // E2E fast-path: return a minimal valid %PDF-1.4 header so the UI
     // flow completes instantly without running Typst (which at opt-level=0
     // takes 5+ minutes).  Set RHEOLAB_E2E_MOCK_REPORTS=1 to activate.
@@ -91,6 +108,13 @@ pub async fn reports_generate_excel(
     if !can_write_via_engine(&state).await {
         return Err(AppError::License("required".into()));
     }
+    // Audit-v2 REP-001: per-feature gate (see reports_generate_pdf).
+    let features = current_features(&state).await;
+    if !features.export_excel {
+        return Err(AppError::License(
+            "Excel export is not included in your current licence (REP-001)".into(),
+        ));
+    }
     // E2E fast-path: return a minimal PK ZIP header so the UI flow completes.
     // Gated to debug builds only — never available in release (F-02).
     #[cfg(debug_assertions)]
@@ -107,7 +131,9 @@ pub async fn reports_generate_excel(
 /// Generate a PDF comparison report from multiple experiments.
 ///
 /// Returns raw PDF bytes via `tauri::ipc::Response` for zero-copy transfer to
-/// the frontend.  License-gated identically to the single-experiment path.
+/// the frontend.  License-gated identically to the single-experiment path
+/// **plus** the audit-v2 REP-001 per-feature gates: `comparison`,
+/// `export_pdf`, and `max_comparison_experiments`.
 #[tauri::command]
 pub async fn reports_generate_comparison_pdf(
     state: State<'_, AppState>,
@@ -116,6 +142,9 @@ pub async fn reports_generate_comparison_pdf(
     if !can_write_via_engine(&state).await {
         return Err(AppError::License("required".into()));
     }
+    let features = current_features(&state).await;
+    enforce_comparison_pdf_features(&features, count_experiments_in_value(&input))?;
+
     #[cfg(debug_assertions)]
     {
         if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
@@ -135,7 +164,9 @@ pub async fn reports_generate_comparison_pdf(
 
 /// Generate an XLSX comparison report from multiple experiments.
 ///
-/// Returns raw XLSX bytes via `tauri::ipc::Response`.  License-gated.
+/// Returns raw XLSX bytes via `tauri::ipc::Response`.  License-gated
+/// plus REP-001 per-feature gates (`comparison`, `export_excel`,
+/// `max_comparison_experiments`).
 #[tauri::command]
 pub async fn reports_generate_comparison_excel(
     state: State<'_, AppState>,
@@ -144,6 +175,9 @@ pub async fn reports_generate_comparison_excel(
     if !can_write_via_engine(&state).await {
         return Err(AppError::License("required".into()));
     }
+    let features = current_features(&state).await;
+    enforce_comparison_excel_features(&features, input.experiments.len())?;
+
     #[cfg(debug_assertions)]
     {
         if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
@@ -153,6 +187,79 @@ pub async fn reports_generate_comparison_excel(
     }
     let bytes = generate_comparison_excel_bytes(input).await?;
     Ok(tauri::ipc::Response::new(bytes))
+}
+
+// ── Audit-v2 REP-001 helpers ───────────────────────────────────────────
+
+/// Best-effort count of experiments in an untyped JSON `Value`.
+///
+/// We need the count *before* deserialising into [`ComparisonReportInput`]
+/// so we can refuse a 100k-experiment payload before allocating its full
+/// struct tree.  Returns `0` if the field is absent or malformed —
+/// downstream `serde_json::from_value` will surface the real parse
+/// error in that case.
+fn count_experiments_in_value(input: &serde_json::Value) -> usize {
+    input
+        .get("experiments")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.len())
+        .unwrap_or(0)
+}
+
+/// REP-001 gate for `reports_generate_comparison_pdf`.
+///
+/// Pure helper so the licence-feature contract can be unit-tested
+/// without going through the full IPC + `LicenseEngine` stack.
+fn enforce_comparison_pdf_features(
+    features: &crate::commands::licensing::types::LicenseFeatures,
+    experiment_count: usize,
+) -> Result<()> {
+    if !features.comparison {
+        return Err(AppError::License(
+            "Comparison reports are not included in your current licence (REP-001)".into(),
+        ));
+    }
+    if !features.export_pdf {
+        return Err(AppError::License(
+            "PDF export is not included in your current licence (REP-001)".into(),
+        ));
+    }
+    enforce_max_comparison_experiments(features.max_comparison_experiments, experiment_count)
+}
+
+/// REP-001 gate for `reports_generate_comparison_excel`.  Mirror of the
+/// PDF helper but checks `export_excel` instead.
+fn enforce_comparison_excel_features(
+    features: &crate::commands::licensing::types::LicenseFeatures,
+    experiment_count: usize,
+) -> Result<()> {
+    if !features.comparison {
+        return Err(AppError::License(
+            "Comparison reports are not included in your current licence (REP-001)".into(),
+        ));
+    }
+    if !features.export_excel {
+        return Err(AppError::License(
+            "Excel export is not included in your current licence (REP-001)".into(),
+        ));
+    }
+    enforce_max_comparison_experiments(features.max_comparison_experiments, experiment_count)
+}
+
+/// Shared count cap.  Negative `max_comparison_experiments` (`-1` in
+/// the schema) means "unlimited"; any non-negative value is treated as
+/// an inclusive upper bound.
+fn enforce_max_comparison_experiments(max: i64, count: usize) -> Result<()> {
+    if max < 0 {
+        return Ok(()); // unlimited
+    }
+    if count > max as usize {
+        return Err(AppError::License(format!(
+            "Comparison size {} exceeds the {} experiments allowed by your licence (REP-001)",
+            count, max
+        )));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -305,5 +412,166 @@ mod tests {
         // is well above 20 KB on disk.  If we ever regress to a blank doc,
         // this catches it.
         assert!(bytes.len() > 20_000, "PDF too small: {} bytes", bytes.len());
+    }
+
+    // ── Audit-v2 REP-001 regression guards (pure feature-gate helpers) ──
+
+    use super::{
+        count_experiments_in_value, enforce_comparison_excel_features,
+        enforce_comparison_pdf_features, enforce_max_comparison_experiments,
+    };
+    use crate::commands::licensing::types::LicenseFeatures;
+
+    /// Helper: build a `LicenseFeatures` with everything explicitly off.
+    /// Tests then flip the specific flags they care about.
+    fn empty_features() -> LicenseFeatures {
+        LicenseFeatures {
+            max_experiments: 0,
+            max_comparison_experiments: 0,
+            export_pdf: false,
+            export_excel: false,
+            ai_parsing: false,
+            comparison: false,
+            watermark: false,
+            calibration_analysis: false,
+            calibration_parsing: false,
+            chandler5550_support: false,
+            bsl_r1_support: false,
+        }
+    }
+
+    #[test]
+    fn enforce_comparison_pdf_rejects_when_comparison_disabled() {
+        let mut f = empty_features();
+        f.export_pdf = true;
+        f.max_comparison_experiments = 100;
+        // comparison left = false
+        let err = enforce_comparison_pdf_features(&f, 1).unwrap_err().to_string();
+        assert!(err.contains("Comparison"));
+        assert!(err.contains("REP-001"));
+    }
+
+    #[test]
+    fn enforce_comparison_pdf_rejects_when_export_pdf_disabled() {
+        let mut f = empty_features();
+        f.comparison = true;
+        f.max_comparison_experiments = 100;
+        // export_pdf left = false
+        let err = enforce_comparison_pdf_features(&f, 1).unwrap_err().to_string();
+        assert!(err.contains("PDF"));
+        assert!(err.contains("REP-001"));
+    }
+
+    #[test]
+    fn enforce_comparison_pdf_rejects_when_count_exceeds_cap() {
+        let mut f = empty_features();
+        f.comparison = true;
+        f.export_pdf = true;
+        f.max_comparison_experiments = 3; // demo-tier cap
+        let err = enforce_comparison_pdf_features(&f, 7)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("size 7"));
+        assert!(err.contains("3 experiments"));
+        assert!(err.contains("REP-001"));
+    }
+
+    #[test]
+    fn enforce_comparison_pdf_accepts_when_count_at_cap() {
+        let mut f = empty_features();
+        f.comparison = true;
+        f.export_pdf = true;
+        f.max_comparison_experiments = 3;
+        // Inclusive upper bound: count == max is allowed.
+        assert!(enforce_comparison_pdf_features(&f, 3).is_ok());
+    }
+
+    #[test]
+    fn enforce_comparison_pdf_accepts_when_unlimited_cap() {
+        let mut f = empty_features();
+        f.comparison = true;
+        f.export_pdf = true;
+        f.max_comparison_experiments = -1; // unlimited
+        // Even a huge count must pass when the cap is "unlimited".
+        assert!(enforce_comparison_pdf_features(&f, 10_000).is_ok());
+    }
+
+    #[test]
+    fn enforce_comparison_excel_rejects_when_export_excel_disabled() {
+        let mut f = empty_features();
+        f.comparison = true;
+        f.max_comparison_experiments = 100;
+        // export_excel left = false
+        let err = enforce_comparison_excel_features(&f, 1)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("Excel"));
+        assert!(err.contains("REP-001"));
+    }
+
+    #[test]
+    fn enforce_comparison_excel_accepts_with_full_features() {
+        let mut f = empty_features();
+        f.comparison = true;
+        f.export_excel = true;
+        f.max_comparison_experiments = 8;
+        assert!(enforce_comparison_excel_features(&f, 5).is_ok());
+    }
+
+    #[test]
+    fn enforce_max_comparison_experiments_treats_negative_as_unlimited() {
+        // Per the LicenseFeatures contract: -1 means unlimited.
+        assert!(enforce_max_comparison_experiments(-1, 0).is_ok());
+        assert!(enforce_max_comparison_experiments(-1, 1_000_000).is_ok());
+        // Other negatives also accepted (defensive — never a count error).
+        assert!(enforce_max_comparison_experiments(-99, 1_000_000).is_ok());
+    }
+
+    #[test]
+    fn count_experiments_in_value_handles_well_formed_payload() {
+        let v = serde_json::json!({
+            "experiments": [
+                {"id": "a"},
+                {"id": "b"},
+                {"id": "c"},
+            ]
+        });
+        assert_eq!(count_experiments_in_value(&v), 3);
+    }
+
+    #[test]
+    fn count_experiments_in_value_returns_zero_for_missing_field() {
+        let v = serde_json::json!({"language": "en"});
+        assert_eq!(count_experiments_in_value(&v), 0);
+    }
+
+    #[test]
+    fn count_experiments_in_value_returns_zero_for_non_array() {
+        let v = serde_json::json!({"experiments": "oops not an array"});
+        assert_eq!(count_experiments_in_value(&v), 0);
+    }
+
+    /// Headline REP-001 attack scenario: a malicious frontend hands us a
+    /// 100k-experiment payload with a Demo licence (`max_comparison_experiments=3`).
+    /// The pre-deserialise count check must refuse before allocating the
+    /// full `ComparisonReportInput` struct tree.
+    #[test]
+    fn enforce_pre_deserialise_count_caps_oversized_payload() {
+        let mut f = empty_features();
+        f.comparison = true;
+        f.export_pdf = true;
+        f.max_comparison_experiments = 3;
+
+        // Build a synthetic 100k-element experiments array — only the
+        // count field matters for the gate, not the contents.
+        let huge: Vec<serde_json::Value> =
+            (0..100_000).map(|i| serde_json::json!({"id": i})).collect();
+        let v = serde_json::json!({"experiments": huge});
+
+        let count = count_experiments_in_value(&v);
+        assert_eq!(count, 100_000);
+        let err = enforce_comparison_pdf_features(&f, count).unwrap_err().to_string();
+        assert!(err.contains("100000"));
+        assert!(err.contains("3 experiments"));
     }
 }
