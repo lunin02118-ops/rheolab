@@ -92,8 +92,40 @@ ensureNsisInPath();
 
 const isBuildCommand = args.some((arg) => String(arg).toLowerCase() === 'build');
 const isDevCommand = args.length === 0 || args.some((arg) => String(arg).toLowerCase() === 'dev');
-// Version bump is controlled externally (generate-version.js / build.ps1).
-// Do NOT force RHEOLAB_SKIP_VERSION_BUMP here — callers set it themselves.
+const isDebugBuild = args.some((arg) => String(arg).toLowerCase() === '--debug');
+
+// ── Version SSoT enforcement (defense-in-depth) ──────────────────────────────
+// Every build path goes through this wrapper, including ones that bypass npm
+// pre-hooks (`prepare-production.js` spawns this script directly via spawnSync,
+// so `pretauri:build` never fires). Run version policing here so a
+// rassinkhron between /version.json and the four dependent files cannot reach
+// `tauri build` regardless of how this script is invoked.
+//
+//   - `dev` / `--debug` builds: run `version:sync` (auto-fix any drift, since
+//     dev iterations should never be blocked by version housekeeping).
+//   - release `build` (no `--debug`): run `version:validate` (fail fast — a
+//     production-grade build must not silently mutate version files).
+{
+    const child = require('node:child_process');
+    const versionScript = (isBuildCommand && !isDebugBuild)
+        ? path.join(repoRoot, 'scripts', 'version', 'validate.js')
+        : path.join(repoRoot, 'scripts', 'version', 'sync.js');
+    const versionResult = child.spawnSync(process.execPath, [versionScript], {
+        cwd: repoRoot,
+        stdio: 'inherit',
+    });
+    if (versionResult.status !== 0) {
+        console.error(
+            '[tauri-wrapper] aborting: version SSoT check failed ' +
+            `(see output of ${path.relative(repoRoot, versionScript)} above).`,
+        );
+        process.exit(versionResult.status ?? 1);
+    }
+}
+
+// `RHEOLAB_SKIP_VERSION_BUMP` is now a no-op — the SSoT mechanism never bumps
+// — but the env var is preserved so any third-party tooling that still inspects
+// it does not crash. Do NOT set it here; callers may set it themselves.
 
 // ── Inject production keys for release builds ─────────────────────────────────
 // Compile-time requirements for a valid release binary:

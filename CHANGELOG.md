@@ -6,14 +6,21 @@
 
 ---
 
-## [0.2.0-alpha.1] — 2026-04-28
+## [0.2.1-alpha.6] — 2026-04-28
 
-> Первый alpha-build после deep-optimization sprint (Phase 0-7). Только для Superuser-лицензии (project owner personal tier). Беты не будет, пока ручное тестирование не подтвердит стабильность — после этого следующая версия станет `0.2.0-beta.X`.
+> Первый alpha-build после deep-optimization sprint (Phase 0-7). Только для Superuser-лицензии (project owner personal tier). Беты не будет, пока ручное тестирование не подтвердит стабильность — после этого следующая версия станет `0.2.1-beta.X`.
+>
+> **Версия `0.2.1-alpha.6`**, а не `.1`, потому что у владельца локально уже стояли пробные сборки `0.2.1-alpha.5` из прошлых рефакторинговых итераций. SemVer alpha.5 < alpha.6 — auto-updater корректно подхватит обновление вместо того, чтобы трактовать новую сборку как downgrade.
 
 ### Добавлено
+- **Single Source of Truth для версии**: `/version.json` (`{ version, channel }`) — единственный файл, который человек редактирует руками. `npm run version:sync` автоматически прокидывает значение в `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `src/lib/version.ts`. `npm run version:validate` — read-only проверка целостности; exit≠0 на любой drift или mismatch между `channel` и prerelease-tag (`alpha`/`beta`/`rc`/`stable`).
+- **Defense-in-depth для версии в build-pipeline**: npm pre-hooks (`pretauri:dev` → sync, `pretauri:build` / `prerelease:prepare` → validate) **плюс** дублирующая проверка внутри `scripts/dev/run-tauri-cli.js` для случаев, когда `prepare-production.js` запускает Tauri-CLI через `spawnSync`, минуя npm. Любой entry-point — npm scripts, прямой `node`, или CI — полицится одинаково. Старый `scripts/build/generate-version.js` (с auto-bump-логикой и без safety net) превращён в deprecated shim, делегирующий в `version:sync`.
 - **DB-индексы (Phase 4b/4d)**: Три новых миграции `v0004` (default Library list composite index), `v0005` (`COLLATE NOCASE` индексы для `ReagentCatalog` и `Experiment.testType`), `v0006` (FK-индексы для `importBatchId` на `ExperimentPayload` / `ParserArtifact` / `ReportArtifact`). Все hot-path queries в `EXPLAIN QUERY PLAN` теперь используют index seek без `TEMP B-TREE` сортировок.
 - **F1 fix**: `is_duplicate_name` (импорт каталога реагентов) переведён с `LOWER()`-обёртки на `COLLATE NOCASE`, теперь корректно использует `idx_reagent_category_name_nocase`.
 - **F3**: Filter-metadata cache invalidation на фронтенде — `ExperimentFilters` и `ExperimentList` делят один module-level promise-кэш с явным TTL, без лишних IPC-дёргов при изменении состояния списка.
+
+### Исправлено
+- **E2E DB-isolation**: Release-gate Playwright-тест и все остальные Tauri-E2E больше не открывают живую `%APPDATA%\com.rheolab.enterprise\rheolab.db`. `tauri-e2e-setup.js` выделяет per-run `outputs/e2e/temp-db/e2e-<ts>-<pid>.db` и пробрасывает путь через `RHEOLAB_E2E_DB_PATH` (Rust bootstrap уже умел honor-ить эту переменную). `tauri-e2e-teardown.js` подбирает за собой DB + sqlite sidecars (`-wal`/`-shm`/`-journal`). До фикса release-gate миграции тащили продакшен-DB вверх по schema_version, и старая локальная сборка с CURRENT_SCHEMA_VERSION ниже отказывалась её открывать на следующем запуске.
 
 ### Изменено
 - **Phase 5a**: Удалено 5 неиспользуемых npm-зависимостей и 6 orphan-скриптов (`-54 packages, -1054 LOC`).
