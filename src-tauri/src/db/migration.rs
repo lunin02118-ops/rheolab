@@ -103,15 +103,39 @@ pub fn run_migrations(conn: &Connection) -> Result<MigrationResult, rusqlite::Er
     let stored_version: i64 = existing_row.as_ref().map(|(v, _)| *v).unwrap_or(0);
 
     // Step 1: Downgrade detection — the stored schema is ahead of this binary.
-    // We don't attempt automatic rollback; the caller / UI layer is expected
-    // to intervene before touching user data.
+    //
+    // Fail-closed: we MUST NOT touch `schema_meta` in this case.  The
+    // historical bug (audit-preflight DB-001) was that the unconditional
+    // upsert at the end of this function would silently rewrite
+    // `schema_version` from the higher stored value back down to
+    // CURRENT_SCHEMA_VERSION, masking the fact that the database had
+    // previously been used by a newer binary.  A subsequent re-upgrade
+    // would then incorrectly classify the DB as "current" instead of
+    // "future-version, please verify".
+    //
+    // We don't attempt automatic rollback; we return early with a truthful
+    // MigrationResult that carries the higher stored version so the caller
+    // / UI layer can detect the downgrade and offer recovery (e.g. restore
+    // from backup) before any user data is touched.
     if stored_version > CURRENT_SCHEMA_VERSION {
         tracing::warn!(
             "Database schema_version ({}) is newer than the binary's CURRENT_SCHEMA_VERSION ({}). \
-             This is a downgrade — no migrations will be applied.",
+             This is a downgrade — no migrations will be applied and schema_meta will not be modified.",
             stored_version,
             CURRENT_SCHEMA_VERSION
         );
+        let app_version = env!("CARGO_PKG_VERSION").to_string();
+        let previous_app_version: Option<String> = existing_row.map(|(_, ver)| ver);
+        let version_changed = previous_app_version
+            .as_deref()
+            .map_or(false, |prev| prev != app_version);
+        return Ok(MigrationResult {
+            schema_version: stored_version,
+            was_fresh_install: false,
+            app_version,
+            previous_app_version,
+            version_changed,
+        });
     }
 
     // Step 2: Apply each registered migration whose version is greater than

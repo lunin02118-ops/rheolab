@@ -624,3 +624,61 @@ fn downgrade_scenario_does_not_error() {
         "downgrade (stored version > CURRENT_SCHEMA_VERSION) must not be a hard failure"
     );
 }
+
+/// Regression guard for audit-preflight DB-001:
+///
+/// On a downgrade (stored schema_version > CURRENT_SCHEMA_VERSION),
+/// `run_migrations` must NOT rewrite `schema_meta.schema_version` back down
+/// to CURRENT_SCHEMA_VERSION.  Doing so would silently mask the downgrade
+/// from subsequent upgrade detection and from any UI that wants to offer
+/// "restore from backup" recovery.
+///
+/// The truthful behavior is: leave the row alone, return a MigrationResult
+/// whose `schema_version` reflects the actual (higher) stored value.
+#[test]
+fn downgrade_does_not_overwrite_schema_meta() {
+    let conn = open();
+    run_migrations(&conn).unwrap();
+    let future_version = CURRENT_SCHEMA_VERSION + 100;
+    let future_app_version = "9.9.9-future-build";
+    conn.execute(
+        "UPDATE schema_meta SET schema_version = ?1, app_version = ?2 WHERE id = 1",
+        rusqlite::params![future_version, future_app_version],
+    )
+    .unwrap();
+
+    let result = run_migrations(&conn).expect("downgrade must not be a hard failure");
+
+    // (1) Returned result reflects the higher stored version, not the binary's.
+    assert_eq!(
+        result.schema_version, future_version,
+        "MigrationResult must carry the actual stored schema_version on downgrade"
+    );
+    assert_eq!(
+        result.previous_app_version.as_deref(),
+        Some(future_app_version),
+        "MigrationResult must report the prior (future) app_version on downgrade"
+    );
+    assert!(
+        !result.was_fresh_install,
+        "downgrade is not a fresh install"
+    );
+
+    // (2) schema_meta row in the DB itself must be UNCHANGED.
+    let (db_version, db_app_version): (i64, String) = conn
+        .query_row(
+            "SELECT schema_version, app_version FROM schema_meta WHERE id = 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        db_version, future_version,
+        "schema_meta.schema_version must NOT be downgraded by run_migrations \
+         (audit-preflight DB-001 regression guard)"
+    );
+    assert_eq!(
+        db_app_version, future_app_version,
+        "schema_meta.app_version must NOT be overwritten on downgrade"
+    );
+}
