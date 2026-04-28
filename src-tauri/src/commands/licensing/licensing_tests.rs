@@ -431,6 +431,40 @@ fn maybe_increment_is_noop_when_e2e_skip_gate_set() {
     );
 }
 
+/// Audit-v2 LIC-001 regression guard.
+///
+/// In **release** builds the `RHEOLAB_E2E_SKIP_LICENSE_GATE` env var must
+/// have NO effect on `maybe_increment_demo_save` — every save must
+/// increment the counter regardless of how the process environment is
+/// set.  Compiles only when `debug_assertions` is OFF (i.e. only runs
+/// under `cargo test --release`).  Standard `cargo test` (debug)
+/// continues to honour the env bypass and is covered by the test
+/// directly above.
+#[cfg(not(debug_assertions))]
+#[test]
+fn maybe_increment_ignores_env_bypass_in_release() {
+    use std::env;
+
+    let conn = setup_test_db();
+    let initial = demo::check_demo(&conn, None);
+    assert_eq!(initial.experiments_remaining, Some(10));
+
+    // SAFETY: see the debug-mode test above — same single-threaded test
+    // serialisation argument applies here.
+    unsafe { env::set_var("RHEOLAB_E2E_SKIP_LICENSE_GATE", "1") };
+    maybe_increment_demo_save(&conn);
+    unsafe { env::remove_var("RHEOLAB_E2E_SKIP_LICENSE_GATE") };
+
+    // In release the env var is ignored → counter MUST have moved to 9.
+    let after = demo::check_demo(&conn, None);
+    assert_eq!(
+        after.experiments_remaining,
+        Some(9),
+        "RELEASE builds must NOT honour RHEOLAB_E2E_SKIP_LICENSE_GATE — \
+         demo counter must increment regardless (audit-v2 LIC-001)"
+    );
+}
+
 // ── Group R: RSA verify_server_signature unit tests ────────────────
 //
 // Tests for the RSA verification layer.  The round-trip test (R-1) requires

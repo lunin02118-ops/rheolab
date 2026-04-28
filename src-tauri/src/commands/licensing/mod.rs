@@ -186,9 +186,18 @@ fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
 /// runs accumulate saves and trip `demo_expired` for subsequent launches,
 /// which breaks the startup license dialog. The skip-gate already permits
 /// saves without a license, so incrementing would be inconsistent anyway.
+///
+/// **Release safety (audit-v2 LIC-001)**: the env-var bypass is only
+/// honoured in `debug_assertions` builds, mirroring `can_write_via_engine`
+/// and `check_license_gate`.  Previously this function read the env var
+/// in all builds, which let a release binary launched with that env
+/// preserve demo quota — effectively skipping the experiment-count limit.
 pub(crate) fn maybe_increment_demo_save(conn: &rusqlite::Connection) {
-    if std::env::var("RHEOLAB_E2E_SKIP_LICENSE_GATE").as_deref() == Ok("1") {
-        return;
+    #[cfg(debug_assertions)]
+    {
+        if std::env::var("RHEOLAB_E2E_SKIP_LICENSE_GATE").as_deref() == Ok("1") {
+            return;
+        }
     }
     let result = demo::check_demo(conn, None);
     if matches!(result.status, LicenseStatus::Demo) {
