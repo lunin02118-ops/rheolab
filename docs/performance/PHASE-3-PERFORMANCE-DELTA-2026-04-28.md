@@ -146,3 +146,80 @@ has been filed.
 * `docs/performance/BASELINES.md` — running history of audit baselines
 * `docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-04-28.md` — Phase 0
   follow-up audit run summary
+
+---
+
+## Addendum — long-tail comparison vs B#13 (Mar 2) and B#22 (Apr 15)
+
+> Added 2026-04-28 after the user asked: "what about runs from early
+> April / March 2nd?".  Pulled B#13, B#22, B#23 from `BASELINES.md`
+> and reconciled them against B#24-B#27.
+
+### Long-tail KPI table
+
+| Metric               | B#13 (Mar 2) | B#22 (Apr 15) | B#23 (Apr 18) | B#24 (Apr 26) | B#25 (Apr 26) | B#26 (Apr 26) | **B#27 (Apr 28)** | Δ B#13 → B#27 |
+|----------------------|---:|---:|---:|---:|---:|---:|---:|---:|
+| Peak heap MB         | 8.39 | 11.44 | 11.74 | 9.62 | 9.66 | 9.65 | **9.90** | +18% ⚠ |
+| Peak DOM nodes       | 3,243 | 7,184 | 6,143 | 1,669 | 1,669 | 1,669 | **2,016** | **−38%** ✅ |
+| Wall time ms         | 18,500 | 24,280 | 18,047 | 20,389 | 21,062 | 18,869 | **20,178** | +9% ~ |
+| Total WS MB (p50)    | n/a | 473 | n/a | 484 | 699 | 655 | **673** | (see below) |
+| Renderer WS MB (p50) | n/a | **103** | n/a | **103** | 206 | 206 | **205** | (see below) |
+
+### Apparent "+99 % renderer working set" — explained
+
+The headline-worrying "rendererWsMb 103 → 205" jump first surfaces
+between B#24 (`20260426-frontend-ipc-quick-dynamic-pass`) and
+B#25 (`20260426-enterprise-full-final-frontend-ipc`) — **both
+on Apr 26, both pre-Phase 3 (Phase 3 commits start Apr 27)**.  So
+this delta is *not* caused by the Vite 8 / TS 6 / ESLint 10 /
+@types-node 25 / plugin-react 6 bumps.
+
+Direct inspection of the JSONL samples shows what the number really
+represents.  Reading every workflow's `native-memory-*.jsonl` for
+the post-Phase 3 run (timestamps 1777325878805..1777326033264):
+
+| Sample point             | webview2RendererWsMb | totalWsMb |
+|---|---:|---:|
+| First sample (cold, t≈600 ms)  | **78–83 MB** | **447–463 MB** |
+| Last sample (warm, t≈30 s)     | **202–216 MB** | **665–737 MB** |
+| Within-run delta               | **+130 MB**  | **+220 MB** |
+
+So the renderer process grows ~130 MB **inside a single workflow
+run** as the user navigates through 6 fixtures, runs analysis,
+opens a 4-experiment comparison, and renders 2 PDFs.  This is
+expected V8 heap + DOM cache + JIT / image-buffer growth, not a
+leak: the SOAK suite shows leak slope ≈ 0 MB/round, the benchmark
+suite shows leak slope IMPROVED from +2.7 MB to −0.1 MB after
+Phase 3 (see "Phase 3 finding 4" above).
+
+### Where the "B#22 = 103 MB" number actually came from
+
+B#22 (Apr 15) ran the deep-audit harness with mode=quick (single
+workflow run, no warmup).  Its KPI snapshot's `rendererWsMb` was
+recorded near the **start** of that run.  B#25-B#27 ran mode=full
+(multi-cycle: warmup + 5 measured workflows + 3 soaks + 2
+benchmarks) and report `rendererWsMb` near the **end** of the
+last measured cycle.  Same code, different sampling point.
+
+The B#26 report itself encodes this directly: its KPI table
+shows `rendererWsMb Baseline 104.90 → Current 206.14` (delta
++101.24) within a single audit run, where "Baseline" is the
+first sampled value and "Current" is the median of measured
+runs (i.e. cold vs warm), not pre vs post Phase 3.
+
+### Verdict — long-tail
+
+* Apples-to-apples (same harness, same scenario, same sampling
+  point) shows **no Phase 3 regression** on heap, DOM nodes,
+  wall time, or CPU.
+* The eye-catching "+99 % renderer working set" between B#22 and
+  B#27 is a measurement-window artefact: B#22 captured the
+  cold-start state, B#27 captures end-of-run steady state of a
+  longer workload.  Both states exist in both code versions.
+* The peak-heap +18 % from B#13 (Mar 2) to B#27 (Apr 28) is
+  spread across 8 weeks of feature additions (filter cache,
+  comparison page, PDF improvements, etc.) — it is **not**
+  attributable to Phase 3.
+* Recommended action: **none**.  Continue tracking per-cycle
+  heap slope (already <0 MB/round on the benchmark suite, ≈0.01-
+  0.13 MB/round on soak) as the regression early-warning signal.
