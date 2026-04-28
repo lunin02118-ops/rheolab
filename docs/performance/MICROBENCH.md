@@ -74,6 +74,47 @@ Output goes to `outputs/perf/microbench/`:
 - `microbench-<target>-n<N>-h<H>-<ts>.json` — per-fixture JSON sidecar
 - `microbench-sweep-<target>-<label>-<ts>.json` — aggregated index
 
+### Fixture mode (real production data, analysis target only)
+
+The `analysis` target also accepts `--load-fixture <path.db>
+--experiment-index <i>` to run the pipeline against real raw points
+loaded from a `rheolab-fixture-seed-*.db` SQLite file.  This bypasses
+synthetic data generation and uses the production columnar decoder
+(`rheolab_enterprise::db::columnar::decode_typed`) — same code path
+as the live IPC, minus the IPC.
+
+```pwsh
+# 1. Make sure a seed DB exists (adds ~1 MB to outputs/seed/)
+npm run db:seed:small
+
+# 2. Inspect the fixture DB to find an experiment index of interest
+& "src-tauri/target/release/examples/bench_analysis_pipeline.exe" `
+    --load-fixture outputs/seed/rheolab-fixture-seed-small.db `
+    --experiment-index 0 --iterations 1 --quiet
+
+# 3. Run a fixture-mode sweep manually (orchestrator doesn't yet
+# automate fixture-mode sweeps; one experiment index per invocation)
+foreach ($idx in 3,4,14) {
+    & "src-tauri/target/release/examples/bench_analysis_pipeline.exe" `
+        --load-fixture outputs/seed/rheolab-fixture-seed-small.db `
+        --experiment-index $idx `
+        --n 5 --iterations 10 `
+        --label "fixture-idx$idx" `
+        --json "outputs/perf/microbench/fixture-mode/idx$idx.json" `
+        --quiet
+}
+```
+
+`--n N` in fixture mode means "replay this trace N times per timed
+iteration" — the same workload semantics as the comparison-flow path
+(analyse N experiments back-to-back).  `--duration-hours` is ignored
+in fixture mode (the duration is whatever the experiment captured).
+
+The PDF target does **not** support `--load-fixture` yet — comparison
+PDFs require a `ComparisonReportInput` struct that the TS adapter
+builds, which we don't yet have a way to dump from production.
+Adding that is a future Sprint task.
+
 ### A vs B comparison
 
 To prove or disprove a `Cargo.toml` profile change, run **two**
@@ -223,7 +264,8 @@ absolute numbers are not directly comparable to microbench numbers.
 - `docs/performance/BUDGETS.md` — formal performance contract.
 - `docs/performance/BASELINES.md` — captured baselines (debug E2E).
 - `docs/performance/P10-VALIDATION-REPORT.md` — PDF target P10 measurement.
-- `docs/performance/P10-ANALYSIS-VALIDATION-REPORT.md` — analysis target P10 measurement (final P10 verdict).
+- `docs/performance/P10-ANALYSIS-VALIDATION-REPORT.md` — analysis target P10 measurement on synthetic data.
+- `docs/performance/P10-FIXTURE-VALIDATION-REPORT.md` — analysis target P10 measurement on real fixtures (S1-3, narrows the verdict).
 - `src-tauri/examples/bench_comparison_pdf.rs` — PDF bench source.
 - `src-tauri/examples/bench_analysis_pipeline.rs` — analysis bench source.
 - `scripts/test/run-rust-microbench.mjs` — the multi-target orchestrator.

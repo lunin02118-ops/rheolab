@@ -4,9 +4,20 @@
 > `scripts/test/run-rust-microbench.mjs --target analysis --compare`,
 > then annotated below with conclusion + recommendation.  Re-run with
 > `npm run perf:microbench:analysis:build && npm run perf:microbench:analysis`.
-> See companion report `docs/performance/P10-VALIDATION-REPORT.md` for
-> the PDF-target measurement and `docs/performance/MICROBENCH.md` for
-> the tooling guide.
+>
+> **⚠ S1-3 update — `docs/performance/P10-FIXTURE-VALIDATION-REPORT.md`:**
+> the synthetic-mode P10 win **does NOT cleanly transfer to real
+> production data**.  Sweeps against 3 representative experiments in
+> `rheolab-fixture-seed-small.db` show P10 ranging from −13 %
+> (slower) to −2 % (faster), with the weight of evidence leaning
+> *negative*.  The "KEEP P10" verdict below is still standing but is
+> now narrower — see the fixture report's Recommendation update for
+> the revised triggers.
+>
+> See companion reports:
+> - `docs/performance/P10-VALIDATION-REPORT.md` — PDF target.
+> - `docs/performance/P10-FIXTURE-VALIDATION-REPORT.md` — analysis target on real data.
+> - `docs/performance/MICROBENCH.md` — bench tooling guide.
 
 **Target:** `analysis` (analysis pipeline)  
 **WITH-P10 sweep:** `D:\Development\Rheolab\outputs\perf\microbench\microbench-sweep-analysis-WITH-P10-1777399221985.json`  

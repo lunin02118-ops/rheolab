@@ -60,6 +60,12 @@ use rheolab_core::{
     is_repeating_sequence_pattern, is_sst_pattern, process_cycle_internal, ExpertSettings,
     GraceCycleResult, GraceInputParams,
 };
+// Fixture-mode reuses the production columnar decoder + SQLite reader.
+// Both crates are already regular deps of src-tauri (`rusqlite` with the
+// `bundled` feature so no system SQLite needed), so the bench picks them
+// up for free without touching Cargo.toml.
+use rheolab_enterprise::db::columnar::decode_typed;
+use rusqlite::{params, Connection};
 
 #[derive(Debug)]
 struct Args {
@@ -68,10 +74,23 @@ struct Args {
     /// both targets with the same `--fixtures` syntax.
     n: usize,
     iterations: usize,
+    /// Per-call data duration in hours (synthetic mode only — ignored
+    /// when `--load-fixture` is set, where the duration is whatever
+    /// the fixture experiment captured).
     duration_hours: f64,
     json_output: Option<String>,
     label: Option<String>,
     quiet: bool,
+    /// Optional path to a `rheolab-fixture-seed-*.db` SQLite file.
+    /// When set, the bench loads `Vec<RheoPoint>` from a real
+    /// experiment instead of synthesising one — useful for
+    /// validating that synthetic-fixture P10 gains transfer to
+    /// production data.
+    load_fixture: Option<String>,
+    /// Which experiment to load from the fixture DB.  0-based index
+    /// over `SELECT id FROM Experiment ORDER BY rowid LIMIT 1 OFFSET ?`.
+    /// Ignored unless `--load-fixture` is set.
+    experiment_index: usize,
 }
 
 impl Args {
@@ -83,6 +102,8 @@ impl Args {
             json_output: None,
             label: None,
             quiet: false,
+            load_fixture: None,
+            experiment_index: 0,
         };
         let mut iter = env::args().skip(1);
         while let Some(arg) = iter.next() {
@@ -94,6 +115,13 @@ impl Args {
                 }
                 "--json" => args.json_output = Some(require_str(&mut iter, "--json")),
                 "--label" => args.label = Some(require_str(&mut iter, "--label")),
+                "--load-fixture" => {
+                    args.load_fixture = Some(require_str(&mut iter, "--load-fixture"))
+                }
+                "--experiment-index" => {
+                    args.experiment_index =
+                        parse_required::<usize>(&mut iter, "--experiment-index")
+                }
                 "--quiet" => args.quiet = true,
                 "--help" | "-h" => {
                     print_help();
@@ -106,8 +134,12 @@ impl Args {
                 }
             }
         }
-        if args.n == 0 || args.iterations == 0 || args.duration_hours <= 0.0 {
-            eprintln!("invalid arguments: n, iterations, duration-hours must be positive");
+        if args.n == 0 || args.iterations == 0 {
+            eprintln!("invalid arguments: n and iterations must be positive");
+            process::exit(2);
+        }
+        if args.load_fixture.is_none() && args.duration_hours <= 0.0 {
+            eprintln!("invalid arguments: duration-hours must be positive in synthetic mode");
             process::exit(2);
         }
         args
@@ -136,10 +168,18 @@ fn require_str(iter: &mut impl Iterator<Item = String>, name: &str) -> String {
 fn print_help() {
     println!("Usage: bench_analysis_pipeline [OPTIONS]");
     println!();
-    println!("Options:");
+    println!("Synthetic mode (default):");
     println!("  --n N                 analyze_full calls per timed iteration (default: 1)");
     println!("  --iterations K        Iterations to run (default: 5)");
     println!("  --duration-hours H    Per-call data duration in hours (default: 4.0)");
+    println!();
+    println!("Fixture mode (real production data):");
+    println!("  --load-fixture PATH   Path to a rheolab-fixture-seed-*.db SQLite file.");
+    println!("                        Switches off synthetic generation; --duration-hours");
+    println!("                        is ignored.");
+    println!("  --experiment-index I  Which experiment to load (0-based, default: 0).");
+    println!();
+    println!("Common:");
     println!("  --json PATH           Write results as JSON to PATH (sidecar)");
     println!("  --label TEXT          Free-form label written into the JSON sidecar");
     println!("  --quiet               Suppress per-iteration progress lines on stderr");
@@ -167,6 +207,158 @@ const PAS_TO_CP: f64 = 1000.0;                  // Pa·s → cP
 const SHEAR_RATE_PROFILE: [f64; STEPS_PER_CYCLE] = [
     100.0, 75.0, 50.0, 25.0, 25.0, 50.0, 75.0, 100.0,
 ];
+
+// ── Fixture loader ──────────────────────────────────────────────────────────
+//
+// Reads one experiment's raw RheoPoint trace from a fixture seed DB.
+// We trust the production decoder (`rheolab_enterprise::db::columnar::
+// decode_typed`) to validate the blob and surface decoder errors.
+
+/// Metadata returned alongside a fixture trace, useful for the JSON
+/// sidecar so a future re-run can identify exactly which experiment
+/// the numbers came from.
+#[derive(Debug, Clone)]
+struct FixtureMeta {
+    experiment_id: String,
+    experiment_name: String,
+    instrument_type: String,
+    geometry: Option<String>,
+    point_count: usize,
+    duration_sec: f64,
+}
+
+fn load_fixture_trace(db_path: &str, experiment_index: usize) -> (Vec<RheoPoint>, FixtureMeta) {
+    let conn = Connection::open(db_path)
+        .unwrap_or_else(|e| {
+            eprintln!("[bench] failed to open fixture DB '{}': {}", db_path, e);
+            process::exit(1);
+        });
+
+    // Count total experiments first so we can give a useful error if
+    // --experiment-index is out of range.
+    let total: i64 = conn
+        .query_row("SELECT COUNT(*) FROM Experiment", [], |r| r.get(0))
+        .unwrap_or_else(|e| {
+            eprintln!("[bench] failed to count experiments: {}", e);
+            process::exit(1);
+        });
+    if total == 0 {
+        eprintln!("[bench] fixture DB '{}' has 0 experiments", db_path);
+        process::exit(1);
+    }
+    if (experiment_index as i64) >= total {
+        eprintln!(
+            "[bench] --experiment-index {} out of range (DB has {} experiments, max index {})",
+            experiment_index,
+            total,
+            total - 1
+        );
+        process::exit(1);
+    }
+
+    // Pick the Nth experiment by rowid.  Stable across runs as long
+    // as the DB isn't rewritten between bench invocations.
+    let (exp_id, exp_name, instrument_type, geometry, duration_sec): (
+        String,
+        String,
+        String,
+        Option<String>,
+        f64,
+    ) = conn
+        .query_row(
+            "SELECT id, name, instrumentType, geometry, COALESCE(durationSeconds, 0) \
+             FROM Experiment ORDER BY rowid LIMIT 1 OFFSET ?1",
+            params![experiment_index as i64],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, i64>(4)? as f64,
+                ))
+            },
+        )
+        .unwrap_or_else(|e| {
+            eprintln!("[bench] failed to read Experiment row: {}", e);
+            process::exit(1);
+        });
+
+    // Pull the columnar blob from ExperimentData and decode via the
+    // production `decode_typed` (SoA, no JSON-Value boxing in the hot
+    // path).  Empty blob = empty experiment, still a valid edge case.
+    let blob: Vec<u8> = conn
+        .query_row(
+            "SELECT dataBlob FROM ExperimentData WHERE experimentId = ?1",
+            params![&exp_id],
+            |row| row.get(0),
+        )
+        .unwrap_or_else(|e| {
+            eprintln!(
+                "[bench] failed to read ExperimentData for '{}': {}",
+                exp_id, e
+            );
+            process::exit(1);
+        });
+
+    let typed = decode_typed(&blob).unwrap_or_else(|e| {
+        eprintln!("[bench] columnar decode failed for '{}': {}", exp_id, e);
+        process::exit(1);
+    });
+
+    // SoA -> AoS.  Channel names match the production seed encoder
+    // (see tools/fixture_seed/src/main.rs encode_columnar).  Missing
+    // optional channels just produce None.  We treat absent channels
+    // as missing-from-DB (e.g. Ofite drilling-mud fixtures don't
+    // record shear_stress) — the analysis pipeline already tolerates
+    // None on shear_rate / shear_stress.
+    let n_points = typed
+        .get("time_sec")
+        .map(|v| v.len())
+        .unwrap_or(0);
+
+    let get_required = |name: &str| -> &Vec<Option<f64>> {
+        typed.get(name).unwrap_or_else(|| {
+            eprintln!(
+                "[bench] required channel '{}' missing from blob for '{}'",
+                name, exp_id
+            );
+            process::exit(1);
+        })
+    };
+    let time = get_required("time_sec");
+    let visc = get_required("viscosity_cp");
+    let temp = get_required("temperature_c");
+    let shear_rate = typed.get("shear_rate");
+    let shear_stress = typed.get("shear_stress_pa");
+    let pressure = typed.get("pressure_bar");
+    let rpm = typed.get("speed_rpm");
+    let bath = typed.get("bath_temperature_c");
+
+    let mut points = Vec::with_capacity(n_points);
+    for i in 0..n_points {
+        points.push(RheoPoint {
+            time_sec: time[i].unwrap_or(0.0),
+            viscosity_cp: visc[i].unwrap_or(0.0),
+            temperature_c: temp[i].unwrap_or(0.0),
+            shear_rate: shear_rate.and_then(|v| v.get(i).copied()).flatten(),
+            shear_stress: shear_stress.and_then(|v| v.get(i).copied()).flatten(),
+            pressure_bar: pressure.and_then(|v| v.get(i).copied()).flatten(),
+            rpm: rpm.and_then(|v| v.get(i).copied()).flatten(),
+            bath_temperature_c: bath.and_then(|v| v.get(i).copied()).flatten(),
+        });
+    }
+
+    let meta = FixtureMeta {
+        experiment_id: exp_id,
+        experiment_name: exp_name,
+        instrument_type,
+        geometry,
+        point_count: n_points,
+        duration_sec,
+    };
+    (points, meta)
+}
 
 /// Build a synthetic rheometer trace covering `duration_hours` hours.
 /// Returns (points, cycle_count).
@@ -407,27 +599,64 @@ fn main() {
     };
     let geometry_key = "R1B1";
 
-    if !args.quiet {
-        eprintln!(
-            "[bench] Building {} synthetic trace(s) of {} h each",
-            args.n, args.duration_hours
-        );
-    }
-
-    // Build N traces once, clone per-iteration (the pipeline takes by
-    // value; we measure the analyse path, not the synthesis).
+    // ── Input source: synthetic vs fixture ──────────────────────────────
     let t_build = Instant::now();
-    let traces: Vec<Vec<RheoPoint>> = (0..args.n)
-        .map(|_| synthesise_trace(args.duration_hours).0)
-        .collect();
+    let (traces, fixture_meta, source_label, n_cycles_per_trace): (
+        Vec<Vec<RheoPoint>>,
+        Option<FixtureMeta>,
+        String,
+        usize,
+    ) = match &args.load_fixture {
+        Some(db_path) => {
+            if !args.quiet {
+                eprintln!(
+                    "[bench] Loading fixture from '{}' (experiment-index={}, n={})",
+                    db_path, args.experiment_index, args.n
+                );
+            }
+            let (points, meta) = load_fixture_trace(db_path, args.experiment_index);
+            // For --n > 1, replicate the same trace N times.  This
+            // mirrors what synthetic mode does (same trace shape per
+            // iteration) and matches the comparison-flow workload
+            // pattern (analyse N experiments back-to-back).
+            let traces: Vec<Vec<RheoPoint>> = (0..args.n).map(|_| points.clone()).collect();
+            let label = format!(
+                "fixture:{} idx={} ({})",
+                std::path::Path::new(db_path)
+                    .file_name()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or_else(|| db_path.clone()),
+                args.experiment_index,
+                meta.experiment_name
+            );
+            (traces, Some(meta), label, 0)
+        }
+        None => {
+            if !args.quiet {
+                eprintln!(
+                    "[bench] Building {} synthetic trace(s) of {} h each",
+                    args.n, args.duration_hours
+                );
+            }
+            let traces: Vec<Vec<RheoPoint>> = (0..args.n)
+                .map(|_| synthesise_trace(args.duration_hours).0)
+                .collect();
+            let n_cycles = synthesise_trace(args.duration_hours).1;
+            (
+                traces,
+                None,
+                format!("synthetic n={} duration={}h", args.n, args.duration_hours),
+                n_cycles,
+            )
+        }
+    };
     let build_ms = t_build.elapsed().as_secs_f64() * 1000.0;
     let total_points: usize = traces.iter().map(|t| t.len()).sum();
-    let n_cycles = synthesise_trace(args.duration_hours).1;
 
     if !args.quiet {
         eprintln!(
-            "[bench] {} trace(s), {} total raw points, ~{} cycles each (input build: {:.1} ms)",
-            args.n, total_points, n_cycles, build_ms
+            "[bench] {} ({} total raw points, input build: {:.1} ms)",
+            source_label, total_points, build_ms
         );
         eprintln!("[bench] Running {} iteration(s)...", args.iterations);
     }
@@ -489,9 +718,24 @@ fn main() {
     println!("| Parameter         | Value |");
     println!("|-------------------|------:|");
     println!("| n_traces          | {} |", args.n);
-    println!("| duration_hours    | {} |", args.duration_hours);
+    if fixture_meta.is_none() {
+        println!("| duration_hours    | {} |", args.duration_hours);
+    }
     println!("| total_points      | {} |", total_points);
-    println!("| cycles_per_trace  | {} |", n_cycles);
+    if fixture_meta.is_none() {
+        println!("| cycles_per_trace  | {} |", n_cycles_per_trace);
+    }
+    if let Some(meta) = &fixture_meta {
+        println!("| source            | fixture |");
+        println!("| experiment_id     | `{}` |", meta.experiment_id);
+        println!("| experiment_name   | {} |", meta.experiment_name);
+        println!("| instrument_type   | {} |", meta.instrument_type);
+        println!(
+            "| geometry          | {} |",
+            meta.geometry.as_deref().unwrap_or("-")
+        );
+        println!("| fixture_duration_sec | {:.0} |", meta.duration_sec);
+    }
     println!("| iterations        | {} |", wall_ms_samples.len());
     println!();
     println!("| Metric            | Value |");
@@ -514,14 +758,30 @@ fn main() {
             .map(|ms| format!("    {{ \"wall_ms\": {:.4} }}", ms))
             .collect::<Vec<_>>()
             .join(",\n");
+        let fixture_block = match &fixture_meta {
+            Some(meta) => format!(
+                ",\n  \"fixture\": {{\n    \"experiment_id\": \"{}\",\n    \"experiment_name\": \"{}\",\n    \"instrument_type\": \"{}\",\n    \"geometry\": {},\n    \"fixture_duration_sec\": {:.4},\n    \"point_count_per_trace\": {}\n  }}",
+                json_escape(&meta.experiment_id),
+                json_escape(&meta.experiment_name),
+                json_escape(&meta.instrument_type),
+                match &meta.geometry {
+                    Some(g) => format!("\"{}\"", json_escape(g)),
+                    None => "null".to_string(),
+                },
+                meta.duration_sec,
+                meta.point_count,
+            ),
+            None => String::new(),
+        };
         let json = format!(
             r#"{{
   "schema": "rheolab.microbench.analysis_pipeline.v1",
+  "mode": "{mode}",
   "n_experiments": {n},
   "duration_hours": {dh},
   "total_points": {tp},
   "cycles_per_trace": {cyc},
-  "iterations": {it}{label_field},
+  "iterations": {it}{label_field}{fixture_block},
   "wall_ms": {{
     "p50": {p50:.4},
     "p95": {p95:.4},
@@ -537,12 +797,14 @@ fn main() {
   ]
 }}
 "#,
+            mode = if fixture_meta.is_some() { "fixture" } else { "synthetic" },
             n = args.n,
-            dh = args.duration_hours,
+            dh = if fixture_meta.is_some() { 0.0 } else { args.duration_hours },
             tp = total_points,
-            cyc = n_cycles,
+            cyc = n_cycles_per_trace,
             it = wall_ms_samples.len(),
             label_field = label_field,
+            fixture_block = fixture_block,
             p50 = p50,
             p95 = p95,
             min = min,
