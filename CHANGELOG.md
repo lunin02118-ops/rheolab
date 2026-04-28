@@ -6,6 +6,61 @@
 
 ---
 
+## [0.2.1-beta.1] — 2026-04-28
+
+> Первый beta-build после `0.2.1-alpha.6 → alpha.7 → alpha.8` цикла ручного тестирования. Кодово идентичен `alpha.8` (`dd55c04`) — отличается только полем `channel: "beta"` в SSoT-версии и пересчитанным `Cargo.lock`. Этот релиз открывает beta-канал auto-updater'а: Superuser-лицензии остаются на alpha (более частые сборки), Beta-лицензии получают этот build как первое обновление линии `0.2.1`.
+
+### Изменено
+- **Канал релиза**: `alpha → beta` через `/version.json` SSoT. `npm run version:sync` пробросил `0.2.1-beta.1` в `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `src/lib/version.ts`. Validator принял конфигурацию (channel/tag правило `beta → -beta.N` соблюдено). Манифест опубликован в `runtime/release/channels/beta/latest-manifest.json` и развёрнут на VPS — все 31 deploy smoke-checks ✅ (artifact URL HTTP 200, 9.85 MB, sha256 `58e498…dae2d3`, remote-signature совпадает с local `beta.json`).
+
+### Известные ограничения
+- Это **первый** релиз в beta-канале — пользователи без активной beta/superuser лицензии не получат это обновление; auto-updater отфильтрует их по licence-tier до того, как фронтенд загрузит манифест.
+
+---
+
+## [0.2.1-alpha.8] — 2026-04-28
+
+> Второй фоллоу-ап-релиз после `alpha.7` ручного тестирования. Закрывает feature-parity gap между PDF и Excel вариантами сравнительного отчёта и пинит persist-контракт `analysisSettingsStore` четырьмя новыми тестами после жалобы пользователя на «настройки слетают после перезапуска».
+
+### Добавлено
+- **REPORT-COMPARISON-AVG**: Две новые колонки `Сред. темп. (°C)` и `Сред. давл. (бар)` в `Сводная таблица` сравнительного отчёта (и PDF, и Excel).
+  - Расчёт в `report_generator/comparison/summary.rs::ExperimentSummary::from_report_input` — арифметическое среднее по каждому finite-сэмплу из `raw_data[*].temperature_c` / `raw_data[*].pressure_bar`. `None`, `NaN`, `Inf` пропускаются единым хелпером `average_finite_optional`.
+  - Когда ни одного finite-значения нет (типичный случай для атмосферных тестов, где давление в принципе не пишется), поле остаётся `Option::None` и рендерится как `—`, а не вводящий в заблуждение `0.0` (который читался бы как «измеренное атмосферное давление 0 бар»).
+  - **PDF** (`pdf_comparison/summary_page.rs`): таблица расширена с 5 до 7 колонок, ширины перебалансированы с `(2.8fr, 0.9fr, 1.3fr, 1.5fr, 1.5fr)` на `(2.4fr, 0.7fr, 1.1fr, 1.4fr, 1.4fr, 1.0fr, 1.1fr)` чтобы две новые колонки помещались на A4 portrait без обрезки.
+  - **Excel** (`excel_comparison/overlap_sheet.rs`): на листе `Overlap Chart` теперь рендерится `Сводная таблица` блоком в свободной полосе строк между чартом (строки 0..30) и существующими таблицами `Точки касания` / `Вязкость в заданное время`. Раньше Excel-вариант был «беднее» PDF — пользователь это явно отметил скриншотом alpha.7.
+  - Семь объектов `Format` (section title, header + три ячейки × normal/alt zebra) вынесены из `if !data.touch_points.is_empty()` блока — теперь summary и touch-point таблицы делят их, что вдвое сокращает вклад в style-table workbook'a и гарантирует одинаковую типографику обеих таблиц.
+
+### Исправлено
+- **PERSIST-ANALYSIS-SETTINGS-TEST**: Тест `rehydrates user-customised settings` в `tests/store/analysis-settings-store.test.ts` использовал `setExpertSettings` + `setState({ expertSettings: DEFAULT })` для имитации перезапуска приложения. Оба вызова идут через persist middleware и **переписывают** `localStorage` дефолтами до того, как `rehydrate()` успевал их прочитать, поэтому assertion `pointsToAverage = 15` падала с `expected +0 to be 15`.
+  - Тест теперь записывает persisted-blob (`{ state: { expertSettings }, version: 0 }`) **напрямую** в `localStorage`, обходя middleware, и затем вызывает `useAnalysisSettingsStore.persist.rehydrate()`. Это корректно отражает «холодный старт после рестарта» и совпадает с тем, что делает Zustand persist при инициализации стора.
+  - **Важно**: production persist setup в `src/store/analysis-settings-store.ts` корректен — все 23 store-теста зелёные и round-trip покрывает `pointsToAverage`, `viscosityShearRates` (включая дополнительные ставки сверх дефолтного `[40, 100, 170]`), `stepSplitting` и остальные поля `ExpertSettings`. Жалоба пользователя на «слетают настройки после перезапуска» **не является регрессией кода**; вероятный root cause — разовый сброс WebView2 UserData (после недавнего `b622bdd` мы изолируем WebView2 dir per-E2E-run, что могло однократно перепутать локальный профиль вне E2E-контекста).
+
+### Инфраструктура
+- **Rust**: `ExperimentSummary` получил `avg_temp_c: Option<f64>` и `avg_pressure_bar: Option<f64>`. Хелпер `average_finite_optional<I: IntoIterator<Item = Option<f64>>>` вынесен в module-private API, +3 регрессионных теста (`summary_averages_finite_temperature_and_pressure`, `summary_temperature_average_skips_non_finite_and_missing`, `summary_returns_none_when_every_sample_is_non_finite`), +2 ассерта в существующем `summary_computes_basic_metrics`.
+- **Excel renderer**: column widths `A=32, B=12, C=18, D=18, E=18, F=16, G=16` теперь выставляются один раз сверху и переиспользуются обоими блоками таблиц.
+- **Тесты**: cargo `report_generator::comparison::*` — **54/54 ✅** (вкл. 8 summary тестов с +3 новыми). Vitest — **1341 passed / 6 skipped** (90 файлов), вкл. 4 новых persist-теста и 23 store-теста total. Lint clean.
+
+---
+
+## [0.2.1-alpha.7] — 2026-04-28
+
+> Первый фоллоу-ап-релиз после ручного тестирования `alpha.6`. Два user-visible фикса по результатам manual-test feedback от мейнтейнера.
+
+### Исправлено
+- **REPORT-COMPARISON-CUSTOM-RATES**: В сравнительном отчёте, когда пользователь добавлял дополнительную сдвиговую скорость в expert-mode (например 220 1/s), per-experiment лист `Реология` рендерил заголовок столбца `η@220 1/с`, но **все ячейки в этом столбце были `—`**.
+  - Root cause: `src/lib/reports/comparison-experiment-adapter.ts` прогонял Grace-pipeline с захардкоженным `viscosityShearRates: [40, 100, 170]` независимо от пользовательской настройки в expert-mode. Rust никогда не пересчитывал `viscosities[220]` в `GraceCycleResult`, и lookup в TS-builder'е находил `undefined` → ячейка получала `—`. Заголовок столбца оставался — он управляется отдельным полем `reportViscosityRates`, которое **корректно** доходит из UI.
+  - Fix: adapter форвардит `overrides.reportViscosityRates` в `expertSettings.viscosityShearRates`, попутно отфильтровывая non-finite/non-positive значения (иначе `calc_visc(rate=0)` дал бы `0` в отчёте, что хуже чем прочерк).
+  - +3 vitest регрессионных теста: `forwardsCustomShearRatesIntoExpertSettings`, `sanitisesNonFiniteAndNonPositiveRates`, `gracefullyHandlesMissingOverridesList`.
+- **LIBRARY-FILTER-GROUPS-COLLAPSED**: Четыре группы фильтров в библиотеке (`Поиск`, `Локация и объект`, `Параметры теста`, `Диапазоны`) явно передавали `defaultOpen` в `FilterGroup` — открывались на маунте даже без активных фильтров, что захламляло сайдбар. Группы `QA` и `Реагенты` уже работали по схеме «collapsed on mount, expanded on click».
+  - Fix: проп `defaultOpen` удалён со всех четырёх групп. Сайдбар теперь рендерится тихо; `activeCount`-бейдж по-прежнему виден, если в URL пришли pre-loaded фильтры — раскрывать пользователь вправе сам.
+  - Тестовая правка: `renderWith` хелпер в `experiment-filters-touch-point.test.tsx` теперь кликает по заголовку группы `Диапазоны` перед взаимодействием с touch-point-блоком — `FilterGroup` размонтирует children в свёрнутом состоянии, поэтому без клика тесты не находят children-инпутов.
+
+### Инфраструктура
+- **Tests**: vitest +3 (comparison-experiment-adapter), no Rust changes. Lint + `npm run test` clean.
+- **Version bump**: `/version.json` `0.2.1-alpha.6 → 0.2.1-alpha.7`, `version:sync` обновил 4 dependents, `version:validate` PASS.
+
+---
+
 ## [0.2.1-alpha.6] — 2026-04-28
 
 > Первый alpha-build после deep-optimization sprint (Phase 0-7). Только для Superuser-лицензии (project owner personal tier). Беты не будет, пока ручное тестирование не подтвердит стабильность — после этого следующая версия станет `0.2.1-beta.X`.
