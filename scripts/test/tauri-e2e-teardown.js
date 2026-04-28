@@ -13,6 +13,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const PID_FILE = path.join(ROOT, '.tauri-e2e.pid');
 const SAMPLER_PID_FILE = path.join(ROOT, '.tauri-e2e-sampler.pid');
 const DB_PATH_FILE = path.join(ROOT, '.tauri-e2e-db.path');
+const WEBVIEW_DIR_FILE = path.join(ROOT, '.tauri-e2e-webview.dir');
 
 module.exports = async function globalTeardown() {
     // ── 1. Остановить sampler нативной памяти ─────────────────────────────
@@ -84,6 +85,34 @@ module.exports = async function globalTeardown() {
             }
             if (removed > 0) {
                 console.log(`[tauri-e2e] ✓ Изолированная DB удалена (${removed} файлов): ${dbPath}`);
+            }
+        }
+    }
+
+    // ── 4. Убрать изолированную WebView2 UserData директорию ──────────────
+    //   Per-run folder under outputs/e2e/temp-webview/ — created by
+    //   tauri-e2e-setup.js to keep WebView2 instances independent from any
+    //   other RheoLab build that happens to be running. Recursive remove
+    //   is fine because the directory is exclusively owned by this run.
+    if (fs.existsSync(WEBVIEW_DIR_FILE)) {
+        let webViewDir = '';
+        try {
+            webViewDir = fs.readFileSync(WEBVIEW_DIR_FILE, 'utf8').trim();
+        } catch { /* ignore */ }
+        try { fs.unlinkSync(WEBVIEW_DIR_FILE); } catch { /* ignore */ }
+
+        if (webViewDir && fs.existsSync(webViewDir)) {
+            try {
+                // node>=14.14: rmSync with recursive+force handles locked files
+                // gracefully on Windows. WebView2 does sometimes leave handles
+                // open on its log/cache files for a moment after shutdown, so
+                // `maxRetries` gives the OS a chance to release them.
+                fs.rmSync(webViewDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+                console.log(`[tauri-e2e] ✓ Изолированная WebView2 UserData удалена: ${webViewDir}`);
+            } catch (rmErr) {
+                console.warn(
+                    `[tauri-e2e] Не удалось удалить WebView2 UserData ${webViewDir}: ${rmErr.message}`,
+                );
             }
         }
     }

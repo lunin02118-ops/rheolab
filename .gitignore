@@ -136,8 +136,10 @@ __pycache__/
 .tauri-e2e.pid
 .tauri-e2e-sampler.pid
 .tauri-e2e-db.path
+.tauri-e2e-webview.dir
 outputs/e2e/perf/native-memory-*.jsonl
 outputs/e2e/temp-db/
+outputs/e2e/temp-webview/
 
 # Database files
 prisma/*.db

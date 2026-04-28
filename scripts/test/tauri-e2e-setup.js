@@ -34,21 +34,56 @@ const SAMPLER_PID_FILE = path.join(ROOT, '.tauri-e2e-sampler.pid');
 const SAMPLER_SCRIPT = path.join(ROOT, 'scripts', 'test', 'tauri-native-memory-sampler.ps1');
 
 /**
- * Side-channel file used to communicate the per-run temp-DB path to the
- * teardown script so it can clean up the file after Playwright exits.
+ * Side-channel files used to communicate per-run temp paths to the teardown
+ * script so it can clean them up after Playwright exits.
  *
- * If the calling harness has already set `RHEOLAB_E2E_DB_PATH` (e.g.
+ * Two sibling pieces of state are isolated per run:
+ *   - DB_PATH_FILE       SQLite DB at outputs/e2e/temp-db/...
+ *   - WEBVIEW_DIR_FILE   WebView2 UserData folder at outputs/e2e/temp-webview/...
+ *
+ * If the calling harness has already set the corresponding env var (e.g.
  * `tauri-db-scale-setup.js` for the scale suite, or a developer who wants
  * to point at a hand-crafted seed), we do NOT overwrite it — only the
  * paths *we* allocate are tracked here for deletion.
  */
 const DB_PATH_FILE = path.join(ROOT, '.tauri-e2e-db.path');
+const WEBVIEW_DIR_FILE = path.join(ROOT, '.tauri-e2e-webview.dir');
 
 /** Allocate a fresh, isolated temp DB path for this E2E run. */
 function allocateIsolatedDbPath() {
     const dir = path.join(ROOT, 'outputs', 'e2e', 'temp-db');
     fs.mkdirSync(dir, { recursive: true });
     return path.join(dir, `e2e-${Date.now()}-${process.pid}.db`);
+}
+
+/**
+ * Allocate a fresh, isolated WebView2 UserData folder for this E2E run.
+ *
+ * Why this exists: every Tauri binary on Windows uses WebView2, and
+ * WebView2 instances that share the same UserData folder cannot run
+ * concurrently — the second one fails to start (no CDP endpoint is ever
+ * exposed, the test then times out on `waitForCdp`). By default Tauri
+ * picks the folder from the bundle identifier
+ * (`%LOCALAPPDATA%\com.rheolab.enterprise\EBWebView`), so the locally
+ * installed RheoLab and an E2E-spawned `target/release/rheolab-enterprise.exe`
+ * collide whenever the maintainer happens to have the app open while a
+ * release-gate run starts.
+ *
+ * `WEBVIEW2_USER_DATA_FOLDER` is honoured by the WebView2 runtime ahead
+ * of any application-level setting, so pointing each E2E run at its own
+ * fresh directory keeps tests independent of whatever the developer is
+ * doing with their installed copy.
+ */
+function allocateIsolatedWebViewDir() {
+    const dir = path.join(
+        ROOT,
+        'outputs',
+        'e2e',
+        'temp-webview',
+        `webview-${Date.now()}-${process.pid}`,
+    );
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
 }
 
 /** Ждёт, пока CDP-эндпоинт ответит /json/version */
@@ -188,6 +223,27 @@ module.exports = async function globalSetup() {
         console.log(`[tauri-e2e] Isolated DB: ${isolatedDbPath}`);
     }
 
+    // ── 2b. WebView2 isolation — see allocateIsolatedWebViewDir() docstring ─
+    //   Without this, an installed RheoLab.exe with the matching bundle id
+    //   holds the default WebView2 UserData folder and the spawned E2E binary
+    //   never reaches a CDP endpoint, causing `waitForCdp` to time out.
+    const callerProvidedWebViewDir = (process.env.WEBVIEW2_USER_DATA_FOLDER || '').trim();
+    let isolatedWebViewDir = null;
+    if (callerProvidedWebViewDir) {
+        console.log(
+            `[tauri-e2e] Honouring caller-provided WEBVIEW2_USER_DATA_FOLDER=${callerProvidedWebViewDir}`,
+        );
+    } else {
+        isolatedWebViewDir = allocateIsolatedWebViewDir();
+        process.env.WEBVIEW2_USER_DATA_FOLDER = isolatedWebViewDir;
+        try {
+            fs.writeFileSync(WEBVIEW_DIR_FILE, isolatedWebViewDir, 'utf8');
+        } catch (writeErr) {
+            console.warn(`[tauri-e2e] Не удалось записать ${WEBVIEW_DIR_FILE}: ${writeErr.message}`);
+        }
+        console.log(`[tauri-e2e] Isolated WebView2 UserData: ${isolatedWebViewDir}`);
+    }
+
     // ── 3. Запуск приложения с CDP ─────────────────────────────────────────
     console.log(`[tauri-e2e] Запускаем приложение с CDP на порту ${CDP_PORT}...`);
     const child = spawn(BINARY_PATH, [], {
@@ -195,6 +251,9 @@ module.exports = async function globalSetup() {
             ...process.env,
             // WebView2 (Windows) принимает дополнительные аргументы Chromium:
             WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${CDP_PORT}`,
+            // WebView2 isolation — keeps the spawned binary from contending
+            // with any other RheoLab instance for the default UserData folder.
+            WEBVIEW2_USER_DATA_FOLDER: process.env.WEBVIEW2_USER_DATA_FOLDER,
             // E2E mock: reports_generate_pdf/excel return stub bytes instead of
             // running Typst (which at opt-level=0 takes 5+ minutes).
             // Remove this line when Typst is compiled with opt-level=2 (rebuild needed).
