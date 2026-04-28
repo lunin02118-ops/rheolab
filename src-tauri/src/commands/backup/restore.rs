@@ -448,6 +448,29 @@ fn merge_attached_databases(conn: &rusqlite::Connection, has_fts: bool) -> Resul
 /// Must be called before [`AppState::build`] to avoid OS-level file-lock
 /// conflicts (os error 32 / os error 1224).  Returns `true` if a restore
 /// was performed.
+///
+/// **Audit-v2 DB-007 / DB-008 — re-verification before swap:**
+///
+/// `pending_restore.db` is created in `backup_restore` *after* the source
+/// file has been validated, but the file then sits on disk until the next
+/// app start.  Anything that can write to `app_data_dir` between those
+/// two points (a malicious helper, ransomware, an interrupted disk write,
+/// a renamed-in-place file) could substitute the verified file with one
+/// that is corrupt, foreign, or carries a future schema_version.  If we
+/// blindly swapped that file in we would either:
+///
+/// 1. Corrupt the user's primary DB with junk bytes (data loss),
+/// 2. Boot against an attacker-controlled SQLite (privilege escalation
+///    paths through SQL functions / loadable extensions),
+/// 3. Or come up on a future schema_version we cannot migrate down,
+///    leaving the app permanently unable to start.
+///
+/// Mitigation: every pending file is re-verified via [`verify_pending_db`]
+/// **immediately** before the rename.  A failure quarantines the bad file
+/// to `pending_restore.db.rejected.<unix_ts>` (so the next boot is clean
+/// instead of looping on the same broken file) and returns `Err`.  The
+/// caller in `setup.rs` logs the failure but does not abort startup —
+/// the main DB is left untouched and the app boots normally.
 pub fn pre_startup_restore(
     app_data_dir: &std::path::Path,
     db_path: &std::path::Path,
@@ -457,7 +480,51 @@ pub fn pre_startup_restore(
         return Ok(false);
     }
 
-    tracing::info!("pre_startup_restore: pending file found, swapping database");
+    tracing::info!("pre_startup_restore: pending file found, verifying before swap");
+
+    // Audit-v2 DB-007/008: re-verify the pending file just before the
+    // file rename.  See the function-level note above for the threat
+    // model this closes.
+    if let Err(e) = verify_pending_db(&pending_path) {
+        tracing::error!(
+            "pre_startup_restore: REFUSING to swap unverified DB: {}",
+            e
+        );
+
+        // Quarantine the bad file so we don't retry the same broken
+        // file on every subsequent boot.  Best-effort: if the rename
+        // fails (read-only fs / permission error / target exists) fall
+        // back to deletion so the boot is at least self-healing.
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let rejected_path =
+            pending_path.with_file_name(format!("pending_restore.db.rejected.{timestamp}"));
+        if let Err(rename_err) = fs::rename(&pending_path, &rejected_path) {
+            tracing::warn!(
+                "pre_startup_restore: failed to quarantine bad pending file ({}); deleting instead",
+                rename_err
+            );
+            let _ = fs::remove_file(&pending_path);
+        } else {
+            tracing::warn!(
+                "pre_startup_restore: quarantined bad pending file to: {}",
+                rejected_path.display()
+            );
+        }
+
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!(
+                "Pending restore DB failed verification: {e}. \
+                 Quarantined file (no swap performed). \
+                 Main database left intact."
+            ),
+        ));
+    }
+
+    tracing::info!("pre_startup_restore: pending file verified, swapping database");
 
     // No pool is open yet — deletions are safe
     let _ = fs::remove_file(db_path);
@@ -469,6 +536,103 @@ pub fn pre_startup_restore(
 
     tracing::info!("pre_startup_restore: database swapped successfully");
     Ok(true)
+}
+
+/// Layered verification of a pending-restore SQLite file (audit-v2 DB-007/008).
+///
+/// The four layers are ordered cheapest-first so a malformed file is
+/// rejected at the first layer it fails:
+///
+/// 1. **Magic bytes** — first 16 bytes must be `b"SQLite format 3\0"`.
+///    Catches non-SQLite junk, truncated downloads, and partial writes.
+/// 2. **`PRAGMA integrity_check`** — full B-tree walk.  Catches corruption
+///    that the magic-byte check cannot see (bad page checksums, broken
+///    free-list, etc.).
+/// 3. **`schema_meta.schema_version`** — must be `≤ CURRENT_SCHEMA_VERSION`.
+///    Refuses to swap in a future-version DB that we cannot run.  Missing
+///    `schema_meta` is treated as version 0 (legacy pre-versioned DB),
+///    which is always supported because `run_migrations` walks the
+///    registry from there.
+/// 4. **`Experiment` table presence** — final gate that distinguishes a
+///    valid SQLite of *some* application from a RheoLab DB.
+fn verify_pending_db(path: &Path) -> std::io::Result<()> {
+    use std::io::Read;
+
+    // Layer 1: magic bytes (cheap, fast, catches non-SQLite junk).
+    let mut header = [0u8; 16];
+    let mut file = std::fs::File::open(path)?;
+    file.read_exact(&mut header)?;
+    drop(file);
+    const SQLITE_MAGIC: &[u8; 16] = b"SQLite format 3\0";
+    if &header != SQLITE_MAGIC {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "file does not start with SQLite magic bytes",
+        ));
+    }
+
+    // Layer 2: open read-only, run integrity_check.
+    let conn =
+        rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|e| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("cannot open as SQLite: {e}"),
+                )
+            })?;
+
+    let integrity: String = conn
+        .query_row("PRAGMA integrity_check", [], |row| row.get(0))
+        .map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("integrity_check query failed: {e}"),
+            )
+        })?;
+    if integrity != "ok" {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("integrity_check returned: {integrity}"),
+        ));
+    }
+
+    // Layer 3: schema_version must be one we can run.  Missing
+    // schema_meta = legacy pre-versioned DB = version 0 (always OK).
+    let pending_version: i64 = conn
+        .query_row(
+            "SELECT schema_version FROM schema_meta WHERE id = 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+    if pending_version > crate::db::migration::CURRENT_SCHEMA_VERSION {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!(
+                "pending DB schema_version {} is newer than CURRENT_SCHEMA_VERSION {}; \
+                 refusing to downgrade — install a newer build first",
+                pending_version,
+                crate::db::migration::CURRENT_SCHEMA_VERSION
+            ),
+        ));
+    }
+
+    // Layer 4: must contain the `Experiment` table — canonical RheoLab marker.
+    let has_experiment_table: bool = conn
+        .query_row(
+            "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type='table' AND name='Experiment'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(false);
+    if !has_experiment_table {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "pending DB does not contain the Experiment table — not a RheoLab database",
+        ));
+    }
+
+    Ok(())
 }
 
 /// Check and apply pending restore on startup

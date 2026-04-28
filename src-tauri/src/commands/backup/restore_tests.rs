@@ -775,6 +775,228 @@ fn merge_preserves_existing_data() {
     cleanup(&dir);
 }
 
+// ─── Audit-v2 DB-007/008: pre_startup_restore re-verification ──────────────
+
+/// Helper: build a fresh tmp dir for pre_startup_restore tests.
+fn pre_startup_tmp_dir(label: &str) -> PathBuf {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let dir = std::env::temp_dir().join(format!(
+        "rheolab_pre_startup_{}_{}_{}",
+        label,
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed),
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+/// Happy path: a valid SQLite file with the Experiment table is swapped
+/// in, and the pending file is removed.
+#[test]
+fn pre_startup_restore_swaps_valid_pending_db() {
+    let dir = pre_startup_tmp_dir("happy");
+    let pending = dir.join("pending_restore.db");
+    let main = dir.join("main.db");
+
+    // Build a valid pending DB with the Experiment table.
+    {
+        let conn = create_db(&pending, MAIN_SCHEMA);
+        drop(conn);
+    }
+
+    let result = pre_startup_restore(&dir, &main).unwrap();
+    assert!(result, "valid pending DB must trigger swap");
+    assert!(main.exists(), "main DB must exist after swap");
+    assert!(!pending.exists(), "pending file must be removed after swap");
+
+    cleanup(&dir);
+}
+
+/// No pending file → no swap, no error.
+#[test]
+fn pre_startup_restore_returns_false_when_no_pending_file() {
+    let dir = pre_startup_tmp_dir("nopending");
+    let main = dir.join("main.db");
+
+    let result = pre_startup_restore(&dir, &main).unwrap();
+    assert!(!result, "missing pending file must return Ok(false)");
+
+    cleanup(&dir);
+}
+
+/// Non-SQLite junk in pending_restore.db → reject + quarantine, main DB
+/// is left intact, next boot is clean.
+#[test]
+fn pre_startup_restore_rejects_non_sqlite_junk_and_quarantines() {
+    let dir = pre_startup_tmp_dir("junk");
+    let pending = dir.join("pending_restore.db");
+    let main = dir.join("main.db");
+
+    // Plant a "valid" main DB so we can prove it isn't touched.
+    {
+        let conn = create_db(&main, MAIN_SCHEMA);
+        insert_experiment(&conn, "main-original", "u-main", "Original Main");
+        drop(conn);
+    }
+    let pre_count = {
+        let c = Connection::open(&main).unwrap();
+        count_experiments(&c)
+    };
+
+    // Plant junk as the pending file.
+    fs::write(&pending, b"this is not a SQLite database").unwrap();
+
+    let result = pre_startup_restore(&dir, &main);
+    assert!(
+        result.is_err(),
+        "non-SQLite junk must be refused — got Ok({:?})",
+        result.ok()
+    );
+    assert!(!pending.exists(), "bad pending file must be moved out of place");
+    let post_count = {
+        let c = Connection::open(&main).unwrap();
+        count_experiments(&c)
+    };
+    assert_eq!(
+        post_count, pre_count,
+        "main DB must be untouched after refused swap"
+    );
+    let quarantined: Vec<_> = fs::read_dir(&dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with("pending_restore.db.rejected.")
+        })
+        .collect();
+    assert_eq!(
+        quarantined.len(),
+        1,
+        "exactly one quarantine file should exist after refused swap"
+    );
+
+    cleanup(&dir);
+}
+
+/// SQLite that opens cleanly but lacks the `Experiment` table → reject
+/// + quarantine.
+#[test]
+fn pre_startup_restore_rejects_sqlite_without_experiment_table() {
+    let dir = pre_startup_tmp_dir("foreign");
+    let pending = dir.join("pending_restore.db");
+    let main = dir.join("main.db");
+
+    {
+        let conn = Connection::open(&pending).unwrap();
+        conn.execute("CREATE TABLE NotRheolab (id INTEGER PRIMARY KEY)", [])
+            .unwrap();
+        drop(conn);
+    }
+
+    let result = pre_startup_restore(&dir, &main);
+    assert!(
+        result.is_err(),
+        "SQLite without Experiment table must be refused"
+    );
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("Experiment table") || msg.contains("not a RheoLab"),
+        "error must mention the missing Experiment table; got: {msg}"
+    );
+
+    cleanup(&dir);
+}
+
+/// SQLite carrying a future `schema_version` → reject (we cannot
+/// downgrade; would otherwise leave the app permanently unbootable).
+#[test]
+fn pre_startup_restore_rejects_future_schema_version() {
+    let dir = pre_startup_tmp_dir("future");
+    let pending = dir.join("pending_restore.db");
+    let main = dir.join("main.db");
+
+    {
+        let conn = create_db(&pending, MAIN_SCHEMA);
+        conn.execute_batch(
+            "CREATE TABLE schema_meta (\
+                id INTEGER PRIMARY KEY CHECK (id = 1),\
+                schema_version INTEGER NOT NULL,\
+                app_version TEXT NOT NULL\
+            );",
+        )
+        .unwrap();
+        // Plant a version far in the future relative to CURRENT_SCHEMA_VERSION.
+        let future = crate::db::migration::CURRENT_SCHEMA_VERSION + 99;
+        conn.execute(
+            "INSERT INTO schema_meta (id, schema_version, app_version) VALUES (1, ?1, '99.0.0')",
+            rusqlite::params![future],
+        )
+        .unwrap();
+        drop(conn);
+    }
+
+    let result = pre_startup_restore(&dir, &main);
+    assert!(
+        result.is_err(),
+        "future schema_version must be refused — got Ok({:?})",
+        result.ok()
+    );
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("schema_version") && msg.contains("newer"),
+        "error must explain the version mismatch; got: {msg}"
+    );
+
+    cleanup(&dir);
+}
+
+/// SQLite without a `schema_meta` table is treated as a legacy
+/// pre-versioned DB (version 0) and accepted, since `run_migrations`
+/// will walk the registry forward from there on next boot.
+#[test]
+fn pre_startup_restore_accepts_legacy_db_without_schema_meta() {
+    let dir = pre_startup_tmp_dir("legacy");
+    let pending = dir.join("pending_restore.db");
+    let main = dir.join("main.db");
+
+    // MAIN_SCHEMA in the test fixture intentionally omits schema_meta —
+    // simulating a backup taken from a pre-versioned install.
+    {
+        let conn = create_db(&pending, MAIN_SCHEMA);
+        drop(conn);
+    }
+
+    let result = pre_startup_restore(&dir, &main).unwrap();
+    assert!(
+        result,
+        "legacy DB without schema_meta must be accepted (treated as version 0)"
+    );
+
+    cleanup(&dir);
+}
+
+/// Truncated SQLite header (less than 16 bytes) → reject without panic.
+#[test]
+fn pre_startup_restore_rejects_truncated_file() {
+    let dir = pre_startup_tmp_dir("truncated");
+    let pending = dir.join("pending_restore.db");
+    let main = dir.join("main.db");
+
+    fs::write(&pending, b"SQLi").unwrap(); // 4 bytes — read_exact will fail
+
+    let result = pre_startup_restore(&dir, &main);
+    assert!(
+        result.is_err(),
+        "truncated file must be refused — got Ok({:?})",
+        result.ok()
+    );
+
+    cleanup(&dir);
+}
+
 #[test]
 fn merge_import_batch_and_payloads() {
     let (conn, dir) = setup_merge(MAIN_SCHEMA, MAIN_SCHEMA);
