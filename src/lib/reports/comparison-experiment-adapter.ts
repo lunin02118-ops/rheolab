@@ -195,9 +195,22 @@ export async function experimentToReportBuildContext(
                 splitEndDuration: 30,
                 minDurationForSplit: 90,
             };
+
+            // Use the *same* shear-rate list the comparison-report header is
+            // built from. Otherwise the Rust pipeline only computes viscosities
+            // for the hard-coded defaults [40, 100, 170] and any user-added
+            // expert-mode rate (e.g. 220 1/s) renders as "-" for every cycle —
+            // the column header shows up because it is driven by
+            // `reportViscosityRates`, but no value is ever computed for it.
+            // Filter out zero / negative rates: `calc_visc` returns 0 for
+            // those and they would only pollute the report.
+            const analysisShearRates = overrides.reportViscosityRates
+                .filter((r) => Number.isFinite(r) && r > 0);
             const expertSettings = {
                 pointsToAverage: 0,
-                viscosityShearRates: [...DEFAULT_VISCOSITY_SHEAR_RATES] as number[],
+                viscosityShearRates: analysisShearRates.length > 0
+                    ? analysisShearRates
+                    : [...DEFAULT_VISCOSITY_SHEAR_RATES] as number[],
                 kIndexType: 'K_ind' as const,
                 stepSplitting: true,
                 splitStartDuration: 30,

@@ -89,6 +89,19 @@ describe('ExperimentFilters — touch-point section', () => {
         await act(async () => {
             await Promise.resolve();
         });
+        // The touch-point block lives inside the "Диапазоны" FilterGroup,
+        // which is collapsed by default (`<FilterGroup>` only mounts its
+        // children while open) — every assertion below would otherwise
+        // miss the elements entirely. Mirror what a real user does and
+        // expand the group before exercising the test body. Wrapped in
+        // act() so the post-click state lands before assertions run.
+        const rangesHeader = Array.from(document.querySelectorAll('button'))
+            .find((btn) => btn.textContent?.includes('Диапазоны'));
+        if (rangesHeader) {
+            await act(async () => {
+                fireEvent.click(rangesHeader);
+            });
+        }
         return utils;
     };
 

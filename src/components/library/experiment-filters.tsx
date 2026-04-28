@@ -272,11 +272,13 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                 </button>
             </div>
 
-            {/* ── 1. Поиск (always open) ─────────────────────────── */}
+            {/* ── 1. Поиск ─────────────────────────────────────── */}
+            {/* All five groups start collapsed on mount so first paint stays
+                quiet; the activeCount badge keeps any pre-loaded filters
+                visible without popping the group open. */}
             <FilterGroup
                 title="Поиск"
                 icon={<SearchIcon className="w-3.5 h-3.5" />}
-                defaultOpen
                 activeCount={searchCount}
             >
                 <TextFilter label="Общий поиск" value={filters.searchQuery}
@@ -289,7 +291,6 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
             <FilterGroup
                 title="Локация и объект"
                 icon={<MapPin className="w-3.5 h-3.5" />}
-                defaultOpen
                 activeCount={locationCount}
             >
                 <RangeFilter label="Дата теста" minValue={filters.dateFrom} maxValue={filters.dateTo}
@@ -326,7 +327,6 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
             <FilterGroup
                 title="Параметры теста"
                 icon={<FlaskConical className="w-3.5 h-3.5" />}
-                defaultOpen
                 activeCount={testParamsCount}
             >
                 <TextFilter label="Оператор" value={filters.operatorName}
@@ -377,7 +377,6 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
             <FilterGroup
                 title="Диапазоны"
                 icon={<CalendarDays className="w-3.5 h-3.5" />}
-                defaultOpen
                 activeCount={rangeCount}
             >
                 <RangeFilter label="Длительность (мин)" minValue={filters.durationMin} maxValue={filters.durationMax}

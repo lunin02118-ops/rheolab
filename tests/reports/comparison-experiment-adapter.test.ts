@@ -12,6 +12,9 @@ import {
     experimentToReportBuildContext,
     type ComparisonExperimentContextOverrides,
 } from '@/lib/reports/comparison-experiment-adapter';
+import { analyzeData } from '@/lib/analysis/client';
+
+const analyzeDataMock = vi.mocked(analyzeData);
 
 // ── Fixtures ─────────────────────────────────────────────────────────────
 
@@ -189,5 +192,52 @@ describe('experimentToReportBuildContext', () => {
         const ctx = await experimentToReportBuildContext(exp, makeOverrides());
         // Empty string → default 'report'
         expect(ctx.metadata.filename).toBe('report');
+    });
+
+    // ── Regression: forward viscosityShearRates to analyzeData ──────────
+    //
+    // Bug filed by the maintainer in alpha.6 manual testing: the
+    // comparison-report's per-experiment "Rheological Statistics" sheet
+    // rendered η@220 as a column header but the values for every cycle
+    // came out as "-". Cause was that the adapter passed a hard-coded
+    // [40, 100, 170] to `analyzeData()` regardless of what the user
+    // had configured in expert mode, so the Rust pipeline never
+    // populated viscosities[220]. The column header was driven by
+    // `reportViscosityRates` and showed up correctly, but the value
+    // lookup found nothing and the fallback to `visc_at_<rate>` only
+    // covers the legacy 40/100/170 trio.
+    //
+    // These tests pin the contract so the bug cannot silently regress.
+
+    it('forwards user-supplied reportViscosityRates to analyzeData (expert-mode bug fix)', async () => {
+        analyzeDataMock.mockClear();
+        const overrides = { ...makeOverrides(), isExpert: true, reportViscosityRates: [40, 100, 170, 220] };
+
+        await experimentToReportBuildContext(makeExperiment(), overrides);
+
+        expect(analyzeDataMock).toHaveBeenCalledTimes(1);
+        const [, , settings] = analyzeDataMock.mock.calls[0];
+        expect(settings.viscosityShearRates).toEqual([40, 100, 170, 220]);
+    });
+
+    it('strips zero/negative shear rates before passing to analyzeData', async () => {
+        analyzeDataMock.mockClear();
+        const overrides = { ...makeOverrides(), reportViscosityRates: [40, 0, -5, 100, Number.NaN, 220] };
+
+        await experimentToReportBuildContext(makeExperiment(), overrides);
+
+        const [, , settings] = analyzeDataMock.mock.calls[0];
+        // 0, -5, NaN are dropped; the surviving rates keep their original order.
+        expect(settings.viscosityShearRates).toEqual([40, 100, 220]);
+    });
+
+    it('falls back to DEFAULT_VISCOSITY_SHEAR_RATES when reportViscosityRates is empty', async () => {
+        analyzeDataMock.mockClear();
+        const overrides = { ...makeOverrides(), reportViscosityRates: [] };
+
+        await experimentToReportBuildContext(makeExperiment(), overrides);
+
+        const [, , settings] = analyzeDataMock.mock.calls[0];
+        expect(settings.viscosityShearRates).toEqual([40, 100, 170]);
     });
 });
