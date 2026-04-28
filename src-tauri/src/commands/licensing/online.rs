@@ -360,6 +360,24 @@ pub(super) async fn register_demo_online(app_data_dir: &std::path::Path) -> Opti
 }
 
 /// Deactivate (unbind) a license from this machine.
+///
+/// **Audit-v2 LIC-004 — strict success contract:**
+///
+/// Returns `Ok(data)` only when the server affirmatively confirmed the
+/// unbind, signalled by **both** a 2xx HTTP status code **and** a JSON
+/// body containing `success: true`.  Any other outcome — non-2xx HTTP
+/// status, network failure, JSON without `success`, or an explicit
+/// `success: false` — is mapped to `Err(...)` with a human-readable
+/// description of the failure.
+///
+/// The previous implementation returned `Ok(data)` for **any** response
+/// the server produced, which meant a server-side rejection (e.g. "key
+/// already unbound", "rate-limited", "key belongs to another customer")
+/// was silently treated as a successful deactivation by the caller.
+/// `engine::operations::deactivate` then cleared local state and the
+/// user could no longer reach the (still bound, server-side) licence —
+/// effectively a self-DoS on legitimate accounts and a way to mask
+/// tampering attempts on others.
 pub(super) async fn deactivate_online(key: &str, app_data_dir: &std::path::Path) -> Result<Value> {
     let machine_id = get_or_create_machine_id(app_data_dir);
     let client = http_client()?;
@@ -369,18 +387,53 @@ pub(super) async fn deactivate_online(key: &str, app_data_dir: &std::path::Path)
         "machineId": machine_id,
     });
 
-    match client
+    let resp = match client
         .post(format!("{}/api/deactivate.php", LICENSE_SERVER_URL))
         .json(&body)
         .send()
         .await
     {
-        Ok(resp) => {
-            let data: Value = resp.json().await.unwrap_or(json!({}));
-            Ok(data)
-        }
-        Err(e) => Err(handle_network_error(&e).into()),
+        Ok(r) => r,
+        Err(e) => return Err(handle_network_error(&e).into()),
+    };
+
+    let http_status = resp.status();
+    let data: Value = resp.json().await.unwrap_or(json!({}));
+    interpret_deactivate_response(http_status, data)
+}
+
+/// Pure helper for the strict-success contract used by `deactivate_online`.
+///
+/// Extracted so the audit-v2 LIC-004 contract can be unit-tested without
+/// standing up a mock HTTP server.  Same gating logic as inline at the
+/// callsite — kept private to this module because no other caller needs it.
+fn interpret_deactivate_response(http_status: reqwest::StatusCode, data: Value) -> Result<Value> {
+    // Gate 1: HTTP status must be 2xx.  4xx / 5xx are always errors —
+    // there is no "successful 4xx" deactivation path on the server.
+    if !http_status.is_success() {
+        let server_msg = data["error"]
+            .as_str()
+            .unwrap_or("Server rejected deactivation");
+        return Err(format!(
+            "Deactivation failed (HTTP {}): {}",
+            http_status.as_u16(),
+            server_msg
+        )
+        .into());
     }
+
+    // Gate 2: JSON body must explicitly say `success: true`.  A 200 OK
+    // with `success: false` (or with the field missing) means the
+    // server reached a clean rejection decision and reported it in the
+    // body — that must NOT be treated as a successful unbind.
+    if data["success"].as_bool() != Some(true) {
+        let server_msg = data["error"]
+            .as_str()
+            .unwrap_or("Server did not confirm deactivation (success != true)");
+        return Err(format!("Deactivation refused: {}", server_msg).into());
+    }
+
+    Ok(data)
 }
 
 /// Migrate a license binding from a legacy machine ID to the current v2 ID.
@@ -461,5 +514,99 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(tmp.parent().unwrap_or(&tmp).join(".rheolab"));
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    // ── Audit-v2 LIC-004 regression guards ────────────────────────────
+
+    /// Happy path: HTTP 2xx + JSON `success: true` → `Ok(data)`.
+    #[test]
+    fn interpret_deactivate_response_accepts_2xx_with_success_true() {
+        let result = interpret_deactivate_response(
+            reqwest::StatusCode::OK,
+            json!({"success": true, "message": "Лицензия отвязана"}),
+        );
+        assert!(result.is_ok(), "200 OK + success:true must be Ok");
+    }
+
+    /// Server replies 200 OK but `success: false` (e.g. "key already
+    /// unbound", "key belongs to another customer").  Pre-LIC-004 this
+    /// returned Ok(data) and the caller wiped local state — must now Err.
+    #[test]
+    fn interpret_deactivate_response_rejects_2xx_with_success_false() {
+        let result = interpret_deactivate_response(
+            reqwest::StatusCode::OK,
+            json!({"success": false, "error": "key_already_unbound"}),
+        );
+        assert!(
+            result.is_err(),
+            "200 OK + success:false must NOT be treated as a successful deactivation"
+        );
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("Deactivation refused") && msg.contains("key_already_unbound"),
+            "error message should explain the server-side rejection: got {msg}"
+        );
+    }
+
+    /// Server replies 200 OK with no `success` field at all → must Err.
+    /// Empty bodies, non-JSON noise, or future server bugs must not
+    /// silently look like a successful deactivation.
+    #[test]
+    fn interpret_deactivate_response_rejects_2xx_without_success_field() {
+        let result = interpret_deactivate_response(
+            reqwest::StatusCode::OK,
+            json!({"message": "ok"}), // no success key
+        );
+        assert!(
+            result.is_err(),
+            "200 OK without success:true field must Err — server contract requires explicit confirmation"
+        );
+    }
+
+    /// Server replies 4xx (e.g. 401 unauthorised, 404 unknown key) — must Err.
+    #[test]
+    fn interpret_deactivate_response_rejects_4xx() {
+        let result = interpret_deactivate_response(
+            reqwest::StatusCode::UNAUTHORIZED,
+            json!({"error": "invalid_key"}),
+        );
+        assert!(result.is_err(), "401 must Err");
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("HTTP 401") && msg.contains("invalid_key"),
+            "error must surface HTTP code + server message: got {msg}"
+        );
+    }
+
+    /// Server replies 5xx — must Err (and not be silently treated as success
+    /// even if the body happens to contain `success: true` due to a server
+    /// bug; the HTTP gate runs first).
+    #[test]
+    fn interpret_deactivate_response_rejects_5xx_even_if_body_says_success() {
+        let result = interpret_deactivate_response(
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+            json!({"success": true, "error": "internal_error"}), // contradictory body
+        );
+        assert!(
+            result.is_err(),
+            "5xx must always Err regardless of body content — never trust the body alone"
+        );
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("HTTP 500"),
+            "error must include HTTP status: got {msg}"
+        );
+    }
+
+    /// Server returned a completely empty / non-JSON body (so `data` is
+    /// `{}`) along with non-2xx HTTP — must Err with a generic message,
+    /// not panic on missing fields.
+    #[test]
+    fn interpret_deactivate_response_handles_empty_body() {
+        let result =
+            interpret_deactivate_response(reqwest::StatusCode::BAD_GATEWAY, json!({}));
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("HTTP 502"));
     }
 }
