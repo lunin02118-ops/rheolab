@@ -33,6 +33,39 @@ pub struct ExperimentSummary {
 
     /// Final (last) viscosity sample (cP).  0.0 when empty.
     pub final_viscosity_cp: f64,
+
+    /// Arithmetic mean of every finite `temperature_c` sample (°C).
+    /// `None` when the experiment has no temperature data at all — keeps the
+    /// renderer from showing a misleading `0.0 °C` for runs where the
+    /// instrument never reported temperature.
+    pub avg_temp_c: Option<f64>,
+
+    /// Arithmetic mean of every finite `pressure_bar` sample (bar).
+    /// `None` when no pressure data was logged — most lab tests at
+    /// atmospheric pressure leave this column empty in the source data,
+    /// so propagating `None` lets the table show "—" rather than `0.0`.
+    pub avg_pressure_bar: Option<f64>,
+}
+
+/// Average a stream of optional `f64`s, ignoring `None` and non-finite
+/// entries. Returns `None` when no usable sample was found so the renderer
+/// can show "—" rather than a misleading `0.0`. Splitting this out keeps
+/// `from_report_input` readable and the computation easy to unit-test.
+fn average_finite_optional<I>(samples: I) -> Option<f64>
+where
+    I: IntoIterator<Item = Option<f64>>,
+{
+    let mut sum = 0.0_f64;
+    let mut count = 0_usize;
+    for s in samples {
+        if let Some(v) = s {
+            if v.is_finite() {
+                sum += v;
+                count += 1;
+            }
+        }
+    }
+    if count == 0 { None } else { Some(sum / count as f64) }
 }
 
 impl ExperimentSummary {
@@ -67,6 +100,16 @@ impl ExperimentSummary {
             (duration, max_v, final_v)
         };
 
+        // Mean over every finite temperature / pressure sample. Both columns
+        // are `Option<f64>` on `DataPoint`, so we can't lean on the
+        // viscosity-side `is_finite()` filter alone.
+        let avg_temp_c = average_finite_optional(
+            input.raw_data.iter().map(|p| p.temperature_c),
+        );
+        let avg_pressure_bar = average_finite_optional(
+            input.raw_data.iter().map(|p| p.pressure_bar),
+        );
+
         Self {
             display_name: display_name.to_string(),
             test_id,
@@ -74,6 +117,8 @@ impl ExperimentSummary {
             duration_min,
             max_viscosity_cp,
             final_viscosity_cp,
+            avg_temp_c,
+            avg_pressure_bar,
         }
     }
 }
@@ -121,6 +166,19 @@ mod tests {
         }
     }
 
+    fn mk_full_point(t_sec: f64, visc_cp: f64, temp_c: Option<f64>, press_bar: Option<f64>) -> DataPoint {
+        DataPoint {
+            time_sec: t_sec,
+            viscosity_cp: visc_cp,
+            temperature_c: temp_c,
+            shear_rate: None,
+            shear_stress_pa: None,
+            speed_rpm: None,
+            pressure_bar: press_bar,
+            bath_temperature_c: None,
+        }
+    }
+
     #[test]
     fn summary_computes_basic_metrics() {
         // 3 points over 5 minutes, viscosity 100, 300, 150 → max=300, final=150, duration=5.0
@@ -136,6 +194,9 @@ mod tests {
         assert!((s.duration_min - 5.0).abs() < 1e-6);
         assert_eq!(s.max_viscosity_cp, 300.0);
         assert_eq!(s.final_viscosity_cp, 150.0);
+        // No temp / pressure logged → renderer must show "—".
+        assert_eq!(s.avg_temp_c, None);
+        assert_eq!(s.avg_pressure_bar, None);
     }
 
     #[test]
@@ -153,6 +214,68 @@ mod tests {
         assert_eq!(s.duration_min, 0.0);
         assert_eq!(s.max_viscosity_cp, 0.0);
         assert_eq!(s.final_viscosity_cp, 0.0);
+        assert_eq!(s.avg_temp_c, None);
+        assert_eq!(s.avg_pressure_bar, None);
+    }
+
+    #[test]
+    fn summary_averages_finite_temperature_and_pressure() {
+        // 3 points, all with temp + pressure. Means: temp = (90 + 92 + 94) / 3 = 92,
+        // pressure = (350 + 360 + 370) / 3 = 360.
+        let input = mk_input(
+            vec![
+                mk_full_point(0.0,   100.0, Some(90.0), Some(350.0)),
+                mk_full_point(60.0,  150.0, Some(92.0), Some(360.0)),
+                mk_full_point(120.0, 200.0, Some(94.0), Some(370.0)),
+            ],
+            Some("T-A"),
+            "tempPressure.dat",
+        );
+        let s = ExperimentSummary::from_report_input("Run-A", &input);
+        let avg_t = s.avg_temp_c.expect("temp average should be Some");
+        let avg_p = s.avg_pressure_bar.expect("pressure average should be Some");
+        assert!((avg_t - 92.0).abs() < 1e-6);
+        assert!((avg_p - 360.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn summary_temperature_average_skips_non_finite_and_missing() {
+        // Mix of None / NaN / finite: only the finite samples should count.
+        // temp: None, 80, NaN, 100 → mean over {80, 100} = 90
+        // pressure: 200, None, 220, None → mean over {200, 220} = 210
+        let input = mk_input(
+            vec![
+                mk_full_point(0.0,    50.0, None,            Some(200.0)),
+                mk_full_point(60.0,   60.0, Some(80.0),      None),
+                mk_full_point(120.0,  70.0, Some(f64::NAN),  Some(220.0)),
+                mk_full_point(180.0,  80.0, Some(100.0),     None),
+            ],
+            Some("T-B"),
+            "mixed.dat",
+        );
+        let s = ExperimentSummary::from_report_input("Run-B", &input);
+        let avg_t = s.avg_temp_c.expect("must average finite-only samples");
+        let avg_p = s.avg_pressure_bar.expect("pressure has 2 finite samples");
+        assert!((avg_t - 90.0).abs() < 1e-6);
+        assert!((avg_p - 210.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn summary_returns_none_when_every_sample_is_non_finite() {
+        // Each point has non-finite temp; the renderer expects None to
+        // surface as "—" rather than 0.0 (which would falsely imply
+        // a measured ambient temperature).
+        let input = mk_input(
+            vec![
+                mk_full_point(0.0,  100.0, Some(f64::NAN),       None),
+                mk_full_point(60.0, 200.0, Some(f64::INFINITY),  None),
+            ],
+            Some("T-C"),
+            "all-nan.dat",
+        );
+        let s = ExperimentSummary::from_report_input("Run-C", &input);
+        assert_eq!(s.avg_temp_c, None);
+        assert_eq!(s.avg_pressure_bar, None);
     }
 
     #[test]

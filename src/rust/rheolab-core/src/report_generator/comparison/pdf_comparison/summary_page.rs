@@ -22,6 +22,12 @@ pub(super) fn build_summary_table_page(
     let t_dur    = if is_ru { "Длительность (мин)"     } else { "Duration (min)" };
     let t_maxv   = if is_ru { "Макс. вязкость"         } else { "Max viscosity" };
     let t_finv   = if is_ru { "Финал. вязкость"        } else { "Final viscosity" };
+    // New columns surfacing the two ambient-channel averages requested
+    // by the maintainer. Both values are optional — a run that never
+    // logged temperature or pressure renders as "—" rather than 0.0
+    // (cf. ExperimentSummary::avg_temp_c / avg_pressure_bar docs).
+    let t_avgt   = if is_ru { "Сред. темп. (°C)"       } else { "Avg temp (°C)" };
+    let t_avgp   = if is_ru { "Сред. давл. (бар)"      } else { "Avg pressure (bar)" };
 
     let visc_unit = get_viscosity_unit(&input.unit_system);
 
@@ -30,18 +36,36 @@ pub(super) fn build_summary_table_page(
     for s in &summaries {
         let max_v = convert_viscosity(s.max_viscosity_cp, &input.unit_system);
         let fin_v = convert_viscosity(s.final_viscosity_cp, &input.unit_system);
+        // Format Option<f64> averages as "92.5" or "—" so the column
+        // width stays predictable (Typst `[—]` is a single em-dash cell,
+        // identical to the placeholder used in the touch-points table).
+        let avg_t_cell = match s.avg_temp_c {
+            Some(t) if t.is_finite() => format!("{:.1}", t),
+            _ => "—".to_string(),
+        };
+        let avg_p_cell = match s.avg_pressure_bar {
+            Some(p) if p.is_finite() => format!("{:.1}", p),
+            _ => "—".to_string(),
+        };
         rows_typst.push_str(&format!(
-            "  [{}], [{}], [{:.1}], [{:.1} {}], [{:.1} {}],\n",
+            "  [{}], [{}], [{:.1}], [{:.1} {}], [{:.1} {}], [{}], [{}],\n",
             escape_typst(&s.display_name),
             s.data_points,
             s.duration_min,
             max_v, visc_unit,
             fin_v, visc_unit,
+            avg_t_cell,
+            avg_p_cell,
         ));
     }
 
     let touch_points_block = build_comparison_touch_points_block(input, is_ru);
 
+    // Column widths reshuffled for 7 columns on A4 portrait (~17 cm of
+    // usable width after margins). The experiment-name column gives up
+    // some breathing room so the two new ambient averages fit without
+    // pushing the table off the page; the units already live in the
+    // header cell so the data cells stay narrow.
     format!(r##"
 #pagebreak()
 #page(paper: "a4", flipped: false, margin: (top: 2.5cm, bottom: 1.2cm, left: 2cm, right: 2cm))[
@@ -53,7 +77,7 @@ pub(super) fn build_summary_table_page(
 #v(8pt)
 
 #table(
-  columns: (2.8fr, 0.9fr, 1.3fr, 1.5fr, 1.5fr),
+  columns: (2.4fr, 0.7fr, 1.1fr, 1.4fr, 1.4fr, 1.0fr, 1.1fr),
   stroke: 0.5pt + rgb("#E2E8F0"),
   fill: none,
   align: center + horizon,
@@ -62,7 +86,9 @@ pub(super) fn build_summary_table_page(
     header_cell[{t_pts}],
     header_cell[{t_dur}],
     header_cell[{t_maxv}],
-    header_cell[{t_finv}]
+    header_cell[{t_finv}],
+    header_cell[{t_avgt}],
+    header_cell[{t_avgp}]
   ),
 {rows}
 )
@@ -74,6 +100,7 @@ pub(super) fn build_summary_table_page(
         summary_hdr = if is_ru { "Сводная таблица" } else { "Summary" },
         t_exp = t_exp, t_pts = t_pts,
         t_dur = t_dur, t_maxv = t_maxv, t_finv = t_finv,
+        t_avgt = t_avgt, t_avgp = t_avgp,
         rows = rows_typst,
         touch_points = touch_points_block,
     )

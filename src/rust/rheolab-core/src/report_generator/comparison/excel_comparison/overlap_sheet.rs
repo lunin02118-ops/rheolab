@@ -15,6 +15,7 @@ use rust_xlsxwriter::{
 use super::super::super::excel::scaled_line_width;
 use super::super::super::formatters::convert_viscosity;
 use super::super::super::touch_point::TouchPointType;
+use super::super::summary::build_summaries;
 use super::super::types::ComparisonReportInput;
 use super::helpers::{parse_color_hex, style_to_dash, DEFAULT_PALETTE};
 use super::layout::{ChartDataLayout, TouchPointResult};
@@ -311,93 +312,207 @@ pub(super) fn write_overlap_chart_sheet(
 
     sheet.insert_chart(0, 0, &chart)?;
 
-    // ── Touch-point table below chart (professional styling) ──────────
-    // Chart occupies ~30 rows in default sizing.  Start table at row 32.
-    let text_start_row: u32 = 32;
-    let mut row = text_start_row;
+    // ── Below-chart text tables (Summary + Touch-points) ──────────────
+    //
+    // Chart occupies ~30 rows in default sizing. We start the text-tables
+    // block at row 32 (one blank row of breathing space below the chart).
+    //
+    // Two sibling tables can render here:
+    //   1. **Сводная таблица** — always rendered (one row per experiment),
+    //      requested by the maintainer in alpha.7 testing as a feature
+    //      parity gap with the PDF comparison report.
+    //   2. **Точки касания / Вязкость в заданное время** — rendered only
+    //      when the precomputed `data.touch_points` slice has matching
+    //      threshold / target-time rows.
+    //
+    // Both tables share a single set of `Format` objects and column
+    // widths so the typography stays consistent and we don't double the
+    // workbook's style-table size on every export.
 
+    // ── Shared formats (used by both Summary and Touch-points) ───────
+    let section_title_fmt = Format::new()
+        .set_bold()
+        .set_font_size(11)
+        .set_font_color(Color::RGB(0x1E3A5F))
+        .set_background_color(Color::RGB(0xEFF6FF))
+        .set_border_bottom(FormatBorder::Medium)
+        .set_border_color(Color::RGB(0x3B82F6))
+        .set_align(FormatAlign::Left)
+        .set_align(FormatAlign::VerticalCenter);
+
+    let hdr_fmt = Format::new()
+        .set_bold()
+        .set_font_size(10)
+        .set_font_color(Color::RGB(0x1E293B))
+        .set_background_color(Color::RGB(0xF1F5F9))
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xCBD5E1))
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter)
+        .set_text_wrap();
+
+    let cell_text = Format::new()
+        .set_font_size(10)
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xE2E8F0))
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter);
+
+    let cell_num = Format::new()
+        .set_font_size(10)
+        .set_num_format("0.0")
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xE2E8F0))
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter);
+
+    let cell_visc = Format::new()
+        .set_font_size(10)
+        .set_num_format("#,##0")
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xE2E8F0))
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter);
+
+    let cell_text_alt = Format::new()
+        .set_font_size(10)
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xE2E8F0))
+        .set_background_color(Color::RGB(0xF8FAFC))
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter);
+
+    let cell_num_alt = Format::new()
+        .set_font_size(10)
+        .set_num_format("0.0")
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xE2E8F0))
+        .set_background_color(Color::RGB(0xF8FAFC))
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter);
+
+    let cell_visc_alt = Format::new()
+        .set_font_size(10)
+        .set_num_format("#,##0")
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xE2E8F0))
+        .set_background_color(Color::RGB(0xF8FAFC))
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter);
+
+    // ── Column widths (apply to every below-chart table) ─────────────
+    //
+    // A is the widest column because it holds the experiment / test
+    // name. B–G accommodate the seven Summary columns; the Touch-points
+    // tables only use A–C and inherit A's width unchanged.
+    sheet.set_column_width(0, 32.0)?;  // A — Эксперимент / Test Name
+    sheet.set_column_width(1, 12.0)?;  // B — Точек / Время (мин)
+    sheet.set_column_width(2, 18.0)?;  // C — Длительность (мин) / Вязкость
+    sheet.set_column_width(3, 18.0)?;  // D — Макс. вязкость
+    sheet.set_column_width(4, 18.0)?;  // E — Финал. вязкость
+    sheet.set_column_width(5, 16.0)?;  // F — Сред. темп. (°C)
+    sheet.set_column_width(6, 16.0)?;  // G — Сред. давл. (бар)
+
+    let visc_unit_label = super::super::super::formatters::get_viscosity_unit(unit_system);
+
+    let mut row: u32 = 32;
+    // Blank row of breathing space between chart and first table.
+    row += 1;
+
+    // ── Table 0: Сводная таблица (Summary) ───────────────────────────
+    //
+    // Mirrors the PDF comparison report's Summary table on page 2:
+    // 7 columns covering identity (name), volume (point count, duration)
+    // and four ambient-channel readings (max/final viscosity + average
+    // temperature + average pressure). One row per experiment.
+    if !input.experiments.is_empty() {
+        let summaries = build_summaries(&input.experiments);
+
+        let summary_title = if is_ru { "Сводная таблица" } else { "Summary" };
+        sheet.merge_range(row, 0, row, 6, summary_title, &section_title_fmt)?;
+        row += 1;
+
+        let h_exp  = if is_ru { "Эксперимент" }        else { "Experiment" };
+        let h_pts  = if is_ru { "Точек" }              else { "Points" };
+        let h_dur  = if is_ru { "Длительность (мин)" } else { "Duration (min)" };
+        let h_maxv = if is_ru {
+            format!("Макс. вязкость ({})",  visc_unit_label)
+        } else {
+            format!("Max viscosity ({})",   visc_unit_label)
+        };
+        let h_finv = if is_ru {
+            format!("Финал. вязкость ({})", visc_unit_label)
+        } else {
+            format!("Final viscosity ({})", visc_unit_label)
+        };
+        let h_avgt = if is_ru { "Сред. темп. (°C)" }   else { "Avg temp (°C)" };
+        let h_avgp = if is_ru { "Сред. давл. (бар)" }  else { "Avg pressure (bar)" };
+
+        sheet.write_string_with_format(row, 0, h_exp,  &hdr_fmt)?;
+        sheet.write_string_with_format(row, 1, h_pts,  &hdr_fmt)?;
+        sheet.write_string_with_format(row, 2, h_dur,  &hdr_fmt)?;
+        sheet.write_string_with_format(row, 3, &h_maxv, &hdr_fmt)?;
+        sheet.write_string_with_format(row, 4, &h_finv, &hdr_fmt)?;
+        sheet.write_string_with_format(row, 5, h_avgt, &hdr_fmt)?;
+        sheet.write_string_with_format(row, 6, h_avgp, &hdr_fmt)?;
+        sheet.set_row_height(row, 28.0)?;
+        row += 1;
+
+        // Data rows with alternating zebra backgrounds — same convention
+        // as the touch-points tables.
+        for (idx, s) in summaries.iter().enumerate() {
+            let is_alt = idx % 2 == 1;
+            let (tf, nf, vf) = if is_alt {
+                (&cell_text_alt, &cell_num_alt, &cell_visc_alt)
+            } else {
+                (&cell_text, &cell_num, &cell_visc)
+            };
+
+            sheet.write_string_with_format(row, 0, &s.display_name, tf)?;
+            sheet.write_number_with_format(row, 1, s.data_points as f64, vf)?;
+            sheet.write_number_with_format(row, 2, s.duration_min, nf)?;
+            sheet.write_number_with_format(
+                row, 3,
+                convert_viscosity(s.max_viscosity_cp, unit_system),
+                vf,
+            )?;
+            sheet.write_number_with_format(
+                row, 4,
+                convert_viscosity(s.final_viscosity_cp, unit_system),
+                vf,
+            )?;
+
+            // Optional averages: render the actual number when finite,
+            // otherwise an em-dash so the column doesn't masquerade as
+            // a measured 0.0 °C / 0.0 bar reading.
+            match s.avg_temp_c {
+                Some(t) if t.is_finite() => {
+                    sheet.write_number_with_format(row, 5, t, nf)?;
+                }
+                _ => {
+                    sheet.write_string_with_format(row, 5, "—", tf)?;
+                }
+            }
+            match s.avg_pressure_bar {
+                Some(p) if p.is_finite() => {
+                    sheet.write_number_with_format(row, 6, p, nf)?;
+                }
+                _ => {
+                    sheet.write_string_with_format(row, 6, "—", tf)?;
+                }
+            }
+            row += 1;
+        }
+
+        // Blank separator before the next table block.
+        row += 1;
+    }
+
+    // ── Touch-point tables (threshold crossings + target-time view) ───
     if !data.touch_points.is_empty() {
-        let visc_unit_label = super::super::super::formatters::get_viscosity_unit(unit_system);
         let threshold_visc = convert_viscosity(cfg.touch_point.viscosity_threshold, unit_system);
 
-        // ── Formats ─────────────────────────────────────────────────
-        let section_title_fmt = Format::new()
-            .set_bold()
-            .set_font_size(11)
-            .set_font_color(Color::RGB(0x1E3A5F))
-            .set_background_color(Color::RGB(0xEFF6FF))
-            .set_border_bottom(FormatBorder::Medium)
-            .set_border_color(Color::RGB(0x3B82F6))
-            .set_align(FormatAlign::Left)
-            .set_align(FormatAlign::VerticalCenter);
-
-        let hdr_fmt = Format::new()
-            .set_bold()
-            .set_font_size(10)
-            .set_font_color(Color::RGB(0x1E293B))
-            .set_background_color(Color::RGB(0xF1F5F9))
-            .set_border(FormatBorder::Thin)
-            .set_border_color(Color::RGB(0xCBD5E1))
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter)
-            .set_text_wrap();
-
-        let cell_text = Format::new()
-            .set_font_size(10)
-            .set_border(FormatBorder::Thin)
-            .set_border_color(Color::RGB(0xE2E8F0))
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
-
-        let cell_num = Format::new()
-            .set_font_size(10)
-            .set_num_format("0.0")
-            .set_border(FormatBorder::Thin)
-            .set_border_color(Color::RGB(0xE2E8F0))
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
-
-        let cell_visc = Format::new()
-            .set_font_size(10)
-            .set_num_format("#,##0")
-            .set_border(FormatBorder::Thin)
-            .set_border_color(Color::RGB(0xE2E8F0))
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
-
-        let cell_text_alt = Format::new()
-            .set_font_size(10)
-            .set_border(FormatBorder::Thin)
-            .set_border_color(Color::RGB(0xE2E8F0))
-            .set_background_color(Color::RGB(0xF8FAFC))
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
-
-        let cell_num_alt = Format::new()
-            .set_font_size(10)
-            .set_num_format("0.0")
-            .set_border(FormatBorder::Thin)
-            .set_border_color(Color::RGB(0xE2E8F0))
-            .set_background_color(Color::RGB(0xF8FAFC))
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
-
-        let cell_visc_alt = Format::new()
-            .set_font_size(10)
-            .set_num_format("#,##0")
-            .set_border(FormatBorder::Thin)
-            .set_border_color(Color::RGB(0xE2E8F0))
-            .set_background_color(Color::RGB(0xF8FAFC))
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
-
-        // Column widths — 3 columns now (Type column dropped since each
-        // section header already conveys the touch-point kind).
-        sheet.set_column_width(0, 32.0)?;  // A — Test Name
-        sheet.set_column_width(1, 14.0)?;  // B — Time (min)
-        sheet.set_column_width(2, 16.0)?;  // C — Viscosity
-
-        // Shared column headers.
+        // Shared column headers for the 3-column touch-points layout.
         let h_name = if is_ru { "Название теста" } else { "Test Name" };
         let h_time = if is_ru { "Время (мин)" } else { "Time (min)" };
         let h_visc = if is_ru {
@@ -428,7 +543,7 @@ pub(super) fn write_overlap_chart_sheet(
             if rows.is_empty() { return Ok(row_start); }
             let mut r = row_start;
 
-            // Section title (spans all 3 columns).
+            // Section title (spans the 3 used columns).
             sheet.merge_range(r, 0, r, 2, title, &section_title_fmt)?;
             r += 1;
 
@@ -456,9 +571,6 @@ pub(super) fn write_overlap_chart_sheet(
             Ok(r)
         };
 
-        // Blank row after chart.
-        row += 1;
-
         // ── Table 1: Threshold crossings ────────────────────────────
         let threshold_title = if is_ru {
             format!("Точки касания (порог {} {})", threshold_visc as i64, visc_unit_label)
@@ -480,10 +592,12 @@ pub(super) fn write_overlap_chart_sheet(
             format!("Viscosity at Set Time ({} min)", cfg.touch_point.target_time as i32)
         };
         row = write_table(sheet, row, &target_title, &target_rows)?;
-
-        // Silence the unused-var warning when the second table is empty.
-        let _ = row;
     }
+
+    // Silence the unused-var warning on builds where neither table grew
+    // the cursor (e.g. comparison report with empty experiments and no
+    // touch-points).
+    let _ = row;
 
     Ok(())
 }

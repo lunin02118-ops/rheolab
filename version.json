@@ -1,5 +1,5 @@
 {
   "$comment": "SINGLE SOURCE OF TRUTH for the RheoLab Enterprise application version. This file is the only place a human edits the version. Run `npm run version:sync` after editing to propagate the value into package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml, and src/lib/version.ts. CI / release pipeline calls `npm run version:validate` and refuses to build / publish if any of those four files disagrees with this SSoT.",
-  "version": "0.2.1-alpha.7",
+  "version": "0.2.1-alpha.8",
   "channel": "alpha"
 }
