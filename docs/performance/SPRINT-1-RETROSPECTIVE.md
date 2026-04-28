@@ -92,7 +92,22 @@ Every A/B sweep required: backup canonical `Cargo.toml` → strip `[profile.rele
 
 ## What was deferred (Sprint 2 inheritance)
 
-### From the original Sprint 1 scope
+### Explicit Sprint 1 misses (per operator's program brief)
+
+After close, operator restated Sprint 1's originally-scoped deliverables. The audit:
+
+| Originally-scoped Sprint 1 item | Delivery | Inherited by |
+| ------------------------------- | -------- | ------------ |
+| `docs(perf): define performance budgets` | ✅ done in Sprint 0 | — |
+| `test(perf): add library/report smoke perf runner` | ❌ **not delivered** — `perf:workflow:tauri` exists from before Sprint 1 but doesn't isolate L-LIB / L-FILTER / L-EXP-DETAIL / L-CMP-* | Sprint 2 lead-in (S2-L3, S2-L4) |
+| `docs(arch): add no-large-ipc rule` | ⚠️ **partial** — lint exists (`check-large-ipc-contracts.mjs`); no formal ADR | Sprint 2 lead-in (S2-L1, ADR-0013) |
+| `docs(db): freeze V1_DDL contract fully` | ❌ **not delivered** — 7 migration files exist; no human-readable schema-contract doc | Sprint 2 lead-in (S2-L2, V1_DDL.md) |
+
+So Sprint 1 shipped **1 of 4** originally-scoped items as planned (budgets), **1 of 4 partially** (no-large-ipc lint without the ADR), and **traded the other 2** for the P10 deep-dive + microbench harness. See `SPRINT-2-PLANNING.md` § "Lead-in" for the recovery plan.
+
+### TBD entries still open in BUDGETS.md
+
+Beyond the 4 originally-scoped items, **~13 TBD entries** in `BUDGETS.md` were still open at Sprint 1 close. Sprint 1 filled **0** of them by direct measurement.
 
 - **L-LIB-OPEN-1K**, **L-LIB-OPEN-10K** — library page render after warm DB. NEW harness needed.
 - **L-FILTER** — filter change → list re-render perceived latency.
@@ -103,7 +118,7 @@ Every A/B sweep required: backup canonical `Cargo.toml` → strip `[profile.rele
 - **C-IDLE-UPDATER** — updater idle overhead.
 - **DB-LIST**, **DB-LIST-LARGE**, **DB-DETAIL** — DB query latencies.
 
-That's **~13 TBD entries** still open in `BUDGETS.md`. Sprint 1 filled **0** of them by direct measurement; it instead validated P10 (a release-profile question that was blocking the budget conversation).
+Of these, **L-LIB-* / L-FILTER / L-EXP-DETAIL / DB-LIST* / DB-DETAIL** ride directly on Sprint 2's library smoke runner (S2-L3); **L-CMP-* / L-CMP-PDF-5 / L-CMP-XLSX-5 / L-XLSX** ride on the comparison smoke runner (S2-L4) plus the native-by-ids work itself.
 
 ### Specifically labelled S1-{n} that were dropped or deferred
 
@@ -138,6 +153,8 @@ From S1-6's "Statistical caveats" section, future improvements are:
 
 ## See also
 
+- `docs/performance/PERF-ROADMAP-SPRINTS-1-6.md` — program-level view of all 6 sprints, ROI ordering, and cross-sprint dependencies.
+- `docs/performance/SPRINT-2-PLANNING.md` — active sprint plan (native comparison-by-IDs + 4 Sprint 1 carry-over lead-in items).
 - `docs/performance/BUDGETS.md` — formal performance contract (TBD entries are Sprint 2 backlog).
 - `docs/performance/MICROBENCH.md` — the harness guide (synthetic + single-fixture + `--all-experiments`).
 - `docs/performance/P10-VALIDATION-REPORT.md` — S1-1 PDF target.

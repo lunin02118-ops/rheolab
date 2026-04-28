@@ -135,7 +135,7 @@ long tasks is worse than 5 paths producing 6 each.
 
 ## Sprint 1 deliverables tracker
 
-> **Sprint 1 was scoped to fill ~13 TBD entries above.** Mid-sprint, scope shifted to **deep P10 release-profile validation** with reusable microbench infrastructure. The TBDs listed in sections B / C / D above are inherited by Sprint 2 — see `SPRINT-2-PLANNING.md`. Sprint 1 retrospective lives at `SPRINT-1-RETROSPECTIVE.md`.
+> **Sprint 1 was scoped** to (a) fill ~13 TBD entries in this file, (b) ship library/report smoke perf runners, (c) codify the no-large-ipc rule as an ADR, and (d) freeze the V1_DDL contract. **Mid-sprint, scope shifted** to a deep P10 release-profile validation with reusable microbench infrastructure. The original deliverables (b), (c), (d) and the TBDs in sections B / C / D above are inherited by Sprint 2 lead-in. See `PERF-ROADMAP-SPRINTS-1-6.md` for the program view, `SPRINT-2-PLANNING.md` for the recovery plan, and `SPRINT-1-RETROSPECTIVE.md` for what actually shipped.
 
 | Deliverable | Status |
 |---|---|
