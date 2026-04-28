@@ -249,15 +249,16 @@ absolute numbers are not directly comparable to microbench numbers.
    Cargo.toml after the second sweep — the orchestrator does not do
    that for you, and stale binary builds will silently produce
    wrong-target numbers in subsequent runs.
-5. **Analysis bench vendoring drift.** `bench_analysis_pipeline.rs`
-   inlines two helpers (`vendored_detect_cycles`,
-   `vendored_process_all_cycles`) copied from
-   `src-tauri/src/commands/analysis/{cycle_detection,cycle_processing}.rs`
-   because those are `pub(crate)`/`pub(super)`.  If the production
-   pipeline changes shape, the vendored copies need a manual sync.
-   A future refactor could lift them to `pub fn run_full_analysis(...)`
-   in `src-tauri/src/commands/analysis/mod.rs` and let the bench
-   call that directly.
+5. **Analysis bench code-path parity.** *(S1-4, 2026-04-29)*  
+   The analysis bench now calls
+   `rheolab_enterprise::commands::analysis::run_full_analysis_kernel`
+   directly — the same `pub fn` body that the `analysis_analyze_full`
+   IPC handler runs inside `tokio::task::spawn_blocking`.  No
+   vendored copy, no drift risk.  The kernel is `#[inline]` so the
+   bench's release build inlines it across the crate boundary,
+   keeping numbers comparable to the synthetic 5×4h baseline within
+   ~5 % run-to-run noise (S1-2 baseline: 13.9 ms mean; S1-4 typical
+   range: 14–17 ms mean depending on system thermal state).
 
 ## See also
 

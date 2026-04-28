@@ -10,10 +10,10 @@
 //!         └─ calculate_grace_internal (Bingham + Power Law fits)
 //!
 //! That chain is the body of `analysis_analyze_full` in
-//! `src-tauri/src/commands/analysis/commands.rs`.  We replicate it
-//! here from `rheolab_core` public primitives — the two src-tauri
-//! orchestration helpers (`detect_cycles_native`, `process_all_cycles`)
-//! are only `pub(crate)`/`pub(super)` so we vendor them inline.
+//! `src-tauri/src/commands/analysis/commands.rs`.  S1-4 (2026-04-29)
+//! lifted the pipeline body into a `pub fn run_full_analysis_kernel`
+//! so this bench calls the same function the IPC handler uses inside
+//! `tokio::task::spawn_blocking` — no vendoring, no drift risk.
 //!
 //! ## Why it lives in `src-tauri/examples/`
 //!
@@ -51,15 +51,14 @@ use std::fs;
 use std::process;
 use std::time::Instant;
 
-use rheolab_core::parasitic_filter::filter_parasitic_steps;
-use rheolab_core::schedule_detector::{detect_schedule, ScheduleConfig};
-use rheolab_core::types::{RheoCycle, RheoPoint, RheoStep};
-use rheolab_core::{
-    calculate_grace_internal, detect_anchor_cycles_internal,
-    detect_repeating_sequence_cycles_internal, detect_sst_cycles_internal,
-    is_repeating_sequence_pattern, is_sst_pattern, process_cycle_internal, ExpertSettings,
-    GraceCycleResult, GraceInputParams,
-};
+use rheolab_core::schedule_detector::ScheduleConfig;
+use rheolab_core::types::RheoPoint;
+use rheolab_core::ExpertSettings;
+// S1-4: bench now exercises the exact same kernel as the
+// `analysis_analyze_full` IPC handler.  Closes the S1-2 vendoring
+// drift risk: any future change to the production pipeline shape
+// is automatically picked up here.
+use rheolab_enterprise::commands::analysis::run_full_analysis_kernel;
 // Fixture-mode reuses the production columnar decoder + SQLite reader.
 // Both crates are already regular deps of src-tauri (`rusqlite` with the
 // `bundled` feature so no system SQLite needed), so the bench picks them
@@ -408,147 +407,25 @@ fn synthesise_trace(duration_hours: f64) -> (Vec<RheoPoint>, usize) {
     (points, n_cycles)
 }
 
-// ── Vendored pipeline orchestrators ─────────────────────────────────────────
+// ── Pipeline driver ───────────────────────────────────────────────────
 //
-// These mirror `detect_cycles_native` (cycle_detection.rs) and
-// `process_all_cycles` (cycle_processing.rs) from `src-tauri/src/commands/
-// analysis/`.  They are `pub(crate)` / `pub(super)` there, so we copy
-// the bodies — same logic, same calls, same output shape.  If those
-// helpers ever drift in src-tauri we'd want to keep this in sync, but
-// for a P10 validation tool a snapshot is fine and the vendored copy
-// is intentionally short and self-contained.
-
-fn vendored_detect_cycles(steps: &[RheoStep]) -> Vec<RheoCycle> {
-    if steps.is_empty() {
-        return Vec::new();
-    }
-    if is_sst_pattern(steps) {
-        return detect_sst_cycles_internal(steps);
-    }
-    if is_repeating_sequence_pattern(steps) {
-        if let Some(cycles) = detect_repeating_sequence_cycles_internal(steps) {
-            if cycles.len() >= 2 {
-                return cycles;
-            }
-        }
-    }
-    let anchor_cycles = detect_anchor_cycles_internal(steps);
-    if !anchor_cycles.is_empty() {
-        return anchor_cycles;
-    }
-    let duration: f64 = steps.iter().map(|s| s.duration).sum();
-    vec![RheoCycle {
-        id: 1,
-        cycle_index: Some(1),
-        cycle_type: "Custom".to_string(),
-        steps: steps.to_vec(),
-        description: "Cycle 1".to_string(),
-        duration,
-    }]
-}
-
-fn vendored_process_all_cycles(
-    cycles: &[RheoCycle],
-    geometry_key: &str,
-    settings: &ExpertSettings,
-) -> (Vec<RheoCycle>, Vec<(i32, GraceCycleResult)>) {
-    let mut results: Vec<(i32, GraceCycleResult)> = Vec::new();
-    let mut processed_cycles: Vec<RheoCycle> = Vec::new();
-
-    for cycle in cycles {
-        let filtered_steps: Vec<RheoStep> = process_cycle_internal(cycle);
-
-        let pts_avg = settings.points_to_average as usize;
-        let processed_steps: Vec<RheoStep> = filtered_steps
-            .iter()
-            .map(|step| {
-                if pts_avg > 0 && step.points.len() >= pts_avg {
-                    let pts = &step.points[step.points.len() - pts_avg..];
-                    let n = pts.len() as f64;
-                    let (sum_sr, sum_ss, sum_vis, sum_temp, sum_press) = pts.iter().fold(
-                        (0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64),
-                        |(sr, ss, vis, temp, press), p| {
-                            (
-                                sr + p.shear_rate.unwrap_or(0.0),
-                                ss + p.shear_stress.unwrap_or(0.0),
-                                vis + p.viscosity_cp,
-                                temp + p.temperature_c,
-                                press + p.pressure_bar.unwrap_or(0.0),
-                            )
-                        },
-                    );
-                    RheoStep {
-                        avg_shear_rate: sum_sr / n,
-                        avg_shear_stress: sum_ss / n,
-                        avg_viscosity: sum_vis / n,
-                        avg_temperature: sum_temp / n,
-                        avg_pressure: sum_press / n,
-                        ..step.clone()
-                    }
-                } else {
-                    step.clone()
-                }
-            })
-            .collect();
-
-        let duration: f64 = processed_steps.iter().map(|s| s.duration).sum();
-        let processed_cycle = RheoCycle {
-            steps: processed_steps.clone(),
-            duration,
-            ..cycle.clone()
-        };
-
-        let mut data_points: Vec<(f64, f64)> = Vec::new();
-        for step in &processed_steps {
-            let slice = if pts_avg > 0 && !step.points.is_empty() {
-                let start = step.points.len().saturating_sub(pts_avg);
-                &step.points[start..]
-            } else {
-                &step.points[..]
-            };
-            let mut added = 0usize;
-            for p in slice {
-                let rate = p.shear_rate.unwrap_or(0.0);
-                let stress = p.shear_stress.unwrap_or(0.0);
-                if rate > 1e-9 && stress > 1e-9 {
-                    data_points.push((rate, stress));
-                    added += 1;
-                }
-            }
-            if added == 0 && step.avg_shear_rate > 1e-9 && step.avg_shear_stress > 1e-9 {
-                data_points.push((step.avg_shear_rate, step.avg_shear_stress));
-            }
-        }
-
-        if data_points.len() >= 2 {
-            let step_count = processed_steps.len().max(1) as f64;
-            let start_sec = processed_steps.first().map(|s| s.start_time).unwrap_or(0.0);
-            let end_sec = processed_steps.last().map(|s| s.end_time).unwrap_or(start_sec);
-            let avg_temp = processed_steps.iter().map(|s| s.avg_temperature).sum::<f64>() / step_count;
-            let avg_pressure = processed_steps.iter().map(|s| s.avg_pressure).sum::<f64>() / step_count;
-            let params = GraceInputParams {
-                cycle_no: cycle.cycle_index.unwrap_or(cycle.id),
-                time_min: start_sec / 60.0,
-                end_time_min: end_sec / 60.0,
-                temp_c: avg_temp,
-                pressure_bar: avg_pressure,
-            };
-            if let Some(grace) =
-                calculate_grace_internal(&data_points, geometry_key, settings, &params)
-            {
-                results.push((cycle.id, grace));
-            }
-        }
-
-        processed_cycles.push(processed_cycle);
-    }
-
-    (processed_cycles, results)
-}
+// S1-4 (2026-04-29): replaced two vendored helpers
+// (`vendored_detect_cycles` + `vendored_process_all_cycles`, ~140 LOC
+// each mirroring the `pub(crate)`/`pub(super)` originals in
+// `src-tauri/src/commands/analysis/`) with a single call to
+// `run_full_analysis_kernel`.  The kernel is the same code path
+// `analysis_analyze_full` uses internally, so the bench now
+// measures exactly what production runs — no drift risk.
 
 /// One full analyze pipeline pass on a single trace.  Returns
 /// `(cycles_detected, results_count, points_consumed)` for end-of-run
 /// reporting (not used inside the hot timing loop).
+///
+/// Calls `run_full_analysis_kernel` directly — the same function the
+/// `analysis_analyze_full` IPC command runs inside its
+/// `tokio::task::spawn_blocking`.  We don't pass any cycle overrides
+/// (that's a UI-driven feature) and we don't await anything (we
+/// already run on a worker thread of our own).
 fn run_pipeline(
     points: Vec<RheoPoint>,
     detection_settings: &ScheduleConfig,
@@ -556,11 +433,14 @@ fn run_pipeline(
     geometry_key: &str,
 ) -> (usize, usize, usize) {
     let n_points = points.len();
-    let steps = detect_schedule(&points, detection_settings);
-    let clean_steps = filter_parasitic_steps(&steps).filtered_steps;
-    let cycles = vendored_detect_cycles(&clean_steps);
-    let (_processed, results) = vendored_process_all_cycles(&cycles, geometry_key, settings);
-    (cycles.len(), results.len(), n_points)
+    let output = run_full_analysis_kernel(
+        points,
+        geometry_key,
+        settings,
+        detection_settings,
+        &[],
+    );
+    (output.cycles.len(), output.results.len(), n_points)
 }
 
 fn percentile(samples: &[f64], pct: f64) -> f64 {
