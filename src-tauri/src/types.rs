@@ -48,9 +48,6 @@ pub struct MergeResult {
     pub imported: u64,
     /// Number of experiments skipped (already existed)
     pub skipped: u64,
-    /// FK violations detected after merge (non-fatal warnings)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub warnings: Option<Vec<String>>,
 }
 
 impl MergeResult {
@@ -60,7 +57,6 @@ impl MergeResult {
             error: None,
             imported,
             skipped,
-            warnings: None,
         }
     }
     pub fn err(error: impl Into<String>) -> Self {
@@ -69,7 +65,6 @@ impl MergeResult {
             error: Some(error.into()),
             imported: 0,
             skipped: 0,
-            warnings: None,
         }
     }
 }

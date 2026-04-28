@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { readFile, writeFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@/lib/tauri/core';
+import { TauriError } from '@/lib/tauri/errors';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import {
     FileUp, FileDown, Check, AlertTriangle, Loader2,
@@ -190,7 +191,11 @@ export function ExperimentExportImport() {
                 }
             }
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Ошибка импорта');
+            // Tauri IPC errors (e.g. AppError::BadRequest from a refused
+            // import after FK violations — see DB-002) come through as
+            // a {kind, message} envelope, not as `Error` instances.
+            // TauriError.from handles both shapes plus plain string errors.
+            setError(TauriError.from(e).message || 'Ошибка импорта');
         } finally {
             setIsImporting(false);
         }

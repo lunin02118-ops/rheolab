@@ -457,13 +457,30 @@ fn merge_missing_source_table_is_skipped() {
 }
 
 #[test]
-fn merge_fk_collision_does_not_fail() {
+fn merge_aborts_on_fk_collision_and_main_is_unchanged() {
+    // DB-002 (audit-preflight) regression guard.
+    //
+    // Set up a known FK collision: main has a User with email
+    // `shared@test.com`; source has a different User row with the same
+    // email AND an Experiment that references that source-side user
+    // by id.  When `INSERT OR IGNORE` runs against User the source's
+    // row is dropped (UNIQUE email collision), but the Experiment row
+    // gets imported referencing a userId that no longer exists in
+    // main → orphan FK violation.
+    //
+    // Pre-DB-002 behaviour: merge committed and returned success with
+    // a `warnings` field carrying the FK violation that nothing in the
+    // UI ever read.  New behaviour: merge ABORTS (Err), the
+    // transaction is rolled back, and main is identical to its
+    // pre-merge state.
     let (conn, dir) = setup_merge(MAIN_SCHEMA, MAIN_SCHEMA);
 
     conn.execute(
         "INSERT INTO User (id, name, email, role) VALUES ('user-A-main', 'Main User', 'shared@test.com', 'operator')",
         [],
     ).unwrap();
+    let pre_merge_user_count = count_users(&conn);
+    let pre_merge_experiment_count = count_experiments(&conn);
 
     {
         let src = Connection::open(dir.join("source.db")).unwrap();
@@ -482,13 +499,27 @@ fn merge_fk_collision_does_not_fail() {
     reattach(&conn, &dir);
     let result = merge_attached_databases(&conn, false);
     assert!(
-        result.is_ok(),
-        "Merge must not fail on FK collision: {:?}",
-        result
+        result.is_err(),
+        "Merge must REFUSE to commit when FK violations remain — got Ok({:?})",
+        result.ok(),
     );
-    let (imported, _) = result.unwrap();
-    assert_eq!(imported, 1);
+    // RAII rollback: main DB state is preserved exactly as it was.
+    assert_eq!(
+        count_users(&conn),
+        pre_merge_user_count,
+        "User count must be unchanged after aborted merge",
+    );
+    assert_eq!(
+        count_experiments(&conn),
+        pre_merge_experiment_count,
+        "Experiment count must be unchanged after aborted merge",
+    );
     cleanup(&dir);
+}
+
+fn count_users(conn: &Connection) -> u64 {
+    conn.query_row("SELECT COUNT(*) FROM User", [], |row| row.get(0))
+        .unwrap_or(0)
 }
 
 #[test]

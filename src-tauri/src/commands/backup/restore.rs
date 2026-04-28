@@ -253,7 +253,12 @@ pub async fn backup_import_db(
         }
 
         // --- 4. ATTACH + MERGE with FK checks OFF (RAII guard) ---------------------
-        let (imported, fk_warnings) = {
+        //
+        // The FK integrity check is now inside merge_attached_databases,
+        // BEFORE the transaction commits.  See DB-002 note in that
+        // function: any violation aborts the merge via RAII rollback,
+        // so reaching this scope means the merge committed cleanly.
+        let imported = {
             let conn = db_pool.get().map_err(AppError::Pool)?;
 
             // FkGuard: FK OFF now, ON guaranteed when `_fk_guard` drops (any path).
@@ -268,33 +273,18 @@ pub async fn backup_import_db(
             let _ = conn.execute_batch("DETACH DATABASE src");
 
             let (new_count, _) = merge_result?;
-
-            // Post-merge FK consistency check (P1-1).
-            // FkGuard has already scheduled FK ON for drop, but we re-enable
-            // now so foreign_key_check runs with FK enforcement active.
-            conn.execute_batch("PRAGMA foreign_keys = ON").ok();
-            let warnings = check_foreign_key_violations(&conn);
-            if !warnings.is_empty() {
-                tracing::warn!("Post-merge FK violations ({}): {:?}", warnings.len(), warnings);
-            }
-
-            (new_count, warnings)
+            new_count
         };
 
         let skipped = total_in_source.saturating_sub(imported);
         tracing::info!(
-            "Merge complete: imported={}, skipped={}, source_total={}, fk_warnings={}",
+            "Merge complete: imported={}, skipped={}, source_total={}",
             imported,
             skipped,
             total_in_source,
-            fk_warnings.len(),
         );
 
-        let mut result = MergeResult::ok(imported, skipped);
-        if !fk_warnings.is_empty() {
-            result.warnings = Some(fk_warnings);
-        }
-        Ok(result)
+        Ok(MergeResult::ok(imported, skipped))
     })
     .await?
 }
@@ -409,6 +399,39 @@ fn merge_attached_databases(conn: &rusqlite::Connection, has_fts: bool) -> Resul
         {
             tracing::warn!("FTS5 rebuild failed: {}", e);
         }
+    }
+
+    // DB-002 (audit-preflight): fail-closed FK integrity check BEFORE commit.
+    //
+    // The merge ran with FK enforcement disabled to allow tables to be
+    // populated in any order.  Re-enable enforcement now and run
+    // `PRAGMA foreign_key_check` while still inside the transaction —
+    // any violation aborts the merge via the RAII drop of `tx`, leaving
+    // main DB in its pre-merge state.  Previously violations were merely
+    // logged and the merge committed with orphaned rows; the user saw
+    // a green success result and silently broken cascade behaviour.
+    tx.execute_batch("PRAGMA foreign_keys = ON").ok();
+    let violations = check_foreign_key_violations(&tx);
+    if !violations.is_empty() {
+        tracing::warn!(
+            "Aborting import: {} FK violation(s) detected — main DB unchanged",
+            violations.len()
+        );
+        // Drop tx before returning (RAII rollback).
+        drop(tx);
+        return Err(AppError::BadRequest(format!(
+            "Импорт отменён: внешняя БД содержит {} нарушений целостности \
+             (foreign key) после merge. Главная база оставлена БЕЗ изменений. \
+             Используйте чистый бэкап или восстановите источник. Подробности \
+             в логах. Первые: {}",
+            violations.len(),
+            violations
+                .iter()
+                .take(3)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("; ")
+        )));
     }
 
     tx.commit()?;
