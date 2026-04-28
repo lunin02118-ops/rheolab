@@ -375,26 +375,39 @@ impl LicenseEngine {
     // ── Deactivate ─────────────────────────────────────────────────────
 
     /// Deactivate the current license: unbind from server, remove from DB.
+    ///
+    /// **Pool discipline**: a SQLite connection is acquired in three short
+    /// scopes (read key → delete row → re-check demo) and is **never held
+    /// across the network `.await`** to `deactivate_online`.  This avoids
+    /// occupying one of the 8 pool slots for the duration of the HTTP
+    /// timeout (up to ~30 s) while other IPC commands compete for a slot.
     pub async fn deactivate(&self, db_pool: &DbPool) -> Result<LicenseCheckResult> {
-        let conn = db_pool.get().map_err(AppError::Pool)?;
+        // Scope 1: read the stored key (sync, sub-millisecond), then drop conn.
+        let stored_key: Option<String> = {
+            let conn = db_pool.get().map_err(AppError::Pool)?;
+            self.load_verified_license(&conn).and_then(|(value, _sig)| {
+                let data: Value = serde_json::from_str(&value).unwrap_or(serde_json::json!({}));
+                data["key"].as_str().map(|s| s.to_string())
+            })
+        };
 
-        // Try to get the stored key for server deactivation
-        if let Some((value, _sig)) = self.load_verified_license(&conn) {
-            let data: Value = serde_json::from_str(&value).unwrap_or(serde_json::json!({}));
-            if let Some(key) = data["key"].as_str() {
-                // Best-effort server deactivation — don't fail if offline
-                match deactivate_online(key, &self.app_data_dir).await {
-                    Ok(_) => tracing::info!("License deactivated on server"),
-                    Err(e) => tracing::warn!("Server deactivation failed (will retry): {}", e),
-                }
+        // Network round-trip — no DB connection held.
+        if let Some(ref key) = stored_key {
+            // Best-effort server deactivation — don't fail if offline
+            match deactivate_online(key, &self.app_data_dir).await {
+                Ok(_) => tracing::info!("License deactivated on server"),
+                Err(e) => tracing::warn!("Server deactivation failed (will retry): {}", e),
             }
         }
 
-        // Remove from DB regardless of server result
-        delete_system_state(&conn, DB_KEY_LICENSE)?;
+        // Scope 2: delete row + check demo — fresh connection, short hold.
+        let result = {
+            let conn = db_pool.get().map_err(AppError::Pool)?;
+            delete_system_state(&conn, DB_KEY_LICENSE)?;
+            // Re-check (will fall through to demo, no network needed after deactivation)
+            check_demo(&conn, None)
+        };
 
-        // Re-check (will fall through to demo, no network needed after deactivation)
-        let result = check_demo(&conn, None);
         self.set_cache(result.clone()).await;
         Ok(result)
     }
