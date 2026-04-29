@@ -282,8 +282,11 @@ pub async fn reports_generate_comparison_pdf_by_ids(
 
     let pool = state.db_pool.clone();
     let bytes = tokio::task::spawn_blocking(move || {
-        let conn = pool.get().map_err(AppError::Pool)?;
-        generate_comparison_pdf_by_ids_bytes(&conn, &request)
+        let experiments = {
+            let conn = pool.get().map_err(AppError::Pool)?;
+            load_comparison_experiments_by_ids(&conn, &request)?
+        };
+        generate_comparison_pdf_by_ids_bytes_from_experiments(&experiments, &request)
     })
     .await??;
     Ok(tauri::ipc::Response::new(bytes))
@@ -316,8 +319,11 @@ pub async fn reports_generate_comparison_excel_by_ids(
 
     let pool = state.db_pool.clone();
     let bytes = tokio::task::spawn_blocking(move || {
-        let conn = pool.get().map_err(AppError::Pool)?;
-        generate_comparison_excel_by_ids_bytes(&conn, &request)
+        let experiments = {
+            let conn = pool.get().map_err(AppError::Pool)?;
+            load_comparison_experiments_by_ids(&conn, &request)?
+        };
+        generate_comparison_excel_by_ids_bytes_from_experiments(&experiments, &request)
     })
     .await??;
     Ok(tauri::ipc::Response::new(bytes))
@@ -333,7 +339,15 @@ fn generate_comparison_pdf_by_ids_bytes(
     conn: &rusqlite::Connection,
     request: &ComparisonReportByIdsRequest,
 ) -> Result<Vec<u8>> {
-    let input = build_comparison_report_input_by_ids(conn, request)?;
+    let experiments = load_comparison_experiments_by_ids(conn, request)?;
+    generate_comparison_pdf_by_ids_bytes_from_experiments(&experiments, request)
+}
+
+fn generate_comparison_pdf_by_ids_bytes_from_experiments(
+    experiments: &[StoredExperiment],
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<u8>> {
+    let input = build_comparison_report_input_from_experiments(experiments, request)?;
     rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
         tracing::error!("Comparison PDF by IDs generation failed: {}", error);
         AppError::Other(format!(
@@ -353,7 +367,15 @@ fn generate_comparison_excel_by_ids_bytes(
     conn: &rusqlite::Connection,
     request: &ComparisonReportByIdsRequest,
 ) -> Result<Vec<u8>> {
-    let input = build_comparison_report_input_by_ids(conn, request)?;
+    let experiments = load_comparison_experiments_by_ids(conn, request)?;
+    generate_comparison_excel_by_ids_bytes_from_experiments(&experiments, request)
+}
+
+fn generate_comparison_excel_by_ids_bytes_from_experiments(
+    experiments: &[StoredExperiment],
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<u8>> {
+    let input = build_comparison_report_input_from_experiments(experiments, request)?;
     rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
         tracing::error!("Comparison Excel by IDs generation failed: {}", error);
         AppError::Other(format!(
@@ -367,6 +389,14 @@ fn build_comparison_report_input_by_ids(
     conn: &rusqlite::Connection,
     request: &ComparisonReportByIdsRequest,
 ) -> Result<ComparisonReportInput> {
+    let experiments = load_comparison_experiments_by_ids(conn, request)?;
+    build_comparison_report_input_from_experiments(&experiments, request)
+}
+
+fn load_comparison_experiments_by_ids(
+    conn: &rusqlite::Connection,
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<StoredExperiment>> {
     let experiments = load_experiments_batch(conn, &request.experiment_ids)?;
     let found_ids = experiments
         .iter()
@@ -384,7 +414,13 @@ fn build_comparison_report_input_by_ids(
             missing.join(", ")
         )));
     }
+    Ok(experiments)
+}
 
+fn build_comparison_report_input_from_experiments(
+    experiments: &[StoredExperiment],
+    request: &ComparisonReportByIdsRequest,
+) -> Result<ComparisonReportInput> {
     let experiments = experiments
         .iter()
         .map(|experiment| build_comparison_experiment_entry(experiment, &request.settings))
