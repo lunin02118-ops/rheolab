@@ -7,6 +7,7 @@ const rehydrateIfNeeded = vi.fn().mockResolvedValue(undefined);
 const updateDisplaySettings = vi.fn();
 const addExperiment = vi.fn().mockReturnValue(true);
 const removeExperiment = vi.fn();
+const clearComparisonSelectorCache = vi.fn();
 
 vi.mock('@/lib/store/comparison-store', () => {
     const displaySettings = {
@@ -55,7 +56,7 @@ vi.mock('@/lib/store/comparison-store', () => {
 
 vi.mock('@/components/comparison/comparison-selector', () => ({
     ComparisonSelector: () => null,
-    clearComparisonSelectorCache: vi.fn(),
+    clearComparisonSelectorCache,
 }));
 
 vi.mock('@/components/comparison/comparison-chart-uplot', () => ({
@@ -76,14 +77,16 @@ describe('ComparisonPage cleanup', () => {
         updateDisplaySettings.mockClear();
         addExperiment.mockClear();
         removeExperiment.mockClear();
+        clearComparisonSelectorCache.mockClear();
     });
 
-    it('releases heavy comparison data on unmount', async () => {
+    it('releases heavy comparison data and selector cache on unmount', async () => {
         const { default: ComparisonPage } = await import('@/app/dashboard/comparison/page');
         const { unmount } = render(<ComparisonPage />);
 
         unmount();
 
         expect(releaseHeavyData).toHaveBeenCalledTimes(1);
+        expect(clearComparisonSelectorCache).toHaveBeenCalledTimes(1);
     });
 });

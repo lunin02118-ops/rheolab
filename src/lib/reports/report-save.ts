@@ -197,7 +197,6 @@ function downloadViaBrowser(blob: Blob, filename: string): void {
 }
 
 function downloadBytesViaBrowser(bytes: Uint8Array, filename: string, mimeType: string): void {
-    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-    const blob = new Blob([buffer], { type: mimeType });
+    const blob = new Blob([bytes], { type: mimeType });
     downloadViaBrowser(blob, filename);
 }

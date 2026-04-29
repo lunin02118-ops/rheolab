@@ -148,8 +148,12 @@ Comparison runner caveats:
   `COMPARISON_SMOKE_N=3 npm run perf:comparison:tauri:memory`. This opt-in
   mode writes per-phase `memory_steps` into the sidecar, including
   `before_setup`, `after_save_N`, `after_add_N`, `after_pdf`,
-  `after_xlsx`, and `after_route_leave`. It intentionally adds measurement
-  overhead and should not be mixed into latency p50/p95 claims.
+  `after_xlsx`, `after_export_gc_hint`, and `after_route_leave`. The
+  `after_export_gc_hint` phase runs only in memory-step mode after a
+  best-effort renderer cleanup hint plus CDP `HeapProfiler.collectGarbage`;
+  use it to separate reclaimable export buffers from true post-export
+  retention. This mode intentionally adds measurement overhead and should not
+  be mixed into latency p50/p95 claims.
 - N=10 is skipped by the runtime comparison cap of 8.
 
 ## Runtime Hardening Validation
