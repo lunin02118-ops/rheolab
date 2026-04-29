@@ -41,6 +41,8 @@ interface UseRheologyChartOptionsParams {
     viscosityDisplayUnit: ViscosityUnit;
     showTouchPoints: boolean;
     targetTime: number;
+    onZoomRange?: (min: number, max: number) => void;
+    onResetRange?: () => void;
     language?: 'ru' | 'en';
 }
 
@@ -62,6 +64,8 @@ export function useRheologyChartOptions({
     viscosityDisplayUnit,
     showTouchPoints,
     targetTime,
+    onZoomRange,
+    onResetRange,
     language = 'ru',
 }: UseRheologyChartOptionsParams): uPlot.Options {
     const { resolvedTheme } = useTheme();
@@ -154,7 +158,7 @@ export function useRheologyChartOptions({
                         }),
                     ]
                     : []),
-                zoomPlugin(),
+                zoomPlugin({ onZoom: onZoomRange, onReset: onResetRange }),
                 // touchPointsPlugin reads .current inside uPlot's draw-hook
                 // callback (event-handler context), not during React render.
                 // eslint-disable-next-line react-hooks/refs
@@ -205,5 +209,5 @@ export function useRheologyChartOptions({
                 sBathTemperature,
             }),
         };
-    }, [activeSettings, chartSettings, showTemperature, showShearRate, showPressure, showRpm, showBathTemperature, pdfMode, captureMode, effectiveShearRateAxis, effectivePressureAxis, axisMode, resolvedTheme, language]);
+    }, [activeSettings, chartSettings, showTemperature, showShearRate, showPressure, showRpm, showBathTemperature, pdfMode, captureMode, effectiveShearRateAxis, effectivePressureAxis, axisMode, resolvedTheme, language, onZoomRange, onResetRange]);
 }
