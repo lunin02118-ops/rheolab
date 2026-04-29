@@ -192,6 +192,14 @@ pub(crate) fn persist_experiment(
         .map_err(|e| format!("SQL error (experiment data insert): {}", e))?;
     }
 
+    if let Err(e) = invalidate_analysis_artifacts_for_experiment(conn, &exp.id) {
+        tracing::warn!(
+            "analysis artifact cache invalidation failed for {}: {}",
+            exp.id,
+            e
+        );
+    }
+
     // PR2: Precompute touch-point metrics under the fixed library contract
     // (threshold = 50 cP, target_time = 10 min) so the experiment-library
     // filter sidebar can answer range queries without rescanning the
@@ -245,4 +253,24 @@ pub(crate) fn persist_experiment(
     }
 
     Ok(())
+}
+
+fn invalidate_analysis_artifacts_for_experiment(
+    conn: &rusqlite::Connection,
+    experiment_id: &str,
+) -> Result<()> {
+    match conn.execute(
+        "DELETE FROM AnalysisArtifact WHERE experimentId = ?1",
+        params![experiment_id],
+    ) {
+        Ok(_) => Ok(()),
+        Err(error)
+            if error
+                .to_string()
+                .contains("no such table: AnalysisArtifact") =>
+        {
+            Ok(())
+        }
+        Err(error) => Err(format!("SQL error (analysis artifact invalidation): {}", error).into()),
+    }
 }

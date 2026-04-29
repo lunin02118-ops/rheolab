@@ -19,7 +19,9 @@ mod read;
 mod write;
 
 pub(crate) use delete::delete_experiment;
-pub(crate) use read::{find_duplicate, load_experiment_by_id, load_experiments_batch};
+pub(crate) use read::{
+    find_duplicate, load_experiment_by_id, load_experiment_data_hashes, load_experiments_batch,
+};
 pub(crate) use write::persist_experiment;
 
 // ── Trait ─────────────────────────────────────────────────────────────────────

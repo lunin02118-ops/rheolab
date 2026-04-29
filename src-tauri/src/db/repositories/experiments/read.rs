@@ -5,6 +5,8 @@ use crate::commands::experiments::types::{
 use crate::error::Result;
 use rusqlite::{params, OptionalExtension};
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 
 /// Load a single experiment by primary key, including reagents and columnar data.
 /// This was previously `crud::load_experiment_by_id`.
@@ -419,6 +421,40 @@ pub(crate) fn load_experiments_batch(
 
     // Return in the same order as `ids`, omitting not-found entries.
     Ok(ids.iter().filter_map(|id| experiments.remove(id)).collect())
+}
+
+/// Return sha256 hashes of the compressed ExperimentData blobs for the
+/// requested experiments. Missing legacy rows are omitted so callers can
+/// choose a fallback key material.
+pub(crate) fn load_experiment_data_hashes(
+    conn: &rusqlite::Connection,
+    ids: &[String],
+) -> Result<HashMap<String, String>> {
+    if ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let ph: String = std::iter::repeat("?")
+        .take(ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
+    let sql =
+        format!("SELECT experimentId, dataBlob FROM ExperimentData WHERE experimentId IN ({ph})");
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|e| format!("SQL blob hash batch error: {}", e))?;
+    let rows = stmt
+        .query_map(rusqlite::params_from_iter(ids.iter()), |row| {
+            let experiment_id = row.get::<_, String>(0)?;
+            let blob = row.get::<_, Vec<u8>>(1)?;
+            let digest = Sha256::digest(&blob);
+            Ok((experiment_id, hex::encode(digest)))
+        })
+        .map_err(|e| format!("SQL blob hash batch error: {}", e))?
+        .collect::<rusqlite::Result<HashMap<_, _>>>()
+        .map_err(|e| format!("SQL blob hash row error: {}", e))?;
+
+    Ok(rows)
 }
 
 /// Find a duplicate experiment by filename + date + name.

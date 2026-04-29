@@ -12,8 +12,6 @@ export type AiDiagnostics = { attempted: boolean; provider: string; model: strin
 
 export type AiDiagnosticsStatus = "accepted" | "failed" | "rejected"
 
-export type AnalysisCacheKeyMaterial = { experimentId: string; experimentDataHash: string; geometry: string; analysisSettingsHash: string; reportViscosityRatesHash: string; rheolabCoreVersion: string; algorithmVersion: number }
-
 export type ApiKeyCreatePayload = { name: string; key: string; provider: string | null }
 
 export type ApiKeyDeleteResponse = { success: boolean; error?: string | null }

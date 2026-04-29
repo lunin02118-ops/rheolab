@@ -169,6 +169,17 @@ long tasks is worse than 5 paths producing 6 each.
 | `npm run perf:library:budgets` extraction script | **done** — Sprint 2 / S2-L3, commit #5 |
 | `REPORTS-NATIVE-BY-IDS-VALIDATION.md` native comparison report validation | **done** — Sprint 2 closeout; PDF/XLSX fixture-backed N=5/N=10 captured |
 
+## Sprint 3 deliverables tracker
+
+| Deliverable | Status |
+|---|---|
+| `AnalysisArtifact` migration, repository, stable key, and `json+zstd:v1` codec | **initial vertical slice done** — comparison by-IDs cache path stores and hits artifacts; key tests cover data hash, geometry, analysis settings, detection settings, report rates, core version, and algorithm version |
+| Comparison PDF/XLSX by-IDs cache integration | **done for initial slice** — cold path runs analysis and stores artifact; warm path decodes cached `AnalysisOutput`; corrupt cache is deleted and recomputed |
+| Cold vs warm validation | **captured** — see `ANALYSIS-ARTIFACT-CACHE-VALIDATION.md`; PDF N=5 full-render mean improved 0.9%, XLSX N=5 was effectively flat (-0.05%) |
+| Budget action | **no tightening yet** — full PDF/XLSX render dominates this debug Rust bench; keep `L-CMP-PDF-5` and `L-CMP-XLSX-5` budgets unchanged until release-mode or scheduler job metrics show a stable win |
+| CPU/RAM action | **deferred to Sprint 4 instrumentation** — Sprint 3 cache bench records wall time, bytes, artifact rows, and hit counts only |
+| Dashboard/single-report cache adoption | **deferred** — current dashboard/single-report IPC uses mutable frontend payloads; persistent cache needs by-id contracts before keying by DB blob is safe |
+
 ## Binary size note (corrected)
 
 An earlier draft of this document estimated the installer at “~80 MB”. The

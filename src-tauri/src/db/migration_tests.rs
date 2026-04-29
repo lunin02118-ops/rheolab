@@ -12,6 +12,7 @@ use crate::db::migrations::v0004_experiment_list_default_index::V0004ExperimentL
 use crate::db::migrations::v0005_reagent_and_testtype_indexes::V0005ReagentAndTestTypeIndexes;
 use crate::db::migrations::v0006_artifact_import_batch_indexes::V0006ArtifactImportBatchIndexes;
 use crate::db::migrations::v0007_fk_indexes::V0007FkIndexes;
+use crate::db::migrations::v0008_analysis_artifact::V0008AnalysisArtifact;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -74,6 +75,7 @@ fn migration_v1_creates_all_tables() {
 
     let expected = vec![
         "APIKey",
+        "AnalysisArtifact",
         "Calibration",
         "ConflictRecord",
         "Experiment",
@@ -103,7 +105,7 @@ fn migration_v1_creates_all_tables() {
     ];
     assert_eq!(
         tables, expected,
-        "All 23 tables should be created by V1_DDL + v0003 side table"
+        "All 24 tables should be created by V1_DDL + v0003 side table + v0008 cache table"
     );
 }
 
@@ -523,6 +525,8 @@ fn schema_identity_with_raw_ddl() {
     V0006ArtifactImportBatchIndexes.up(&conn_b).unwrap();
     // v0007 — DB-003 FK column indexes (Experiment.waterSourceId, ExperimentReagent.reagentId).
     V0007FkIndexes.up(&conn_b).unwrap();
+    // v0008 — AnalysisArtifact cache table.
+    V0008AnalysisArtifact.up(&conn_b).unwrap();
 
     fn dump(conn: &Connection) -> Vec<String> {
         let mut stmt = conn

@@ -137,7 +137,7 @@ impl RegroupByPatternInput {
 }
 
 /// Shared output shape for commands that return cycles + results + steps.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnalysisOutput {
     pub cycles: Vec<RheoCycle>,
