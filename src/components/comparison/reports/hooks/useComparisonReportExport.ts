@@ -11,6 +11,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import type { Experiment } from '@/types';
+import type { ComparisonReportByIdsRequest } from '@/types/tauri';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import type { ComparisonDisplaySettings } from '@/lib/store/comparison-store';
 import type { ComparisonReportEntrySource } from '@/lib/reports/comparison-builders';
@@ -31,7 +32,9 @@ import {
 } from '@/lib/reports/comparison-experiment-adapter';
 import {
     generateComparisonExcelReportBlob,
+    generateComparisonExcelReportByIdsBlob,
     generateComparisonPdfReportBlob,
+    generateComparisonPdfReportByIdsBlob,
 } from '@/lib/reports/client';
 import { saveBlob, saveBlobsToDir, type SaveBlobItem } from '@/lib/reports/report-save';
 import { EXPERIMENT_COLORS } from '@/components/comparison/comparison-chart-constants';
@@ -148,6 +151,20 @@ const DEFAULT_SECTION_TOGGLES: ComparisonSectionToggles = {
     showWaterAnalysis: false,
     showRheology: true,
 };
+
+function isLegacyComparisonExportForced(): boolean {
+    try {
+        return localStorage.getItem('rheolab.comparisonReports.forceLegacy') === '1';
+    } catch {
+        return false;
+    }
+}
+
+function shouldFallbackToLegacyComparisonExport(error: unknown): boolean {
+    const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+    return message.includes('reports_generate_comparison_pdf_by_ids')
+        || message.includes('reports_generate_comparison_excel_by_ids');
+}
 
 // ── Sprint 0 / S0-6: comparison-flow perf instrumentation ──────────────────
 //
@@ -293,6 +310,102 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         ],
     );
 
+    const buildByIdsRequest = useCallback((): ComparisonReportByIdsRequest => ({
+        experimentIds: options.experiments.map((exp) => exp.id),
+        settings: {
+            language: options.language,
+            unitSystem: options.unitSystem,
+            companyName: options.companyName || undefined,
+            companyLogoBase64: options.companyLogo ?? undefined,
+            generatedAt: new Date().toISOString(),
+            comparisonChart: comparisonChartConfig,
+            sectionToggles: {
+                ...DEFAULT_SECTION_TOGGLES,
+                showCalibration: options.showCalibration,
+                showRawData: options.showRawData,
+                showRecipe: options.showRecipe,
+                showWaterAnalysis: options.showWaterAnalysis,
+                showRheology: options.showRheology,
+            },
+            reportSettings: {
+                showTemperature: options.chartSettings.lines.temperature.visible,
+                showShearRate: options.chartSettings.lines.shearRate.visible,
+                showPressure: options.chartSettings.lines.pressure.visible,
+                showBathTemperature: options.chartSettings.lines.bathTemperature.visible,
+                shearRateAxis: options.chartSettings.lines.shearRate.axis,
+                pressureAxis: options.chartSettings.lines.pressure.axis,
+                showAdvancedStats: options.isExpert,
+                reportViscosityRates: options.reportViscosityRates,
+                rheologyUnits: {
+                    viscosity: options.chartSettings.rheologyUnits.viscosity,
+                    temperature: options.chartSettings.rheologyUnits.temperature,
+                    pressure: options.chartSettings.rheologyUnits.pressure,
+                    consistency: options.chartSettings.rheologyUnits.consistency,
+                    plasticViscosity: options.chartSettings.rheologyUnits.plasticViscosity,
+                    yieldPoint: options.chartSettings.rheologyUnits.yieldPoint,
+                    timeFormat: options.chartSettings.rheologyUnits.timeFormat,
+                },
+            },
+            analysisSettings: {
+                pointsToAverage: 0,
+                viscosityShearRates: options.reportViscosityRates,
+            },
+        },
+    }), [
+        comparisonChartConfig,
+        options.experiments,
+        options.language,
+        options.unitSystem,
+        options.companyName,
+        options.companyLogo,
+        options.showCalibration,
+        options.showRawData,
+        options.showRecipe,
+        options.showWaterAnalysis,
+        options.showRheology,
+        options.chartSettings,
+        options.isExpert,
+        options.reportViscosityRates,
+    ]);
+
+    const generateLegacyPdfBlob = useCallback(async () => {
+        const payload = await withPerf('pdf:buildPayload', () => buildPayload('pdf'));
+        return await withPerf('pdf:ipcRoundtrip', () => generateComparisonPdfReportBlob(payload));
+    }, [buildPayload]);
+
+    const generateLegacyExcelBlob = useCallback(async () => {
+        const payload = await withPerf('excel:buildPayload', () => buildPayload('excel'));
+        return await withPerf('excel:ipcRoundtrip', () => generateComparisonExcelReportBlob(payload));
+    }, [buildPayload]);
+
+    const generatePdfBlob = useCallback(async () => {
+        if (isLegacyComparisonExportForced()) {
+            return await generateLegacyPdfBlob();
+        }
+        const request = buildByIdsRequest();
+        try {
+            return await withPerf('pdf:byIdsRoundtrip', () => generateComparisonPdfReportByIdsBlob(request));
+        } catch (err) {
+            if (!shouldFallbackToLegacyComparisonExport(err)) throw err;
+            logger.warn('[ComparisonReport] PDF by-ids export unavailable, falling back to legacy payload:', err);
+            return await generateLegacyPdfBlob();
+        }
+    }, [buildByIdsRequest, generateLegacyPdfBlob]);
+
+    const generateExcelBlob = useCallback(async () => {
+        if (isLegacyComparisonExportForced()) {
+            return await generateLegacyExcelBlob();
+        }
+        const request = buildByIdsRequest();
+        try {
+            return await withPerf('excel:byIdsRoundtrip', () => generateComparisonExcelReportByIdsBlob(request));
+        } catch (err) {
+            if (!shouldFallbackToLegacyComparisonExport(err)) throw err;
+            logger.warn('[ComparisonReport] Excel by-ids export unavailable, falling back to legacy payload:', err);
+            return await generateLegacyExcelBlob();
+        }
+    }, [buildByIdsRequest, generateLegacyExcelBlob]);
+
     const baseFilename = useMemo(() => {
         const date = new Date().toISOString().split('T')[0];
         return `comparison-report_${date}`;
@@ -308,12 +421,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setIsExporting(true);
         setExportError(null);
         try {
-            // S0-6 split: TS adapter (buildPayload) is what Sprint 1's
-            // by-ids native pipeline will eliminate.  Keeping it as its
-            // own measurement makes the win quantifiable.
-            const payload = await withPerf('pdf:buildPayload', () => buildPayload('pdf'));
-            const blob = await withPerf('pdf:ipcRoundtrip',
-                () => generateComparisonPdfReportBlob(payload));
+            const blob = await generatePdfBlob();
             await withPerf('pdf:saveBlob', () => saveBlob({
                 blob,
                 filename: `${baseFilename}.pdf`,
@@ -326,7 +434,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         } finally {
             setIsExporting(false);
         }
-    }, [options.experiments.length, buildPayload, baseFilename]);
+    }, [options.experiments.length, generatePdfBlob, baseFilename]);
 
     const handleDownloadExcel = useCallback(async () => {
         if (options.experiments.length === 0) {
@@ -336,9 +444,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setIsExcelExporting(true);
         setExportError(null);
         try {
-            const payload = await withPerf('excel:buildPayload', () => buildPayload('excel'));
-            const blob = await withPerf('excel:ipcRoundtrip',
-                () => generateComparisonExcelReportBlob(payload));
+            const blob = await generateExcelBlob();
             await withPerf('excel:saveBlob', () => saveBlob({
                 blob,
                 filename: `${baseFilename}.xlsx`,
@@ -351,7 +457,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         } finally {
             setIsExcelExporting(false);
         }
-    }, [options.experiments.length, buildPayload, baseFilename]);
+    }, [options.experiments.length, generateExcelBlob, baseFilename]);
 
     /**
      * Emit both PDF and XLSX side-by-side via a single folder picker.
@@ -372,13 +478,9 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setExportError(null);
         try {
             const items: SaveBlobItem[] = [];
-            const pdfPayload = await withPerf('all:pdf:buildPayload', () => buildPayload('pdf'));
-            const pdfBlob = await withPerf('all:pdf:ipcRoundtrip',
-                () => generateComparisonPdfReportBlob(pdfPayload));
+            const pdfBlob = await generatePdfBlob();
             items.push({ blob: pdfBlob, filename: `${baseFilename}.pdf` });
-            const excelPayload = await withPerf('all:excel:buildPayload', () => buildPayload('excel'));
-            const excelBlob = await withPerf('all:excel:ipcRoundtrip',
-                () => generateComparisonExcelReportBlob(excelPayload));
+            const excelBlob = await generateExcelBlob();
             items.push({ blob: excelBlob, filename: `${baseFilename}.xlsx` });
 
             await withPerf('all:saveBlobsToDir', () => saveBlobsToDir(items));
@@ -390,7 +492,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             setIsExporting(false);
             setIsExcelExporting(false);
         }
-    }, [options.experiments.length, handleDownloadPdf, handleDownloadExcel, buildPayload, baseFilename]);
+    }, [options.experiments.length, handleDownloadPdf, handleDownloadExcel, generatePdfBlob, generateExcelBlob, baseFilename]);
 
     const clearError = useCallback(() => setExportError(null), []);
 
