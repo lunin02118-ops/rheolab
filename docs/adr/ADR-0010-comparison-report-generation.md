@@ -275,6 +275,42 @@ interface ComparisonReportInput {
 
 ---
 
+## 4.6 Post-Sprint-2 architecture — native by-IDs default
+
+Sprint 2 changes the default export path without changing the downstream PDF/XLSX renderer contract:
+
+```
+useComparisonReportExport
+  ├─ buildByIdsRequest({ experimentIds, settings, chartConfig, sectionToggles })
+  └─ generateComparisonPdfReportByIdsBlob / generateComparisonExcelReportByIdsBlob
+         │
+         ▼
+    reports_generate_comparison_pdf_by_ids / reports_generate_comparison_excel_by_ids
+         │
+         ├─ validate request + license caps before DB read
+         ├─ load experiments from SQLite by ID list
+         ├─ release pooled SQLite connection
+         ├─ run native analysis / assemble ComparisonReportInput in Rust
+         └─ call generate_comparison_pdf / generate_comparison_excel
+```
+
+The legacy payload commands remain registered only as rollback fallback for one alpha/beta window:
+
+- `reports_generate_comparison_pdf`
+- `reports_generate_comparison_excel`
+
+The frontend uses that legacy path only when the by-IDs IPC command is missing or when the emergency flag is set:
+
+```ts
+localStorage.setItem('rheolab.comparisonReports.forceLegacy', '1')
+```
+
+This means the original `ComparisonReportInput` shape is still the renderer contract, but it is no longer the default IPC contract. The default IPC payload is now bounded by experiment IDs plus settings, which removes the heavy TypeScript-side `comparison-experiment-adapter` work from normal exports and prepares the Rust path for Sprint 3's AnalysisArtifact cache.
+
+Validation is captured in `docs/performance/REPORTS-NATIVE-BY-IDS-VALIDATION.md`.
+
+---
+
 ## 5. Фазы внедрения
 
 ### Phase 1 — Backend plumbing (Rust)

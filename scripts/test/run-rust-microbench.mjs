@@ -8,6 +8,7 @@
  *
  * Supported targets (`--target`):
  *   - `pdf`       (default) — `bench_comparison_pdf`, S1-1
+ *   - `xlsx`                — `bench_comparison_pdf --format xlsx`, S2-3
  *   - `analysis`            — `bench_analysis_pipeline`, S1-2
  *
  * Three modes:
@@ -17,9 +18,8 @@
  *      index. Synthetic data only.
  *   2. **DB-sweep mode** (S2-L5, audit S1-AUD-002) — with `--fixture-db <path>`
  *      [+ `--all-experiments` | `--experiment-index N`], invokes the bench
- *      against real production-shaped fixtures from a SQLite seed DB. Only
- *      `analysis` target supports this currently (PDF gains support via
- *      Sprint 2 / S2-1.5). Writes a single
+ *      against real production-shaped fixtures from a SQLite seed DB. Both
+ *      `analysis` and `pdf` targets support this mode. Writes a single
  *      `dbsweep-<target>-<label>-<ts>.json` sidecar that
  *      `db-sweep-compare.mjs` already understands.
  *   3. **Compare mode** — given two existing sweep indexes via
@@ -77,7 +77,19 @@ const TARGETS = {
             { n: 10, durationHours: 4 },
         ],
         humanName: 'comparison PDF',
-        supportsFixtureDb: false, // gains support via Sprint 2 / S2-1.5
+        supportsFixtureDb: true,
+    },
+    xlsx: {
+        binary: 'bench_comparison_pdf',
+        schema: 'rheolab.microbench.xlsx_comparison.v1',
+        sweepSchema: 'rheolab.microbench.xlsx_comparison.sweep.v1',
+        defaultFixtures: [
+            { n: 3, durationHours: 4 },
+            { n: 5, durationHours: 4 },
+            { n: 10, durationHours: 4 },
+        ],
+        humanName: 'comparison XLSX',
+        supportsFixtureDb: true,
     },
     analysis: {
         binary: 'bench_analysis_pipeline',
@@ -232,8 +244,9 @@ function printHelp() {
     console.log(`Usage: node scripts/test/run-rust-microbench.mjs [OPTIONS]
 
 Targets:
-  --target NAME         pdf | analysis (default: pdf)
+  --target NAME         pdf | xlsx | analysis (default: pdf)
                         pdf      → bench_comparison_pdf       (S1-1)
+                        xlsx     → bench_comparison_pdf --format xlsx
                         analysis → bench_analysis_pipeline    (S1-2)
 
 Sweep mode (default, synthetic data):
@@ -242,10 +255,10 @@ Sweep mode (default, synthetic data):
   --iterations N        Iterations per fixture (default: 5)
   --label TEXT          Tag written into each JSON sidecar (e.g. "WITH-P10")
 
-DB-sweep mode (S2-L5; analysis target only currently):
+DB-sweep mode (S2-L5 + S2-1.5):
   --fixture-db PATH     Path to a SQLite seed DB (e.g. outputs/seed/rheolab-fixture-seed-small.db)
   --all-experiments     Sweep every experiment in the fixture DB; mutually exclusive with --experiment-index
-  --experiment-index N  Pick a single 0-based experiment from the fixture DB
+  --experiment-index N  Pick a 0-based experiment index (analysis) or first index (pdf)
   --iterations N        Iterations per experiment (default: 5; recommend 100 for stable corpus stats)
   --label TEXT          Tag for the JSON sidecar
   --quiet               Suppress per-iteration stdout from the bench (recommended for sweeps)
@@ -278,6 +291,9 @@ function runFixture(target, { n, durationHours }, iterations, label, ts) {
         '--duration-hours', String(durationHours),
         '--json', sidecar,
     ];
+    if (target === 'xlsx') {
+        args.push('--format', 'xlsx');
+    }
     if (label) {
         args.push('--label', label);
     }
@@ -329,7 +345,9 @@ function runSweep(opts) {
     // detected cycles for analysis.
     const trailing = target === 'pdf'
         ? { header: 'pdf_bytes mean', value: (r) => r.pdf_bytes_mean.toFixed(0) }
-        : { header: 'cycles/trace ', value: (r) => String(r.cycles_per_trace ?? '—') };
+        : target === 'xlsx'
+            ? { header: 'xlsx_bytes mean', value: (r) => r.xlsx_bytes_mean.toFixed(0) }
+            : { header: 'cycles/trace ', value: (r) => String(r.cycles_per_trace ?? '—') };
     console.log('');
     console.log(`# microbench:${target} sweep — ${opts.label ?? '(unlabeled)'} (${targetDef.humanName})`);
     console.log('');
@@ -386,6 +404,12 @@ function runDbSweep(opts) {
         '--iterations', String(opts.iterations),
         '--json', sidecar,
     ];
+    if ((target === 'pdf' || target === 'xlsx') && opts.fixtures?.length > 0) {
+        args.push('--n', String(opts.fixtures[0].n));
+    }
+    if (target === 'xlsx') {
+        args.push('--format', 'xlsx');
+    }
     if (opts.allExperiments) {
         args.push('--all-experiments');
     } else if (opts.experimentIndex !== null) {

@@ -282,8 +282,11 @@ pub async fn reports_generate_comparison_pdf_by_ids(
 
     let pool = state.db_pool.clone();
     let bytes = tokio::task::spawn_blocking(move || {
-        let conn = pool.get().map_err(AppError::Pool)?;
-        generate_comparison_pdf_by_ids_bytes(&conn, &request)
+        let experiments = {
+            let conn = pool.get().map_err(AppError::Pool)?;
+            load_comparison_experiments_by_ids(&conn, &request)?
+        };
+        generate_comparison_pdf_by_ids_bytes_from_experiments(&experiments, &request)
     })
     .await??;
     Ok(tauri::ipc::Response::new(bytes))
@@ -316,8 +319,11 @@ pub async fn reports_generate_comparison_excel_by_ids(
 
     let pool = state.db_pool.clone();
     let bytes = tokio::task::spawn_blocking(move || {
-        let conn = pool.get().map_err(AppError::Pool)?;
-        generate_comparison_excel_by_ids_bytes(&conn, &request)
+        let experiments = {
+            let conn = pool.get().map_err(AppError::Pool)?;
+            load_comparison_experiments_by_ids(&conn, &request)?
+        };
+        generate_comparison_excel_by_ids_bytes_from_experiments(&experiments, &request)
     })
     .await??;
     Ok(tauri::ipc::Response::new(bytes))
@@ -333,7 +339,15 @@ fn generate_comparison_pdf_by_ids_bytes(
     conn: &rusqlite::Connection,
     request: &ComparisonReportByIdsRequest,
 ) -> Result<Vec<u8>> {
-    let input = build_comparison_report_input_by_ids(conn, request)?;
+    let experiments = load_comparison_experiments_by_ids(conn, request)?;
+    generate_comparison_pdf_by_ids_bytes_from_experiments(&experiments, request)
+}
+
+fn generate_comparison_pdf_by_ids_bytes_from_experiments(
+    experiments: &[StoredExperiment],
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<u8>> {
+    let input = build_comparison_report_input_from_experiments(experiments, request)?;
     rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
         tracing::error!("Comparison PDF by IDs generation failed: {}", error);
         AppError::Other(format!(
@@ -353,7 +367,15 @@ fn generate_comparison_excel_by_ids_bytes(
     conn: &rusqlite::Connection,
     request: &ComparisonReportByIdsRequest,
 ) -> Result<Vec<u8>> {
-    let input = build_comparison_report_input_by_ids(conn, request)?;
+    let experiments = load_comparison_experiments_by_ids(conn, request)?;
+    generate_comparison_excel_by_ids_bytes_from_experiments(&experiments, request)
+}
+
+fn generate_comparison_excel_by_ids_bytes_from_experiments(
+    experiments: &[StoredExperiment],
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<u8>> {
+    let input = build_comparison_report_input_from_experiments(experiments, request)?;
     rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
         tracing::error!("Comparison Excel by IDs generation failed: {}", error);
         AppError::Other(format!(
@@ -367,6 +389,14 @@ fn build_comparison_report_input_by_ids(
     conn: &rusqlite::Connection,
     request: &ComparisonReportByIdsRequest,
 ) -> Result<ComparisonReportInput> {
+    let experiments = load_comparison_experiments_by_ids(conn, request)?;
+    build_comparison_report_input_from_experiments(&experiments, request)
+}
+
+fn load_comparison_experiments_by_ids(
+    conn: &rusqlite::Connection,
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<StoredExperiment>> {
     let experiments = load_experiments_batch(conn, &request.experiment_ids)?;
     let found_ids = experiments
         .iter()
@@ -384,7 +414,13 @@ fn build_comparison_report_input_by_ids(
             missing.join(", ")
         )));
     }
+    Ok(experiments)
+}
 
+fn build_comparison_report_input_from_experiments(
+    experiments: &[StoredExperiment],
+    request: &ComparisonReportByIdsRequest,
+) -> Result<ComparisonReportInput> {
     let experiments = experiments
         .iter()
         .map(|experiment| build_comparison_experiment_entry(experiment, &request.settings))
@@ -1830,12 +1866,14 @@ mod tests {
         ComparisonByIdsTouchPointConfig, ComparisonReportByIdsRequest,
         ComparisonReportByIdsSettings, ReportFormat,
     };
-    use crate::commands::experiments::types::StoredExperiment;
+    use crate::commands::experiments::types::{StoredExperiment, StoredExperimentReagent};
     use crate::commands::licensing::types::LicenseFeatures;
     use crate::db::migration::run_migrations;
     use crate::db::repositories::experiments::persist_experiment;
+    use calamine::Reader;
     use rheolab_core::RHEOLAB_CORE_VERSION;
     use serde_json::json;
+    use std::io::{Cursor, Read, Seek};
 
     /// Helper: build a `LicenseFeatures` with everything explicitly off.
     /// Tests then flip the specific flags they care about.
@@ -1945,7 +1983,31 @@ mod tests {
         }
     }
 
+    fn by_ids_raw_points(viscosity_offset: f64) -> Vec<serde_json::Value> {
+        let rates: [f64; 5] = [170.0, 100.0, 40.0, 100.0, 170.0];
+        let mut points = Vec::new();
+        for (step_idx, rate) in rates.iter().copied().enumerate() {
+            for sample_idx in 0..4 {
+                let time_sec = ((step_idx * 4 + sample_idx) as f64) * 10.0;
+                let stress = (1.0 + viscosity_offset / 1000.0) * 5.0 * rate.powf(0.72);
+                let viscosity = (stress / rate) * 1000.0 + sample_idx as f64;
+                points.push(json!({
+                    "time_sec": time_sec,
+                    "viscosity_cp": viscosity,
+                    "temperature_c": 25.0 + step_idx as f64,
+                    "shear_rate": rate,
+                    "shear_stress": stress,
+                    "pressure_bar": 10.0 + viscosity_offset / 10.0,
+                    "rpm": rate / 2.0,
+                    "bath_temperature_c": 24.0 + step_idx as f64,
+                }));
+            }
+        }
+        points
+    }
+
     fn stored_experiment_for_by_ids(id: &str, name: &str) -> StoredExperiment {
+        let viscosity_offset = if name == "Beta" { 75.0 } else { 0.0 };
         StoredExperiment {
             id: id.into(),
             created_at: "2026-04-29T00:00:00Z".into(),
@@ -1969,28 +2031,40 @@ mod tests {
             test_type: None,
             dominant_pattern: None,
             metrics: json!({}),
-            raw_points: vec![
-                json!({ "time_sec": 0.0, "viscosity_cp": 100.0, "temperature_c": 25.0, "shear_rate": 40.0, "shear_stress": 12.0 }),
-                json!({ "time_sec": 60.0, "viscosity_cp": 120.0, "temperature_c": 26.0, "shear_rate": 100.0, "shear_stress": 24.0 }),
-            ],
-            calibration: Some(json!({ "deviceType": "Grace M5600", "lastCalDate": "2026-04-01" })),
-            reagents: vec![],
-            max_viscosity: Some(120),
-            avg_viscosity: Some(110),
+            raw_points: by_ids_raw_points(viscosity_offset),
+            calibration: Some(json!({
+                "deviceType": "Grace M5600",
+                "lastCalDate": "2026-04-01",
+                "rSquared": 0.998,
+                "slope": 1.01,
+                "intercept": 0.02,
+                "status": "valid"
+            })),
+            reagents: vec![StoredExperimentReagent {
+                reagent_id: None,
+                reagent_name: Some("Guar Gum".into()),
+                concentration: 3.5,
+                unit: "kg/m3".into(),
+                batch_number: Some("B-42".into()),
+                production_date: Some("2026-04-01".into()),
+                category: Some("Polymer".into()),
+                reagent: None,
+            }],
+            max_viscosity: Some(1200),
+            avg_viscosity: Some(900),
             user: None,
             laboratory: None,
             parsed_by: None,
             parse_source: None,
             time_range_min: Some(0.0),
-            time_range_max: Some(1.0),
-            viscosity_min: Some(100.0),
-            pressure_max: None,
+            time_range_max: Some(190.0 / 60.0),
+            viscosity_min: Some(600.0),
+            pressure_max: Some(20.0),
             extra_fields: None,
         }
     }
 
-    #[test]
-    fn build_by_ids_report_input_loads_db_experiments_in_request_order() {
+    fn by_ids_fixture_db() -> (rusqlite::Connection, StoredExperiment, StoredExperiment) {
         let conn = rusqlite::Connection::open_in_memory().expect("in-memory db");
         conn.pragma_update(None, "foreign_keys", true)
             .expect("foreign keys");
@@ -2001,6 +2075,29 @@ mod tests {
         persist_experiment(&conn, &exp_a).expect("persist alpha");
         persist_experiment(&conn, &exp_b).expect("persist beta");
 
+        (conn, exp_a, exp_b)
+    }
+
+    fn open_xlsx(bytes: Vec<u8>) -> calamine::Xlsx<Cursor<Vec<u8>>> {
+        calamine::open_workbook_from_rs::<calamine::Xlsx<_>, _>(Cursor::new(bytes))
+            .expect("open xlsx")
+    }
+
+    fn worksheet_text<R: Read + Seek>(workbook: &mut calamine::Xlsx<R>, sheet: &str) -> String {
+        let range = workbook
+            .worksheet_range(sheet)
+            .unwrap_or_else(|| panic!("worksheet {sheet} should exist"))
+            .expect("worksheet range");
+        range
+            .rows()
+            .flat_map(|row| row.iter().map(ToString::to_string))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn build_by_ids_report_input_loads_db_experiments_in_request_order() {
+        let (conn, exp_a, exp_b) = by_ids_fixture_db();
         let mut request = valid_by_ids_request();
         request.experiment_ids = vec![exp_b.id.clone(), exp_a.id.clone()];
 
@@ -2011,39 +2108,121 @@ mod tests {
         assert_eq!(input.experiments[0].id, exp_b.id);
         assert_eq!(input.experiments[1].id, exp_a.id);
         assert_eq!(input.experiments[0].display_name, "Beta");
-        assert_eq!(input.experiments[0].report_input.raw_data.len(), 2);
-        assert!(input.experiments[0].report_input.axis_values.is_some());
+        let report = &input.experiments[0].report_input;
+        assert_eq!(report.raw_data.len(), 20);
+        assert!(!report.cycle_results.is_empty());
+        assert!(!report.cycles.is_empty());
+        assert!(report.axis_values.is_some());
+        assert_eq!(report.metadata.company_name.as_deref(), Some("RheoLab"));
+        assert_eq!(report.recipe.len(), 1);
+        assert_eq!(report.recipe[0].name, "Guar Gum");
         assert_eq!(
-            input.experiments[0]
-                .report_input
-                .metadata
-                .company_name
-                .as_deref(),
-            Some("RheoLab")
+            report.water_params.as_ref().and_then(|water| water.ph),
+            Some(7.1)
         );
+        assert_eq!(
+            report
+                .metadata
+                .calibration
+                .as_ref()
+                .and_then(|calibration| calibration.status.as_deref()),
+            Some("valid")
+        );
+        let cycle = &report.cycle_results[0];
+        assert!(cycle.n_prime > 0.0);
+        assert!(cycle.k_prime > 0.0);
+        assert!(cycle.r2 > 0.95);
+        for rate in ["40", "100", "170"] {
+            assert!(cycle.viscosities.contains_key(rate));
+        }
         assert_eq!(input.comparison_chart.metrics.primary, "viscosity_cp");
     }
 
     #[test]
+    fn build_by_ids_report_input_applies_optional_section_toggles() {
+        let (conn, _, _) = by_ids_fixture_db();
+        let mut request = valid_by_ids_request();
+        request.settings.section_toggles.show_calibration = false;
+        request.settings.section_toggles.show_raw_data = true;
+        request.settings.section_toggles.show_recipe = false;
+        request.settings.section_toggles.show_water_analysis = false;
+        request.settings.section_toggles.show_rheology = false;
+
+        let input =
+            build_comparison_report_input_by_ids(&conn, &request).expect("build report input");
+        let entry = &input.experiments[0];
+        let report = &entry.report_input;
+
+        assert!(!entry.section_toggles.show_calibration);
+        assert!(entry.section_toggles.show_raw_data);
+        assert!(!entry.section_toggles.show_recipe);
+        assert!(!entry.section_toggles.show_water_analysis);
+        assert!(!entry.section_toggles.show_rheology);
+        assert!(report.settings.show_raw_data);
+        assert!(!report.settings.show_calibration);
+        assert!(report.recipe.is_empty());
+        assert!(report.water_params.is_none());
+        assert!(!report.cycle_results.is_empty());
+    }
+
+    #[test]
+    fn build_by_ids_report_input_rejects_missing_ids_from_db() {
+        let (conn, _, _) = by_ids_fixture_db();
+        let mut request = valid_by_ids_request();
+        request.experiment_ids = vec![
+            "exp_aaaaaaaaaaaaaaaaaaaa".into(),
+            "exp_cccccccccccccccccccc".into(),
+        ];
+
+        let err = build_comparison_report_input_by_ids(&conn, &request)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("Experiment IDs not found: exp_cccccccccccccccccccc"));
+    }
+
+    #[test]
     fn comparison_excel_by_ids_generates_xlsx_from_db_experiments() {
-        let conn = rusqlite::Connection::open_in_memory().expect("in-memory db");
-        conn.pragma_update(None, "foreign_keys", true)
-            .expect("foreign keys");
-        run_migrations(&conn).expect("migrations");
-
-        let exp_a = stored_experiment_for_by_ids("exp_aaaaaaaaaaaaaaaaaaaa", "Alpha");
-        let exp_b = stored_experiment_for_by_ids("exp_bbbbbbbbbbbbbbbbbbbb", "Beta");
-        persist_experiment(&conn, &exp_a).expect("persist alpha");
-        persist_experiment(&conn, &exp_b).expect("persist beta");
-
-        let bytes = generate_comparison_excel_by_ids_bytes(&conn, &valid_by_ids_request())
+        let (conn, _, _) = by_ids_fixture_db();
+        let request = valid_by_ids_request();
+        let input =
+            build_comparison_report_input_by_ids(&conn, &request).expect("build report input");
+        let bytes = generate_comparison_excel_by_ids_bytes(&conn, &request)
             .expect("Excel by-ids generation should succeed");
+        let direct_bytes = rheolab_core::report_generator::generate_comparison_excel(&input)
+            .expect("direct Excel generation should succeed");
 
         assert!(!bytes.is_empty());
+        assert_eq!(bytes, direct_bytes);
         assert!(
             bytes.starts_with(b"PK"),
             "XLSX must start with ZIP signature"
         );
+
+        let mut workbook = open_xlsx(bytes.clone());
+        let sheet_names = workbook.sheet_names().to_vec();
+        for expected in ["Overlap Chart", "Alpha", "Beta", "_ChartData", "DebugInfo"] {
+            assert!(
+                sheet_names.iter().any(|name| name == expected),
+                "expected workbook sheet {expected}; got {sheet_names:?}"
+            );
+        }
+        let alpha_text = worksheet_text(&mut workbook, "Alpha");
+        for expected in [
+            "Summary",
+            "Recipe",
+            "Water Analysis",
+            "Rheology",
+            "Guar Gum",
+        ] {
+            assert!(
+                alpha_text.contains(expected),
+                "expected Alpha worksheet to contain {expected}"
+            );
+        }
+        let debug_text = worksheet_text(&mut workbook, "DebugInfo");
+        assert!(debug_text.contains("Experiments"));
+        assert!(debug_text.contains("2"));
 
         let as_str = String::from_utf8_lossy(&bytes);
         for n in 1..=5 {
@@ -2058,20 +2237,17 @@ mod tests {
 
     #[test]
     fn comparison_pdf_by_ids_generates_pdf_from_db_experiments() {
-        let conn = rusqlite::Connection::open_in_memory().expect("in-memory db");
-        conn.pragma_update(None, "foreign_keys", true)
-            .expect("foreign keys");
-        run_migrations(&conn).expect("migrations");
-
-        let exp_a = stored_experiment_for_by_ids("exp_aaaaaaaaaaaaaaaaaaaa", "Alpha");
-        let exp_b = stored_experiment_for_by_ids("exp_bbbbbbbbbbbbbbbbbbbb", "Beta");
-        persist_experiment(&conn, &exp_a).expect("persist alpha");
-        persist_experiment(&conn, &exp_b).expect("persist beta");
-
-        let bytes = generate_comparison_pdf_by_ids_bytes(&conn, &valid_by_ids_request())
+        let (conn, _, _) = by_ids_fixture_db();
+        let request = valid_by_ids_request();
+        let input =
+            build_comparison_report_input_by_ids(&conn, &request).expect("build report input");
+        let bytes = generate_comparison_pdf_by_ids_bytes(&conn, &request)
             .expect("PDF by-ids generation should succeed");
+        let direct_bytes = rheolab_core::report_generator::generate_comparison_pdf(&input)
+            .expect("direct PDF generation should succeed");
 
         assert!(!bytes.is_empty());
+        assert_eq!(bytes, direct_bytes);
         assert!(
             bytes.starts_with(b"%PDF"),
             "PDF must start with %PDF header"

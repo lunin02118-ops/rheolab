@@ -99,7 +99,7 @@ This neutral consequence will be revisited in a future ADR if the lint is ever e
 
 ---
 
-## 4. Existing exception (to be retired by Sprint 2)
+## 4. Existing exception (default path retired in Sprint 2; marker removal deferred)
 
 There is **one** active `LARGE-IPC-EXCEPTION` suppression in the codebase as of this ADR:
 
@@ -109,21 +109,38 @@ There is **one** active `LARGE-IPC-EXCEPTION` suppression in the codebase as of 
 
 This was added in Sprint 0 audit-v2 (commits `9fb902f`, `e77fb26`).
 
-### 4.1 Retirement plan (Sprint 2)
+### 4.1 Retirement plan
 
-Sprint 2 ships:
+Sprint 2 shipped:
 
-- **S2-1** — new IPC commands `reports_generate_comparison_pdf_by_ids(experiment_ids: Vec<String>, settings: ComparisonSettings)` and `_xlsx_by_ids(...)`. The payload is bounded by `experiment_ids.len() * size_of::<String>()`, which is naturally small (typical: 5 IDs × 36 chars = ~180 bytes; max: 100 IDs × 36 chars = ~3.6 KB). No pre-deserialise count gate needed — the input is **already small** by construction.
-- **S2-2** — golden parity tests proving by-ids and the legacy path produce identical (after metadata normalisation) output.
-- **S2-3** — A/B perf validation report quantifying the wall-time, IPC-payload-size, JS-heap, and Rust-RSS deltas.
-- **Sprint 2 commit #10** — `chore(audit): remove comparison large-ipc exception`. Removes the `LARGE-IPC-EXCEPTION` marker from `reports.rs`. The lint then reports zero suppressed findings.
-- **Sprint 3** — old `reports_generate_comparison_pdf` and `_excel` are deleted entirely (after one alpha + one beta release with the fallback flag enabled).
+- **S2-1** — new IPC commands `reports_generate_comparison_pdf_by_ids(...)` and `_excel_by_ids(...)`. The payload is bounded by experiment IDs plus settings, which is naturally small by construction.
+- **S2-2** — parity/golden tests proving by-ids and the legacy path produce equivalent PDF/XLSX outputs.
+- **S2-3** — validation report quantifying fixture-backed native render wall time and artifact sizes.
+- **S2 frontend switch** — default comparison exports use by-IDs IPC. The legacy payload path is reachable only through the emergency rollback flag or missing by-IDs IPC.
 
-### 4.2 What if Sprint 2 cannot complete the retirement?
+The `LARGE-IPC-EXCEPTION` marker remains while the legacy command remains registered for the alpha/beta rollback window. This is a deliberate release-risk decision, not a failure of the by-IDs migration. Once the rollback window ends, remove the legacy payload commands and this suppression together; at that point `npm run audit:large-ipc` should report zero suppressions.
 
-If Sprint 2 ships partially (e.g., the by-ids path is added but the frontend default is still the legacy path), the marker stays in place until a follow-up sprint completes the migration. This ADR is **not** a deadline contract; it is the architectural rule with a documented retirement plan for the only known exception.
+### 4.2 What if a future sprint cannot complete the final removal?
+
+If the legacy rollback path must survive longer than one alpha/beta window, this ADR must be amended again with the release reason and a new removal gate. This ADR is **not** a deadline contract; it is the architectural rule with a documented retirement plan for the only known exception.
 
 If a new exception is required during Sprint 2 (or any future sprint), this ADR must be amended to list it, with the same level of detail as § 4 above.
+
+### 4.3 Removal issue seed
+
+Create a dated release-hardening issue after Sprint 2 merge:
+
+```text
+Title: Remove legacy comparison payload IPC and LARGE-IPC-EXCEPTION
+Gate: after one alpha + one beta window with no by-IDs regressions
+Owner: Sprint 3 close / release hardening
+Scope:
+- Remove or hard-disable legacy comparison payload frontend fallback.
+- Remove legacy comparison payload IPC commands.
+- Remove the remaining LARGE-IPC-EXCEPTION marker.
+- Require npm run audit:large-ipc to report zero suppressions.
+- Update ADR-0010 and ADR-0013 to the final no-exception state.
+```
 
 ---
 
@@ -132,7 +149,8 @@ If a new exception is required during Sprint 2 (or any future sprint), this ADR 
 - `scripts/audit/check-large-ipc-contracts.mjs` — the lint (Sprint 0, P14 from audit-v2).
 - `package.json` script: `audit:large-ipc` invokes the lint.
 - `docs/performance/BUDGETS.md` § "Sprint 0 deliverables tracker" — references the P14 lint and the historical exception.
-- `docs/performance/SPRINT-2-PLANNING.md` § "Recommended commit sequence" — schedules the retirement at commit #10 of Sprint 2's 11-commit plan.
+- `docs/performance/SPRINT-2-PLANNING.md` § "Definition of done" — records the rollback-window deferral for final marker removal.
+- `docs/performance/REPORTS-NATIVE-BY-IDS-VALIDATION.md` — Sprint 2 validation report for the new default path.
 - `docs/performance/PERF-ROADMAP-SPRINTS-1-6.md` — Sprint 2 mission overview where this rule is cited as a side benefit of the native-by-ids work.
 
 ---

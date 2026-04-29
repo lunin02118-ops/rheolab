@@ -14,6 +14,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/lib/reports/client', () => ({
     generateComparisonPdfReportBlob: vi.fn(),
     generateComparisonExcelReportBlob: vi.fn(),
+    generateComparisonPdfReportByIdsBlob: vi.fn(),
+    generateComparisonExcelReportByIdsBlob: vi.fn(),
 }));
 
 vi.mock('@/lib/reports/report-save', () => ({
@@ -40,7 +42,9 @@ vi.mock('@/lib/reports/comparison-experiment-adapter', () => ({
 
 import {
     generateComparisonExcelReportBlob,
+    generateComparisonExcelReportByIdsBlob,
     generateComparisonPdfReportBlob,
+    generateComparisonPdfReportByIdsBlob,
 } from '@/lib/reports/client';
 import { saveBlob, saveBlobsToDir } from '@/lib/reports/report-save';
 import {
@@ -78,12 +82,21 @@ function makeChartSettings(): ChartSettings {
     return {
         comparisonAxisMode: 'shared',
         lines: {
-            viscosity: { color: '#3b82f6', width: 2, style: 'solid', unit: 'cP' },
-            temperature: { color: '#ef4444', width: 2, style: 'solid', unit: '°C' },
-            shearRate: { color: '#a855f7', width: 2, style: 'solid', unit: '1/s' },
-            pressure: { color: '#06b6d4', width: 2, style: 'solid', unit: 'bar' },
-            rpm: { color: '#10b981', width: 2, style: 'solid', unit: 'rpm' },
-            bathTemperature: { color: '#f97316', width: 1, style: 'dashed', unit: '°C' },
+            viscosity: { color: '#3b82f6', width: 2, style: 'solid', unit: 'cP', visible: true, axis: 'left' },
+            temperature: { color: '#ef4444', width: 2, style: 'solid', unit: '°C', visible: true, axis: 'right' },
+            shearRate: { color: '#a855f7', width: 2, style: 'solid', unit: '1/s', visible: true, axis: 'right' },
+            pressure: { color: '#06b6d4', width: 2, style: 'solid', unit: 'bar', visible: true, axis: 'right' },
+            rpm: { color: '#10b981', width: 2, style: 'solid', unit: 'rpm', visible: false, axis: 'right' },
+            bathTemperature: { color: '#f97316', width: 1, style: 'dashed', unit: '°C', visible: false, axis: 'right' },
+        },
+        rheologyUnits: {
+            viscosity: 'cP',
+            temperature: '°C',
+            pressure: 'bar',
+            consistency: 'Pa·s^n',
+            plasticViscosity: 'cP',
+            yieldPoint: 'Pa',
+            timeFormat: 'minutes',
         },
     } as unknown as ChartSettings;
 }
@@ -121,6 +134,15 @@ describe('useComparisonReportExport', () => {
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             }),
         );
+        vi.mocked(generateComparisonPdfReportByIdsBlob).mockResolvedValue(
+            new Blob([new Uint8Array([37, 80, 68, 70])], { type: 'application/pdf' }),
+        );
+        vi.mocked(generateComparisonExcelReportByIdsBlob).mockResolvedValue(
+            new Blob([new Uint8Array([80, 75, 3, 4])], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            }),
+        );
+        localStorage.clear();
         vi.mocked(saveBlob).mockResolvedValue();
         vi.mocked(saveBlobsToDir).mockResolvedValue();
     });
@@ -135,27 +157,31 @@ describe('useComparisonReportExport', () => {
     // ── PDF ──────────────────────────────────────────────────────────────
 
     describe('handleDownloadPdf', () => {
-        it('calls PDF generator with a payload built per-experiment and saves via saveBlob', async () => {
+        it('calls PDF by-ids generator and saves via saveBlob', async () => {
             const { result } = renderHook(() => useComparisonReportExport(makeOptions()));
 
             await act(async () => {
                 await result.current.handleDownloadPdf();
             });
 
-            // adapter called once per experiment
-            expect(experimentToReportBuildContext).toHaveBeenCalledTimes(2);
-            expect(buildPdfReportInput).toHaveBeenCalledTimes(2);
-            // buildExcelReportInput NOT called on the PDF path
+            expect(experimentToReportBuildContext).not.toHaveBeenCalled();
+            expect(buildPdfReportInput).not.toHaveBeenCalled();
             expect(buildExcelReportInput).not.toHaveBeenCalled();
+            expect(generateComparisonPdfReportBlob).not.toHaveBeenCalled();
+            expect(generateComparisonPdfReportByIdsBlob).toHaveBeenCalledTimes(1);
+            const request = vi.mocked(generateComparisonPdfReportByIdsBlob).mock.calls[0][0];
+            expect(request.experimentIds).toEqual(['1', '2']);
+            expect(request.settings.language).toBe('en');
+            expect(request.settings.unitSystem).toBe('SI');
+            expect(request.settings.companyName).toBe('Acme');
+            expect(request.settings.reportSettings.reportViscosityRates).toEqual([40, 100]);
+            expect(request.settings.reportSettings.showAdvancedStats).toBe(false);
+            expect(request.settings.reportSettings.showTemperature).toBe(true);
+            expect(request.settings.reportSettings.showBathTemperature).toBe(false);
+            expect(request.settings.reportSettings.shearRateAxis).toBe('right');
+            expect(request.settings.reportSettings.rheologyUnits?.viscosity).toBe('cP');
+            expect(request.settings.analysisSettings?.viscosityShearRates).toEqual([40, 100]);
 
-            // Comparison PDF client called with an object that wraps the entries
-            expect(generateComparisonPdfReportBlob).toHaveBeenCalledTimes(1);
-            const payload = vi.mocked(generateComparisonPdfReportBlob).mock.calls[0][0];
-            expect(payload.experiments).toHaveLength(2);
-            expect(payload.experiments[0].id).toBe('1');
-            expect(payload.experiments[1].id).toBe('2');
-
-            // saveBlob got the MIME-correct blob
             expect(saveBlob).toHaveBeenCalledTimes(1);
             const saveArgs = vi.mocked(saveBlob).mock.calls[0][0];
             expect(saveArgs.filename).toMatch(/^comparison-report_\d{4}-\d{2}-\d{2}\.pdf$/);
@@ -163,7 +189,7 @@ describe('useComparisonReportExport', () => {
         });
 
         it('surfaces generator errors onto exportError', async () => {
-            vi.mocked(generateComparisonPdfReportBlob).mockRejectedValueOnce(new Error('License expired'));
+            vi.mocked(generateComparisonPdfReportByIdsBlob).mockRejectedValueOnce(new Error('License expired'));
             const { result } = renderHook(() => useComparisonReportExport(makeOptions()));
 
             await act(async () => {
@@ -182,12 +208,13 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadPdf();
             });
 
+            expect(generateComparisonPdfReportByIdsBlob).not.toHaveBeenCalled();
             expect(generateComparisonPdfReportBlob).not.toHaveBeenCalled();
             expect(result.current.exportError).toMatch(/хотя бы один/);
         });
 
         it('clears previous errors on clearError()', async () => {
-            vi.mocked(generateComparisonPdfReportBlob).mockRejectedValueOnce(new Error('boom'));
+            vi.mocked(generateComparisonPdfReportByIdsBlob).mockRejectedValueOnce(new Error('boom'));
             const { result } = renderHook(() => useComparisonReportExport(makeOptions()));
 
             await act(async () => {
@@ -199,6 +226,43 @@ describe('useComparisonReportExport', () => {
                 result.current.clearError();
             });
             expect(result.current.exportError).toBeNull();
+        });
+
+        it('falls back to legacy payload generation when PDF by-ids IPC is unavailable', async () => {
+            vi.mocked(generateComparisonPdfReportByIdsBlob).mockRejectedValueOnce(
+                new Error('Unknown IPC command reports_generate_comparison_pdf_by_ids'),
+            );
+            const { result } = renderHook(() => useComparisonReportExport(makeOptions()));
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            expect(generateComparisonPdfReportByIdsBlob).toHaveBeenCalledTimes(1);
+            expect(experimentToReportBuildContext).toHaveBeenCalledTimes(2);
+            expect(buildPdfReportInput).toHaveBeenCalledTimes(2);
+            expect(generateComparisonPdfReportBlob).toHaveBeenCalledTimes(1);
+            const payload = vi.mocked(generateComparisonPdfReportBlob).mock.calls[0][0];
+            expect(payload.experiments).toHaveLength(2);
+            expect(payload.experiments[0].id).toBe('1');
+            expect(payload.experiments[1].id).toBe('2');
+            expect(saveBlob).toHaveBeenCalledTimes(1);
+        });
+
+
+        it('uses legacy payload generation when the emergency legacy flag is set', async () => {
+            localStorage.setItem('rheolab.comparisonReports.forceLegacy', '1');
+            const { result } = renderHook(() => useComparisonReportExport(makeOptions()));
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            expect(generateComparisonPdfReportByIdsBlob).not.toHaveBeenCalled();
+            expect(experimentToReportBuildContext).toHaveBeenCalledTimes(2);
+            expect(buildPdfReportInput).toHaveBeenCalledTimes(2);
+            expect(generateComparisonPdfReportBlob).toHaveBeenCalledTimes(1);
+            expect(saveBlob).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -220,8 +284,8 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadPdf();
             });
 
-            const payload = vi.mocked(generateComparisonPdfReportBlob).mock.calls[0][0];
-            expect(payload.comparisonChart.touchPoint).toEqual({
+            const request = vi.mocked(generateComparisonPdfReportByIdsBlob).mock.calls[0][0];
+            expect(request.settings.comparisonChart.touchPoint).toEqual({
                 enabled: true,
                 viscosityThreshold: 350,
                 showTargetTime: true,
@@ -242,8 +306,8 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadPdf();
             });
 
-            const payload = vi.mocked(generateComparisonPdfReportBlob).mock.calls[0][0];
-            expect(payload.comparisonChart.touchPoint.enabled).toBe(false);
+            const request = vi.mocked(generateComparisonPdfReportByIdsBlob).mock.calls[0][0];
+            expect(request.settings.comparisonChart.touchPoint.enabled).toBe(false);
         });
     });
 
@@ -265,16 +329,14 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadPdf();
             });
 
-            const payload = vi.mocked(generateComparisonPdfReportBlob).mock.calls[0][0];
-            for (const entry of payload.experiments) {
-                expect(entry.sectionToggles).toEqual({
-                    showCalibration: true,
-                    showRawData: true,
-                    showRecipe: false,
-                    showWaterAnalysis: true,
-                    showRheology: false,
-                });
-            }
+            const request = vi.mocked(generateComparisonPdfReportByIdsBlob).mock.calls[0][0];
+            expect(request.settings.sectionToggles).toEqual({
+                showCalibration: true,
+                showRawData: true,
+                showRecipe: false,
+                showWaterAnalysis: true,
+                showRheology: false,
+            });
         });
 
         it('Excel path forwards section toggles identically', async () => {
@@ -292,32 +354,33 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadExcel();
             });
 
-            const payload = vi.mocked(generateComparisonExcelReportBlob).mock.calls[0][0];
-            for (const entry of payload.experiments) {
-                expect(entry.sectionToggles).toEqual({
-                    showCalibration: false,
-                    showRawData: false,
-                    showRecipe: true,
-                    showWaterAnalysis: false,
-                    showRheology: true,
-                });
-            }
+            const request = vi.mocked(generateComparisonExcelReportByIdsBlob).mock.calls[0][0];
+            expect(request.settings.sectionToggles).toEqual({
+                showCalibration: false,
+                showRawData: false,
+                showRecipe: true,
+                showWaterAnalysis: false,
+                showRheology: true,
+            });
         });
     });
 
     // ── Excel ────────────────────────────────────────────────────────────
 
     describe('handleDownloadExcel', () => {
-        it('uses the Excel builder and the Excel MIME-type filter', async () => {
+        it('uses the Excel by-ids generator and the Excel MIME-type filter', async () => {
             const { result } = renderHook(() => useComparisonReportExport(makeOptions()));
 
             await act(async () => {
                 await result.current.handleDownloadExcel();
             });
 
-            expect(buildExcelReportInput).toHaveBeenCalledTimes(2);
+            expect(buildExcelReportInput).not.toHaveBeenCalled();
             expect(buildPdfReportInput).not.toHaveBeenCalled();
-            expect(generateComparisonExcelReportBlob).toHaveBeenCalledTimes(1);
+            expect(generateComparisonExcelReportBlob).not.toHaveBeenCalled();
+            expect(generateComparisonExcelReportByIdsBlob).toHaveBeenCalledTimes(1);
+            const request = vi.mocked(generateComparisonExcelReportByIdsBlob).mock.calls[0][0];
+            expect(request.experimentIds).toEqual(['1', '2']);
             const saveArgs = vi.mocked(saveBlob).mock.calls[0][0];
             expect(saveArgs.filename).toMatch(/\.xlsx$/);
             expect(saveArgs.filters[0]).toEqual({ name: 'Excel Spreadsheet', extensions: ['xlsx'] });
@@ -334,7 +397,9 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadAll(true, false);
             });
 
-            expect(generateComparisonPdfReportBlob).toHaveBeenCalledTimes(1);
+            expect(generateComparisonPdfReportByIdsBlob).toHaveBeenCalledTimes(1);
+            expect(generateComparisonPdfReportBlob).not.toHaveBeenCalled();
+            expect(generateComparisonExcelReportByIdsBlob).not.toHaveBeenCalled();
             expect(generateComparisonExcelReportBlob).not.toHaveBeenCalled();
             expect(saveBlob).toHaveBeenCalledTimes(1);
             expect(saveBlobsToDir).not.toHaveBeenCalled();
@@ -347,8 +412,10 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadAll(true, true);
             });
 
-            expect(generateComparisonPdfReportBlob).toHaveBeenCalledTimes(1);
-            expect(generateComparisonExcelReportBlob).toHaveBeenCalledTimes(1);
+            expect(generateComparisonPdfReportByIdsBlob).toHaveBeenCalledTimes(1);
+            expect(generateComparisonExcelReportByIdsBlob).toHaveBeenCalledTimes(1);
+            expect(generateComparisonPdfReportBlob).not.toHaveBeenCalled();
+            expect(generateComparisonExcelReportBlob).not.toHaveBeenCalled();
             expect(saveBlobsToDir).toHaveBeenCalledTimes(1);
             const items = vi.mocked(saveBlobsToDir).mock.calls[0][0];
             expect(items).toHaveLength(2);
@@ -364,6 +431,8 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadAll(false, false);
             });
 
+            expect(generateComparisonPdfReportByIdsBlob).not.toHaveBeenCalled();
+            expect(generateComparisonExcelReportByIdsBlob).not.toHaveBeenCalled();
             expect(generateComparisonPdfReportBlob).not.toHaveBeenCalled();
             expect(generateComparisonExcelReportBlob).not.toHaveBeenCalled();
             expect(saveBlob).not.toHaveBeenCalled();
