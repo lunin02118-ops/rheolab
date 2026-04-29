@@ -6,7 +6,7 @@ import { InstrumentBadges, type InstrumentInfo } from '@/components/ui/instrumen
 import { useChartResize } from '@/hooks/useChartResize';
 import { useRheologyVisibility } from '@/hooks/useRheologyVisibility';
 import { useRheologyData, type RheoPoint } from '@/hooks/useRheologyData';
-import type { ColumnarData } from '@/types';
+import type { ChartColumnarData } from '@/types';
 import { useRheologyChartOptions } from '@/hooks/useRheologyChartOptions';
 import { convertViscosity } from '@/lib/utils/unit-converters';
 
@@ -15,7 +15,7 @@ export type { RheoPoint };
 
 interface RheologyChartProps {
     data: RheoPoint[];
-    columnarData?: ColumnarData | null;
+    columnarData?: ChartColumnarData | null;
     showTemperature?: boolean;
     showShearRate?: boolean;
     showPressure?: boolean;

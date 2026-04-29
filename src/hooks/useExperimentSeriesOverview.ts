@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ColumnarData } from '@/types';
+import type { ChartColumnarData } from '@/types';
 import { isTauri } from '@/lib/tauri/core';
 import { series } from '@/lib/tauri/series';
 import { seriesWindowToColumnarData } from '@/lib/series/binary-series';
@@ -24,7 +24,7 @@ function isLegacyAosForced(): boolean {
 }
 
 export interface ExperimentSeriesOverviewState {
-  columnarData: ColumnarData | null;
+  columnarData: ChartColumnarData | null;
   isLoading: boolean;
   error: string | null;
 }

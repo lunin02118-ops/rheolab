@@ -10,7 +10,7 @@ import type uPlot from 'uplot';
 import { downsampleRheoPointsSmart, downsampleRheoPointsMultiChannel } from '@/lib/utils/downsample';
 import { calculateSmartTouchPoints, type TouchPointInput, type TouchPointResult } from '@/lib/utils/touch-point';
 import { columnarToRawPoints } from '@/lib/utils/columnar';
-import type { ColumnarData } from '@/types';
+import type { ChartColumnarData } from '@/types';
 import type { ViscosityUnit, TemperatureUnit, PressureUnit } from '@/lib/store/chart-settings-types';
 import { convertViscosity, convertTemperature, convertPressure, viscosityDecimals, pressureDecimals, viscosityToCp } from '@/lib/utils/unit-converters';
 import { medianSamplingInterval, snapToSeries } from '@/lib/utils/series-snap';
@@ -81,7 +81,7 @@ export interface ChartUnitSettings {
 
 interface UseRheologyDataParams {
     data: RheoPoint[];
-    columnarData?: ColumnarData | null;
+    columnarData?: ChartColumnarData | null;
     timeShiftEnabled: boolean;
     downsampleMode: string;
     captureMode: boolean;
@@ -113,6 +113,14 @@ const DEFAULT_UNITS: ChartUnitSettings = {
     bathTemperatureUnit: '°C',
     pressureUnit: 'bar',
 };
+
+function finiteOrDefault(value: number | null | undefined, fallback: number): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function finiteOrNull(value: number | null | undefined): number | null {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
 
 function computeFromAoS(
     data: RheoPoint[],
@@ -254,28 +262,31 @@ export function useRheologyData({
                 const cvDec = Math.pow(10, viscosityDecimals(units.viscosityUnit));
                 const cpDec = Math.pow(10, pressureDecimals(units.pressureUnit));
                 for (let i = 0; i < n; i++) {
-                    times[i] = Math.round(((col.timeSec[i] - minTime) / 60) * 100) / 100;
-                    viscosities[i] = Math.round(convertViscosity(col.viscosityCp[i], units.viscosityUnit) * cvDec) / cvDec;
-                    temperatures[i] = Math.round(convertTemperature(col.temperatureC[i], units.temperatureUnit) * 10) / 10;
-                    const sr = col.shearRate[i] ?? 0;
+                    const timeSec = finiteOrDefault(col.timeSec[i], 0);
+                    const viscosityCp = finiteOrDefault(col.viscosityCp[i], 0);
+                    const temperatureC = finiteOrDefault(col.temperatureC[i], 0);
+                    times[i] = Math.round(((timeSec - minTime) / 60) * 100) / 100;
+                    viscosities[i] = Math.round(convertViscosity(viscosityCp, units.viscosityUnit) * cvDec) / cvDec;
+                    temperatures[i] = Math.round(convertTemperature(temperatureC, units.temperatureUnit) * 10) / 10;
+                    const sr = finiteOrDefault(col.shearRate[i], 0);
                     shearRates[i] = sr ? Math.round(sr * 10) / 10 : 0;
-                    const pb = col.pressureBar[i];
-                    pressures[i] = pb != null ? Math.round(convertPressure(pb, units.pressureUnit) * cpDec) / cpDec : 0;
-                    rpms[i] = col.speedRpm[i] ?? 0;
-                    const bath = col.bathTemperatureC?.[i];
+                    const pb = finiteOrNull(col.pressureBar[i]);
+                    pressures[i] = pb !== null ? Math.round(convertPressure(pb, units.pressureUnit) * cpDec) / cpDec : 0;
+                    rpms[i] = finiteOrDefault(col.speedRpm[i], 0);
+                    const bath = finiteOrNull(col.bathTemperatureC?.[i]);
                     bathTemperatures[i] = bath != null
                         ? Math.round(convertTemperature(bath, units.bathTemperatureUnit) * 10) / 10
                         : null;
-                    const cv = convertViscosity(col.viscosityCp[i], units.viscosityUnit);
+                    const cv = convertViscosity(viscosityCp, units.viscosityUnit);
                     if (cv > maxVisc) maxVisc = cv;
                     if (cv < minVisc) minVisc = cv;
                     sumVisc += cv;
-                    const ct = convertTemperature(col.temperatureC[i], units.temperatureUnit);
+                    const ct = convertTemperature(temperatureC, units.temperatureUnit);
                     if (ct > maxTemp) maxTemp = ct;
                     if (ct < minTemp) minTemp = ct;
                     sumTemp += ct;
                     if (sr > 0) { sumShearRate += sr; shearRateCount++; }
-                    if (pb != null) { hasPressure = true; const cpr = convertPressure(pb, units.pressureUnit); if (cpr > maxPressure) maxPressure = cpr; }
+                    if (pb !== null) { hasPressure = true; const cpr = convertPressure(pb, units.pressureUnit); if (cpr > maxPressure) maxPressure = cpr; }
                 }
                 const stats: RheoStats = {
                     maxVisc, minVisc, avgVisc: sumVisc / n,
@@ -337,9 +348,9 @@ export function useRheologyData({
             tpInputs = new Array(n);
             for (let i = 0; i < n; i++) {
                 tpInputs[i] = {
-                    time_min: (col.timeSec[i] - minTime) / 60,
-                    viscosity_cp: col.viscosityCp[i],
-                    shear_rate: col.shearRate[i] ?? 0,
+                    time_min: (finiteOrDefault(col.timeSec[i], 0) - minTime) / 60,
+                    viscosity_cp: finiteOrDefault(col.viscosityCp[i], 0),
+                    shear_rate: finiteOrDefault(col.shearRate[i], 0),
                 };
             }
         } else {

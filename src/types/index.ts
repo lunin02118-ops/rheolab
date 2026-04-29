@@ -19,6 +19,9 @@ export type {
 export type {
     RheoPoint,
     ColumnarData,
+    ChartColumnarData,
+    NumericColumn,
+    NullableNumericColumn,
     RheoStep,
     GeometryParams,
 } from './rheology';
