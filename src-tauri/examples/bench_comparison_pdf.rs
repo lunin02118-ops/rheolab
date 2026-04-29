@@ -62,19 +62,54 @@ use std::process;
 use std::time::Instant;
 
 use rheolab_core::report_generator::comparison::{
-    generate_comparison_pdf, ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics,
-    ComparisonReportInput, SectionToggles, TouchPointConfig,
+    generate_comparison_excel, generate_comparison_pdf, ComparisonChartConfig,
+    ComparisonExperimentEntry, ComparisonMetrics, ComparisonReportInput, SectionToggles,
+    TouchPointConfig,
 };
 use rheolab_core::report_generator::{DataPoint, ReportInput, ReportMetadata, ReportSettings};
 use rheolab_core::types::RheoPoint;
 use rheolab_enterprise::db::columnar::decode_typed;
 use rusqlite::{params, Connection};
 
+#[derive(Debug, Clone, Copy)]
+enum ReportFormat {
+    Pdf,
+    Xlsx,
+}
+
+impl ReportFormat {
+    fn parse(value: &str) -> Self {
+        match value {
+            "pdf" => ReportFormat::Pdf,
+            "xlsx" | "excel" => ReportFormat::Xlsx,
+            other => {
+                eprintln!("invalid --format '{}': expected pdf or xlsx", other);
+                process::exit(2);
+            }
+        }
+    }
+
+    fn as_str(&self) -> &'static str {
+        match self {
+            ReportFormat::Pdf => "pdf",
+            ReportFormat::Xlsx => "xlsx",
+        }
+    }
+
+    fn schema(&self) -> &'static str {
+        match self {
+            ReportFormat::Pdf => "rheolab.microbench.pdf_comparison.v1",
+            ReportFormat::Xlsx => "rheolab.microbench.xlsx_comparison.v1",
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Args {
     n: usize,
     iterations: usize,
     duration_hours: f64,
+    format: ReportFormat,
     json_output: Option<String>,
     label: Option<String>,
     quiet: bool,
@@ -89,6 +124,7 @@ impl Args {
             n: 3,
             iterations: 5,
             duration_hours: 4.0,
+            format: ReportFormat::Pdf,
             json_output: None,
             label: None,
             quiet: false,
@@ -107,6 +143,9 @@ impl Args {
                 }
                 "--duration-hours" => {
                     args.duration_hours = parse_required::<f64>(&mut iter, "--duration-hours");
+                }
+                "--format" => {
+                    args.format = ReportFormat::parse(&require_str(&mut iter, "--format"));
                 }
                 "--json" => {
                     args.json_output = Some(require_str(&mut iter, "--json"));
@@ -171,6 +210,7 @@ fn print_help() {
     println!("  --n N                 Number of experiments (default: 3)");
     println!("  --iterations K        Iterations to run (default: 5)");
     println!("  --duration-hours H    Per-experiment data duration in hours (default: 4.0)");
+    println!("  --format FMT          Report format: pdf or xlsx (default: pdf)");
     println!("  --load-fixture PATH   Load production-shaped experiments from a SQLite seed DB");
     println!("  --experiment-index I  First fixture experiment index to load (default: 0)");
     println!("  --all-experiments     Use every valid experiment in the fixture DB");
@@ -574,7 +614,11 @@ fn main() {
             total_points,
             build_ms
         );
-        eprintln!("[bench] Running {} iteration(s)...", args.iterations);
+        eprintln!(
+            "[bench] Running {} {} iteration(s)...",
+            args.iterations,
+            args.format.as_str()
+        );
     }
 
     let mut wall_ms_samples: Vec<f64> = Vec::with_capacity(args.iterations);
@@ -582,7 +626,11 @@ fn main() {
 
     for i in 0..args.iterations {
         let t0 = Instant::now();
-        match generate_comparison_pdf(&input) {
+        let result = match args.format {
+            ReportFormat::Pdf => generate_comparison_pdf(&input),
+            ReportFormat::Xlsx => generate_comparison_excel(&input),
+        };
+        match result {
             Ok(bytes) => {
                 let elapsed_ms = t0.elapsed().as_secs_f64() * 1000.0;
                 wall_ms_samples.push(elapsed_ms);
@@ -599,9 +647,10 @@ fn main() {
             }
             Err(e) => {
                 eprintln!(
-                    "[bench] ERROR iter {}/{}: generate_comparison_pdf failed: {}",
+                    "[bench] ERROR iter {}/{}: generate_comparison_{} failed: {}",
                     i + 1,
                     args.iterations,
+                    args.format.as_str(),
                     e
                 );
                 process::exit(1);
@@ -625,7 +674,7 @@ fn main() {
 
     // Markdown summary to stdout — easy to copy-paste into a report.
     println!();
-    println!("# bench_comparison_pdf results");
+    println!("# bench_comparison_{} results", args.format.as_str());
     println!();
     if let Some(label) = &args.label {
         println!("**Label:** `{}`", label);
@@ -634,6 +683,7 @@ fn main() {
     println!("| Parameter        | Value |");
     println!("|------------------|------:|");
     println!("| mode             | {} |", mode);
+    println!("| format           | {} |", args.format.as_str());
     println!("| n_experiments    | {} |", input.experiments.len());
     if mode == "synthetic" {
         println!("| duration_hours   | {} |", args.duration_hours);
@@ -648,7 +698,7 @@ fn main() {
     println!("| wall_ms min      | {:.1} |", min);
     println!("| wall_ms max      | {:.1} |", max);
     println!("| wall_ms mean     | {:.1} |", mean);
-    println!("| pdf_bytes (mean) | {:.0} |", mean_bytes);
+    println!("| bytes (mean)     | {:.0} |", mean_bytes);
 
     // Optional JSON sidecar for the orchestrator (zero serde dep —
     // hand-rolled because we want to keep example dependencies
@@ -664,10 +714,15 @@ fn main() {
             .map(|(ms, b)| format!("    {{ \"wall_ms\": {:.4}, \"bytes\": {} }}", ms, b))
             .collect::<Vec<_>>()
             .join(",\n");
+        let bytes_field = match args.format {
+            ReportFormat::Pdf => format!(",\n  \"pdf_bytes_mean\": {mean_bytes:.1}"),
+            ReportFormat::Xlsx => format!(",\n  \"xlsx_bytes_mean\": {mean_bytes:.1}"),
+        };
         let json = format!(
             r#"{{
-  "schema": "rheolab.microbench.pdf_comparison.v1",
+  "schema": "{schema}",
   "mode": "{mode}",
+  "format": "{format}",
   "n_experiments": {n},
   "duration_hours": {dh},
   "total_points": {tp},
@@ -679,14 +734,16 @@ fn main() {
     "max": {max:.4},
     "mean": {mean:.4}
   }},
-  "pdf_bytes_mean": {mb:.1},
+  "artifact_bytes_mean": {mb:.1}{bytes_field},
   "input_build_ms": {build_ms:.4},
   "samples": [
 {samples}
   ]
 }}
 "#,
+            schema = args.format.schema(),
             mode = mode,
+            format = args.format.as_str(),
             n = input.experiments.len(),
             dh = if mode == "synthetic" {
                 args.duration_hours
@@ -702,6 +759,7 @@ fn main() {
             max = max,
             mean = mean,
             mb = mean_bytes,
+            bytes_field = bytes_field,
             build_ms = build_ms,
             samples = samples_json,
         );

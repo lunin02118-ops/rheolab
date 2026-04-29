@@ -8,6 +8,7 @@
  *
  * Supported targets (`--target`):
  *   - `pdf`       (default) — `bench_comparison_pdf`, S1-1
+ *   - `xlsx`                — `bench_comparison_pdf --format xlsx`, S2-3
  *   - `analysis`            — `bench_analysis_pipeline`, S1-2
  *
  * Three modes:
@@ -76,6 +77,18 @@ const TARGETS = {
             { n: 10, durationHours: 4 },
         ],
         humanName: 'comparison PDF',
+        supportsFixtureDb: true,
+    },
+    xlsx: {
+        binary: 'bench_comparison_pdf',
+        schema: 'rheolab.microbench.xlsx_comparison.v1',
+        sweepSchema: 'rheolab.microbench.xlsx_comparison.sweep.v1',
+        defaultFixtures: [
+            { n: 3, durationHours: 4 },
+            { n: 5, durationHours: 4 },
+            { n: 10, durationHours: 4 },
+        ],
+        humanName: 'comparison XLSX',
         supportsFixtureDb: true,
     },
     analysis: {
@@ -231,8 +244,9 @@ function printHelp() {
     console.log(`Usage: node scripts/test/run-rust-microbench.mjs [OPTIONS]
 
 Targets:
-  --target NAME         pdf | analysis (default: pdf)
+  --target NAME         pdf | xlsx | analysis (default: pdf)
                         pdf      → bench_comparison_pdf       (S1-1)
+                        xlsx     → bench_comparison_pdf --format xlsx
                         analysis → bench_analysis_pipeline    (S1-2)
 
 Sweep mode (default, synthetic data):
@@ -277,6 +291,9 @@ function runFixture(target, { n, durationHours }, iterations, label, ts) {
         '--duration-hours', String(durationHours),
         '--json', sidecar,
     ];
+    if (target === 'xlsx') {
+        args.push('--format', 'xlsx');
+    }
     if (label) {
         args.push('--label', label);
     }
@@ -328,7 +345,9 @@ function runSweep(opts) {
     // detected cycles for analysis.
     const trailing = target === 'pdf'
         ? { header: 'pdf_bytes mean', value: (r) => r.pdf_bytes_mean.toFixed(0) }
-        : { header: 'cycles/trace ', value: (r) => String(r.cycles_per_trace ?? '—') };
+        : target === 'xlsx'
+            ? { header: 'xlsx_bytes mean', value: (r) => r.xlsx_bytes_mean.toFixed(0) }
+            : { header: 'cycles/trace ', value: (r) => String(r.cycles_per_trace ?? '—') };
     console.log('');
     console.log(`# microbench:${target} sweep — ${opts.label ?? '(unlabeled)'} (${targetDef.humanName})`);
     console.log('');
@@ -385,8 +404,11 @@ function runDbSweep(opts) {
         '--iterations', String(opts.iterations),
         '--json', sidecar,
     ];
-    if (target === 'pdf' && opts.fixtures?.length > 0) {
+    if ((target === 'pdf' || target === 'xlsx') && opts.fixtures?.length > 0) {
         args.push('--n', String(opts.fixtures[0].n));
+    }
+    if (target === 'xlsx') {
+        args.push('--format', 'xlsx');
     }
     if (opts.allExperiments) {
         args.push('--all-experiments');
