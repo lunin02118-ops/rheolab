@@ -67,3 +67,5 @@ pub use report_generator::generate_excel_report;
 pub use report_generator::generate_pdf_report;
 
 pub mod analysis;
+
+pub const RHEOLAB_CORE_VERSION: &str = env!("CARGO_PKG_VERSION");

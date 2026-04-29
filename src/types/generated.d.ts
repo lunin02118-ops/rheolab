@@ -12,6 +12,8 @@ export type AiDiagnostics = { attempted: boolean; provider: string; model: strin
 
 export type AiDiagnosticsStatus = "accepted" | "failed" | "rejected"
 
+export type AnalysisCacheKeyMaterial = { experimentId: string; experimentDataHash: string; geometry: string; analysisSettingsHash: string; reportViscosityRatesHash: string; rheolabCoreVersion: string; algorithmVersion: number }
+
 export type ApiKeyCreatePayload = { name: string; key: string; provider: string | null }
 
 export type ApiKeyDeleteResponse = { success: boolean; error?: string | null }
@@ -42,6 +44,30 @@ export type BackupInfo = { name: string; date: string; size: number }
 export type BackupResult = { success: boolean; name?: string | null; error?: string | null }
 
 export type CalibrationResponse = { deviceType: string; rSquared: number; slope: number; intercept: number; hysteresis: number; stdev: number; status: string; lastCalDate?: string | null; calibrationDate?: string | null; issues: string[]; rawData: string }
+
+export type ComparisonByIdsAnalysisSettings = { pointsToAverage?: number; viscosityShearRates?: number[] }
+
+export type ComparisonByIdsChartConfig = { metrics: ComparisonByIdsMetrics; axisMode: string; brushRange?: [number, number] | null; touchPoint: ComparisonByIdsTouchPointConfig; lineSettings: ComparisonByIdsChartLineSettings; experimentColors: string[]; timeFormat?: string; downsampleMode?: string; chartWidth?: number; chartHeight?: number }
+
+export type ComparisonByIdsChartLineSettings = { viscosity?: ComparisonByIdsLineSettings; temperature?: ComparisonByIdsLineSettings; shearRate?: ComparisonByIdsLineSettings; pressure?: ComparisonByIdsLineSettings; rpm?: ComparisonByIdsLineSettings; bathTemperature?: ComparisonByIdsLineSettings | null }
+
+export type ComparisonByIdsDetectionSettings = { shearRateTolerance?: number; shearRateRelTolerance?: number; minStepDuration?: number; stepSplitting?: boolean; splitStartDuration?: number; splitEndDuration?: number; minDurationForSplit?: number }
+
+export type ComparisonByIdsLineSettings = { color?: string; width?: number; style?: string }
+
+export type ComparisonByIdsMetrics = { primary: string; leftSecondary: string; secondary: string; tertiary: string }
+
+export type ComparisonByIdsReportSettings = { showTemperature: boolean; showShearRate: boolean; showPressure: boolean; showBathTemperature: boolean; shearRateAxis: string; pressureAxis: string; showAdvancedStats: boolean; reportViscosityRates: number[]; rheologyUnits?: ComparisonByIdsRheologyUnits | null }
+
+export type ComparisonByIdsRheologyUnits = { viscosity?: string; temperature?: string; pressure?: string; consistency?: string; plasticViscosity?: string; yieldPoint?: string; timeFormat?: string }
+
+export type ComparisonByIdsSectionToggles = { showCalibration: boolean; showRawData: boolean; showRecipe: boolean; showWaterAnalysis: boolean; showRheology?: boolean }
+
+export type ComparisonByIdsTouchPointConfig = { enabled: boolean; viscosityThreshold: number; showTargetTime: boolean; targetTime: number }
+
+export type ComparisonReportByIdsRequest = { experimentIds: string[]; settings: ComparisonReportByIdsSettings }
+
+export type ComparisonReportByIdsSettings = { language: string; unitSystem: string; companyName?: string | null; companyLogoBase64?: string | null; generatedAt?: string | null; comparisonChart: ComparisonByIdsChartConfig; sectionToggles: ComparisonByIdsSectionToggles; reportSettings: ComparisonByIdsReportSettings; analysisSettings?: ComparisonByIdsAnalysisSettings; detectionSettings?: ComparisonByIdsDetectionSettings }
 
 export type ConflictItem = { id: string; mergeEventId: string | null; experimentId: string | null; fieldName: string; localValue: string | null; incomingValue: string | null; resolution: string | null; status: string; createdAt: string; resolvedAt: string | null }
 

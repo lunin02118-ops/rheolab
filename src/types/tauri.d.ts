@@ -308,6 +308,8 @@ export interface PlatformBridge {
     generateComparisonPdf: (input: unknown) => Promise<Uint8Array>;
     /** Multi-experiment comparison XLSX.  Same payload shape as the PDF variant. */
     generateComparisonExcel: (input: unknown) => Promise<Uint8Array>;
+    generateComparisonPdfByIds: (request: ComparisonReportByIdsRequest) => Promise<Uint8Array>;
+    generateComparisonExcelByIds: (request: ComparisonReportByIdsRequest) => Promise<Uint8Array>;
   };
 
   /** Local demo fixtures operations */

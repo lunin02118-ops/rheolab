@@ -78,6 +78,8 @@ macro_rules! register_tauri_commands {
             // Native comparison reports (ADR-0010) — RISK: LOW (license-gated)
             $crate::commands::reports::reports_generate_comparison_pdf,
             $crate::commands::reports::reports_generate_comparison_excel,
+            $crate::commands::reports::reports_generate_comparison_pdf_by_ids,
+            $crate::commands::reports::reports_generate_comparison_excel_by_ids,
             // Native analysis pipeline commands
             $crate::commands::analysis::analysis_analyze_full,
             $crate::commands::analysis::analysis_detect_steps,

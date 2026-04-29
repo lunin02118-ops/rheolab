@@ -14,11 +14,18 @@
 //! cannot hand the native engine an unbounded experiment list and
 //! exhaust memory.
 
+use crate::commands::licensing::types::LicenseFeatures;
 use crate::commands::licensing::{can_write_via_engine, current_features};
 use crate::error::{AppError, Result};
 use crate::state::AppState;
+use crate::utils::validation::{validate_bounded_str, validate_hash_id};
 use rheolab_core::report_generator::comparison::ComparisonReportInput;
 use rheolab_core::report_generator::ReportInput;
+use rheolab_core::RHEOLAB_CORE_VERSION;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::HashSet;
+use std::path::PathBuf;
 use tauri::State;
 
 /// Inner implementation used by tests — returns raw bytes.
@@ -225,6 +232,791 @@ pub async fn reports_generate_comparison_excel(
     }
     let bytes = generate_comparison_excel_bytes(input).await?;
     Ok(tauri::ipc::Response::new(bytes))
+}
+
+#[tauri::command]
+pub async fn reports_generate_comparison_pdf_by_ids(
+    state: State<'_, AppState>,
+    request: ComparisonReportByIdsRequest,
+) -> Result<tauri::ipc::Response> {
+    if !can_write_via_engine(&state).await {
+        return Err(AppError::License("required".into()));
+    }
+    let features = current_features(&state).await;
+    validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)?;
+    let conn = state.pool_conn()?;
+    validate_comparison_experiment_ids_exist(&conn, &request.experiment_ids)?;
+    Err(AppError::Other(
+        "reports_generate_comparison_pdf_by_ids is not implemented until Sprint 2 commit #7".into(),
+    ))
+}
+
+#[tauri::command]
+pub async fn reports_generate_comparison_excel_by_ids(
+    state: State<'_, AppState>,
+    request: ComparisonReportByIdsRequest,
+) -> Result<tauri::ipc::Response> {
+    if !can_write_via_engine(&state).await {
+        return Err(AppError::License("required".into()));
+    }
+    let features = current_features(&state).await;
+    validate_comparison_by_ids_request(&request, &features, ReportFormat::Excel)?;
+    let conn = state.pool_conn()?;
+    validate_comparison_experiment_ids_exist(&conn, &request.experiment_ids)?;
+    Err(AppError::Other(
+        "reports_generate_comparison_excel_by_ids is not implemented until Sprint 2 commit #8"
+            .into(),
+    ))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonReportByIdsRequest {
+    pub experiment_ids: Vec<String>,
+    pub settings: ComparisonReportByIdsSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonReportByIdsSettings {
+    pub language: String,
+    pub unit_system: String,
+    #[serde(default)]
+    pub company_name: Option<String>,
+    #[serde(default)]
+    pub company_logo_base64: Option<String>,
+    #[serde(default)]
+    pub generated_at: Option<String>,
+    pub comparison_chart: ComparisonByIdsChartConfig,
+    pub section_toggles: ComparisonByIdsSectionToggles,
+    pub report_settings: ComparisonByIdsReportSettings,
+    #[serde(default = "default_comparison_analysis_settings")]
+    pub analysis_settings: ComparisonByIdsAnalysisSettings,
+    #[serde(default)]
+    pub detection_settings: ComparisonByIdsDetectionSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsReportSettings {
+    pub show_temperature: bool,
+    pub show_shear_rate: bool,
+    pub show_pressure: bool,
+    pub show_bath_temperature: bool,
+    pub shear_rate_axis: String,
+    pub pressure_axis: String,
+    pub show_advanced_stats: bool,
+    pub report_viscosity_rates: Vec<i32>,
+    #[serde(default)]
+    pub rheology_units: Option<ComparisonByIdsRheologyUnits>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsChartConfig {
+    pub metrics: ComparisonByIdsMetrics,
+    pub axis_mode: String,
+    #[serde(default)]
+    pub brush_range: Option<[f64; 2]>,
+    pub touch_point: ComparisonByIdsTouchPointConfig,
+    pub line_settings: ComparisonByIdsChartLineSettings,
+    pub experiment_colors: Vec<String>,
+    #[serde(default = "default_comparison_time_format")]
+    pub time_format: String,
+    #[serde(default = "default_comparison_downsample_mode")]
+    pub downsample_mode: String,
+    #[serde(default = "default_comparison_chart_width")]
+    pub chart_width: u32,
+    #[serde(default = "default_comparison_chart_height")]
+    pub chart_height: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsMetrics {
+    pub primary: String,
+    pub left_secondary: String,
+    pub secondary: String,
+    pub tertiary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsTouchPointConfig {
+    pub enabled: bool,
+    pub viscosity_threshold: f64,
+    pub show_target_time: bool,
+    pub target_time: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsLineSettings {
+    #[serde(default = "default_line_color")]
+    pub color: String,
+    #[serde(default = "default_line_width")]
+    pub width: u8,
+    #[serde(default = "default_line_style")]
+    pub style: String,
+}
+
+impl Default for ComparisonByIdsLineSettings {
+    fn default() -> Self {
+        Self {
+            color: default_line_color(),
+            width: default_line_width(),
+            style: default_line_style(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsChartLineSettings {
+    #[serde(default)]
+    pub viscosity: ComparisonByIdsLineSettings,
+    #[serde(default)]
+    pub temperature: ComparisonByIdsLineSettings,
+    #[serde(default)]
+    pub shear_rate: ComparisonByIdsLineSettings,
+    #[serde(default)]
+    pub pressure: ComparisonByIdsLineSettings,
+    #[serde(default)]
+    pub rpm: ComparisonByIdsLineSettings,
+    #[serde(default)]
+    pub bath_temperature: Option<ComparisonByIdsLineSettings>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsSectionToggles {
+    pub show_calibration: bool,
+    pub show_raw_data: bool,
+    pub show_recipe: bool,
+    pub show_water_analysis: bool,
+    #[serde(default = "default_show_rheology")]
+    pub show_rheology: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsRheologyUnits {
+    #[serde(default)]
+    pub viscosity: String,
+    #[serde(default)]
+    pub temperature: String,
+    #[serde(default)]
+    pub pressure: String,
+    #[serde(default)]
+    pub consistency: String,
+    #[serde(default)]
+    pub plastic_viscosity: String,
+    #[serde(default)]
+    pub yield_point: String,
+    #[serde(default)]
+    pub time_format: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsAnalysisSettings {
+    #[serde(default)]
+    pub points_to_average: i32,
+    #[serde(default = "default_analysis_viscosity_shear_rates")]
+    pub viscosity_shear_rates: Vec<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparisonByIdsDetectionSettings {
+    #[serde(default = "default_shear_rate_tolerance")]
+    pub shear_rate_tolerance: f64,
+    #[serde(default = "default_shear_rate_rel_tolerance")]
+    pub shear_rate_rel_tolerance: f64,
+    #[serde(default = "default_min_step_duration")]
+    pub min_step_duration: f64,
+    #[serde(default = "default_step_splitting")]
+    pub step_splitting: bool,
+    #[serde(default = "default_split_start_duration")]
+    pub split_start_duration: f64,
+    #[serde(default = "default_split_end_duration")]
+    pub split_end_duration: f64,
+    #[serde(default = "default_min_duration_for_split")]
+    pub min_duration_for_split: f64,
+}
+
+impl Default for ComparisonByIdsDetectionSettings {
+    fn default() -> Self {
+        Self {
+            shear_rate_tolerance: default_shear_rate_tolerance(),
+            shear_rate_rel_tolerance: default_shear_rate_rel_tolerance(),
+            min_step_duration: default_min_step_duration(),
+            step_splitting: default_step_splitting(),
+            split_start_duration: default_split_start_duration(),
+            split_end_duration: default_split_end_duration(),
+            min_duration_for_split: default_min_duration_for_split(),
+        }
+    }
+}
+
+#[allow(dead_code)]
+pub enum ReportOutput {
+    Bytes(Vec<u8>),
+    TempFile { path: PathBuf, byte_count: u64 },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalysisCacheKeyMaterial {
+    pub experiment_id: String,
+    pub experiment_data_hash: String,
+    pub geometry: String,
+    pub analysis_settings_hash: String,
+    pub report_viscosity_rates_hash: String,
+    pub rheolab_core_version: String,
+    pub algorithm_version: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReportFormat {
+    Pdf,
+    Excel,
+}
+
+const MAX_COMPANY_NAME_BYTES: usize = 255;
+const MAX_COMPANY_LOGO_BASE64_BYTES: usize = 5_000_000;
+const MAX_GENERATED_AT_BYTES: usize = 64;
+const MAX_METRIC_KEY_BYTES: usize = 64;
+const MAX_COLOR_BYTES: usize = 64;
+const MAX_LINE_WIDTH: u8 = 16;
+const MAX_VISCOSITY_RATES: usize = 32;
+const MIN_CHART_DIMENSION: u32 = 100;
+const MAX_CHART_DIMENSION: u32 = 8_000;
+const MAX_TIME_MINUTES: f64 = 1_000_000.0;
+const MAX_SHEAR_RATE: f64 = 100_000.0;
+const ANALYSIS_CACHE_ALGORITHM_VERSION: u32 = 1;
+
+fn default_comparison_time_format() -> String {
+    "minutes".into()
+}
+
+fn default_comparison_downsample_mode() -> String {
+    "smart".into()
+}
+
+fn default_comparison_chart_width() -> u32 {
+    1400
+}
+
+fn default_comparison_chart_height() -> u32 {
+    700
+}
+
+fn default_line_color() -> String {
+    "#3b82f6".into()
+}
+
+fn default_line_width() -> u8 {
+    2
+}
+
+fn default_line_style() -> String {
+    "solid".into()
+}
+
+fn default_show_rheology() -> bool {
+    true
+}
+
+fn default_analysis_viscosity_shear_rates() -> Vec<f64> {
+    vec![40.0, 100.0, 170.0]
+}
+
+fn default_shear_rate_tolerance() -> f64 {
+    2.0
+}
+
+fn default_shear_rate_rel_tolerance() -> f64 {
+    5.0
+}
+
+fn default_min_step_duration() -> f64 {
+    5.0
+}
+
+fn default_step_splitting() -> bool {
+    true
+}
+
+fn default_split_start_duration() -> f64 {
+    30.0
+}
+
+fn default_split_end_duration() -> f64 {
+    30.0
+}
+
+fn default_min_duration_for_split() -> f64 {
+    90.0
+}
+
+fn default_comparison_analysis_settings() -> ComparisonByIdsAnalysisSettings {
+    ComparisonByIdsAnalysisSettings {
+        points_to_average: 0,
+        viscosity_shear_rates: default_analysis_viscosity_shear_rates(),
+    }
+}
+
+fn validate_comparison_by_ids_request(
+    request: &ComparisonReportByIdsRequest,
+    features: &LicenseFeatures,
+    format: ReportFormat,
+) -> Result<()> {
+    if request.experiment_ids.is_empty() {
+        return Err(AppError::BadRequest(
+            "experimentIds must contain at least one experiment".into(),
+        ));
+    }
+
+    let mut seen = HashSet::with_capacity(request.experiment_ids.len());
+    for id in &request.experiment_ids {
+        validate_hash_id(id, "experimentIds[]")?;
+        if !seen.insert(id) {
+            return Err(AppError::BadRequest(format!(
+                "duplicate experiment ID in experimentIds: {id}"
+            )));
+        }
+    }
+
+    match format {
+        ReportFormat::Pdf => {
+            enforce_comparison_pdf_features(features, request.experiment_ids.len())?
+        }
+        ReportFormat::Excel => {
+            enforce_comparison_excel_features(features, request.experiment_ids.len())?
+        }
+    }
+
+    request.settings.validate()
+}
+
+fn validate_comparison_experiment_ids_exist(
+    conn: &rusqlite::Connection,
+    experiment_ids: &[String],
+) -> Result<()> {
+    if experiment_ids.is_empty() {
+        return Ok(());
+    }
+    let placeholders = std::iter::repeat("?")
+        .take(experiment_ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
+    let sql = format!("SELECT id FROM Experiment WHERE id IN ({placeholders})");
+    let mut stmt = conn.prepare(&sql)?;
+    let existing: HashSet<String> = stmt
+        .query_map(rusqlite::params_from_iter(experiment_ids.iter()), |row| {
+            row.get::<_, String>(0)
+        })?
+        .collect::<rusqlite::Result<HashSet<_>>>()?;
+
+    let missing = experiment_ids
+        .iter()
+        .filter(|id| !existing.contains(*id))
+        .cloned()
+        .collect::<Vec<_>>();
+    if !missing.is_empty() {
+        return Err(AppError::BadRequest(format!(
+            "Experiment IDs not found: {}",
+            missing.join(", ")
+        )));
+    }
+    Ok(())
+}
+
+impl ComparisonReportByIdsSettings {
+    fn validate(&self) -> Result<()> {
+        validate_language(&self.language)?;
+        validate_unit_system(&self.unit_system)?;
+        if let Some(company_name) = &self.company_name {
+            validate_bounded_str(company_name, MAX_COMPANY_NAME_BYTES, "settings.companyName")?;
+        }
+        if let Some(company_logo_base64) = &self.company_logo_base64 {
+            validate_bounded_str(
+                company_logo_base64,
+                MAX_COMPANY_LOGO_BASE64_BYTES,
+                "settings.companyLogoBase64",
+            )?;
+        }
+        if let Some(generated_at) = &self.generated_at {
+            validate_bounded_str(generated_at, MAX_GENERATED_AT_BYTES, "settings.generatedAt")?;
+        }
+        validate_comparison_chart(&self.comparison_chart)?;
+        validate_report_settings(&self.report_settings)?;
+        validate_analysis_settings(&self.analysis_settings)?;
+        validate_detection_settings(&self.detection_settings)
+    }
+}
+
+fn validate_language(value: &str) -> Result<()> {
+    match value {
+        "ru" | "en" => Ok(()),
+        _ => Err(AppError::BadRequest(format!(
+            "settings.language must be 'ru' or 'en' (got '{value}')"
+        ))),
+    }
+}
+
+fn validate_unit_system(value: &str) -> Result<()> {
+    match value {
+        "SI" | "SI_Pas" | "Imperial" => Ok(()),
+        _ => Err(AppError::BadRequest(format!(
+            "settings.unitSystem must be 'SI', 'SI_Pas' or 'Imperial' (got '{value}')"
+        ))),
+    }
+}
+
+fn validate_comparison_chart(chart: &ComparisonByIdsChartConfig) -> Result<()> {
+    validate_metrics(&chart.metrics)?;
+    match chart.axis_mode.as_str() {
+        "individual" | "shared" => {}
+        other => {
+            return Err(AppError::BadRequest(format!(
+                "settings.comparisonChart.axisMode must be 'individual' or 'shared' (got '{other}')"
+            )));
+        }
+    }
+    if let Some([start, end]) = chart.brush_range {
+        validate_non_negative_finite(start, "settings.comparisonChart.brushRange[0]")?;
+        validate_non_negative_finite(end, "settings.comparisonChart.brushRange[1]")?;
+        if end <= start {
+            return Err(AppError::BadRequest(
+                "settings.comparisonChart.brushRange must be [start, end] with end > start".into(),
+            ));
+        }
+        if end > MAX_TIME_MINUTES {
+            return Err(AppError::BadRequest(format!(
+                "settings.comparisonChart.brushRange[1] exceeds {MAX_TIME_MINUTES} minutes"
+            )));
+        }
+    }
+    validate_non_negative_finite(
+        chart.touch_point.viscosity_threshold,
+        "settings.comparisonChart.touchPoint.viscosityThreshold",
+    )?;
+    validate_non_negative_finite(
+        chart.touch_point.target_time,
+        "settings.comparisonChart.touchPoint.targetTime",
+    )?;
+    validate_chart_line_settings(&chart.line_settings)?;
+    if chart.experiment_colors.is_empty() {
+        return Err(AppError::BadRequest(
+            "settings.comparisonChart.experimentColors must not be empty".into(),
+        ));
+    }
+    if chart.experiment_colors.len() > MAX_VISCOSITY_RATES {
+        return Err(AppError::BadRequest(format!(
+            "settings.comparisonChart.experimentColors exceeds {MAX_VISCOSITY_RATES} entries"
+        )));
+    }
+    for (idx, color) in chart.experiment_colors.iter().enumerate() {
+        validate_bounded_str(
+            color,
+            MAX_COLOR_BYTES,
+            &format!("settings.comparisonChart.experimentColors[{idx}]"),
+        )?;
+    }
+    validate_choice(
+        &chart.time_format,
+        &["seconds", "minutes", "hh:mm:ss"],
+        "settings.comparisonChart.timeFormat",
+    )?;
+    validate_choice(
+        &chart.downsample_mode,
+        &["off", "smart", "fast"],
+        "settings.comparisonChart.downsampleMode",
+    )?;
+    validate_chart_dimension(chart.chart_width, "settings.comparisonChart.chartWidth")?;
+    validate_chart_dimension(chart.chart_height, "settings.comparisonChart.chartHeight")
+}
+
+fn validate_metrics(metrics: &ComparisonByIdsMetrics) -> Result<()> {
+    validate_metric_key(
+        &metrics.primary,
+        "settings.comparisonChart.metrics.primary",
+        false,
+    )?;
+    validate_metric_key(
+        &metrics.left_secondary,
+        "settings.comparisonChart.metrics.leftSecondary",
+        true,
+    )?;
+    validate_metric_key(
+        &metrics.secondary,
+        "settings.comparisonChart.metrics.secondary",
+        true,
+    )?;
+    validate_metric_key(
+        &metrics.tertiary,
+        "settings.comparisonChart.metrics.tertiary",
+        true,
+    )
+}
+
+fn validate_metric_key(value: &str, field: &str, allow_none: bool) -> Result<()> {
+    if allow_none && value == "none" {
+        return Ok(());
+    }
+    validate_bounded_str(value, MAX_METRIC_KEY_BYTES, field)?;
+    if value.is_empty() {
+        return Err(AppError::BadRequest(format!("{field} must not be empty")));
+    }
+    Ok(())
+}
+
+fn validate_chart_line_settings(settings: &ComparisonByIdsChartLineSettings) -> Result<()> {
+    validate_line_settings(
+        &settings.viscosity,
+        "settings.comparisonChart.lineSettings.viscosity",
+    )?;
+    validate_line_settings(
+        &settings.temperature,
+        "settings.comparisonChart.lineSettings.temperature",
+    )?;
+    validate_line_settings(
+        &settings.shear_rate,
+        "settings.comparisonChart.lineSettings.shearRate",
+    )?;
+    validate_line_settings(
+        &settings.pressure,
+        "settings.comparisonChart.lineSettings.pressure",
+    )?;
+    validate_line_settings(&settings.rpm, "settings.comparisonChart.lineSettings.rpm")?;
+    if let Some(bath_temperature) = &settings.bath_temperature {
+        validate_line_settings(
+            bath_temperature,
+            "settings.comparisonChart.lineSettings.bathTemperature",
+        )?;
+    }
+    Ok(())
+}
+
+fn validate_line_settings(settings: &ComparisonByIdsLineSettings, field: &str) -> Result<()> {
+    validate_bounded_str(&settings.color, MAX_COLOR_BYTES, &format!("{field}.color"))?;
+    if settings.width == 0 || settings.width > MAX_LINE_WIDTH {
+        return Err(AppError::BadRequest(format!(
+            "{field}.width must be between 1 and {MAX_LINE_WIDTH}"
+        )));
+    }
+    validate_choice(
+        &settings.style,
+        &["solid", "dashed", "dotted"],
+        &format!("{field}.style"),
+    )
+}
+
+fn validate_report_settings(settings: &ComparisonByIdsReportSettings) -> Result<()> {
+    validate_axis(
+        &settings.shear_rate_axis,
+        "settings.reportSettings.shearRateAxis",
+    )?;
+    validate_axis(
+        &settings.pressure_axis,
+        "settings.reportSettings.pressureAxis",
+    )?;
+    validate_i32_shear_rates(
+        &settings.report_viscosity_rates,
+        "settings.reportSettings.reportViscosityRates",
+    )?;
+    if let Some(rheology_units) = &settings.rheology_units {
+        validate_rheology_units(rheology_units)?;
+    }
+    Ok(())
+}
+
+fn validate_axis(value: &str, field: &str) -> Result<()> {
+    validate_choice(value, &["left", "right"], field)
+}
+
+fn validate_i32_shear_rates(values: &[i32], field: &str) -> Result<()> {
+    if values.is_empty() {
+        return Err(AppError::BadRequest(format!("{field} must not be empty")));
+    }
+    if values.len() > MAX_VISCOSITY_RATES {
+        return Err(AppError::BadRequest(format!(
+            "{field} exceeds {MAX_VISCOSITY_RATES} entries"
+        )));
+    }
+    let mut seen = HashSet::with_capacity(values.len());
+    for (idx, value) in values.iter().copied().enumerate() {
+        if value <= 0 || value as f64 > MAX_SHEAR_RATE {
+            return Err(AppError::BadRequest(format!(
+                "{field}[{idx}] must be > 0 and <= {MAX_SHEAR_RATE}"
+            )));
+        }
+        if !seen.insert(value) {
+            return Err(AppError::BadRequest(format!(
+                "{field} must not contain duplicate shear rates"
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn validate_f64_shear_rates(values: &[f64], field: &str) -> Result<()> {
+    if values.is_empty() {
+        return Err(AppError::BadRequest(format!("{field} must not be empty")));
+    }
+    if values.len() > MAX_VISCOSITY_RATES {
+        return Err(AppError::BadRequest(format!(
+            "{field} exceeds {MAX_VISCOSITY_RATES} entries"
+        )));
+    }
+    for (idx, value) in values.iter().copied().enumerate() {
+        if !value.is_finite() || value <= 0.0 || value > MAX_SHEAR_RATE {
+            return Err(AppError::BadRequest(format!(
+                "{field}[{idx}] must be finite, > 0 and <= {MAX_SHEAR_RATE}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn validate_rheology_units(units: &ComparisonByIdsRheologyUnits) -> Result<()> {
+    validate_choice(
+        &units.viscosity,
+        &["mPa·s", "Pa·s", "cP"],
+        "settings.reportSettings.rheologyUnits.viscosity",
+    )?;
+    validate_choice(
+        &units.temperature,
+        &["°C", "°F"],
+        "settings.reportSettings.rheologyUnits.temperature",
+    )?;
+    validate_choice(
+        &units.pressure,
+        &["bar", "psi"],
+        "settings.reportSettings.rheologyUnits.pressure",
+    )?;
+    validate_choice(
+        &units.consistency,
+        &["Pa·s^n", "lbf·s^n/100ft²"],
+        "settings.reportSettings.rheologyUnits.consistency",
+    )?;
+    validate_choice(
+        &units.plastic_viscosity,
+        &["Pa·s", "cP"],
+        "settings.reportSettings.rheologyUnits.plasticViscosity",
+    )?;
+    validate_choice(
+        &units.yield_point,
+        &["Pa", "lbf/100ft²"],
+        "settings.reportSettings.rheologyUnits.yieldPoint",
+    )?;
+    validate_choice(
+        &units.time_format,
+        &["seconds", "minutes", "hh:mm:ss"],
+        "settings.reportSettings.rheologyUnits.timeFormat",
+    )
+}
+
+fn validate_analysis_settings(settings: &ComparisonByIdsAnalysisSettings) -> Result<()> {
+    if !(0..=10_000).contains(&settings.points_to_average) {
+        return Err(AppError::BadRequest(
+            "settings.analysisSettings.pointsToAverage must be between 0 and 10000".into(),
+        ));
+    }
+    validate_f64_shear_rates(
+        &settings.viscosity_shear_rates,
+        "settings.analysisSettings.viscosityShearRates",
+    )
+}
+
+fn validate_detection_settings(settings: &ComparisonByIdsDetectionSettings) -> Result<()> {
+    validate_non_negative_finite(
+        settings.shear_rate_tolerance,
+        "settings.detectionSettings.shearRateTolerance",
+    )?;
+    validate_non_negative_finite(
+        settings.shear_rate_rel_tolerance,
+        "settings.detectionSettings.shearRateRelTolerance",
+    )?;
+    validate_non_negative_finite(
+        settings.min_step_duration,
+        "settings.detectionSettings.minStepDuration",
+    )?;
+    validate_non_negative_finite(
+        settings.split_start_duration,
+        "settings.detectionSettings.splitStartDuration",
+    )?;
+    validate_non_negative_finite(
+        settings.split_end_duration,
+        "settings.detectionSettings.splitEndDuration",
+    )?;
+    validate_non_negative_finite(
+        settings.min_duration_for_split,
+        "settings.detectionSettings.minDurationForSplit",
+    )
+}
+
+fn validate_choice(value: &str, allowed: &[&str], field: &str) -> Result<()> {
+    if allowed.contains(&value) {
+        return Ok(());
+    }
+    Err(AppError::BadRequest(format!(
+        "{field} has unsupported value '{value}'"
+    )))
+}
+
+fn validate_chart_dimension(value: u32, field: &str) -> Result<()> {
+    if !(MIN_CHART_DIMENSION..=MAX_CHART_DIMENSION).contains(&value) {
+        return Err(AppError::BadRequest(format!(
+            "{field} must be between {MIN_CHART_DIMENSION} and {MAX_CHART_DIMENSION}"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_non_negative_finite(value: f64, field: &str) -> Result<()> {
+    if !value.is_finite() || value < 0.0 {
+        return Err(AppError::BadRequest(format!(
+            "{field} must be finite and non-negative"
+        )));
+    }
+    Ok(())
+}
+
+#[allow(dead_code)]
+fn build_analysis_cache_key_material(
+    experiment_id: &str,
+    experiment_data_bytes: &[u8],
+    geometry: &str,
+    analysis_settings: &ComparisonByIdsAnalysisSettings,
+    report_viscosity_rates: &[i32],
+) -> Result<AnalysisCacheKeyMaterial> {
+    validate_hash_id(experiment_id, "experimentId")?;
+    validate_bounded_str(geometry, MAX_METRIC_KEY_BYTES, "geometry")?;
+    validate_analysis_settings(analysis_settings)?;
+    validate_i32_shear_rates(report_viscosity_rates, "reportViscosityRates")?;
+
+    Ok(AnalysisCacheKeyMaterial {
+        experiment_id: experiment_id.to_owned(),
+        experiment_data_hash: sha256_hex(experiment_data_bytes),
+        geometry: geometry.to_owned(),
+        analysis_settings_hash: canonical_json_hash(analysis_settings)?,
+        report_viscosity_rates_hash: canonical_json_hash(report_viscosity_rates)?,
+        rheolab_core_version: RHEOLAB_CORE_VERSION.to_owned(),
+        algorithm_version: ANALYSIS_CACHE_ALGORITHM_VERSION,
+    })
+}
+
+fn canonical_json_hash<T: Serialize + ?Sized>(value: &T) -> Result<String> {
+    let bytes = serde_json::to_vec(value)?;
+    Ok(sha256_hex(&bytes))
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    hex::encode(digest)
 }
 
 // ── Audit-v2 REP-001 helpers ───────────────────────────────────────────
@@ -455,10 +1247,17 @@ mod tests {
     // ── Audit-v2 REP-001 regression guards (pure feature-gate helpers) ──
 
     use super::{
-        count_experiments_in_value, enforce_comparison_excel_features,
-        enforce_comparison_pdf_features, enforce_max_comparison_experiments,
+        build_analysis_cache_key_material, count_experiments_in_value,
+        enforce_comparison_excel_features, enforce_comparison_pdf_features,
+        enforce_max_comparison_experiments, validate_comparison_by_ids_request,
+        validate_comparison_experiment_ids_exist, ComparisonByIdsChartConfig,
+        ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings, ComparisonByIdsMetrics,
+        ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
+        ComparisonByIdsTouchPointConfig, ComparisonReportByIdsRequest,
+        ComparisonReportByIdsSettings, ReportFormat,
     };
     use crate::commands::licensing::types::LicenseFeatures;
+    use rheolab_core::RHEOLAB_CORE_VERSION;
 
     /// Helper: build a `LicenseFeatures` with everything explicitly off.
     /// Tests then flip the specific flags they care about.
@@ -478,13 +1277,263 @@ mod tests {
         }
     }
 
+    fn comparison_features(max_comparison_experiments: i64) -> LicenseFeatures {
+        let mut features = empty_features();
+        features.comparison = true;
+        features.export_pdf = true;
+        features.export_excel = true;
+        features.max_comparison_experiments = max_comparison_experiments;
+        features
+    }
+
+    fn valid_line_settings(color: &str) -> ComparisonByIdsLineSettings {
+        ComparisonByIdsLineSettings {
+            color: color.into(),
+            width: 2,
+            style: "solid".into(),
+        }
+    }
+
+    fn valid_chart_line_settings() -> ComparisonByIdsChartLineSettings {
+        ComparisonByIdsChartLineSettings {
+            viscosity: valid_line_settings("#3b82f6"),
+            temperature: valid_line_settings("#f97316"),
+            shear_rate: valid_line_settings("#a855f7"),
+            pressure: valid_line_settings("#22c55e"),
+            rpm: valid_line_settings("#eab308"),
+            bath_temperature: Some(ComparisonByIdsLineSettings {
+                color: "#fb923c".into(),
+                width: 2,
+                style: "dashed".into(),
+            }),
+        }
+    }
+
+    fn valid_by_ids_request() -> ComparisonReportByIdsRequest {
+        ComparisonReportByIdsRequest {
+            experiment_ids: vec![
+                "exp_aaaaaaaaaaaaaaaaaaaa".into(),
+                "exp_bbbbbbbbbbbbbbbbbbbb".into(),
+            ],
+            settings: ComparisonReportByIdsSettings {
+                language: "en".into(),
+                unit_system: "SI".into(),
+                company_name: Some("RheoLab".into()),
+                company_logo_base64: None,
+                generated_at: Some("2026-04-29T00:00:00Z".into()),
+                comparison_chart: ComparisonByIdsChartConfig {
+                    metrics: ComparisonByIdsMetrics {
+                        primary: "viscosity_cp".into(),
+                        left_secondary: "none".into(),
+                        secondary: "temperature_c".into(),
+                        tertiary: "none".into(),
+                    },
+                    axis_mode: "individual".into(),
+                    brush_range: Some([0.0, 30.0]),
+                    touch_point: ComparisonByIdsTouchPointConfig {
+                        enabled: true,
+                        viscosity_threshold: 200.0,
+                        show_target_time: true,
+                        target_time: 10.0,
+                    },
+                    line_settings: valid_chart_line_settings(),
+                    experiment_colors: vec!["#1E90FF".into(), "#FF0000".into()],
+                    time_format: "minutes".into(),
+                    downsample_mode: "smart".into(),
+                    chart_width: 1400,
+                    chart_height: 700,
+                },
+                section_toggles: ComparisonByIdsSectionToggles {
+                    show_calibration: false,
+                    show_raw_data: false,
+                    show_recipe: true,
+                    show_water_analysis: true,
+                    show_rheology: true,
+                },
+                report_settings: ComparisonByIdsReportSettings {
+                    show_temperature: true,
+                    show_shear_rate: true,
+                    show_pressure: true,
+                    show_bath_temperature: false,
+                    shear_rate_axis: "right".into(),
+                    pressure_axis: "right".into(),
+                    show_advanced_stats: true,
+                    report_viscosity_rates: vec![40, 100, 170],
+                    rheology_units: None,
+                },
+                analysis_settings: super::default_comparison_analysis_settings(),
+                detection_settings: Default::default(),
+            },
+        }
+    }
+
+    #[test]
+    fn validate_by_ids_accepts_valid_pdf_request() {
+        let request = valid_by_ids_request();
+        let features = comparison_features(3);
+        assert!(validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf).is_ok());
+    }
+
+    #[test]
+    fn validate_by_ids_accepts_valid_excel_request() {
+        let request = valid_by_ids_request();
+        let features = comparison_features(3);
+        assert!(
+            validate_comparison_by_ids_request(&request, &features, ReportFormat::Excel).is_ok()
+        );
+    }
+
+    #[test]
+    fn validate_by_ids_rejects_empty_experiment_list() {
+        let mut request = valid_by_ids_request();
+        request.experiment_ids.clear();
+        let features = comparison_features(3);
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("at least one"));
+    }
+
+    #[test]
+    fn validate_by_ids_rejects_duplicate_experiment_ids() {
+        let mut request = valid_by_ids_request();
+        request.experiment_ids = vec![
+            "exp_aaaaaaaaaaaaaaaaaaaa".into(),
+            "exp_aaaaaaaaaaaaaaaaaaaa".into(),
+        ];
+        let features = comparison_features(3);
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("duplicate experiment ID"));
+    }
+
+    #[test]
+    fn validate_by_ids_rejects_invalid_experiment_id_shape() {
+        let mut request = valid_by_ids_request();
+        request.experiment_ids = vec!["abc' OR 1=1--".into()];
+        let features = comparison_features(3);
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("alphanumeric"));
+    }
+
+    #[test]
+    fn validate_by_ids_rejects_over_cap_before_settings_work() {
+        let request = valid_by_ids_request();
+        let features = comparison_features(1);
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("exceeds"));
+        assert!(err.contains("1 experiments"));
+    }
+
+    #[test]
+    fn validate_by_ids_rejects_invalid_chart_dimension() {
+        let mut request = valid_by_ids_request();
+        request.settings.comparison_chart.chart_width = 99;
+        let features = comparison_features(3);
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("chartWidth"));
+    }
+
+    #[test]
+    fn validate_by_ids_rejects_duplicate_report_viscosity_rates() {
+        let mut request = valid_by_ids_request();
+        request.settings.report_settings.report_viscosity_rates = vec![40, 100, 100];
+        let features = comparison_features(3);
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("duplicate shear rates"));
+    }
+
+    #[test]
+    fn validate_by_ids_rejects_invalid_analysis_rate() {
+        let mut request = valid_by_ids_request();
+        request.settings.analysis_settings.viscosity_shear_rates = vec![40.0, f64::NAN];
+        let features = comparison_features(3);
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("finite"));
+    }
+
+    #[test]
+    fn analysis_cache_key_material_is_deterministic_and_versioned() {
+        let request = valid_by_ids_request();
+        let settings = request.settings;
+        let key_a = build_analysis_cache_key_material(
+            "exp_aaaaaaaaaaaaaaaaaaaa",
+            b"fixture-data",
+            "R1B5",
+            &settings.analysis_settings,
+            &settings.report_settings.report_viscosity_rates,
+        )
+        .expect("cache key material should build");
+        let key_b = build_analysis_cache_key_material(
+            "exp_aaaaaaaaaaaaaaaaaaaa",
+            b"fixture-data",
+            "R1B5",
+            &settings.analysis_settings,
+            &settings.report_settings.report_viscosity_rates,
+        )
+        .expect("cache key material should build deterministically");
+        let key_c = build_analysis_cache_key_material(
+            "exp_aaaaaaaaaaaaaaaaaaaa",
+            b"changed-data",
+            "R1B5",
+            &settings.analysis_settings,
+            &settings.report_settings.report_viscosity_rates,
+        )
+        .expect("cache key material should change with data bytes");
+
+        assert_eq!(key_a, key_b);
+        assert_ne!(key_a.experiment_data_hash, key_c.experiment_data_hash);
+        assert_eq!(key_a.experiment_data_hash.len(), 64);
+        assert_eq!(key_a.rheolab_core_version, RHEOLAB_CORE_VERSION);
+        assert_eq!(key_a.algorithm_version, 1);
+    }
+
+    #[test]
+    fn validate_experiment_ids_exist_reports_missing_ids_in_input_order() {
+        let conn = rusqlite::Connection::open_in_memory().expect("in-memory db");
+        conn.execute("CREATE TABLE Experiment (id TEXT PRIMARY KEY)", [])
+            .expect("table");
+        conn.execute(
+            "INSERT INTO Experiment (id) VALUES (?1)",
+            ["exp_aaaaaaaaaaaaaaaaaaaa"],
+        )
+        .expect("insert");
+        let err = validate_comparison_experiment_ids_exist(
+            &conn,
+            &[
+                "exp_bbbbbbbbbbbbbbbbbbbb".into(),
+                "exp_aaaaaaaaaaaaaaaaaaaa".into(),
+                "exp_cccccccccccccccccccc".into(),
+            ],
+        )
+        .unwrap_err()
+        .to_string();
+
+        assert!(err.contains(
+            "Experiment IDs not found: exp_bbbbbbbbbbbbbbbbbbbb, exp_cccccccccccccccccccc"
+        ));
+    }
+
     #[test]
     fn enforce_comparison_pdf_rejects_when_comparison_disabled() {
         let mut f = empty_features();
         f.export_pdf = true;
         f.max_comparison_experiments = 100;
         // comparison left = false
-        let err = enforce_comparison_pdf_features(&f, 1).unwrap_err().to_string();
+        let err = enforce_comparison_pdf_features(&f, 1)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("Comparison"));
         assert!(err.contains("REP-001"));
     }
@@ -495,7 +1544,9 @@ mod tests {
         f.comparison = true;
         f.max_comparison_experiments = 100;
         // export_pdf left = false
-        let err = enforce_comparison_pdf_features(&f, 1).unwrap_err().to_string();
+        let err = enforce_comparison_pdf_features(&f, 1)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("PDF"));
         assert!(err.contains("REP-001"));
     }
@@ -530,7 +1581,7 @@ mod tests {
         f.comparison = true;
         f.export_pdf = true;
         f.max_comparison_experiments = -1; // unlimited
-        // Even a huge count must pass when the cap is "unlimited".
+                                           // Even a huge count must pass when the cap is "unlimited".
         assert!(enforce_comparison_pdf_features(&f, 10_000).is_ok());
     }
 
@@ -608,7 +1659,9 @@ mod tests {
 
         let count = count_experiments_in_value(&v);
         assert_eq!(count, 100_000);
-        let err = enforce_comparison_pdf_features(&f, count).unwrap_err().to_string();
+        let err = enforce_comparison_pdf_features(&f, count)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("100000"));
         assert!(err.contains("3 experiments"));
     }

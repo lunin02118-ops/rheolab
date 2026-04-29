@@ -9,6 +9,7 @@ import { safeInvoke as invoke } from './core';
 import type {
   FixtureReadResponse,
   FixtureSummaryResponse,
+  ComparisonReportByIdsRequest,
   ParseFileRequest,
   ParseFileResponse,
 } from '@/types/tauri';
@@ -58,6 +59,16 @@ export const reports = {
    */
   async generateComparisonExcel(input: unknown): Promise<Uint8Array> {
     const buffer = await invoke<ArrayBuffer>('reports_generate_comparison_excel', { input });
+    return new Uint8Array(buffer);
+  },
+
+  async generateComparisonPdfByIds(request: ComparisonReportByIdsRequest): Promise<Uint8Array> {
+    const buffer = await invoke<ArrayBuffer>('reports_generate_comparison_pdf_by_ids', { request });
+    return new Uint8Array(buffer);
+  },
+
+  async generateComparisonExcelByIds(request: ComparisonReportByIdsRequest): Promise<Uint8Array> {
+    const buffer = await invoke<ArrayBuffer>('reports_generate_comparison_excel_by_ids', { request });
     return new Uint8Array(buffer);
   },
 };
