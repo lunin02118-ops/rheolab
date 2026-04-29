@@ -482,6 +482,60 @@ pub struct ExperimentDetailSummary {
     pub pressure_max: Option<f64>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RawTablePageResponse {
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page: Option<RawTablePage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+impl RawTablePageResponse {
+    pub(super) fn ok(page: RawTablePage) -> Self {
+        Self {
+            success: true,
+            page: Some(page),
+            error: None,
+        }
+    }
+
+    pub(super) fn err(error: impl Into<String>) -> Self {
+        Self {
+            success: false,
+            page: None,
+            error: Some(error.into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RawTablePage {
+    pub experiment_id: String,
+    pub total_rows: usize,
+    pub page: usize,
+    pub page_size: usize,
+    pub total_pages: usize,
+    pub has_bath_temperature: bool,
+    pub rows: Vec<RawTableRow>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RawTableRow {
+    pub index: usize,
+    pub time_sec: Option<f64>,
+    pub viscosity_cp: Option<f64>,
+    pub temperature_c: Option<f64>,
+    pub speed_rpm: Option<f64>,
+    pub shear_rate_s1: Option<f64>,
+    pub shear_stress_pa: Option<f64>,
+    pub pressure_bar: Option<f64>,
+    pub bath_temperature_c: Option<f64>,
+}
+
 /// Lightweight experiment summary for list/table views.
 /// Excludes heavy payloads: rawPoints, metrics, calibration.
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]

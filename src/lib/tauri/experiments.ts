@@ -22,6 +22,7 @@ import type {
   ExperimentsListQuery,
   ExperimentsListResponse,
   LastContextResponse,
+  RawTablePageResponse,
 } from '@/types/tauri';
 import type {
   ImportBatchItem,
@@ -66,6 +67,21 @@ export const experiments = {
    */
   async detailMeta(id: string): Promise<ExperimentDetailMetaResponse> {
     return invoke<ExperimentDetailMetaResponse>('experiments_detail_meta_by_id', { id });
+  },
+
+  /**
+   * Page saved-experiment raw rows by id without returning the full rawPoints payload.
+   */
+  async rawTablePage(
+    experimentId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<RawTablePageResponse> {
+    return invoke<RawTablePageResponse>('experiments_raw_table_page_by_id', {
+      experimentId,
+      page,
+      pageSize,
+    });
   },
 
   /**

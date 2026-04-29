@@ -11,6 +11,7 @@ export type {
   ApiKeyValidationResponse,
   ExperimentDeleteResponse,
   ExperimentDetailMetaResponse,
+  RawTablePageResponse,
   BackupInfo,
   BackupResult,
   ExperimentsExportToFileResponse,

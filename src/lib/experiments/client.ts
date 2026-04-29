@@ -15,7 +15,8 @@ import type {
   ExperimentsCountResponse,
   ExperimentsListQuery,
   ExperimentsListResponse,
-  LastContextResponse
+  LastContextResponse,
+  RawTablePageResponse
 } from '@/types/tauri';
 
 /**
@@ -32,6 +33,14 @@ export async function getExperimentById(id: string): Promise<ExperimentGetRespon
 
 export async function getExperimentDetailMetaById(id: string): Promise<ExperimentDetailMetaResponse> {
   return getBridge().experiments.detailMeta(id);
+}
+
+export async function getRawTablePageById(
+  experimentId: string,
+  page: number,
+  pageSize: number,
+): Promise<RawTablePageResponse> {
+  return getBridge().experiments.rawTablePage(experimentId, page, pageSize);
 }
 
 /**

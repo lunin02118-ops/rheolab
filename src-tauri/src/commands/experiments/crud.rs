@@ -5,7 +5,7 @@ use super::types::*;
 use crate::commands::licensing::{
     can_write_via_engine, maybe_increment_demo_save, require_write_license,
 };
-use crate::error::Result;
+use crate::error::{AppError, Result};
 use crate::state::AppState;
 use crate::utils::validation::{validate_bounded_str, validate_hash_id};
 use rusqlite::params;
@@ -40,6 +40,39 @@ pub async fn experiments_detail_meta_by_id(
     match exp {
         Some(experiment) => Ok(ExperimentDetailMetaResponse::ok(experiment)),
         None => Ok(ExperimentDetailMetaResponse::err("Experiment not found")),
+    }
+}
+
+const RAW_TABLE_PAGE_SIZE_MIN: usize = 1;
+const RAW_TABLE_PAGE_SIZE_MAX: usize = 500;
+
+#[tauri::command]
+pub async fn experiments_raw_table_page_by_id(
+    state: State<'_, AppState>,
+    experiment_id: String,
+    page: usize,
+    page_size: usize,
+) -> Result<RawTablePageResponse> {
+    validate_hash_id(&experiment_id, "experimentId")?;
+    if page == 0 {
+        return Err(AppError::BadRequest("page must be >= 1".into()));
+    }
+    if !(RAW_TABLE_PAGE_SIZE_MIN..=RAW_TABLE_PAGE_SIZE_MAX).contains(&page_size) {
+        return Err(AppError::BadRequest(format!(
+            "pageSize must be between {RAW_TABLE_PAGE_SIZE_MIN} and {RAW_TABLE_PAGE_SIZE_MAX}"
+        )));
+    }
+
+    let pool = state.db_pool.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let conn = pool.get()?;
+        load_raw_table_page_by_id(&conn, &experiment_id, page, page_size)
+    })
+    .await??;
+
+    match result {
+        Some(page) => Ok(RawTablePageResponse::ok(page)),
+        None => Ok(RawTablePageResponse::err("Experiment not found")),
     }
 }
 
@@ -501,7 +534,7 @@ fn normalize_reagent(mut reagent: StoredExperimentReagent) -> StoredExperimentRe
 // need to change their import paths.
 pub(crate) use crate::db::repositories::experiments::{
     load_experiment_by_id, load_experiment_detail_meta_by_id, load_experiments_batch,
-    persist_experiment,
+    load_raw_table_page_by_id, persist_experiment,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

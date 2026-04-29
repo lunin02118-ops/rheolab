@@ -62,6 +62,8 @@ function createTauriBridge(): PlatformBridge {
       filterMetadata: () => tauriExperiments.filterMetadata(),
       get: (id) => tauriExperiments.get(id),
       detailMeta: (id) => tauriExperiments.detailMeta(id),
+      rawTablePage: (experimentId, page, pageSize) =>
+        tauriExperiments.rawTablePage(experimentId, page, pageSize),
       getBatch: (ids) => tauriExperiments.getBatch(ids),
       checkExistence: (ids) => tauriExperiments.checkExistence(ids),
       save: (payload) => tauriExperiments.save(payload),
@@ -196,6 +198,7 @@ export type {
   ExperimentsExportToFileResponse,
   ExperimentDetailMetaResponse,
   ExperimentGetResponse,
+  RawTablePageResponse,
   ExperimentsImportResponse,
   ExperimentsLaboratoriesResponse,
   ExperimentSaveResponse,
