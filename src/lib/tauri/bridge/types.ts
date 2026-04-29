@@ -41,6 +41,10 @@ export type {
   FixtureReadResponse,
   ParseFileRequest,
   ParseFileResponse,
+  JobRecord,
+  JobCancelResponse,
+  AnalysisCacheStats,
+  AnalysisCachePruneResponse,
   PlatformType,
   PlatformBridge,
 } from '@/types/tauri';

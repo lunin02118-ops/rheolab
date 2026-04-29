@@ -25,6 +25,7 @@ pub(super) fn make_test_state() -> AppState {
         backups_dir: dir.join("backups"),
         app_data_dir: dir,
         db_pool: pool,
+        job_scheduler: std::sync::Arc::new(crate::runtime::jobs::JobScheduler::new()),
         license_engine: None,
         migration_result,
     }

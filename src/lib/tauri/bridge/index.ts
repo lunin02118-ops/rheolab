@@ -21,6 +21,8 @@ import {
   reports as tauriReports,
   logger as tauriLogger,
   analysis as tauriAnalysis,
+  jobs as tauriJobs,
+  analysisCache as tauriAnalysisCache,
   operators as tauriOperators,
   laboratories as tauriLaboratories,
 } from '../index';
@@ -115,6 +117,17 @@ function createTauriBridge(): PlatformBridge {
         tauriReports.generateComparisonExcelByIds(request),
     },
 
+    jobs: {
+      list: () => tauriJobs.list(),
+      get: (jobId) => tauriJobs.get(jobId),
+      cancel: (jobId) => tauriJobs.cancel(jobId),
+    },
+
+    analysisCache: {
+      stats: () => tauriAnalysisCache.stats(),
+      prune: (maxTotalBytes) => tauriAnalysisCache.prune(maxTotalBytes),
+    },
+
     logger: {
       info: (message) => tauriLogger.info(message),
       error: (message) => tauriLogger.error(message),
@@ -182,6 +195,10 @@ export type {
   ReagentsImportResponse,
   ReagentUpsertPayload,
   WaterSourcesResponse,
+  JobRecord,
+  JobCancelResponse,
+  AnalysisCacheStats,
+  AnalysisCachePruneResponse,
   PlatformBridge,
 } from './types';
 

@@ -9,6 +9,7 @@
  *   ./reagents     — reagents.*, waterSources.*
  *   ./reports      — reports.*, fixtures.*, parsing.*
  *   ./analysis     — analysis.*
+ *   ./jobs         — jobs.*, analysisCache.*
  *   ./sync         — sync.*, conflicts.*, syncEngine.*
  *
  * This file exists solely for backward-compatible imports from '@/lib/tauri'.
@@ -31,6 +32,7 @@ export { operators } from './operators';
 export { laboratories } from './laboratories';
 export { reports, fixtures, parsing } from './reports';
 export { analysis } from './analysis';
+export { jobs, analysisCache } from './jobs';
 export { sync, conflicts, syncEngine } from './sync';
 
 // Backward-compatible type re-export
@@ -55,6 +57,7 @@ import {
 import { reagents, waterSources } from './reagents';
 import { reports, fixtures, parsing } from './reports';
 import { analysis } from './analysis';
+import { jobs, analysisCache } from './jobs';
 import { sync, conflicts, syncEngine } from './sync';
 
 const tauriApi = {
@@ -71,6 +74,8 @@ const tauriApi = {
   fixtures,
   parsing,
   analysis,
+  jobs,
+  analysisCache,
   importBatches,
   experimentPayloads,
   parserArtifacts,

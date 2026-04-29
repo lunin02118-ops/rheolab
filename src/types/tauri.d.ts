@@ -312,6 +312,19 @@ export interface PlatformBridge {
     generateComparisonExcelByIds: (request: ComparisonReportByIdsRequest) => Promise<Uint8Array>;
   };
 
+  /** Runtime job scheduler status and cancellation */
+  jobs?: {
+    list: () => Promise<JobRecord[]>;
+    get: (jobId: string) => Promise<JobRecord>;
+    cancel: (jobId: string) => Promise<JobCancelResponse>;
+  };
+
+  /** Persistent AnalysisArtifact cache maintenance */
+  analysisCache?: {
+    stats: () => Promise<AnalysisCacheStats>;
+    prune: (maxTotalBytes?: number) => Promise<AnalysisCachePruneResponse>;
+  };
+
   /** Local demo fixtures operations */
   fixtures: {
     list: () => Promise<FixturesListResponse>;
