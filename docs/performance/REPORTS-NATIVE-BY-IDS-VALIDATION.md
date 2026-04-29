@@ -8,6 +8,8 @@
 
 Native by-IDs comparison export is the default path for PDF and XLSX in alpha. The old TypeScript-assembled payload path remains only as an explicit rollback lane via `localStorage['rheolab.comparisonReports.forceLegacy']='1'` or missing by-IDs IPC.
 
+External closeout review on `3994022` confirmed the same verdict from GitHub-visible code, commit diff, and docs: **GO** for merge after the final release gate on the merge commit; **NO-GO** for removing the legacy payload path during the current rollback window.
+
 The Sprint 2 validation evidence is split into three layers:
 
 | Layer | Evidence | Result |
@@ -83,6 +85,8 @@ Closeout-specific checks:
 - `node --check scripts/test/run-rust-microbench.mjs` — passed.
 - PDF fixture microbench N=5/N=10 — passed.
 - XLSX fixture microbench N=5/N=10 — passed.
+
+External review note: the reviewer did not run local commands in their environment, and GitHub combined statuses for `3994022` did not return CI checks. Treat the command results above as implementer-recorded verification until the final release gate runs on the merge commit.
 
 ## Closeout note
 

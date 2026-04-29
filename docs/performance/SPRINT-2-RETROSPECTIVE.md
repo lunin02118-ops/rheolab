@@ -10,6 +10,8 @@ Sprint 2 delivered the main ROI lever: comparison PDF/XLSX exports now default t
 
 The legacy TypeScript payload path remains available only as a rollback lane for one alpha/beta cycle. That means the historical `LARGE-IPC-EXCEPTION` marker is still present on `reports_generate_comparison_pdf`, but it is no longer the default production path.
 
+External closeout review on `3994022` confirmed Sprint 2 as alpha-complete with one condition: run the full release gate on the merge commit before alpha release. The review explicitly rejected deleting the legacy payload path during the rollback window.
+
 ## What shipped
 
 | Area | Result |
@@ -70,6 +72,18 @@ The UI-level `L-CMP-3/5/10` setup budgets still depend on a comparison smoke run
 | Per-report JS heap peak | Current fixture microbench is Rust-only and does not attach browser heap sampling. | Sprint 3/4 instrumentation |
 | Per-report Rust RSS peak | Needs process-level RSS sampling around handler/job spans. | Sprint 4 scheduler/instrumentation |
 | UI `L-CMP-5/10` smoke | Demo license cap still blocks N > 3 in Playwright flow. | Sprint 3 license test helper |
+
+## Release-gate checklist for merge commit
+
+- `npm run version:validate`
+- `cargo test --manifest-path src-tauri/Cargo.toml --lib`
+- `npm test`
+- `npx tsc --noEmit --project tsconfig.json`
+- `npm run audit:large-ipc`
+- `git diff --check`
+- `cargo check --manifest-path src-tauri/Cargo.toml --example bench_comparison_pdf`
+- `cargo build --release --example bench_comparison_pdf --manifest-path src-tauri/Cargo.toml`
+- `npm run tauri:build`
 
 ## Lessons learned
 

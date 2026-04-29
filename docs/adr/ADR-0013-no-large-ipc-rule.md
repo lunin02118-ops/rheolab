@@ -126,6 +126,22 @@ If the legacy rollback path must survive longer than one alpha/beta window, this
 
 If a new exception is required during Sprint 2 (or any future sprint), this ADR must be amended to list it, with the same level of detail as § 4 above.
 
+### 4.3 Removal issue seed
+
+Create a dated release-hardening issue after Sprint 2 merge:
+
+```text
+Title: Remove legacy comparison payload IPC and LARGE-IPC-EXCEPTION
+Gate: after one alpha + one beta window with no by-IDs regressions
+Owner: Sprint 3 close / release hardening
+Scope:
+- Remove or hard-disable legacy comparison payload frontend fallback.
+- Remove legacy comparison payload IPC commands.
+- Remove the remaining LARGE-IPC-EXCEPTION marker.
+- Require npm run audit:large-ipc to report zero suppressions.
+- Update ADR-0010 and ADR-0013 to the final no-exception state.
+```
+
 ---
 
 ## 5. Implementation references

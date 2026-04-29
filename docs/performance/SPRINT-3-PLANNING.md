@@ -68,6 +68,23 @@ struct AnalysisCacheKey {
    - After one alpha/beta rollback window, remove legacy comparison payload fallback.
    - Remove the remaining `LARGE-IPC-EXCEPTION` marker with the legacy command deletion or hard-disable.
 
+## Recommended commit sequence
+
+1. `docs(perf): Finalize Sprint 3 AnalysisArtifact cache plan`
+   - Lock table schema, cold/warm metrics, invalidation matrix, and rollback strategy.
+2. `feat(db): Add AnalysisArtifact migration`
+   - Add the cache table, effective-key unique index, and cascade/delete policy.
+3. `feat(analysis): Add AnalysisArtifact repository`
+   - Provide `get`, `put`, delete-by-experiment, and prune helpers.
+4. `feat(analysis): Compute stable analysis cache key`
+   - Hash experiment data, geometry, analysis settings, report rates, core version, and algorithm version.
+5. `feat(reports): Use AnalysisArtifact cache in comparison by-ids reports`
+   - Prove cold path stores artifacts and warm path reuses them before render.
+6. `test(analysis): Cover cache key stability and invalidation`
+   - Cover raw data, geometry, detection settings, report rates, version, and deletion changes.
+7. `perf(reports): Validate cold vs warm AnalysisArtifact reports`
+   - Capture `L-CMP-PDF-5`, `L-CMP-XLSX-5`, optional N=10, artifact DB size, and hit ratio.
+
 ## Verification plan
 
 - Unit tests for cache key stability and invalidation.
