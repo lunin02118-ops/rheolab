@@ -186,79 +186,6 @@ pub async fn reports_generate_excel(
     Ok(tauri::ipc::Response::new(bytes))
 }
 
-// Architectural note (audit-v2 REP-001):
-// `input` is `serde_json::Value` rather than the typed
-// `ComparisonReportInput` on purpose.  REP-001 demands we count
-// `experiments.len()` BEFORE the second-pass deserialisation that
-// builds the heavy `ComparisonExperimentEntry` struct tree (~2 KB
-// each).  Switching to a typed parameter would force Tauri to allocate
-// the full 100k-entry `Vec<ComparisonExperimentEntry>` before our gate
-// sees the count, defeating the anti-DoS pre-deserialise check.
-// The Excel sibling (`reports_generate_comparison_excel`) uses the
-// typed parameter because its experiment-tree is roughly half the size
-// and the same payload-bomb risk does not apply.
-/// Generate a PDF comparison report from multiple experiments.
-///
-/// Returns raw PDF bytes via `tauri::ipc::Response` for zero-copy transfer to
-/// the frontend.  License-gated identically to the single-experiment path
-/// **plus** the audit-v2 REP-001 per-feature gates: `comparison`,
-/// `export_pdf`, and `max_comparison_experiments`.
-// LARGE-IPC-EXCEPTION: REP-001 anti-DoS pre-deserialise count check (see note above).
-#[tauri::command]
-pub async fn reports_generate_comparison_pdf(
-    state: State<'_, AppState>,
-    input: serde_json::Value,
-) -> Result<tauri::ipc::Response> {
-    if !can_write_via_engine(&state).await {
-        return Err(AppError::License("required".into()));
-    }
-    let features = current_features(&state).await;
-    enforce_comparison_pdf_features(&features, count_experiments_in_value(&input))?;
-
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
-            tracing::debug!("[E2E] reports_generate_comparison_pdf: returning mock PDF bytes");
-            return Ok(tauri::ipc::Response::new(vec![
-                0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, // %PDF-1.4
-            ]));
-        }
-    }
-    let parsed: ComparisonReportInput = serde_json::from_value(input).map_err(|e| {
-        tracing::error!("Comparison PDF input deserialization failed: {}", e);
-        AppError::Other(format!("Input deserialization failed: {}", e))
-    })?;
-    let bytes = generate_comparison_pdf_bytes(parsed).await?;
-    Ok(tauri::ipc::Response::new(bytes))
-}
-
-/// Generate an XLSX comparison report from multiple experiments.
-///
-/// Returns raw XLSX bytes via `tauri::ipc::Response`.  License-gated
-/// plus REP-001 per-feature gates (`comparison`, `export_excel`,
-/// `max_comparison_experiments`).
-#[tauri::command]
-pub async fn reports_generate_comparison_excel(
-    state: State<'_, AppState>,
-    input: ComparisonReportInput,
-) -> Result<tauri::ipc::Response> {
-    if !can_write_via_engine(&state).await {
-        return Err(AppError::License("required".into()));
-    }
-    let features = current_features(&state).await;
-    enforce_comparison_excel_features(&features, input.experiments.len())?;
-
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
-            tracing::debug!("[E2E] reports_generate_comparison_excel: returning mock XLSX bytes");
-            return Ok(tauri::ipc::Response::new(vec![0x50, 0x4b, 0x03, 0x04]));
-        }
-    }
-    let bytes = generate_comparison_excel_bytes(input).await?;
-    Ok(tauri::ipc::Response::new(bytes))
-}
-
 #[tauri::command]
 pub async fn reports_generate_comparison_pdf_by_ids(
     app: AppHandle,
@@ -2085,22 +2012,7 @@ fn validate_non_negative_finite(value: f64, field: &str) -> Result<()> {
 
 // ── Audit-v2 REP-001 helpers ───────────────────────────────────────────
 
-/// Best-effort count of experiments in an untyped JSON `Value`.
-///
-/// We need the count *before* deserialising into [`ComparisonReportInput`]
-/// so we can refuse a 100k-experiment payload before allocating its full
-/// struct tree.  Returns `0` if the field is absent or malformed —
-/// downstream `serde_json::from_value` will surface the real parse
-/// error in that case.
-fn count_experiments_in_value(input: &serde_json::Value) -> usize {
-    input
-        .get("experiments")
-        .and_then(|v| v.as_array())
-        .map(|arr| arr.len())
-        .unwrap_or(0)
-}
-
-/// REP-001 gate for `reports_generate_comparison_pdf`.
+/// REP-001 gate for by-IDs comparison PDF exports.
 ///
 /// Pure helper so the licence-feature contract can be unit-tested
 /// without going through the full IPC + `LicenseEngine` stack.
@@ -2121,8 +2033,8 @@ fn enforce_comparison_pdf_features(
     enforce_max_comparison_experiments(features.max_comparison_experiments, experiment_count)
 }
 
-/// REP-001 gate for `reports_generate_comparison_excel`.  Mirror of the
-/// PDF helper but checks `export_excel` instead.
+/// REP-001 gate for by-IDs comparison XLSX exports.  Mirror of the PDF
+/// helper but checks `export_excel` instead.
 fn enforce_comparison_excel_features(
     features: &crate::commands::licensing::types::LicenseFeatures,
     experiment_count: usize,
@@ -2312,11 +2224,11 @@ mod tests {
 
     use super::{
         build_analysis_key_for_experiment, build_comparison_report_input_by_ids,
-        build_comparison_report_input_by_ids_cached, count_experiments_in_value,
-        enforce_comparison_excel_features, enforce_comparison_pdf_features,
-        enforce_max_comparison_experiments, generate_comparison_excel_by_ids_bytes,
-        generate_comparison_excel_by_ids_bytes_cached, generate_comparison_pdf_by_ids_bytes,
-        generate_comparison_pdf_by_ids_bytes_cached, validate_comparison_by_ids_request,
+        build_comparison_report_input_by_ids_cached, enforce_comparison_excel_features,
+        enforce_comparison_pdf_features, enforce_max_comparison_experiments,
+        generate_comparison_excel_by_ids_bytes, generate_comparison_excel_by_ids_bytes_cached,
+        generate_comparison_pdf_by_ids_bytes, generate_comparison_pdf_by_ids_bytes_cached,
+        validate_comparison_by_ids_request,
         validate_comparison_experiment_ids_exist, ComparisonByIdsChartConfig,
         ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings, ComparisonByIdsMetrics,
         ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
@@ -3490,50 +3402,19 @@ mod tests {
         assert!(enforce_max_comparison_experiments(-99, 1_000_000).is_ok());
     }
 
+    /// REP-001 attack scenario after the legacy payload IPC removal:
+    /// comparison export caps are enforced from the bounded by-IDs request
+    /// before DB load, analysis, cache work, or report rendering can start.
     #[test]
-    fn count_experiments_in_value_handles_well_formed_payload() {
-        let v = serde_json::json!({
-            "experiments": [
-                {"id": "a"},
-                {"id": "b"},
-                {"id": "c"},
-            ]
-        });
-        assert_eq!(count_experiments_in_value(&v), 3);
-    }
+    fn validate_by_ids_rejects_oversized_request_before_cache_work() {
+        let mut request = valid_by_ids_request();
+        request.experiment_ids = (0..100_000)
+            .map(|i| format!("exp_{i:020x}"))
+            .collect();
+        let mut features = comparison_features(3);
+        features.export_pdf = true;
 
-    #[test]
-    fn count_experiments_in_value_returns_zero_for_missing_field() {
-        let v = serde_json::json!({"language": "en"});
-        assert_eq!(count_experiments_in_value(&v), 0);
-    }
-
-    #[test]
-    fn count_experiments_in_value_returns_zero_for_non_array() {
-        let v = serde_json::json!({"experiments": "oops not an array"});
-        assert_eq!(count_experiments_in_value(&v), 0);
-    }
-
-    /// Headline REP-001 attack scenario: a malicious frontend hands us a
-    /// 100k-experiment payload with a Demo licence (`max_comparison_experiments=3`).
-    /// The pre-deserialise count check must refuse before allocating the
-    /// full `ComparisonReportInput` struct tree.
-    #[test]
-    fn enforce_pre_deserialise_count_caps_oversized_payload() {
-        let mut f = empty_features();
-        f.comparison = true;
-        f.export_pdf = true;
-        f.max_comparison_experiments = 3;
-
-        // Build a synthetic 100k-element experiments array — only the
-        // count field matters for the gate, not the contents.
-        let huge: Vec<serde_json::Value> =
-            (0..100_000).map(|i| serde_json::json!({"id": i})).collect();
-        let v = serde_json::json!({"experiments": huge});
-
-        let count = count_experiments_in_value(&v);
-        assert_eq!(count, 100_000);
-        let err = enforce_comparison_pdf_features(&f, count)
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
             .unwrap_err()
             .to_string();
         assert!(err.contains("100000"));

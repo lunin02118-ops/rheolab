@@ -6,8 +6,9 @@
  *
  * Unlike `tests/e2e/reports/comparison-report.spec.ts` (browser mode with
  * IPC mocks returning 8 KB fake blobs), this spec exercises the full
- * `reports_generate_comparison_pdf` / `reports_generate_comparison_excel`
- * Tauri commands end-to-end — same binary that ships to alpha users.
+ * `reports_generate_comparison_pdf_by_ids` /
+ * `reports_generate_comparison_excel_by_ids` Tauri commands end-to-end —
+ * same binary that ships to alpha users.
  *
  * Prerequisites:
  *   - Tauri app launched via globalSetup (playwright.tauri.config.ts)
@@ -99,7 +100,7 @@ test.setTimeout(900_000);
 /**
  * Setup — navigate to app, inject auth/licensing/dialog mocks (but NOT
  * reports), then allow the real Rust IPC to handle
- * `reports_generate_comparison_*` commands.
+ * `reports_generate_comparison_*_by_ids` commands.
  */
 test.beforeEach(async ({ page }) => {
     // Wait for Tauri WebView2 to land on the real app origin — CDP connects

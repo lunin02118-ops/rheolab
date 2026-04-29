@@ -3,9 +3,8 @@
  *
  * Records baseline numbers for `L-CMP-N`, `L-CMP-PDF-N`, and `L-CMP-XLSX-N`
  * budgets in `BUDGETS.md` for the comparison-export flow. Runs against the
- * **current TS-assembly path** (legacy `reports_generate_comparison_pdf`
- * IPC); a follow-up Sprint 2 commit (#12, S2-3) re-runs against the native
- * `reports_generate_comparison_*_by_ids` path and produces the A/B report.
+ * native `reports_generate_comparison_*_by_ids` path. The legacy
+ * TS-assembled payload IPC was removed during the RC hardening lane.
  *
  * What it measures, per fixture-count N:
  *   1. **L-CMP-N** — wall_ms from "open Comparison view" to "chart canvas
@@ -15,8 +14,7 @@
  *   3. **L-CMP-XLSX-N** — wall_ms for the comparison XLSX download.
  *
  * Output sidecar at `outputs/e2e/perf/comparison-smoke-<runId>.json` with
- * the schema `rheolab.e2e.perf.comparison_smoke.v1`. Sprint 2 / S2-3 will
- * diff two such sidecars to produce the validation report.
+ * the schema `rheolab.e2e.perf.comparison_smoke.v1`.
  *
  * Prerequisites:
  * - Tauri build available (debug or release). Debug uses report mocks
@@ -100,7 +98,7 @@ interface ComparisonSmokeMeasurement {
 interface ComparisonSmokeReport {
     schema: 'rheolab.e2e.perf.comparison_smoke.v1';
     runId: string;
-    label: string; // 'TS-assembly' (current) | 'native-by-ids' (post-S2-1)
+    label: string; // 'native-by-ids'
     mode: 'tauri-debug-mocked' | 'tauri-release-real';
     generatedAt: string;
     platform: string;
@@ -117,7 +115,7 @@ function timeStep<T>(_label: string, fn: () => Promise<T>): Promise<{ result: T;
 }
 
 /**
- * Ask the page whether `reports_generate_comparison_pdf` IPC is mocked.
+ * Ask the page whether comparison report IPC is mocked.
  * Returns true in debug builds where `base-test.tauri.ts` installs report
  * mocks, false in release builds.
  *

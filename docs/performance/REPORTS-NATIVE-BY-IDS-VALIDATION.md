@@ -6,9 +6,9 @@
 
 ## Verdict
 
-Native by-IDs comparison export is the default path for PDF and XLSX in alpha. The old TypeScript-assembled payload path remains only as an explicit rollback lane via `localStorage['rheolab.comparisonReports.forceLegacy']='1'` or missing by-IDs IPC.
+Native by-IDs comparison export is the only production path for PDF and XLSX after RC hardening. The old TypeScript-assembled payload IPC and emergency rollback flag have been removed.
 
-External closeout review on `3994022` confirmed the same verdict from GitHub-visible code, commit diff, and docs: **GO** for merge after the final release gate on the merge commit; **NO-GO** for removing the legacy payload path during the current rollback window.
+External closeout review on `3994022` confirmed the Sprint 2 alpha verdict from GitHub-visible code, commit diff, and docs. The temporary **NO-GO** on removing the legacy payload path applied only during that rollback window and is now resolved.
 
 The Sprint 2 validation evidence is split into three layers:
 
@@ -56,7 +56,7 @@ The PDF/XLSX targets use the same `bench_comparison_pdf` binary and the same fix
 
 The default UI path now sends a bounded `ComparisonReportByIdsRequest` instead of a fully materialized `ComparisonReportInput` containing per-experiment raw data. Tests verify the hook calls `generateComparisonPdfReportByIdsBlob` and `generateComparisonExcelReportByIdsBlob` by default and does not call the heavy comparison adapter/builders on the default path.
 
-The legacy `reports_generate_comparison_pdf` command still carries the historical `LARGE-IPC-EXCEPTION` because the rollback path intentionally remains available for one alpha/beta cycle. It is no longer the default production path.
+RC hardening removed the legacy comparison payload commands and the historical `LARGE-IPC-EXCEPTION` marker. The comparison export IPC contract is now by-IDs only.
 
 ## Memory metrics
 

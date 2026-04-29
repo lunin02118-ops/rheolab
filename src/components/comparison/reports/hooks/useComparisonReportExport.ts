@@ -14,26 +14,14 @@ import type { Experiment } from '@/types';
 import type { ComparisonReportByIdsRequest } from '@/types/tauri';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import type { ComparisonDisplaySettings } from '@/lib/store/comparison-store';
-import type { ComparisonReportEntrySource } from '@/lib/reports/comparison-builders';
 import type {
     ComparisonChartConfig,
     ComparisonSectionToggles,
     ReportChartLineSettings,
 } from '@/lib/analysis/report-types/types';
 
-import { buildComparisonReportInput } from '@/lib/reports/comparison-builders';
 import {
-    buildExcelReportInput,
-    buildPdfReportInput,
-} from '@/lib/reports/report-builders';
-import {
-    experimentToReportBuildContext,
-    type ComparisonExperimentContextOverrides,
-} from '@/lib/reports/comparison-experiment-adapter';
-import {
-    generateComparisonExcelReportBlob,
     generateComparisonExcelReportByIdsBlob,
-    generateComparisonPdfReportBlob,
     generateComparisonPdfReportByIdsBlob,
 } from '@/lib/reports/client';
 import { saveBlob, saveBlobsToDir, type SaveBlobItem } from '@/lib/reports/report-save';
@@ -152,20 +140,6 @@ const DEFAULT_SECTION_TOGGLES: ComparisonSectionToggles = {
     showRheology: true,
 };
 
-function isLegacyComparisonExportForced(): boolean {
-    try {
-        return localStorage.getItem('rheolab.comparisonReports.forceLegacy') === '1';
-    } catch {
-        return false;
-    }
-}
-
-function shouldFallbackToLegacyComparisonExport(error: unknown): boolean {
-    const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
-    return message.includes('reports_generate_comparison_pdf_by_ids')
-        || message.includes('reports_generate_comparison_excel_by_ids');
-}
-
 // ── Sprint 0 / S0-6: comparison-flow perf instrumentation ──────────────────
 //
 // Lightweight wrapper around an async stage of the comparison-export
@@ -207,107 +181,9 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
     const [isExcelExporting, setIsExcelExporting] = useState(false);
     const [exportError, setExportError] = useState<string | null>(null);
 
-    const overrides = useMemo<ComparisonExperimentContextOverrides>(() => ({
-        language: options.language,
-        unitSystem: options.unitSystem,
-        companyName: options.companyName,
-        companyLogo: options.companyLogo,
-        chartSettings: options.chartSettings,
-        showCalibration: options.showCalibration,
-        showRawData: options.showRawData,
-        showRecipe: options.showRecipe,
-        showWaterAnalysis: options.showWaterAnalysis,
-        showRheology: options.showRheology,
-        showTouchPoints: options.displaySettings.showTouchPoints,
-        viscosityThreshold: options.displaySettings.viscosityThreshold,
-        showTargetTime: options.displaySettings.showTargetTime,
-        targetTime: options.displaySettings.targetTime,
-        reportViscosityRates: options.reportViscosityRates,
-        isExpert: options.isExpert,
-    }), [
-        options.language,
-        options.unitSystem,
-        options.companyName,
-        options.companyLogo,
-        options.chartSettings,
-        options.showCalibration,
-        options.showRawData,
-        options.showRecipe,
-        options.showWaterAnalysis,
-        options.showRheology,
-        options.displaySettings.showTouchPoints,
-        options.displaySettings.viscosityThreshold,
-        options.displaySettings.showTargetTime,
-        options.displaySettings.targetTime,
-        options.reportViscosityRates,
-        options.isExpert,
-    ]);
-
-    /**
-     * Build the N per-experiment `ComparisonReportEntrySource` objects.
-     * Each entry reuses the single-exp builder so the wire payload is
-     * byte-identical to what a single-experiment export would produce.
-     *
-     * The second argument switches between the PDF and Excel flavour —
-     * both are structurally identical for the comparison renderer, but
-     * the Rust side checks specific flavour-only settings (e.g.
-     * `showAdvancedStats` for PDF), so we keep them explicit.
-     */
-    const buildEntries = useCallback(
-        async (flavour: 'pdf' | 'excel'): Promise<ComparisonReportEntrySource[]> => {
-            const entries: ComparisonReportEntrySource[] = [];
-            for (const exp of options.experiments) {
-                const ctx = await experimentToReportBuildContext(exp, overrides);
-                const reportInput = flavour === 'pdf' ? buildPdfReportInput(ctx) : buildExcelReportInput(ctx);
-                entries.push({
-                    id: exp.id,
-                    displayName: exp.name ?? exp.id,
-                    reportInput,
-                    sectionToggles: {
-                        ...DEFAULT_SECTION_TOGGLES,
-                        showCalibration: options.showCalibration,
-                        showRawData: options.showRawData,
-                        showRecipe: options.showRecipe,
-                        showWaterAnalysis: options.showWaterAnalysis,
-                        showRheology: options.showRheology,
-                    },
-                });
-            }
-            return entries;
-        },
-        [
-            options.experiments,
-            overrides,
-            options.showCalibration,
-            options.showRawData,
-            options.showRecipe,
-            options.showWaterAnalysis,
-            options.showRheology,
-        ],
-    );
-
     const comparisonChartConfig = useMemo(
         () => buildComparisonChartConfig(options.displaySettings, options.chartSettings, options.brushRange),
         [options.displaySettings, options.chartSettings, options.brushRange],
-    );
-
-    const buildPayload = useCallback(
-        async (flavour: 'pdf' | 'excel') => buildComparisonReportInput({
-            language: options.language,
-            unitSystem: options.unitSystem,
-            companyName: options.companyName || undefined,
-            companyLogoBase64: options.companyLogo ?? undefined,
-            comparisonChart: comparisonChartConfig,
-            entries: await buildEntries(flavour),
-        }),
-        [
-            buildEntries,
-            comparisonChartConfig,
-            options.language,
-            options.unitSystem,
-            options.companyName,
-            options.companyLogo,
-        ],
     );
 
     const buildByIdsRequest = useCallback((): ComparisonReportByIdsRequest => ({
@@ -368,43 +244,15 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         options.reportViscosityRates,
     ]);
 
-    const generateLegacyPdfBlob = useCallback(async () => {
-        const payload = await withPerf('pdf:buildPayload', () => buildPayload('pdf'));
-        return await withPerf('pdf:ipcRoundtrip', () => generateComparisonPdfReportBlob(payload));
-    }, [buildPayload]);
-
-    const generateLegacyExcelBlob = useCallback(async () => {
-        const payload = await withPerf('excel:buildPayload', () => buildPayload('excel'));
-        return await withPerf('excel:ipcRoundtrip', () => generateComparisonExcelReportBlob(payload));
-    }, [buildPayload]);
-
     const generatePdfBlob = useCallback(async () => {
-        if (isLegacyComparisonExportForced()) {
-            return await generateLegacyPdfBlob();
-        }
         const request = buildByIdsRequest();
-        try {
-            return await withPerf('pdf:byIdsRoundtrip', () => generateComparisonPdfReportByIdsBlob(request));
-        } catch (err) {
-            if (!shouldFallbackToLegacyComparisonExport(err)) throw err;
-            logger.warn('[ComparisonReport] PDF by-ids export unavailable, falling back to legacy payload:', err);
-            return await generateLegacyPdfBlob();
-        }
-    }, [buildByIdsRequest, generateLegacyPdfBlob]);
+        return await withPerf('pdf:byIdsRoundtrip', () => generateComparisonPdfReportByIdsBlob(request));
+    }, [buildByIdsRequest]);
 
     const generateExcelBlob = useCallback(async () => {
-        if (isLegacyComparisonExportForced()) {
-            return await generateLegacyExcelBlob();
-        }
         const request = buildByIdsRequest();
-        try {
-            return await withPerf('excel:byIdsRoundtrip', () => generateComparisonExcelReportByIdsBlob(request));
-        } catch (err) {
-            if (!shouldFallbackToLegacyComparisonExport(err)) throw err;
-            logger.warn('[ComparisonReport] Excel by-ids export unavailable, falling back to legacy payload:', err);
-            return await generateLegacyExcelBlob();
-        }
-    }, [buildByIdsRequest, generateLegacyExcelBlob]);
+        return await withPerf('excel:byIdsRoundtrip', () => generateComparisonExcelReportByIdsBlob(request));
+    }, [buildByIdsRequest]);
 
     const baseFilename = useMemo(() => {
         const date = new Date().toISOString().split('T')[0];

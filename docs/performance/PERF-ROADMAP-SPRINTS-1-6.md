@@ -51,14 +51,14 @@ The order isn't arbitrary. Sprint 2 is at the top because it **unblocks** the ne
 
 ### Why Sprint 2 is the main ROI
 
-The current comparison-export flow has the architectural smell:
+Before Sprint 2, the comparison-export flow had the architectural smell:
 
 1. UI gathers each experiment's columnar raw points + metadata via individual IPC calls.
 2. UI assembles a single `ComparisonReportInput` struct (typically 3–10 MB for a 5-experiment comparison).
-3. UI sends the assembled struct over IPC to `reports_generate_comparison_pdf`.
+3. UI sent the assembled struct over IPC to the legacy comparison payload command.
 4. Rust deserialises the struct, generates the PDF, returns bytes.
 
-Step (3) is the LARGE-IPC-EXCEPTION case. It's the only IPC call in the whole audit that exceeds the per-call payload budget (`scripts/audit/check-large-ipc-contracts.mjs`), and it's there because the alternative — paginating the input — would explode the IPC count instead.
+Step (3) was the temporary large-IPC exception case. Sprint 2 moved the default path to by-IDs, and the RC hardening lane removed the legacy payload command and its suppression.
 
 The native by-ids fix:
 
@@ -68,7 +68,7 @@ The native by-ids fix:
 
 What this unlocks:
 
-- **Removes large IPC from the default path** — the `LARGE-IPC-EXCEPTION` remains only while the legacy rollback command is still registered for the alpha/beta window.
+- **Removes large IPC from the report path** — comparison exports now use by-IDs IPC only; `audit:large-ipc` should report zero suppressions.
 - **Removes JSON serialisation cost** of the 3–10 MB struct (currently dominant in `cmp:pdf:ipcRoundtrip` instrument traces).
 - **Simplifies the frontend** — no need for `comparison-experiment-adapter.ts` to assemble the input shape.
 - **Makes Sprint 3's cache trivial** — Rust can check the cache before re-running analysis without any IPC choreography.
@@ -88,7 +88,7 @@ Sprint 1 was **scoped** as the "measurement + contracts" sprint with four delive
 | ------------------------------- | -------- |
 | `docs(perf): define performance budgets` | ✅ **done** in Sprint 0 (`BUDGETS.md`, commit `5fd4308`); Sprint 1 didn't need to repeat it. |
 | `test(perf): add library/report smoke perf runner` | ❌ **not delivered**. `perf:workflow:tauri` exists from before Sprint 1 and exercises a 5-fixture multi-fixture workflow but doesn't isolate `L-LIB-OPEN`, `L-FILTER`, `L-EXP-DETAIL`, `L-CMP-*`, `L-CMP-PDF-5`, `L-CMP-XLSX-5`. **Inherited by Sprint 2 lead-in.** |
-| `docs(arch): add no-large-ipc rule` | ⚠️ **partial**. The lint is in place (`scripts/audit/check-large-ipc-contracts.mjs`, with the `LARGE-IPC-EXCEPTION` suppression on `reports_generate_comparison_pdf` documented in `BUDGETS.md`), but there is no formal ADR. **Inherited by Sprint 2 lead-in** — Sprint 2 writes the ADR and moves comparison exports to the by-IDs default path; final suppression removal follows the rollback window. |
+| `docs(arch): add no-large-ipc rule` | ✅ **done**. The lint is in place, ADR-0013 formalises the rule, and the RC hardening lane removed the final comparison-payload suppression. |
 | `docs(db): freeze V1_DDL contract fully` | ❌ **not delivered**. 7 migrations live in `src-tauri/src/db/migrations/v0001..v0007*.rs` but there is no human-readable `docs/db/V1_DDL.md` documenting the contract. **Inherited by Sprint 2 lead-in** — Sprint 2's by-ids report path needs a stable schema reference anyway. |
 
 ### What Sprint 1 *did* deliver
@@ -107,7 +107,7 @@ Sprint 2 starts with **3 critical lead-in items** + **1 non-blocking parallel-tr
 
 **Critical lead-in (must land before S2-1):**
 
-1. **S2-L1** — `docs(arch): add ADR-0013-no-large-ipc-rule` (~1 h). Formalises the rule the lint already enforces; current `LARGE-IPC-EXCEPTION` on `reports_generate_comparison_pdf` is documented as legacy rollback debt.
+1. **S2-L1** — `docs(arch): add ADR-0013-no-large-ipc-rule` (~1 h). Formalised the rule the lint already enforces; the historical comparison payload exception was removed in the RC hardening lane.
 2. **S2-L2** — `docs(db): document report-relevant V1 schema contract` (~1 h, **narrowed scope** — only the tables S2-1 actually touches: `Experiment`, `ExperimentData`, `User`, `Laboratory`, `WaterSourceCatalog`).
 3. **S2-L4** — `test(perf): add comparison smoke baseline runner` (~3 h). Records pre-S2-1 baseline numbers for `L-CMP-3 / 5 / 10 / PDF-5 / XLSX-5`. Directly fed by S2-3's A/B comparison.
 
@@ -134,7 +134,7 @@ After critical lead-in, Sprint 2's main work is the three native-by-ids delivera
 ## Current state
 
 - **Sprint 1:** closed `5f11efb`. Retrospective: `SPRINT-1-RETROSPECTIVE.md`. P10 verdict: KEEP narrowly. Microbench infrastructure: durable.
-- **Sprint 2:** closed for alpha. Native by-IDs comparison PDF/XLSX is the default UI path; legacy payload export remains only as rollback fallback until the alpha/beta window ends. Retrospective: `SPRINT-2-RETROSPECTIVE.md`. Validation: `REPORTS-NATIVE-BY-IDS-VALIDATION.md`.
+- **Sprint 2:** closed for alpha; RC hardening later removed the legacy payload fallback. Native by-IDs comparison PDF/XLSX is now the only production comparison export IPC. Retrospective: `SPRINT-2-RETROSPECTIVE.md`. Validation: `REPORTS-NATIVE-BY-IDS-VALIDATION.md`.
 - **Sprint 3:** closed. AnalysisArtifact cache is integrated into comparison by-IDs reports.
 - **Sprint 4:** closed. Runtime job scheduler owns report/cache maintenance jobs.
 - **Sprint 5:** closed. Library projection and facet cache vertical slice shipped with safe legacy fallback.
