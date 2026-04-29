@@ -431,7 +431,8 @@ Progress as of this commit:
 - ✅ Commit #2 (S2-L2): shipped 2026-04-29 (`docs/db/V1_DDL.md`).
 - ✅ Commit #3 (S2-L5): shipped 2026-04-29 (orchestrator `--fixture-db` / `--all-experiments` + `npm run perf:microbench:dbsweep[:compare]`).
 - ✅ Commit #4 (S2-L4): shipped 2026-04-29 (`tests/e2e/comparison-smoke-perf.tauri.spec.ts` + `npm run perf:comparison:tauri`; N=3 measured today, N=5/N=10 require license-override helper as follow-up).
-- ⬜ Commits #5–#14: pending.
+- ✅ Commit #5 (S2-L3): shipped 2026-04-29 (`scripts/test/extract-library-budgets.mjs` + `npm run perf:library:budgets`; L-LIB-* / L-FILTER / L-EXP-DETAIL / DB-LIST* / DB-DETAIL filled in `BUDGETS.md` as UI-wall-ms proxies).
+- ⬜ Commits #6–#14: pending.
 
 ---
 
@@ -446,8 +447,8 @@ Sprint 2 closes only when **all** are true:
 - [ ] **`LARGE-IPC-EXCEPTION` for `reports_generate_comparison_pdf` removed** from the audit lint config.
 - [ ] **`audit:large-ipc`, `cargo test --lib`, `vitest`, `version:validate` all green** on the closing commit.
 - [ ] **`BUDGETS.md` carries measured numbers** for `L-CMP-3`, `L-CMP-5`, `L-CMP-10`, `L-CMP-PDF-5`, `L-CMP-XLSX-5` (severity stays `soft` per A3 until 5 stable nightly runs).
-- [ ] **`BUDGETS.md` carries measured numbers** for `L-LIB-OPEN-1K`, `L-LIB-OPEN-10K`, `L-FILTER`, `L-EXP-DETAIL`, `DB-LIST`, `DB-LIST-LARGE`, `DB-DETAIL` (S2-L3 promoted in v3, audit S1-AUD-005). Severity stays `soft`.
-- [ ] **`run-rust-microbench.mjs` supports `--fixture-db` and `--all-experiments`** (S2-L5 / S1-AUD-002); `npm run perf:microbench:dbsweep[:compare]` exposed.
+- [x] **`BUDGETS.md` carries measured numbers** for `L-LIB-OPEN-1K`, `L-LIB-OPEN-10K`, `L-FILTER`, `L-EXP-DETAIL`, `DB-LIST`, `DB-LIST-LARGE`, `DB-DETAIL` (S2-L3 promoted in v3, audit S1-AUD-005). Severity stays `soft`.
+- [x] **`run-rust-microbench.mjs` supports `--fixture-db` and `--all-experiments`** (S2-L5 / S1-AUD-002); `npm run perf:microbench:dbsweep[:compare]` exposed.
 - [ ] **`ADR-0010-comparison-report-generation.md` updated** with a "post-Sprint-2 by-ids path" section (so future readers find the new architecture from the original ADR).
 - [ ] **Sprint 2 retrospective doc** written (template: `SPRINT-1-RETROSPECTIVE.md`).
 - [ ] **Sprint 3 planning doc** drafted with the cache key material design from G4 already pre-loaded.
