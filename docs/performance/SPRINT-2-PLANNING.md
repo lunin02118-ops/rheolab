@@ -408,6 +408,6 @@ Sprint 2 closes only when **all** are true:
 - `docs/performance/BUDGETS.md` — the contract this sprint moves the L-CMP-* numbers on.
 - `docs/performance/MICROBENCH.md` — the bench harness Sprint 2 will extend with a `reports` target.
 - `docs/adr/ADR-0010-comparison-report-generation.md` — the architecture this sprint revises.
-- `docs/adr/ADR-0013-no-large-ipc-rule.md` — to be created in S2-L1.
+- `docs/adr/ADR-0013-no-large-ipc-rule.md` — **created in S2-L1** (commit #1, 2026-04-29).
 - `docs/db/V1_DDL.md` — to be created in S2-L2.
 - `scripts/audit/check-large-ipc-contracts.mjs` — the lint whose exception this sprint retires.
