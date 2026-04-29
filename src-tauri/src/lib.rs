@@ -13,6 +13,7 @@
 //! `register_tauri_commands!()` (defined in `startup/commands_registry.rs`)
 //! to attach every IPC handler at once.
 
+pub mod analysis_cache;
 pub mod commands;
 pub mod db;
 pub mod error;

@@ -7,6 +7,7 @@ pub mod v0004_experiment_list_default_index;
 pub mod v0005_reagent_and_testtype_indexes;
 pub mod v0006_artifact_import_batch_indexes;
 pub mod v0007_fk_indexes;
+pub mod v0008_analysis_artifact;
 
 pub use error::MigrationError;
 pub use r#trait::Migration;
@@ -18,6 +19,7 @@ use v0004_experiment_list_default_index::V0004ExperimentListDefaultIndex;
 use v0005_reagent_and_testtype_indexes::V0005ReagentAndTestTypeIndexes;
 use v0006_artifact_import_batch_indexes::V0006ArtifactImportBatchIndexes;
 use v0007_fk_indexes::V0007FkIndexes;
+use v0008_analysis_artifact::V0008AnalysisArtifact;
 
 /// Ordered registry of all schema migrations, applied oldest-first on startup.
 ///
@@ -36,6 +38,7 @@ pub static MIGRATIONS: &[&dyn Migration] = &[
     &V0005ReagentAndTestTypeIndexes,
     &V0006ArtifactImportBatchIndexes,
     &V0007FkIndexes,
+    &V0008AnalysisArtifact,
 ];
 
 /// Returns the version of the last registered migration, or `0` if the

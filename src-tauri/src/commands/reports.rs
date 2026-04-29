@@ -14,13 +14,22 @@
 //! cannot hand the native engine an unbounded experiment list and
 //! exhaust memory.
 
+use crate::analysis_cache::{
+    build_analysis_cache_key, decode_analysis_artifact, encode_analysis_artifact,
+    hash_experiment_data_bytes, AnalysisCacheKey, ANALYSIS_ARTIFACT_ENCODING,
+};
 use crate::commands::licensing::types::LicenseFeatures;
 use crate::commands::licensing::{can_write_via_engine, current_features};
 use crate::commands::{
     analysis::run_full_analysis_kernel,
+    analysis::AnalysisOutput,
     experiments::types::{StoredExperiment, StoredExperimentReagent},
 };
-use crate::db::repositories::experiments::load_experiments_batch;
+use crate::db::repositories::analysis_artifacts::{
+    delete_analysis_artifact, get_analysis_artifact, put_analysis_artifact,
+};
+use crate::db::repositories::experiments::{load_experiment_data_hashes, load_experiments_batch};
+use crate::db::DbPool;
 use crate::error::{AppError, Result};
 use crate::state::AppState;
 use crate::utils::time::now_rfc3339;
@@ -36,10 +45,9 @@ use rheolab_core::report_generator::{
 };
 use rheolab_core::schedule_detector::ScheduleConfig;
 use rheolab_core::types::{RheoCycle, RheoPoint};
-use rheolab_core::{ExpertSettings, GraceCycleResult, RHEOLAB_CORE_VERSION};
+use rheolab_core::{ExpertSettings, GraceCycleResult};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use tauri::State;
@@ -282,11 +290,7 @@ pub async fn reports_generate_comparison_pdf_by_ids(
 
     let pool = state.db_pool.clone();
     let bytes = tokio::task::spawn_blocking(move || {
-        let experiments = {
-            let conn = pool.get().map_err(AppError::Pool)?;
-            load_comparison_experiments_by_ids(&conn, &request)?
-        };
-        generate_comparison_pdf_by_ids_bytes_from_experiments(&experiments, &request)
+        generate_comparison_pdf_by_ids_bytes_cached(&pool, &request)
     })
     .await??;
     Ok(tauri::ipc::Response::new(bytes))
@@ -319,11 +323,7 @@ pub async fn reports_generate_comparison_excel_by_ids(
 
     let pool = state.db_pool.clone();
     let bytes = tokio::task::spawn_blocking(move || {
-        let experiments = {
-            let conn = pool.get().map_err(AppError::Pool)?;
-            load_comparison_experiments_by_ids(&conn, &request)?
-        };
-        generate_comparison_excel_by_ids_bytes_from_experiments(&experiments, &request)
+        generate_comparison_excel_by_ids_bytes_cached(&pool, &request)
     })
     .await??;
     Ok(tauri::ipc::Response::new(bytes))
@@ -335,6 +335,7 @@ pub async fn reports_generate_comparison_excel_by_ids(
     name = "reports::cmp::pdf::by_ids",
     fields(n_experiments = request.experiment_ids.len())
 )]
+#[cfg(test)]
 fn generate_comparison_pdf_by_ids_bytes(
     conn: &rusqlite::Connection,
     request: &ComparisonReportByIdsRequest,
@@ -343,6 +344,27 @@ fn generate_comparison_pdf_by_ids_bytes(
     generate_comparison_pdf_by_ids_bytes_from_experiments(&experiments, request)
 }
 
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    name = "reports::cmp::pdf::by_ids_cached",
+    fields(n_experiments = request.experiment_ids.len())
+)]
+fn generate_comparison_pdf_by_ids_bytes_cached(
+    pool: &DbPool,
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<u8>> {
+    let input = build_comparison_report_input_by_ids_cached(pool, request)?;
+    rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
+        tracing::error!("Comparison PDF by IDs generation failed: {}", error);
+        AppError::Other(format!(
+            "Comparison PDF by IDs generation failed: {}",
+            error
+        ))
+    })
+}
+
+#[cfg(test)]
 fn generate_comparison_pdf_by_ids_bytes_from_experiments(
     experiments: &[StoredExperiment],
     request: &ComparisonReportByIdsRequest,
@@ -363,6 +385,7 @@ fn generate_comparison_pdf_by_ids_bytes_from_experiments(
     name = "reports::cmp::xlsx::by_ids",
     fields(n_experiments = request.experiment_ids.len())
 )]
+#[cfg(test)]
 fn generate_comparison_excel_by_ids_bytes(
     conn: &rusqlite::Connection,
     request: &ComparisonReportByIdsRequest,
@@ -371,6 +394,27 @@ fn generate_comparison_excel_by_ids_bytes(
     generate_comparison_excel_by_ids_bytes_from_experiments(&experiments, request)
 }
 
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    name = "reports::cmp::xlsx::by_ids_cached",
+    fields(n_experiments = request.experiment_ids.len())
+)]
+fn generate_comparison_excel_by_ids_bytes_cached(
+    pool: &DbPool,
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<u8>> {
+    let input = build_comparison_report_input_by_ids_cached(pool, request)?;
+    rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
+        tracing::error!("Comparison Excel by IDs generation failed: {}", error);
+        AppError::Other(format!(
+            "Comparison Excel by IDs generation failed: {}",
+            error
+        ))
+    })
+}
+
+#[cfg(test)]
 fn generate_comparison_excel_by_ids_bytes_from_experiments(
     experiments: &[StoredExperiment],
     request: &ComparisonReportByIdsRequest,
@@ -385,12 +429,44 @@ fn generate_comparison_excel_by_ids_bytes_from_experiments(
     })
 }
 
+#[cfg(test)]
 fn build_comparison_report_input_by_ids(
     conn: &rusqlite::Connection,
     request: &ComparisonReportByIdsRequest,
 ) -> Result<ComparisonReportInput> {
     let experiments = load_comparison_experiments_by_ids(conn, request)?;
     build_comparison_report_input_from_experiments(&experiments, request)
+}
+
+fn build_comparison_report_input_by_ids_cached(
+    pool: &DbPool,
+    request: &ComparisonReportByIdsRequest,
+) -> Result<ComparisonReportInput> {
+    let mut resolved = {
+        let conn = pool.get().map_err(AppError::Pool)?;
+        load_comparison_experiments_with_cache_hits(&conn, request)?
+    };
+
+    resolve_comparison_cache_misses(&mut resolved, &request.settings);
+
+    {
+        let conn = pool.get().map_err(AppError::Pool)?;
+        store_comparison_cache_misses(&conn, &mut resolved);
+    }
+
+    let hits = resolved
+        .iter()
+        .filter(|item| item.cache_status == AnalysisCacheStatus::Hit)
+        .count();
+    let misses = resolved.len().saturating_sub(hits);
+    tracing::info!(
+        n_experiments = resolved.len(),
+        cache_hits = hits,
+        cache_misses = misses,
+        "comparison by-ids analysis cache resolved"
+    );
+
+    build_comparison_report_input_from_cached_experiments(&resolved, request)
 }
 
 fn load_comparison_experiments_by_ids(
@@ -417,6 +493,169 @@ fn load_comparison_experiments_by_ids(
     Ok(experiments)
 }
 
+fn load_comparison_experiments_with_cache_hits(
+    conn: &rusqlite::Connection,
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<CachedComparisonExperiment>> {
+    let experiments = load_comparison_experiments_by_ids(conn, request)?;
+    let data_hashes = load_experiment_data_hashes(conn, &request.experiment_ids)?;
+    experiments
+        .into_iter()
+        .map(|experiment| {
+            let data_hash = data_hashes.get(&experiment.id);
+            load_cached_comparison_experiment(conn, experiment, data_hash, &request.settings)
+        })
+        .collect()
+}
+
+fn load_cached_comparison_experiment(
+    conn: &rusqlite::Connection,
+    experiment: StoredExperiment,
+    experiment_data_hash: Option<&String>,
+    settings: &ComparisonReportByIdsSettings,
+) -> Result<CachedComparisonExperiment> {
+    let rheo_points = raw_points_to_rheo_points(&experiment.raw_points)?;
+    if rheo_points.is_empty() {
+        return Ok(CachedComparisonExperiment {
+            experiment,
+            rheo_points,
+            analysis: None,
+            cache_key: None,
+            cache_status: AnalysisCacheStatus::Bypass,
+        });
+    }
+
+    let cache_key = build_analysis_key_for_experiment(&experiment, experiment_data_hash, settings)?;
+    let mut analysis = None;
+    let mut cache_status = AnalysisCacheStatus::MissPending;
+
+    if let Some(record) = get_analysis_artifact(conn, &cache_key)? {
+        if record.artifact_encoding == ANALYSIS_ARTIFACT_ENCODING {
+            match decode_analysis_artifact(&record.artifact_blob) {
+                Ok(output) => {
+                    tracing::info!(
+                        experiment_id = %cache_key.experiment_id,
+                        artifact_bytes = record.artifact_bytes,
+                        cache_status = "hit",
+                        "analysis artifact cache"
+                    );
+                    analysis = Some(output);
+                    cache_status = AnalysisCacheStatus::Hit;
+                }
+                Err(error) => {
+                    tracing::warn!(
+                        experiment_id = %cache_key.experiment_id,
+                        error = %error,
+                        cache_status = "decode_failed",
+                        "analysis artifact cache"
+                    );
+                    if let Err(delete_error) = delete_analysis_artifact(conn, &cache_key) {
+                        tracing::warn!(
+                            experiment_id = %cache_key.experiment_id,
+                            error = %delete_error,
+                            "failed to delete corrupt analysis artifact"
+                        );
+                    }
+                }
+            }
+        } else {
+            tracing::warn!(
+                experiment_id = %cache_key.experiment_id,
+                artifact_encoding = %record.artifact_encoding,
+                cache_status = "decode_failed",
+                "analysis artifact cache encoding mismatch"
+            );
+            if let Err(delete_error) = delete_analysis_artifact(conn, &cache_key) {
+                tracing::warn!(
+                    experiment_id = %cache_key.experiment_id,
+                    error = %delete_error,
+                    "failed to delete mismatched analysis artifact"
+                );
+            }
+        }
+    }
+
+    Ok(CachedComparisonExperiment {
+        experiment,
+        rheo_points,
+        analysis,
+        cache_key: Some(cache_key),
+        cache_status,
+    })
+}
+
+fn resolve_comparison_cache_misses(
+    experiments: &mut [CachedComparisonExperiment],
+    settings: &ComparisonReportByIdsSettings,
+) {
+    let expert_settings = build_expert_settings(&settings.analysis_settings);
+    let schedule_config = build_schedule_config(&settings.detection_settings);
+
+    for item in experiments {
+        if item.analysis.is_some() || item.rheo_points.is_empty() {
+            continue;
+        }
+        let geometry = experiment_geometry_key(&item.experiment);
+        let output = run_full_analysis_kernel(
+            item.rheo_points.clone(),
+            &geometry,
+            &expert_settings,
+            &schedule_config,
+            &[],
+        );
+        item.analysis = Some(output);
+        item.cache_status = AnalysisCacheStatus::MissPending;
+    }
+}
+
+fn store_comparison_cache_misses(
+    conn: &rusqlite::Connection,
+    experiments: &mut [CachedComparisonExperiment],
+) {
+    for item in experiments {
+        if item.cache_status != AnalysisCacheStatus::MissPending {
+            continue;
+        }
+        let (Some(cache_key), Some(analysis)) = (&item.cache_key, &item.analysis) else {
+            continue;
+        };
+        let encoded = match encode_analysis_artifact(analysis) {
+            Ok(encoded) => encoded,
+            Err(error) => {
+                tracing::warn!(
+                    experiment_id = %cache_key.experiment_id,
+                    error = %error,
+                    cache_status = "store_failed",
+                    "analysis artifact cache encode failed"
+                );
+                item.cache_status = AnalysisCacheStatus::MissStoreFailed;
+                continue;
+            }
+        };
+        match put_analysis_artifact(conn, cache_key, ANALYSIS_ARTIFACT_ENCODING, &encoded) {
+            Ok(record) => {
+                tracing::info!(
+                    experiment_id = %cache_key.experiment_id,
+                    artifact_bytes = record.artifact_bytes,
+                    cache_status = "miss_stored",
+                    "analysis artifact cache"
+                );
+                item.cache_status = AnalysisCacheStatus::MissStored;
+            }
+            Err(error) => {
+                tracing::warn!(
+                    experiment_id = %cache_key.experiment_id,
+                    error = %error,
+                    cache_status = "store_failed",
+                    "analysis artifact cache"
+                );
+                item.cache_status = AnalysisCacheStatus::MissStoreFailed;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 fn build_comparison_report_input_from_experiments(
     experiments: &[StoredExperiment],
     request: &ComparisonReportByIdsRequest,
@@ -441,6 +680,31 @@ fn build_comparison_report_input_from_experiments(
     })
 }
 
+fn build_comparison_report_input_from_cached_experiments(
+    experiments: &[CachedComparisonExperiment],
+    request: &ComparisonReportByIdsRequest,
+) -> Result<ComparisonReportInput> {
+    let experiments = experiments
+        .iter()
+        .map(|experiment| build_comparison_experiment_entry_cached(experiment, &request.settings))
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(ComparisonReportInput {
+        language: request.settings.language.clone(),
+        unit_system: request.settings.unit_system.clone(),
+        company_name: request.settings.company_name.clone(),
+        company_logo_base64: request.settings.company_logo_base64.clone(),
+        generated_at: request
+            .settings
+            .generated_at
+            .clone()
+            .unwrap_or_else(now_rfc3339),
+        comparison_chart: build_core_comparison_chart_config(&request.settings.comparison_chart),
+        experiments,
+    })
+}
+
+#[cfg(test)]
 fn build_comparison_experiment_entry(
     experiment: &StoredExperiment,
     settings: &ComparisonReportByIdsSettings,
@@ -457,27 +721,64 @@ fn build_comparison_experiment_entry(
     })
 }
 
+fn build_comparison_experiment_entry_cached(
+    experiment: &CachedComparisonExperiment,
+    settings: &ComparisonReportByIdsSettings,
+) -> Result<ComparisonExperimentEntry> {
+    Ok(ComparisonExperimentEntry {
+        id: experiment.experiment.id.clone(),
+        display_name: if experiment.experiment.name.is_empty() {
+            experiment.experiment.id.clone()
+        } else {
+            experiment.experiment.name.clone()
+        },
+        report_input: build_report_input_for_experiment_with_analysis(
+            &experiment.experiment,
+            settings,
+            &experiment.rheo_points,
+            experiment.analysis.as_ref(),
+        )?,
+        section_toggles: build_core_section_toggles(&settings.section_toggles),
+    })
+}
+
+#[cfg(test)]
 fn build_report_input_for_experiment(
     experiment: &StoredExperiment,
     settings: &ComparisonReportByIdsSettings,
 ) -> Result<ReportInput> {
     let rheo_points = raw_points_to_rheo_points(&experiment.raw_points)?;
-    let raw_data = rheo_points_to_report_data(&rheo_points);
-    let geometry = experiment.geometry.as_deref().unwrap_or("R1B5");
+    let geometry = experiment_geometry_key(experiment);
+    let expert_settings = build_expert_settings(&settings.analysis_settings);
+    let schedule_config = build_schedule_config(&settings.detection_settings);
     let analysis = if rheo_points.is_empty() {
         None
     } else {
         Some(run_full_analysis_kernel(
-            rheo_points,
-            geometry,
-            &build_expert_settings(&settings.analysis_settings),
-            &build_schedule_config(&settings.detection_settings),
+            rheo_points.clone(),
+            &geometry,
+            &expert_settings,
+            &schedule_config,
             &[],
         ))
     };
+    build_report_input_for_experiment_with_analysis(
+        experiment,
+        settings,
+        &rheo_points,
+        analysis.as_ref(),
+    )
+}
+
+fn build_report_input_for_experiment_with_analysis(
+    experiment: &StoredExperiment,
+    settings: &ComparisonReportByIdsSettings,
+    rheo_points: &[RheoPoint],
+    analysis: Option<&AnalysisOutput>,
+) -> Result<ReportInput> {
+    let raw_data = rheo_points_to_report_data(rheo_points);
 
     let cycle_results = analysis
-        .as_ref()
         .map(|output| {
             output
                 .results
@@ -507,6 +808,40 @@ fn build_report_input_for_experiment(
         chart_image_base64: None,
         axis_values: axis_values_from_raw_data(&experiment.raw_points)?,
     })
+}
+
+fn build_analysis_key_for_experiment(
+    experiment: &StoredExperiment,
+    experiment_data_hash: Option<&String>,
+    settings: &ComparisonReportByIdsSettings,
+) -> Result<AnalysisCacheKey> {
+    let fallback_hash;
+    let experiment_data_hash = match experiment_data_hash {
+        Some(hash) => hash.as_str(),
+        None => {
+            let raw_points_bytes = serde_json::to_vec(&experiment.raw_points)?;
+            fallback_hash = hash_experiment_data_bytes(&raw_points_bytes);
+            fallback_hash.as_str()
+        }
+    };
+    build_analysis_cache_key(
+        &experiment.id,
+        experiment_data_hash,
+        &experiment_geometry_key(experiment),
+        &build_expert_settings(&settings.analysis_settings),
+        &build_schedule_config(&settings.detection_settings),
+        &settings.report_settings.report_viscosity_rates,
+    )
+}
+
+fn experiment_geometry_key(experiment: &StoredExperiment) -> String {
+    experiment
+        .geometry
+        .as_deref()
+        .map(str::trim)
+        .filter(|geometry| !geometry.is_empty())
+        .unwrap_or("R1B5")
+        .to_ascii_uppercase()
 }
 
 fn raw_points_to_rheo_points(points: &[Value]) -> Result<Vec<RheoPoint>> {
@@ -1074,22 +1409,27 @@ pub enum ReportOutput {
     TempFile { path: PathBuf, byte_count: u64 },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct AnalysisCacheKeyMaterial {
-    pub experiment_id: String,
-    pub experiment_data_hash: String,
-    pub geometry: String,
-    pub analysis_settings_hash: String,
-    pub report_viscosity_rates_hash: String,
-    pub rheolab_core_version: String,
-    pub algorithm_version: u32,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ReportFormat {
     Pdf,
     Excel,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AnalysisCacheStatus {
+    Hit,
+    MissPending,
+    MissStored,
+    MissStoreFailed,
+    Bypass,
+}
+
+struct CachedComparisonExperiment {
+    experiment: StoredExperiment,
+    rheo_points: Vec<RheoPoint>,
+    analysis: Option<AnalysisOutput>,
+    cache_key: Option<AnalysisCacheKey>,
+    cache_status: AnalysisCacheStatus,
 }
 
 const MAX_COMPANY_NAME_BYTES: usize = 255;
@@ -1103,7 +1443,6 @@ const MIN_CHART_DIMENSION: u32 = 100;
 const MAX_CHART_DIMENSION: u32 = 8_000;
 const MAX_TIME_MINUTES: f64 = 1_000_000.0;
 const MAX_SHEAR_RATE: f64 = 100_000.0;
-const ANALYSIS_CACHE_ALGORITHM_VERSION: u32 = 1;
 
 fn default_comparison_time_format() -> String {
     "minutes".into()
@@ -1209,6 +1548,7 @@ fn validate_comparison_by_ids_request(
     request.settings.validate()
 }
 
+#[cfg(test)]
 fn validate_comparison_experiment_ids_exist(
     conn: &rusqlite::Connection,
     experiment_ids: &[String],
@@ -1594,40 +1934,6 @@ fn validate_non_negative_finite(value: f64, field: &str) -> Result<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
-fn build_analysis_cache_key_material(
-    experiment_id: &str,
-    experiment_data_bytes: &[u8],
-    geometry: &str,
-    analysis_settings: &ComparisonByIdsAnalysisSettings,
-    report_viscosity_rates: &[i32],
-) -> Result<AnalysisCacheKeyMaterial> {
-    validate_hash_id(experiment_id, "experimentId")?;
-    validate_bounded_str(geometry, MAX_METRIC_KEY_BYTES, "geometry")?;
-    validate_analysis_settings(analysis_settings)?;
-    validate_i32_shear_rates(report_viscosity_rates, "reportViscosityRates")?;
-
-    Ok(AnalysisCacheKeyMaterial {
-        experiment_id: experiment_id.to_owned(),
-        experiment_data_hash: sha256_hex(experiment_data_bytes),
-        geometry: geometry.to_owned(),
-        analysis_settings_hash: canonical_json_hash(analysis_settings)?,
-        report_viscosity_rates_hash: canonical_json_hash(report_viscosity_rates)?,
-        rheolab_core_version: RHEOLAB_CORE_VERSION.to_owned(),
-        algorithm_version: ANALYSIS_CACHE_ALGORITHM_VERSION,
-    })
-}
-
-fn canonical_json_hash<T: Serialize + ?Sized>(value: &T) -> Result<String> {
-    let bytes = serde_json::to_vec(value)?;
-    Ok(sha256_hex(&bytes))
-}
-
-fn sha256_hex(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    hex::encode(digest)
-}
-
 // ── Audit-v2 REP-001 helpers ───────────────────────────────────────────
 
 /// Best-effort count of experiments in an untyped JSON `Value`.
@@ -1856,24 +2162,39 @@ mod tests {
     // ── Audit-v2 REP-001 regression guards (pure feature-gate helpers) ──
 
     use super::{
-        build_analysis_cache_key_material, build_comparison_report_input_by_ids,
-        count_experiments_in_value, enforce_comparison_excel_features,
-        enforce_comparison_pdf_features, enforce_max_comparison_experiments,
-        generate_comparison_excel_by_ids_bytes, generate_comparison_pdf_by_ids_bytes,
-        validate_comparison_by_ids_request, validate_comparison_experiment_ids_exist,
-        ComparisonByIdsChartConfig, ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings,
-        ComparisonByIdsMetrics, ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
+        build_analysis_key_for_experiment, build_comparison_report_input_by_ids,
+        build_comparison_report_input_by_ids_cached, count_experiments_in_value,
+        enforce_comparison_excel_features, enforce_comparison_pdf_features,
+        enforce_max_comparison_experiments, generate_comparison_excel_by_ids_bytes,
+        generate_comparison_excel_by_ids_bytes_cached, generate_comparison_pdf_by_ids_bytes,
+        generate_comparison_pdf_by_ids_bytes_cached, validate_comparison_by_ids_request,
+        validate_comparison_experiment_ids_exist, ComparisonByIdsChartConfig,
+        ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings, ComparisonByIdsMetrics,
+        ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
         ComparisonByIdsTouchPointConfig, ComparisonReportByIdsRequest,
         ComparisonReportByIdsSettings, ReportFormat,
     };
+    use crate::analysis_cache::{
+        build_analysis_cache_key, decode_analysis_artifact, hash_experiment_data_bytes,
+        ANALYSIS_ARTIFACT_ENCODING, ANALYSIS_CACHE_ALGORITHM_VERSION,
+    };
     use crate::commands::experiments::types::{StoredExperiment, StoredExperimentReagent};
     use crate::commands::licensing::types::LicenseFeatures;
+    use crate::db::create_pool;
     use crate::db::migration::run_migrations;
-    use crate::db::repositories::experiments::persist_experiment;
+    use crate::db::repositories::analysis_artifacts::{
+        get_analysis_artifact, put_analysis_artifact,
+    };
+    use crate::db::repositories::experiments::{load_experiment_data_hashes, persist_experiment};
+    use crate::utils::time::now_rfc3339;
     use calamine::Reader;
     use rheolab_core::RHEOLAB_CORE_VERSION;
     use serde_json::json;
+    use std::fs;
     use std::io::{Cursor, Read, Seek};
+    use std::path::PathBuf;
+    use std::time::Instant;
+    use tempfile::TempDir;
 
     /// Helper: build a `LicenseFeatures` with everything explicitly off.
     /// Tests then flip the specific flags they care about.
@@ -2078,6 +2399,162 @@ mod tests {
         (conn, exp_a, exp_b)
     }
 
+    fn by_ids_fixture_pool() -> (crate::db::DbPool, TempDir) {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let db_path = dir.path().join("rheolab-cache-test.db");
+        let pool = create_pool(&db_path).expect("pool");
+        {
+            let conn = pool.get().expect("conn");
+            run_migrations(&conn).expect("migrations");
+            let exp_a = stored_experiment_for_by_ids("exp_aaaaaaaaaaaaaaaaaaaa", "Alpha");
+            let exp_b = stored_experiment_for_by_ids("exp_bbbbbbbbbbbbbbbbbbbb", "Beta");
+            persist_experiment(&conn, &exp_a).expect("persist alpha");
+            persist_experiment(&conn, &exp_b).expect("persist beta");
+        }
+        (pool, dir)
+    }
+
+    fn fixture_seed_db_path() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("outputs")
+            .join("seed")
+            .join("rheolab-fixture-seed-small.db")
+    }
+
+    fn by_ids_fixture_seed_pool() -> Option<(crate::db::DbPool, TempDir)> {
+        let seed = fixture_seed_db_path();
+        if !seed.exists() {
+            return None;
+        }
+        let dir = tempfile::tempdir().expect("temp dir");
+        let db_path = dir.path().join("rheolab-cache-bench.db");
+        fs::copy(&seed, &db_path).expect("copy fixture DB");
+        let pool = create_pool(&db_path).expect("pool");
+        {
+            let conn = pool.get().expect("conn");
+            run_migrations(&conn).expect("migrations");
+            conn.execute("DELETE FROM AnalysisArtifact", [])
+                .expect("clear analysis artifacts");
+        }
+        Some((pool, dir))
+    }
+
+    fn first_fixture_experiment_ids(pool: &crate::db::DbPool, n: usize) -> Vec<String> {
+        let conn = pool.get().expect("conn");
+        let mut stmt = conn
+            .prepare("SELECT id FROM Experiment ORDER BY createdAt, id LIMIT ?1")
+            .expect("prepare experiment id query");
+        stmt.query_map([n as i64], |row| row.get::<_, String>(0))
+            .expect("query experiment ids")
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .expect("collect experiment ids")
+    }
+
+    fn clear_analysis_artifact_rows(pool: &crate::db::DbPool) {
+        let conn = pool.get().expect("conn");
+        conn.execute("DELETE FROM AnalysisArtifact", [])
+            .expect("clear analysis artifacts");
+    }
+
+    fn analysis_artifact_summary(pool: &crate::db::DbPool) -> (i64, i64, i64) {
+        let conn = pool.get().expect("conn");
+        conn.query_row(
+            "SELECT COUNT(*), COALESCE(SUM(artifactBytes), 0), COALESCE(SUM(hitCount), 0)
+             FROM AnalysisArtifact",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("analysis artifact summary")
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    enum CacheBenchReportFormat {
+        Pdf,
+        Xlsx,
+    }
+
+    #[derive(Debug)]
+    struct CacheBenchStats {
+        samples_ms: Vec<f64>,
+        bytes: Vec<usize>,
+        artifact_rows: i64,
+        artifact_bytes: i64,
+        hit_count: i64,
+    }
+
+    impl CacheBenchStats {
+        fn mean_ms(&self) -> f64 {
+            self.samples_ms.iter().sum::<f64>() / self.samples_ms.len() as f64
+        }
+
+        fn p50_ms(&self) -> f64 {
+            percentile(self.samples_ms.clone(), 0.50)
+        }
+
+        fn p95_ms(&self) -> f64 {
+            percentile(self.samples_ms.clone(), 0.95)
+        }
+
+        fn mean_bytes(&self) -> f64 {
+            self.bytes.iter().sum::<usize>() as f64 / self.bytes.len() as f64
+        }
+    }
+
+    fn percentile(mut values: Vec<f64>, p: f64) -> f64 {
+        values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let idx = ((values.len() - 1) as f64 * p).round() as usize;
+        values[idx]
+    }
+
+    fn generate_cached_report_bytes(
+        pool: &crate::db::DbPool,
+        request: &ComparisonReportByIdsRequest,
+        format: CacheBenchReportFormat,
+    ) -> crate::error::Result<Vec<u8>> {
+        match format {
+            CacheBenchReportFormat::Pdf => {
+                generate_comparison_pdf_by_ids_bytes_cached(pool, request)
+            }
+            CacheBenchReportFormat::Xlsx => {
+                generate_comparison_excel_by_ids_bytes_cached(pool, request)
+            }
+        }
+    }
+
+    fn measure_cache_report(
+        pool: &crate::db::DbPool,
+        request: &ComparisonReportByIdsRequest,
+        format: CacheBenchReportFormat,
+        iterations: usize,
+        warm: bool,
+    ) -> CacheBenchStats {
+        clear_analysis_artifact_rows(pool);
+        if warm {
+            generate_cached_report_bytes(pool, request, format).expect("seed warm cache");
+        }
+
+        let mut samples_ms = Vec::with_capacity(iterations);
+        let mut bytes = Vec::with_capacity(iterations);
+        for _ in 0..iterations {
+            if !warm {
+                clear_analysis_artifact_rows(pool);
+            }
+            let started = Instant::now();
+            let output = generate_cached_report_bytes(pool, request, format).expect("report bytes");
+            samples_ms.push(started.elapsed().as_secs_f64() * 1000.0);
+            bytes.push(output.len());
+        }
+        let (artifact_rows, artifact_bytes, hit_count) = analysis_artifact_summary(pool);
+        CacheBenchStats {
+            samples_ms,
+            bytes,
+            artifact_rows,
+            artifact_bytes,
+            hit_count,
+        }
+    }
+
     fn open_xlsx(bytes: Vec<u8>) -> calamine::Xlsx<Cursor<Vec<u8>>> {
         calamine::open_workbook_from_rs::<calamine::Xlsx<_>, _>(Cursor::new(bytes))
             .expect("open xlsx")
@@ -2163,6 +2640,361 @@ mod tests {
         assert!(report.recipe.is_empty());
         assert!(report.water_params.is_none());
         assert!(!report.cycle_results.is_empty());
+    }
+
+    #[test]
+    fn cached_by_ids_report_input_stores_then_hits_analysis_artifacts() {
+        let (pool, _dir) = by_ids_fixture_pool();
+        let request = valid_by_ids_request();
+
+        let cold = build_comparison_report_input_by_ids_cached(&pool, &request)
+            .expect("cold cached input");
+        {
+            let conn = pool.get().expect("conn");
+            let row_count: i64 = conn
+                .query_row("SELECT COUNT(*) FROM AnalysisArtifact", [], |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            let hit_count: i64 = conn
+                .query_row(
+                    "SELECT COALESCE(SUM(hitCount), 0) FROM AnalysisArtifact",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(
+                row_count, 2,
+                "cold run should store one artifact per experiment"
+            );
+            assert_eq!(hit_count, 0, "cold stores should not count as hits");
+            let blob_hashes = load_experiment_data_hashes(&conn, &request.experiment_ids)
+                .expect("load blob hashes");
+            let stored_hashes = conn
+                .prepare(
+                    "SELECT experimentId, experimentDataHash
+                     FROM AnalysisArtifact
+                     ORDER BY experimentId",
+                )
+                .unwrap()
+                .query_map([], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                })
+                .unwrap()
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .unwrap();
+            for (experiment_id, stored_hash) in stored_hashes {
+                assert_eq!(
+                    Some(&stored_hash),
+                    blob_hashes.get(&experiment_id),
+                    "cache key should use ExperimentData.dataBlob hash"
+                );
+            }
+        }
+
+        let warm = build_comparison_report_input_by_ids_cached(&pool, &request)
+            .expect("warm cached input");
+        {
+            let conn = pool.get().expect("conn");
+            let row_count: i64 = conn
+                .query_row("SELECT COUNT(*) FROM AnalysisArtifact", [], |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            let hit_count: i64 = conn
+                .query_row(
+                    "SELECT COALESCE(SUM(hitCount), 0) FROM AnalysisArtifact",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(row_count, 2, "warm run must reuse existing artifacts");
+            assert_eq!(
+                hit_count, 2,
+                "warm run should hit both experiment artifacts"
+            );
+        }
+
+        assert_eq!(cold.experiments.len(), warm.experiments.len());
+        for (cold_entry, warm_entry) in cold.experiments.iter().zip(warm.experiments.iter()) {
+            assert_eq!(cold_entry.id, warm_entry.id);
+            assert_eq!(
+                cold_entry.report_input.cycle_results.len(),
+                warm_entry.report_input.cycle_results.len()
+            );
+            assert_eq!(
+                cold_entry.report_input.cycles.len(),
+                warm_entry.report_input.cycles.len()
+            );
+        }
+    }
+
+    #[test]
+    fn cached_by_ids_report_input_preserves_request_order_on_cold_and_warm() {
+        let (pool, _dir) = by_ids_fixture_pool();
+        let mut request = valid_by_ids_request();
+        request.experiment_ids.reverse();
+
+        let cold = build_comparison_report_input_by_ids_cached(&pool, &request)
+            .expect("cold cached input");
+        let warm = build_comparison_report_input_by_ids_cached(&pool, &request)
+            .expect("warm cached input");
+
+        assert_eq!(cold.experiments.len(), 2);
+        assert_eq!(cold.experiments[0].display_name, "Beta");
+        assert_eq!(cold.experiments[1].display_name, "Alpha");
+        assert_eq!(
+            cold.experiments
+                .iter()
+                .map(|entry| &entry.id)
+                .collect::<Vec<_>>(),
+            warm.experiments
+                .iter()
+                .map(|entry| &entry.id)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn cached_by_ids_report_input_repairs_corrupt_analysis_artifact() {
+        let (pool, _dir) = by_ids_fixture_pool();
+        let request = valid_by_ids_request();
+        let exp_a = stored_experiment_for_by_ids("exp_aaaaaaaaaaaaaaaaaaaa", "Alpha");
+        let data_hash = {
+            let conn = pool.get().expect("conn");
+            load_experiment_data_hashes(&conn, std::slice::from_ref(&exp_a.id))
+                .expect("load data hash")
+                .get(&exp_a.id)
+                .cloned()
+        };
+        let key = build_analysis_key_for_experiment(&exp_a, data_hash.as_ref(), &request.settings)
+            .expect("cache key");
+
+        {
+            let conn = pool.get().expect("conn");
+            put_analysis_artifact(&conn, &key, ANALYSIS_ARTIFACT_ENCODING, b"not-zstd")
+                .expect("seed corrupt artifact");
+        }
+
+        let input = build_comparison_report_input_by_ids_cached(&pool, &request)
+            .expect("cached input should recompute after corrupt artifact");
+        assert_eq!(input.experiments.len(), 2);
+
+        let conn = pool.get().expect("conn");
+        let row_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM AnalysisArtifact", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(
+            row_count, 2,
+            "corrupt artifact should be replaced and the other experiment stored"
+        );
+
+        let repaired = get_analysis_artifact(&conn, &key)
+            .expect("read repaired artifact")
+            .expect("repaired artifact exists");
+        let decoded =
+            decode_analysis_artifact(&repaired.artifact_blob).expect("repaired artifact decodes");
+        assert!(!decoded.cycles.is_empty());
+    }
+
+    #[test]
+    fn experiment_save_invalidates_analysis_artifacts_for_that_experiment() {
+        let (pool, _dir) = by_ids_fixture_pool();
+        let request = valid_by_ids_request();
+
+        build_comparison_report_input_by_ids_cached(&pool, &request).expect("cold cached input");
+        {
+            let conn = pool.get().expect("conn");
+            let row_count: i64 = conn
+                .query_row("SELECT COUNT(*) FROM AnalysisArtifact", [], |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            assert_eq!(row_count, 2);
+        }
+
+        let mut updated = stored_experiment_for_by_ids("exp_aaaaaaaaaaaaaaaaaaaa", "Alpha");
+        if let Some(point) = updated.raw_points.first_mut() {
+            point["viscosity_cp"] = json!(point["viscosity_cp"].as_f64().unwrap_or(0.0) + 1.0);
+        }
+        {
+            let conn = pool.get().expect("conn");
+            persist_experiment(&conn, &updated).expect("persist updated experiment");
+            let remaining_for_updated: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM AnalysisArtifact WHERE experimentId = ?1",
+                    [updated.id.as_str()],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            let total_remaining: i64 = conn
+                .query_row("SELECT COUNT(*) FROM AnalysisArtifact", [], |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            assert_eq!(remaining_for_updated, 0);
+            assert_eq!(total_remaining, 1, "other experiment cache rows stay valid");
+        }
+    }
+
+    #[test]
+    #[ignore = "manual Sprint 3 cold/warm fixture benchmark"]
+    fn bench_analysis_artifact_cache_cold_warm_fixture_db() {
+        let Some((pool, _dir)) = by_ids_fixture_seed_pool() else {
+            eprintln!(
+                "SKIP: fixture DB not found at {}",
+                fixture_seed_db_path().display()
+            );
+            return;
+        };
+
+        let n_experiments = 5usize;
+        let ids = first_fixture_experiment_ids(&pool, n_experiments);
+        assert_eq!(
+            ids.len(),
+            n_experiments,
+            "fixture DB should contain at least {n_experiments} experiments"
+        );
+
+        let mut request = valid_by_ids_request();
+        request.experiment_ids = ids;
+        request.settings.comparison_chart.experiment_colors = vec![
+            "#1E90FF".into(),
+            "#FF0000".into(),
+            "#10B981".into(),
+            "#F59E0B".into(),
+            "#8B5CF6".into(),
+        ];
+
+        let iterations = 3usize;
+        let pdf_cold = measure_cache_report(
+            &pool,
+            &request,
+            CacheBenchReportFormat::Pdf,
+            iterations,
+            false,
+        );
+        let pdf_warm = measure_cache_report(
+            &pool,
+            &request,
+            CacheBenchReportFormat::Pdf,
+            iterations,
+            true,
+        );
+        let xlsx_cold = measure_cache_report(
+            &pool,
+            &request,
+            CacheBenchReportFormat::Xlsx,
+            iterations,
+            false,
+        );
+        let xlsx_warm = measure_cache_report(
+            &pool,
+            &request,
+            CacheBenchReportFormat::Xlsx,
+            iterations,
+            true,
+        );
+
+        let pct_delta = |warm: f64, cold: f64| ((warm - cold) / cold) * 100.0;
+        let report = json!({
+            "schema": "rheolab.microbench.analysis_artifact_cache.v1",
+            "generatedAt": now_rfc3339(),
+            "nExperiments": n_experiments,
+            "iterations": iterations,
+            "sourceDb": fixture_seed_db_path().display().to_string(),
+            "formats": {
+                "pdf": {
+                    "cold": {
+                        "samplesMs": &pdf_cold.samples_ms,
+                        "p50Ms": pdf_cold.p50_ms(),
+                        "p95Ms": pdf_cold.p95_ms(),
+                        "meanMs": pdf_cold.mean_ms(),
+                        "meanBytes": pdf_cold.mean_bytes(),
+                        "artifactRows": pdf_cold.artifact_rows,
+                        "artifactBytes": pdf_cold.artifact_bytes,
+                        "hitCount": pdf_cold.hit_count
+                    },
+                    "warm": {
+                        "samplesMs": &pdf_warm.samples_ms,
+                        "p50Ms": pdf_warm.p50_ms(),
+                        "p95Ms": pdf_warm.p95_ms(),
+                        "meanMs": pdf_warm.mean_ms(),
+                        "meanBytes": pdf_warm.mean_bytes(),
+                        "artifactRows": pdf_warm.artifact_rows,
+                        "artifactBytes": pdf_warm.artifact_bytes,
+                        "hitCount": pdf_warm.hit_count
+                    },
+                    "deltaMeanPct": pct_delta(pdf_warm.mean_ms(), pdf_cold.mean_ms())
+                },
+                "xlsx": {
+                    "cold": {
+                        "samplesMs": &xlsx_cold.samples_ms,
+                        "p50Ms": xlsx_cold.p50_ms(),
+                        "p95Ms": xlsx_cold.p95_ms(),
+                        "meanMs": xlsx_cold.mean_ms(),
+                        "meanBytes": xlsx_cold.mean_bytes(),
+                        "artifactRows": xlsx_cold.artifact_rows,
+                        "artifactBytes": xlsx_cold.artifact_bytes,
+                        "hitCount": xlsx_cold.hit_count
+                    },
+                    "warm": {
+                        "samplesMs": &xlsx_warm.samples_ms,
+                        "p50Ms": xlsx_warm.p50_ms(),
+                        "p95Ms": xlsx_warm.p95_ms(),
+                        "meanMs": xlsx_warm.mean_ms(),
+                        "meanBytes": xlsx_warm.mean_bytes(),
+                        "artifactRows": xlsx_warm.artifact_rows,
+                        "artifactBytes": xlsx_warm.artifact_bytes,
+                        "hitCount": xlsx_warm.hit_count
+                    },
+                    "deltaMeanPct": pct_delta(xlsx_warm.mean_ms(), xlsx_cold.mean_ms())
+                }
+            }
+        });
+
+        let out_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("outputs")
+            .join("perf")
+            .join("microbench");
+        fs::create_dir_all(&out_dir).expect("create perf output dir");
+        let out_path = out_dir.join(format!(
+            "analysis-artifact-cache-{}.json",
+            now_rfc3339().replace([':', '-'], "")
+        ));
+        fs::write(
+            &out_path,
+            serde_json::to_string_pretty(&report).expect("serialize report"),
+        )
+        .expect("write report");
+
+        println!("\n# AnalysisArtifact cache cold/warm fixture bench\n");
+        println!("sidecar: {}", out_path.display());
+        println!("| format | cold mean ms | warm mean ms | delta mean | cold p95 | warm p95 | hits | artifact bytes |");
+        println!("|---|---:|---:|---:|---:|---:|---:|---:|");
+        println!(
+            "| PDF | {:.1} | {:.1} | {:+.1}% | {:.1} | {:.1} | {} | {} |",
+            pdf_cold.mean_ms(),
+            pdf_warm.mean_ms(),
+            pct_delta(pdf_warm.mean_ms(), pdf_cold.mean_ms()),
+            pdf_cold.p95_ms(),
+            pdf_warm.p95_ms(),
+            pdf_warm.hit_count,
+            pdf_warm.artifact_bytes
+        );
+        println!(
+            "| XLSX | {:.1} | {:.1} | {:+.1}% | {:.1} | {:.1} | {} | {} |",
+            xlsx_cold.mean_ms(),
+            xlsx_warm.mean_ms(),
+            pct_delta(xlsx_warm.mean_ms(), xlsx_cold.mean_ms()),
+            xlsx_cold.p95_ms(),
+            xlsx_warm.p95_ms(),
+            xlsx_warm.hit_count,
+            xlsx_warm.artifact_bytes
+        );
     }
 
     #[test]
@@ -2355,27 +3187,32 @@ mod tests {
     fn analysis_cache_key_material_is_deterministic_and_versioned() {
         let request = valid_by_ids_request();
         let settings = request.settings;
-        let key_a = build_analysis_cache_key_material(
+        let data_hash = hash_experiment_data_bytes(b"fixture-data");
+        let changed_hash = hash_experiment_data_bytes(b"changed-data");
+        let key_a = build_analysis_cache_key(
             "exp_aaaaaaaaaaaaaaaaaaaa",
-            b"fixture-data",
+            &data_hash,
             "R1B5",
-            &settings.analysis_settings,
+            &super::build_expert_settings(&settings.analysis_settings),
+            &super::build_schedule_config(&settings.detection_settings),
             &settings.report_settings.report_viscosity_rates,
         )
         .expect("cache key material should build");
-        let key_b = build_analysis_cache_key_material(
+        let key_b = build_analysis_cache_key(
             "exp_aaaaaaaaaaaaaaaaaaaa",
-            b"fixture-data",
+            &data_hash,
             "R1B5",
-            &settings.analysis_settings,
+            &super::build_expert_settings(&settings.analysis_settings),
+            &super::build_schedule_config(&settings.detection_settings),
             &settings.report_settings.report_viscosity_rates,
         )
         .expect("cache key material should build deterministically");
-        let key_c = build_analysis_cache_key_material(
+        let key_c = build_analysis_cache_key(
             "exp_aaaaaaaaaaaaaaaaaaaa",
-            b"changed-data",
+            &changed_hash,
             "R1B5",
-            &settings.analysis_settings,
+            &super::build_expert_settings(&settings.analysis_settings),
+            &super::build_schedule_config(&settings.detection_settings),
             &settings.report_settings.report_viscosity_rates,
         )
         .expect("cache key material should change with data bytes");
@@ -2384,7 +3221,7 @@ mod tests {
         assert_ne!(key_a.experiment_data_hash, key_c.experiment_data_hash);
         assert_eq!(key_a.experiment_data_hash.len(), 64);
         assert_eq!(key_a.rheolab_core_version, RHEOLAB_CORE_VERSION);
-        assert_eq!(key_a.algorithm_version, 1);
+        assert_eq!(key_a.algorithm_version, ANALYSIS_CACHE_ALGORITHM_VERSION);
     }
 
     #[test]

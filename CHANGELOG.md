@@ -6,6 +6,20 @@
 
 ---
 
+## [0.2.2-alpha.3] — 2026-04-29
+
+> Alpha-релиз после Sprint 2 merge и release-gate на merge commit. Главная цель — отдать Superuser alpha-каналу новый default path сравнительных отчётов и оставить legacy payload lane только как аварийный rollback на одно alpha/beta окно.
+
+### Изменено
+- **Comparison PDF/XLSX default path**: сравнительные PDF и XLSX теперь по умолчанию идут через native by-IDs IPC. Frontend передаёт experiment IDs и настройки, Rust загружает данные из SQLite и рендерит отчёты без тяжёлой TypeScript-сборки per-experiment payload.
+- **Legacy rollback lane**: старый payload path сохранён только как emergency rollback через `RHEOLAB_REPORTS_LEGACY_TS_ASSEMBLY=1` / settings flag. Он больше не является production default.
+
+### Инфраструктура
+- **Fixture-backed microbench validation**: Sprint 2 closeout зафиксировал PDF/XLSX native by-IDs microbench на production-shaped fixture DB. Результаты: PDF N=5 p50 230.8 ms / p95 246.1 ms, PDF N=10 p50 252.3 ms / p95 289.9 ms, XLSX N=5 p50 2,399.8 ms / p95 2,458.0 ms, XLSX N=10 p50 2,657.9 ms / p95 2,689.8 ms.
+- **Release debt tracked**: `LARGE-IPC-EXCEPTION` остаётся только пока зарегистрирован legacy rollback command; removal gate — одно alpha и одно beta окно без by-IDs regressions.
+
+---
+
 ## [0.2.1-beta.1] — 2026-04-28
 
 > Первый beta-build после `0.2.1-alpha.6 → alpha.7 → alpha.8` цикла ручного тестирования. Кодово идентичен `alpha.8` (`dd55c04`) — отличается только полем `channel: "beta"` в SSoT-версии и пересчитанным `Cargo.lock`. Этот релиз открывает beta-канал auto-updater'а: Superuser-лицензии остаются на alpha (более частые сборки), Beta-лицензии получают этот build как первое обновление линии `0.2.1`.
