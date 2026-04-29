@@ -13,6 +13,7 @@ use crate::db::migrations::v0005_reagent_and_testtype_indexes::V0005ReagentAndTe
 use crate::db::migrations::v0006_artifact_import_batch_indexes::V0006ArtifactImportBatchIndexes;
 use crate::db::migrations::v0007_fk_indexes::V0007FkIndexes;
 use crate::db::migrations::v0008_analysis_artifact::V0008AnalysisArtifact;
+use crate::db::migrations::v0009_experiment_list_projection::V0009ExperimentListProjection;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -80,7 +81,10 @@ fn migration_v1_creates_all_tables() {
         "ConflictRecord",
         "Experiment",
         "ExperimentData",
+        "ExperimentFacetCache",
+        "ExperimentListProjection",
         "ExperimentPayload",
+        "ExperimentProjectionMeta",
         "ExperimentReagent",
         "ImportBatch",
         "Laboratory",
@@ -105,7 +109,7 @@ fn migration_v1_creates_all_tables() {
     ];
     assert_eq!(
         tables, expected,
-        "All 24 tables should be created by V1_DDL + v0003 side table + v0008 cache table"
+        "All projection/cache tables should be created by V1_DDL + additive migrations"
     );
 }
 
@@ -527,6 +531,8 @@ fn schema_identity_with_raw_ddl() {
     V0007FkIndexes.up(&conn_b).unwrap();
     // v0008 — AnalysisArtifact cache table.
     V0008AnalysisArtifact.up(&conn_b).unwrap();
+    // v0009 — ExperimentListProjection + facet cache tables.
+    V0009ExperimentListProjection.up(&conn_b).unwrap();
 
     fn dump(conn: &Connection) -> Vec<String> {
         let mut stmt = conn

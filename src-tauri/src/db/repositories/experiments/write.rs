@@ -252,6 +252,16 @@ pub(crate) fn persist_experiment(
         .map_err(|e| format!("SQL error (reagent insert): {}", e))?;
     }
 
+    if let Err(e) = crate::db::repositories::experiment_projection::upsert_projection_for_experiment(
+        conn, &exp.id,
+    ) {
+        tracing::warn!(
+            "experiment list projection update failed for {}: {}",
+            exp.id,
+            e
+        );
+    }
+
     Ok(())
 }
 

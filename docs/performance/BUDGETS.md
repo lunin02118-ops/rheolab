@@ -111,10 +111,10 @@ long tasks is worse than 5 paths producing 6 each.
 
 | ID | Metric | Source | Current p50 | **Budget p50** | **Budget p95** | Severity |
 |---|---|---|---:|---:|---:|---|
-| **DB-LIST** | List/filter query (1k rows) | `perf:db:small` | **1,540** (UI proxy†) | **≤ 2,000** | **≤ 3,000** | soft |
+| **DB-LIST** | List/filter query (1k rows) | Sprint 5 synthetic DB microbench | **3 ms** (`fieldName=North`, 1k rows) | **≤ 50 ms** | **≤ 100 ms** | soft |
 | **DB-LIST-LARGE** | List/filter query (10k rows) | `perf:db:large` | **1,555** (UI proxy†) | **≤ 2,000** | **≤ 3,500** | soft |
 | **DB-DETAIL** | Single experiment full-load query | `perf:db:small` | **1,325** (UI proxy†) | **≤ 1,800** | **≤ 3,000** | soft |
-| **DB-FACET** | Facet/distinct values query | NEW (Sprint 5) | TBD | **≤ 50 ms** | **≤ 100 ms** | soft |
+| **DB-FACET** | Facet/distinct values query | Sprint 5 synthetic DB microbench | **2 ms** facet rebuild over 1k rows | **≤ 50 ms** | **≤ 100 ms** | soft |
 
 ## What stays explicitly out-of-scope this sprint
 
@@ -190,6 +190,18 @@ long tasks is worse than 5 paths producing 6 each.
 | AnalysisArtifact maintenance | **implemented** — `analysis_cache_stats` and scheduler-backed `analysis_cache_prune` |
 | Metrics action | **partial** — `queuedMs`, `wallMs`, cache hit/miss counts, artifact bytes, and output bytes are captured; CPU/RSS fields remain nullable pending loader-safe process sampler |
 | Merge gate | **green** — `cargo check`, `cargo test --lib` (426 passed / 1 ignored), `npm ci`, `npm test`, `version:validate`, `audit:large-ipc`, and `git diff --check` pass |
+
+## Sprint 5 deliverables tracker
+
+| Deliverable | Status |
+|---|---|
+| `ExperimentListProjection`, `ExperimentFacetCache`, and `ExperimentProjectionMeta` migration | **implemented** — v0009 is registered and idempotent |
+| Projection repository and row builder | **implemented** — save-path upsert, batch rebuild, status/readiness checks, facet rebuild, and projection query APIs |
+| Library list read path | **implemented for supported ready queries** — reagent filters, batch filters, custom non-default touch thresholds, incomplete/stale projection fall back to legacy SQL |
+| Filter metadata | **implemented with safe fallback** — reads `ExperimentFacetCache` when projection is ready; otherwise existing distinct-query path remains |
+| Scheduler maintenance | **implemented** — `experiments_projection_status` and scheduler-backed `experiments_projection_rebuild` |
+| DB-level validation | **captured** — see `LIBRARY-PROJECTION-VALIDATION.md`; synthetic 1k list query measured 3 ms legacy and 3 ms projection, facet rebuild 2 ms |
+| Budget action | **partial** — `DB-LIST`/`DB-FACET` now have real synthetic DB-level values; UI-level L-LIB/L-FILTER budgets remain unchanged until the Playwright runner emits DB spans |
 
 ## Binary size note (corrected)
 

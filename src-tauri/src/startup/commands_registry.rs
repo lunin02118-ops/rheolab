@@ -86,6 +86,8 @@ macro_rules! register_tauri_commands {
             $crate::commands::jobs::jobs_cancel,
             $crate::commands::jobs::analysis_cache_stats,
             $crate::commands::jobs::analysis_cache_prune,
+            $crate::commands::jobs::experiments_projection_status,
+            $crate::commands::jobs::experiments_projection_rebuild,
             // Native analysis pipeline commands
             $crate::commands::analysis::analysis_analyze_full,
             $crate::commands::analysis::analysis_detect_steps,

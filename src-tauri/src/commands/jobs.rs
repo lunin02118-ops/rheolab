@@ -1,6 +1,10 @@
 //! Job scheduler and cache-maintenance IPC commands.
 
 use crate::db::repositories::analysis_artifacts::prune_analysis_artifacts_lru;
+use crate::db::repositories::experiment_projection::{
+    mark_full_rebuild_complete, projection_status, rebuild_facet_cache, rebuild_projection_batch,
+    ExperimentProjectionStatus, FacetRebuildResult,
+};
 use crate::error::{AppError, Result};
 use crate::runtime::jobs::{JobCancelResponse, JobKind, JobRecord};
 use crate::state::AppState;
@@ -9,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
 const DEFAULT_ANALYSIS_CACHE_MAX_BYTES: i64 = 256 * 1024 * 1024;
+const PROJECTION_REBUILD_BATCH_SIZE: usize = 250;
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -28,6 +33,15 @@ pub struct AnalysisCachePruneResponse {
     pub deleted_rows: usize,
     pub before: AnalysisCacheStats,
     pub after: AnalysisCacheStats,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ExperimentProjectionRebuildResponse {
+    pub before: ExperimentProjectionStatus,
+    pub after: ExperimentProjectionStatus,
+    pub rebuilt_rows: usize,
+    pub facet_rebuild: FacetRebuildResult,
 }
 
 #[tauri::command]
@@ -105,6 +119,111 @@ pub async fn analysis_cache_prune(
                 after,
             })
         })
+        .await
+}
+
+#[tauri::command]
+pub async fn experiments_projection_status(
+    state: State<'_, AppState>,
+) -> Result<ExperimentProjectionStatus> {
+    let pool = state.db_pool.clone();
+    tokio::task::spawn_blocking(move || {
+        let conn = pool.get().map_err(AppError::Pool)?;
+        projection_status(&conn)
+    })
+    .await?
+}
+
+#[tauri::command]
+pub async fn experiments_projection_rebuild(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<ExperimentProjectionRebuildResponse> {
+    let pool = state.db_pool.clone();
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+
+    state
+        .job_scheduler
+        .run_blocking(
+            app_handle,
+            JobKind::ExperimentProjectionRebuild,
+            move |ctx| {
+                ctx.progress(
+                    "projection_status",
+                    0,
+                    None,
+                    Some("Reading library projection status".into()),
+                );
+                ctx.ensure_not_cancelled()?;
+
+                let before = {
+                    let conn = pool.get().map_err(AppError::Pool)?;
+                    projection_status(&conn)?
+                };
+
+                let mut rebuilt_rows = 0usize;
+                let mut after_id: Option<String> = None;
+                let total = before.experiment_count.max(0) as u64;
+
+                loop {
+                    ctx.ensure_not_cancelled()?;
+                    let batch = {
+                        let conn = pool.get().map_err(AppError::Pool)?;
+                        rebuild_projection_batch(
+                            &conn,
+                            after_id.as_deref(),
+                            PROJECTION_REBUILD_BATCH_SIZE,
+                        )?
+                    };
+                    rebuilt_rows += batch.processed;
+                    after_id = batch.last_experiment_id;
+                    ctx.progress(
+                        "projection_rebuild",
+                        rebuilt_rows as u64,
+                        Some(total),
+                        Some("Rebuilding ExperimentListProjection".into()),
+                    );
+                    if !batch.has_more || batch.processed == 0 {
+                        break;
+                    }
+                }
+
+                ctx.ensure_not_cancelled()?;
+                let (facet_rebuild, after) = {
+                    let conn = pool.get().map_err(AppError::Pool)?;
+                    mark_full_rebuild_complete(&conn)?;
+                    ctx.progress(
+                        "facet_rebuild",
+                        rebuilt_rows as u64,
+                        Some(total),
+                        Some("Rebuilding ExperimentFacetCache".into()),
+                    );
+                    let facet_rebuild = rebuild_facet_cache(&conn)?;
+                    let after = projection_status(&conn)?;
+                    (facet_rebuild, after)
+                };
+
+                ctx.progress(
+                    "done",
+                    total,
+                    Some(total),
+                    Some("Library projection rebuild complete".into()),
+                );
+
+                Ok(ExperimentProjectionRebuildResponse {
+                    before,
+                    after,
+                    rebuilt_rows,
+                    facet_rebuild,
+                })
+            },
+        )
         .await
 }
 

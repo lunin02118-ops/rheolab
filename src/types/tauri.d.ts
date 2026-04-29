@@ -325,6 +325,12 @@ export interface PlatformBridge {
     prune: (maxTotalBytes?: number) => Promise<AnalysisCachePruneResponse>;
   };
 
+  /** Denormalized Library projection maintenance */
+  experimentProjection?: {
+    status: () => Promise<ExperimentProjectionStatus>;
+    rebuild: () => Promise<ExperimentProjectionRebuildResponse>;
+  };
+
   /** Local demo fixtures operations */
   fixtures: {
     list: () => Promise<FixturesListResponse>;

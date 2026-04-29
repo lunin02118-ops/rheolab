@@ -1,9 +1,9 @@
 # Performance roadmap — Sprints 1 → 6
 
-**Status:** updated 2026-04-29 after Sprint 4 implementation slice.
+**Status:** updated 2026-04-29 after Sprint 5 implementation slice.
 **Owner:** Architecture Team.  
-**Next sprint:** **Sprint 5 — ExperimentListProjection + facet cache**.
-**Closed:** Sprint 1, Sprint 2, Sprint 3, and Sprint 4.
+**Next sprint:** **Sprint 6 — Binary series IPC / viewport downsampled chart data**.
+**Closed:** Sprint 1, Sprint 2, Sprint 3, Sprint 4, and Sprint 5.
 
 This document is the **single-page program view** of the perf-architecture work that started with Sprint 0's `BUDGETS.md` contract. It captures the 6-sprint mission per sprint, the ROI logic that orders them, and the cross-sprint dependencies. Each per-sprint plan (`SPRINT-2-PLANNING.md`, etc.) drills into a single sprint; this doc is the connector.
 
@@ -17,7 +17,7 @@ This document is the **single-page program view** of the perf-architecture work 
 | **2** | **Native comparison reports by IDs** | Add `reports_*_by_ids` IPC commands; replace TS-side assembly of large `ComparisonReportInput` payloads with Rust-side DB lookup by ID list. **This is the main ROI lever** — removes the large IPC payload from the default comparison export path, unblocks Sprint 3 cache integration, and tightens report-render budgets. | **closed for alpha** (legacy rollback path retained until alpha/beta window ends) |
 | **3** | AnalysisArtifact cache | DB migration for cache table; comparison by-IDs reports consume persistent `AnalysisArtifact` cache transparently. | **closed** |
 | **4** | Job scheduler | Native scheduler in Rust runtime with cancellation hooks; comparison reports and cache maintenance run through scheduler. Enables queue visibility, progress events, and job metrics. | **closed** |
-| **5** | Library projection | `ExperimentListProjection` table (denormalised, list-shape); library page serves from projection; facet/filter cache. Tightens L-LIB-OPEN and L-FILTER budgets to sub-100 ms. | independent |
+| **5** | Library projection | `ExperimentListProjection` table (denormalised, list-shape); library page serves from projection for supported ready queries; facet/filter cache. | **closed** |
 | **6** | Binary series IPC | Downsampled binary viewport series endpoint; chart layer consumes viewport-fitting arrays instead of full per-point arrays over JSON. Reduces chart paint time for large experiments and trims IPC bandwidth. | independent |
 
 ---
@@ -135,9 +135,10 @@ After critical lead-in, Sprint 2's main work is the three native-by-ids delivera
 
 - **Sprint 1:** closed `5f11efb`. Retrospective: `SPRINT-1-RETROSPECTIVE.md`. P10 verdict: KEEP narrowly. Microbench infrastructure: durable.
 - **Sprint 2:** closed for alpha. Native by-IDs comparison PDF/XLSX is the default UI path; legacy payload export remains only as rollback fallback until the alpha/beta window ends. Retrospective: `SPRINT-2-RETROSPECTIVE.md`. Validation: `REPORTS-NATIVE-BY-IDS-VALIDATION.md`.
-- **Sprint 3:** next. Draft plan: `SPRINT-3-PLANNING.md`.
-- **Sprint 4:** queued behind Sprint 3.
-- **Sprint 5–6:** independent; can slot whenever a budget in their family bites.
+- **Sprint 3:** closed. AnalysisArtifact cache is integrated into comparison by-IDs reports.
+- **Sprint 4:** closed. Runtime job scheduler owns report/cache maintenance jobs.
+- **Sprint 5:** closed. Library projection and facet cache vertical slice shipped with safe legacy fallback.
+- **Sprint 6:** next independent perf lever: binary/downsampled viewport series IPC for charts.
 
 ---
 
@@ -146,6 +147,8 @@ After critical lead-in, Sprint 2's main work is the three native-by-ids delivera
 - `docs/performance/SPRINT-1-RETROSPECTIVE.md` — what Sprint 1 actually delivered + 4 process lessons learned.
 - `docs/performance/SPRINT-1-EXTERNAL-AUDIT.md` — external static audit of `main @ 463dce2` that drove the v3 plan amendments.
 - `docs/performance/SPRINT-2-PLANNING.md` — closed Sprint 2 plan (v3, audit-amended).
+- `docs/performance/SPRINT-5-RETROSPECTIVE.md` — closed Sprint 5 projection slice.
+- `docs/performance/LIBRARY-PROJECTION-VALIDATION.md` — Sprint 5 DB-level validation.
 - `docs/performance/BUDGETS.md` — the perf contract this whole roadmap is fulfilling.
 - `docs/performance/MICROBENCH.md` — the bench harness Sprint 1 built (used by every subsequent sprint that touches CPU-bound code).
 - `docs/performance/P10-DB-SWEEP-VALIDATION-REPORT.md` — Sprint 1 deep-dive that kept the program on a single canonical release profile.

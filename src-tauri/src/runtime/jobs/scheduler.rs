@@ -12,9 +12,9 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 #[cfg(not(test))]
-use tauri::Emitter;
-#[cfg(not(test))]
 use tauri::AppHandle;
+#[cfg(not(test))]
+use tauri::Emitter;
 
 #[cfg(not(test))]
 type JobEventTarget = AppHandle;
@@ -189,12 +189,7 @@ impl JobScheduler {
     }
 
     pub fn list(&self) -> Vec<JobRecord> {
-        let mut records = self
-            .registry
-            .lock()
-            .values()
-            .cloned()
-            .collect::<Vec<_>>();
+        let mut records = self.registry.lock().values().cloned().collect::<Vec<_>>();
         records.sort_by(|a, b| b.created_at.cmp(&a.created_at).then(a.id.cmp(&b.id)));
         records
     }
@@ -267,9 +262,7 @@ impl JobScheduler {
             error: None,
             metrics: None,
         };
-        self.registry
-            .lock()
-            .insert(job_id.clone(), record.clone());
+        self.registry.lock().insert(job_id.clone(), record.clone());
         self.cancellation
             .lock()
             .insert(job_id.clone(), token.clone());
@@ -403,9 +396,11 @@ impl JobScheduler {
                 Arc::clone(&self.comparison_reports)
             }
             JobKind::ImportDb | JobKind::BackupRestore => Arc::clone(&self.imports),
-            JobKind::AnalysisCachePrune | JobKind::AnalysisCacheWarmup | JobKind::Maintenance => {
-                Arc::clone(&self.maintenance)
-            }
+            JobKind::AnalysisCachePrune
+            | JobKind::AnalysisCacheWarmup
+            | JobKind::ExperimentProjectionRebuild
+            | JobKind::ExperimentFacetRebuild
+            | JobKind::Maintenance => Arc::clone(&self.maintenance),
             JobKind::SinglePdf | JobKind::SingleExcel => Arc::clone(&self.comparison_reports),
         }
     }

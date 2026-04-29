@@ -399,6 +399,11 @@ pub async fn experiments_delete(
         });
     }
 
+    if let Err(error) = crate::db::repositories::experiment_projection::mark_facet_cache_dirty(&tx)
+    {
+        tracing::warn!("experiment projection facet dirty mark failed: {}", error);
+    }
+
     tx.commit()?;
     super::list::invalidate_filter_metadata_cache();
     Ok(ExperimentDeleteResponse {

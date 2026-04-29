@@ -92,6 +92,10 @@ export type ExperimentListItem = { id: string; createdAt: string; updatedAt: str
 
 export type ExperimentPayloadItem = { id: string; experimentId: string; importBatchId: string | null; payloadVersion: number; payloadFormat: string; contentFingerprint: string; sourceLabId: string | null; isCanonical: boolean; createdAt: string }
 
+export type ExperimentProjectionRebuildResponse = { before: ExperimentProjectionStatus; after: ExperimentProjectionStatus; rebuiltRows: number; facetRebuild: FacetRebuildResult }
+
+export type ExperimentProjectionStatus = { experimentCount: number; projectionCount: number; currentProjectionCount: number; missingOrStaleCount: number; facetCount: number; facetDirty: boolean; projectionVersion: number; lastFullRebuildAt: string | null; lastFacetRebuildAt: string | null; ready: boolean }
+
 export type ExperimentSavePayload = { name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; rawPoints?: JsonValue[]; calibration: JsonValue | null; reagents?: StoredExperimentReagent[]; overwrite: boolean | null; laboratoryId?: string | null; parsedBy?: string | null; parseSource?: string | null; timeRangeMin?: number | null; timeRangeMax?: number | null; viscosityMin?: number | null; pressureMax?: number | null; extraFields?: JsonValue | null }
 
 export type ExperimentSaveResponse = { success: boolean; experimentId?: string | null; message?: string | null; error?: string | null; code?: string | null }
@@ -184,6 +188,8 @@ export type ExperimentsPagination = { page: number; limit: number; total: number
  */
 nextCursor?: string | null }
 
+export type FacetRebuildResult = { facetRows: number; updatedAt: string }
+
 export type FilenameMetadataResponse = { testId?: string | null; testType?: string | null; testTypeFull?: string | null; fieldName?: string | null; destination?: string | null; waterSource?: string | null; temperature?: number | null; recipe?: RecipeComponentResponse[] | null }
 
 export type FixtureItem = { name: string; displayName: string }
@@ -198,7 +204,7 @@ export type JobCancelResponse = { jobId: string; status: JobStatus; cancelled: b
 
 export type JobFinishedEvent = { jobId: string; kind: JobKind; status: JobStatus; error: string | null; metrics: JobMetrics | null }
 
-export type JobKind = "comparisonPdf" | "comparisonExcel" | "singlePdf" | "singleExcel" | "importDb" | "backupRestore" | "analysisCachePrune" | "analysisCacheWarmup" | "maintenance"
+export type JobKind = "comparisonPdf" | "comparisonExcel" | "singlePdf" | "singleExcel" | "importDb" | "backupRestore" | "analysisCachePrune" | "analysisCacheWarmup" | "experimentProjectionRebuild" | "experimentFacetRebuild" | "maintenance"
 
 export type JobMetrics = { queuedMs: number; wallMs: number; cpuMsDelta: number | null; rssMbStart: number | null; rssMbPeak: number | null; rssMbEnd: number | null; cacheHits: number | null; cacheMisses: number | null; artifactBytesRead: number | null; artifactBytesWritten: number | null; outputBytes: number | null }
 
@@ -371,6 +377,8 @@ export type ParseSummary = { pointCount: number; timeRange?: TimeRange | null; v
 export type ParsedPoint = { time_sec: number; viscosity_cp: number; temperature_c: number; speed_rpm: number; shear_rate_s1: number; shear_stress_pa: number; pressure_bar: number; bath_temperature_c?: number | null }
 
 export type ParserArtifactItem = { id: string; experimentId: string; importBatchId: string | null; parserVersion: string; schemaVersion: string; contentFingerprint: string; promotedToHot: boolean; createdAt: string }
+
+export type ProjectionRebuildBatchResult = { processed: number; lastExperimentId: string | null; hasMore: boolean }
 
 export type ReagentDeleteResponse = { success: boolean; error?: string | null }
 
