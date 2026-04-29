@@ -31,11 +31,16 @@
  *     --config playwright.tauri.config.ts
  *   # capture real PDF/XLSX payloads instead of debug mock bytes:
  *   RHEOLAB_E2E_REAL_REPORTS=1 COMPARISON_SMOKE_N=3 npm run perf:comparison:tauri
+ *   # add direct Win32 RSS phase markers (diagnostic; adds measurement overhead):
+ *   COMPARISON_SMOKE_MEMORY_STEPS=1 COMPARISON_SMOKE_N=3 npm run perf:comparison:tauri
  */
 
 import { test, expect, setupBeforeEach } from './base-test.tauri';
 import type { Page } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import path from 'node:path';
 import {
     CHANDLER_SST_63,
@@ -50,9 +55,12 @@ import { ComparisonReportsPage } from './pages';
 
 setupBeforeEach(test);
 
+const execFileAsync = promisify(execFile);
+
 // ─── Config ─────────────────────────────────────────────────────────────────
 
 const OUTPUT_DIR = path.resolve('outputs', 'e2e', 'perf');
+const MEMORY_STEPS_ENABLED = process.env.COMPARISON_SMOKE_MEMORY_STEPS === '1';
 
 /**
  * Sizes the spec measures. Each is gated by the runtime license cap. Set
@@ -98,6 +106,7 @@ interface ComparisonSmokeMeasurement {
     pdf_bytes: number | null;
     xlsx_ms: number | null;
     xlsx_bytes: number | null;
+    memory_steps?: NativeMemoryStep[];
     skipped?: 'license-cap' | 'mock-inactive' | 'error';
     skipReason?: string;
 }
@@ -110,7 +119,28 @@ interface ComparisonSmokeReport {
     generatedAt: string;
     platform: string;
     license_cap: number;
+    memory_steps_enabled: boolean;
+    native_memory_file?: string | null;
     measurements: ComparisonSmokeMeasurement[];
+}
+
+interface NativeMemorySnapshot {
+    total_rss_mb: number;
+    tauri_rss_mb: number;
+    webview2_rss_mb: number;
+    renderer_rss_mb: number;
+    browser_rss_mb: number;
+    gpu_rss_mb: number;
+    utility_rss_mb: number;
+    other_rss_mb: number;
+    webview2_process_count: number;
+}
+
+interface NativeMemoryStep extends Partial<NativeMemorySnapshot> {
+    phase: string;
+    at_ms: number;
+    source: 'direct-win32' | 'unavailable';
+    error?: string;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -119,6 +149,144 @@ interface ComparisonSmokeReport {
 function timeStep<T>(_label: string, fn: () => Promise<T>): Promise<{ result: T; ms: number }> {
     const t0 = Date.now();
     return fn().then((result) => ({ result, ms: Date.now() - t0 }));
+}
+
+function encodePowerShell(script: string): string {
+    return Buffer.from(script, 'utf16le').toString('base64');
+}
+
+function psPath(value: string): string {
+    return value.replace(/'/g, "''");
+}
+
+async function snapshotNativeMemory(): Promise<NativeMemorySnapshot | null> {
+    if (process.platform !== 'win32') return null;
+
+    const pidFile = path.resolve('.tauri-e2e.pid');
+    if (!existsSync(pidFile)) return null;
+
+    const script = `
+$ErrorActionPreference = 'Stop'
+$pidFile = '${psPath(pidFile)}'
+if (-not (Test-Path $pidFile)) { Write-Output '{}'; exit 0 }
+$rootPid = [int](Get-Content $pidFile -Raw).Trim()
+$tauriProc = Get-Process -Id $rootPid -ErrorAction SilentlyContinue
+if ($null -eq $tauriProc) { Write-Output '{}'; exit 0 }
+
+$allWmi = Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CommandLine -ErrorAction SilentlyContinue
+$descendants = [System.Collections.Generic.HashSet[int]]::new()
+$queue = [System.Collections.Generic.Queue[int]]::new()
+$queue.Enqueue($rootPid)
+while ($queue.Count -gt 0) {
+  $cur = $queue.Dequeue()
+  foreach ($p in $allWmi) {
+    if ($p.ParentProcessId -eq $cur -and -not $descendants.Contains([int]$p.ProcessId)) {
+      $null = $descendants.Add([int]$p.ProcessId)
+      $queue.Enqueue([int]$p.ProcessId)
+    }
+  }
+}
+
+function Get-WebView2Type([string]$CommandLine) {
+  if ([string]::IsNullOrWhiteSpace($CommandLine)) { return 'other' }
+  if ($CommandLine -match '(?i)(?:^|\\s)--type=([a-z0-9-]+)') {
+    switch ($matches[1].ToLowerInvariant()) {
+      'renderer' { return 'renderer' }
+      'gpu-process' { return 'gpu' }
+      'utility' { return 'utility' }
+      'browser' { return 'browser' }
+      default { return 'other' }
+    }
+  }
+  if ($CommandLine -match '(?i)--embedded-browser-webview') { return 'browser' }
+  return 'other'
+}
+
+$webview2WsMb = 0.0
+$rendererWsMb = 0.0
+$browserWsMb = 0.0
+$gpuWsMb = 0.0
+$utilityWsMb = 0.0
+$otherWsMb = 0.0
+$webview2Count = 0
+
+foreach ($procMeta in @($allWmi)) {
+  $procPid = [int]$procMeta.ProcessId
+  if (-not $descendants.Contains($procPid)) { continue }
+  if ([string]::IsNullOrWhiteSpace($procMeta.Name)) { continue }
+  if ($procMeta.Name.ToLowerInvariant() -ne 'msedgewebview2.exe') { continue }
+  $p = Get-Process -Id $procPid -ErrorAction SilentlyContinue
+  if ($null -eq $p) { continue }
+  $wsMb = [math]::Round($p.WorkingSet64 / 1MB, 2)
+  $webview2WsMb += $wsMb
+  $webview2Count++
+  $type = Get-WebView2Type -CommandLine $procMeta.CommandLine
+  switch ($type) {
+    'renderer' { $rendererWsMb += $wsMb }
+    'browser' { $browserWsMb += $wsMb }
+    'gpu' { $gpuWsMb += $wsMb }
+    'utility' { $utilityWsMb += $wsMb }
+    default { $otherWsMb += $wsMb }
+  }
+}
+
+$tauriWsMb = [math]::Round($tauriProc.WorkingSet64 / 1MB, 2)
+$out = [PSCustomObject]@{
+  total_rss_mb = [math]::Round($tauriWsMb + $webview2WsMb, 2)
+  tauri_rss_mb = $tauriWsMb
+  webview2_rss_mb = [math]::Round($webview2WsMb, 2)
+  renderer_rss_mb = [math]::Round($rendererWsMb, 2)
+  browser_rss_mb = [math]::Round($browserWsMb, 2)
+  gpu_rss_mb = [math]::Round($gpuWsMb, 2)
+  utility_rss_mb = [math]::Round($utilityWsMb, 2)
+  other_rss_mb = [math]::Round($otherWsMb, 2)
+  webview2_process_count = $webview2Count
+}
+$out | ConvertTo-Json -Compress -Depth 4
+`;
+
+    const { stdout } = await execFileAsync(
+        'powershell',
+        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encodePowerShell(script)],
+        { timeout: 10_000 },
+    );
+    const trimmed = stdout.trim();
+    if (!trimmed || trimmed === '{}') return null;
+    return JSON.parse(trimmed) as NativeMemorySnapshot;
+}
+
+async function recordMemoryStep(
+    steps: NativeMemoryStep[],
+    runStartedAt: number,
+    phase: string,
+): Promise<void> {
+    if (!MEMORY_STEPS_ENABLED) return;
+
+    try {
+        const snap = await snapshotNativeMemory();
+        if (!snap) {
+            steps.push({ phase, at_ms: Date.now() - runStartedAt, source: 'unavailable' });
+            return;
+        }
+        const step: NativeMemoryStep = {
+            phase,
+            at_ms: Date.now() - runStartedAt,
+            source: 'direct-win32',
+            ...snap,
+        };
+        steps.push(step);
+        console.log(
+            `  [mem:${phase}] total=${step.total_rss_mb} MB renderer=${step.renderer_rss_mb} MB ` +
+            `gpu=${step.gpu_rss_mb} MB tauri=${step.tauri_rss_mb} MB`,
+        );
+    } catch (error) {
+        steps.push({
+            phase,
+            at_ms: Date.now() - runStartedAt,
+            source: 'unavailable',
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
 }
 
 /**
@@ -154,6 +322,7 @@ async function setupComparisonExperiments(
     n: number,
     runId: string,
     dashboard: import('./pages').DashboardPage,
+    recordMem?: (phase: string) => Promise<void>,
 ): Promise<string[]> {
     const names: string[] = [];
     for (let i = 0; i < n; i++) {
@@ -164,6 +333,7 @@ async function setupComparisonExperiments(
         const expName = `CmpSmoke_N${n}_${fx.displayName.replace(/\s+/g, '')}_${runId}_${i}`;
         const { name } = await dashboard.saveExperiment({ name: expName });
         names.push(name);
+        await recordMem?.(`after_save_${i + 1}`);
     }
     return names;
 }
@@ -177,6 +347,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
 
     test('comparison_smoke_baseline', async ({ page, dashboard, comparison }) => {
         const runId = `${Date.now()}-tauri`;
+        const runStartedAt = Date.now();
         const measurements: ComparisonSmokeMeasurement[] = [];
         const cmpReports = new ComparisonReportsPage(page);
 
@@ -185,9 +356,14 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
         const comparisonCap = await readComparisonCap(page);
         console.log(`[CmpSmoke] mode=${mode} cap=${comparisonCap} runId=${runId}`);
         console.log(`[CmpSmoke] target counts=${TARGET_FIXTURE_COUNTS.join(', ')}`);
+        if (MEMORY_STEPS_ENABLED) {
+            console.log('[CmpSmoke] direct Win32 memory phase markers enabled');
+        }
 
         for (const n of TARGET_FIXTURE_COUNTS) {
             console.log(`\n━━━ N=${n} ━━━`);
+            const memorySteps: NativeMemoryStep[] = [];
+            const recordMem = (phase: string) => recordMemoryStep(memorySteps, runStartedAt, `n${n}:${phase}`);
 
             // 1. License-cap gate — record skipped entry, continue.
             if (n > comparisonCap) {
@@ -209,8 +385,10 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
             try {
                 // 2. Upload + save N experiments.
                 console.log(`  [setup] uploading + saving ${n} experiments...`);
-                const names = await setupComparisonExperiments(n, runId, dashboard);
+                await recordMem('before_setup');
+                const names = await setupComparisonExperiments(n, runId, dashboard, recordMem);
                 console.log(`  [setup] saved: ${names.join(', ')}`);
+                await recordMem('after_setup');
 
                 // 3. Clear any stale comparison state (mirrors multi-fixture-perf.tauri.spec.ts).
                 await page.evaluate(() => {
@@ -219,8 +397,10 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
 
                 // 4. Open comparison view + add all N experiments + measure UI-ready.
                 const { ms: cmpReadyMs } = await timeStep('cmp_ready', async () => {
+                    await recordMem('before_comparison_open');
                     await comparison.goto();
                     await comparison.expectLoaded();
+                    await recordMem('after_comparison_open');
                     await page.evaluate(() => {
                         const store = (window as unknown as { __rheolab_comparison_store?: { setState: (s: { experiments: unknown[] }) => void } }).__rheolab_comparison_store;
                         if (store) store.setState({ experiments: [] });
@@ -230,11 +410,13 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     for (let idx = 0; idx < n; idx++) {
                         await comparison.addExperimentByName(names[idx]);
                         await comparison.expectChipCount(idx + 1);
+                        await recordMem(`after_add_${idx + 1}`);
                     }
                     await comparison.expectChartVisible();
                     await comparison.expectCanvasPainted();
                     const legendCount = await comparison.getLegendSeriesCount();
                     expect(legendCount).toBeGreaterThanOrEqual(n);
+                    await recordMem('after_chart_visible');
                 });
                 console.log(`  [L-CMP-${n}] cmp_ready=${cmpReadyMs} ms`);
 
@@ -252,6 +434,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 const minExportBytes = reportPayloadMode === 'mocked' ? 4 : 4096;
 
                 try {
+                    await recordMem('before_pdf');
                     const { result: pdfDownload, ms } = await timeStep('pdf', () => {
                         return cmpReports.downloadPdf(60_000);
                     });
@@ -259,6 +442,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     pdfMs = ms;
                     pdfBytes = pdfInfo.size;
                     console.log(`  [L-CMP-PDF-${n}] pdf=${pdfMs} ms bytes=${pdfBytes}`);
+                    await recordMem('after_pdf');
                 } catch (err) {
                     skipped = reportPayloadMode === 'mocked' ? 'mock-inactive' : 'error';
                     skipReason = `PDF download failed: ${err instanceof Error ? err.message : String(err)}`;
@@ -266,6 +450,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 }
 
                 try {
+                    await recordMem('before_xlsx');
                     const { result: xlsxDownload, ms } = await timeStep('xlsx', () => {
                         return cmpReports.downloadExcel(60_000);
                     });
@@ -273,11 +458,20 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     xlsxMs = ms;
                     xlsxBytes = xlsxInfo.size;
                     console.log(`  [L-CMP-XLSX-${n}] xlsx=${xlsxMs} ms bytes=${xlsxBytes}`);
+                    await recordMem('after_xlsx');
                 } catch (err) {
                     skipped = skipped ?? (reportPayloadMode === 'mocked' ? 'mock-inactive' : 'error');
                     skipReason = (skipReason ? `${skipReason}; ` : '') + `XLSX download failed: ${err instanceof Error ? err.message : String(err)}`;
                     console.log(`  [skip xlsx] ${skipReason}`);
                 }
+
+                await page.evaluate(() => {
+                    const store = (window as unknown as { __rheolab_comparison_store?: { setState: (s: { experiments: unknown[] }) => void } }).__rheolab_comparison_store;
+                    if (store) store.setState({ experiments: [] });
+                    localStorage.removeItem('comparison-storage');
+                });
+                await dashboard.goto();
+                await recordMem('after_route_leave');
 
                 measurements.push({
                     n,
@@ -287,6 +481,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     pdf_bytes: pdfBytes,
                     xlsx_ms: xlsxMs,
                     xlsx_bytes: xlsxBytes,
+                    ...(MEMORY_STEPS_ENABLED ? { memory_steps: memorySteps } : {}),
                     ...(skipped ? { skipped, skipReason } : {}),
                 });
             } catch (err) {
@@ -300,6 +495,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     pdf_bytes: null,
                     xlsx_ms: null,
                     xlsx_bytes: null,
+                    ...(MEMORY_STEPS_ENABLED ? { memory_steps: memorySteps } : {}),
                     skipped: 'error',
                     skipReason: msg,
                 });
@@ -315,6 +511,8 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
             generatedAt: new Date().toISOString(),
             platform: process.platform,
             license_cap: comparisonCap,
+            memory_steps_enabled: MEMORY_STEPS_ENABLED,
+            native_memory_file: process.env.TAURI_E2E_NATIVE_MEM_FILE ?? null,
             measurements,
         };
 
