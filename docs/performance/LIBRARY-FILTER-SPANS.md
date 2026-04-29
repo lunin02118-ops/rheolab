@@ -59,6 +59,18 @@ Measured actions:
 - `filter_date_range`
 - `filter_reset`
 
+For before/after tracking, run:
+
+```bash
+npm run perf:db:regression
+npm run perf:db:regression -- --write-md
+```
+
+The regression tracker auto-discovers baseline sidecars without
+`libraryFilterSpans` and current sidecars with `libraryFilterSpans`, then writes
+`docs/performance/LIBRARY-FILTER-REGRESSION-TRACKING.md` when `--write-md` is
+used.
+
 ## Field Guide
 
 - `total_ms`: browser-side action start to settled list.

@@ -41,6 +41,7 @@
     "perf:db:small": "npx cross-env RHEOLAB_DB_SCALE=small npx playwright test --config playwright.db-scale.config.ts",
     "perf:db:large": "npx cross-env RHEOLAB_DB_SCALE=large npx playwright test --config playwright.db-scale.config.ts",
     "perf:db:compare": "node scripts/test/compare-db-scale.js",
+    "perf:db:regression": "node scripts/test/compare-db-scale-regression.mjs",
     "perf:library:budgets": "node scripts/test/extract-library-budgets.mjs",
     "perf:website:scroll": "node scripts/test/profile-website-scroll-perf.mjs",
     "perf:microbench:pdf:build": "cargo build --release --example bench_comparison_pdf --manifest-path src-tauri/Cargo.toml",
