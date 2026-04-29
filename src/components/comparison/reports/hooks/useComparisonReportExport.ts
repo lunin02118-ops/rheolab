@@ -21,10 +21,10 @@ import type {
 } from '@/lib/analysis/report-types/types';
 
 import {
-    generateComparisonExcelReportByIdsBlob,
-    generateComparisonPdfReportByIdsBlob,
+    generateComparisonExcelReportByIdsBytes,
+    generateComparisonPdfReportByIdsBytes,
 } from '@/lib/reports/client';
-import { saveBlob, saveBlobsToDir, type SaveBlobItem } from '@/lib/reports/report-save';
+import { saveBytes, saveBytesToDir, type SaveBytesItem } from '@/lib/reports/report-save';
 import { EXPERIMENT_COLORS } from '@/components/comparison/comparison-chart-constants';
 import { logger } from '@/lib/logger';
 
@@ -140,6 +140,9 @@ const DEFAULT_SECTION_TOGGLES: ComparisonSectionToggles = {
     showRheology: true,
 };
 
+const PDF_MIME = 'application/pdf';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
 // ── Sprint 0 / S0-6: comparison-flow perf instrumentation ──────────────────
 //
 // Lightweight wrapper around an async stage of the comparison-export
@@ -244,14 +247,14 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         options.reportViscosityRates,
     ]);
 
-    const generatePdfBlob = useCallback(async () => {
+    const generatePdfBytes = useCallback(async () => {
         const request = buildByIdsRequest();
-        return await withPerf('pdf:byIdsRoundtrip', () => generateComparisonPdfReportByIdsBlob(request));
+        return await withPerf('pdf:byIdsRoundtrip', () => generateComparisonPdfReportByIdsBytes(request));
     }, [buildByIdsRequest]);
 
-    const generateExcelBlob = useCallback(async () => {
+    const generateExcelBytes = useCallback(async () => {
         const request = buildByIdsRequest();
-        return await withPerf('excel:byIdsRoundtrip', () => generateComparisonExcelReportByIdsBlob(request));
+        return await withPerf('excel:byIdsRoundtrip', () => generateComparisonExcelReportByIdsBytes(request));
     }, [buildByIdsRequest]);
 
     const baseFilename = useMemo(() => {
@@ -268,11 +271,13 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         }
         setIsExporting(true);
         setExportError(null);
+        let bytes: Uint8Array | null = null;
         try {
-            const blob = await generatePdfBlob();
-            await withPerf('pdf:saveBlob', () => saveBlob({
-                blob,
+            bytes = await generatePdfBytes();
+            await withPerf('pdf:saveBytes', () => saveBytes({
+                bytes: bytes as Uint8Array,
                 filename: `${baseFilename}.pdf`,
+                mimeType: PDF_MIME,
                 filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
             }));
         } catch (err) {
@@ -280,9 +285,10 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             const msg = err instanceof Error ? err.message : String(err);
             setExportError(`Ошибка генерации PDF: ${msg}`);
         } finally {
+            bytes = null;
             setIsExporting(false);
         }
-    }, [options.experiments.length, generatePdfBlob, baseFilename]);
+    }, [options.experiments.length, generatePdfBytes, baseFilename]);
 
     const handleDownloadExcel = useCallback(async () => {
         if (options.experiments.length === 0) {
@@ -291,11 +297,13 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         }
         setIsExcelExporting(true);
         setExportError(null);
+        let bytes: Uint8Array | null = null;
         try {
-            const blob = await generateExcelBlob();
-            await withPerf('excel:saveBlob', () => saveBlob({
-                blob,
+            bytes = await generateExcelBytes();
+            await withPerf('excel:saveBytes', () => saveBytes({
+                bytes: bytes as Uint8Array,
                 filename: `${baseFilename}.xlsx`,
+                mimeType: XLSX_MIME,
                 filters: [{ name: 'Excel Spreadsheet', extensions: ['xlsx'] }],
             }));
         } catch (err) {
@@ -303,9 +311,10 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             const msg = err instanceof Error ? err.message : String(err);
             setExportError(`Ошибка генерации Excel: ${msg}`);
         } finally {
+            bytes = null;
             setIsExcelExporting(false);
         }
-    }, [options.experiments.length, generateExcelBlob, baseFilename]);
+    }, [options.experiments.length, generateExcelBytes, baseFilename]);
 
     /**
      * Emit both PDF and XLSX side-by-side via a single folder picker.
@@ -324,23 +333,28 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setIsExporting(true);
         setIsExcelExporting(true);
         setExportError(null);
+        const items: SaveBytesItem[] = [];
+        let pdfBytes: Uint8Array | null = null;
+        let excelBytes: Uint8Array | null = null;
         try {
-            const items: SaveBlobItem[] = [];
-            const pdfBlob = await generatePdfBlob();
-            items.push({ blob: pdfBlob, filename: `${baseFilename}.pdf` });
-            const excelBlob = await generateExcelBlob();
-            items.push({ blob: excelBlob, filename: `${baseFilename}.xlsx` });
+            pdfBytes = await generatePdfBytes();
+            items.push({ bytes: pdfBytes, filename: `${baseFilename}.pdf`, mimeType: PDF_MIME });
+            excelBytes = await generateExcelBytes();
+            items.push({ bytes: excelBytes, filename: `${baseFilename}.xlsx`, mimeType: XLSX_MIME });
 
-            await withPerf('all:saveBlobsToDir', () => saveBlobsToDir(items));
+            await withPerf('all:saveBytesToDir', () => saveBytesToDir([...items]));
         } catch (err) {
             logger.error('[ComparisonReport] Combined export failed:', err);
             const msg = err instanceof Error ? err.message : String(err);
             setExportError(`Ошибка генерации отчёта: ${msg}`);
         } finally {
+            items.length = 0;
+            pdfBytes = null;
+            excelBytes = null;
             setIsExporting(false);
             setIsExcelExporting(false);
         }
-    }, [options.experiments.length, handleDownloadPdf, handleDownloadExcel, generatePdfBlob, generateExcelBlob, baseFilename]);
+    }, [options.experiments.length, handleDownloadPdf, handleDownloadExcel, generatePdfBytes, generateExcelBytes, baseFilename]);
 
     const clearError = useCallback(() => setExportError(null), []);
 
