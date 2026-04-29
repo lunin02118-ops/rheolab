@@ -17,6 +17,7 @@ import type {
   DetectionSettingsInput,
   AnalysisResult,
 } from '@/lib/analysis/types';
+import type { SeriesMetaResponse, SeriesWindow } from '@/lib/series/binary-series';
 
 // в”Ђв”Ђв”Ђ Auto-generated Rust в†’ TypeScript bindings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 export * from './generated';
@@ -329,6 +330,24 @@ export interface PlatformBridge {
   experimentProjection?: {
     status: () => Promise<ExperimentProjectionStatus>;
     rebuild: () => Promise<ExperimentProjectionRebuildResponse>;
+  };
+
+  /** Binary by-id chart series IPC */
+  series?: {
+    meta: (experimentId: string) => Promise<SeriesMetaResponse>;
+    overview: (
+      experimentId: string,
+      metrics: string[],
+      maxPoints: number,
+    ) => Promise<SeriesWindow>;
+    window: (
+      experimentId: string,
+      xMinSec: number,
+      xMaxSec: number,
+      metrics: string[],
+      maxPoints: number,
+      downsampleMode?: string,
+    ) => Promise<SeriesWindow>;
   };
 
   /** Local demo fixtures operations */

@@ -24,6 +24,7 @@ import {
   jobs as tauriJobs,
   analysisCache as tauriAnalysisCache,
   experimentProjection as tauriExperimentProjection,
+  series as tauriSeries,
   operators as tauriOperators,
   laboratories as tauriLaboratories,
 } from '../index';
@@ -132,6 +133,14 @@ function createTauriBridge(): PlatformBridge {
     experimentProjection: {
       status: () => tauriExperimentProjection.status(),
       rebuild: () => tauriExperimentProjection.rebuild(),
+    },
+
+    series: {
+      meta: (experimentId) => tauriSeries.meta(experimentId),
+      overview: (experimentId, metrics, maxPoints) =>
+        tauriSeries.overview(experimentId, metrics, maxPoints),
+      window: (experimentId, xMinSec, xMaxSec, metrics, maxPoints, downsampleMode) =>
+        tauriSeries.window(experimentId, xMinSec, xMaxSec, metrics, maxPoints, downsampleMode),
     },
 
     logger: {

@@ -10,6 +10,7 @@
  *   ./reports      — reports.*, fixtures.*, parsing.*
  *   ./analysis     — analysis.*
  *   ./jobs         — jobs.*, analysisCache.*, experimentProjection.*
+ *   ./series       — binary chart series IPC
  *   ./sync         — sync.*, conflicts.*, syncEngine.*
  *
  * This file exists solely for backward-compatible imports from '@/lib/tauri'.
@@ -33,6 +34,7 @@ export { laboratories } from './laboratories';
 export { reports, fixtures, parsing } from './reports';
 export { analysis } from './analysis';
 export { jobs, analysisCache, experimentProjection } from './jobs';
+export { series } from './series';
 export { sync, conflicts, syncEngine } from './sync';
 
 // Backward-compatible type re-export
@@ -58,6 +60,7 @@ import { reagents, waterSources } from './reagents';
 import { reports, fixtures, parsing } from './reports';
 import { analysis } from './analysis';
 import { jobs, analysisCache, experimentProjection } from './jobs';
+import { series } from './series';
 import { sync, conflicts, syncEngine } from './sync';
 
 const tauriApi = {
@@ -77,6 +80,7 @@ const tauriApi = {
   jobs,
   analysisCache,
   experimentProjection,
+  series,
   importBatches,
   experimentPayloads,
   parserArtifacts,

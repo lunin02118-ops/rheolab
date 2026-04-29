@@ -20,6 +20,7 @@ import { InstrumentSelector } from '@/components/dashboard/instrument-selector';
 import { GeometrySelector } from '@/components/dashboard/geometry-selector';
 import type { ParseResult } from '@/lib/store/experiment-data-store';
 import { rawPointsFromParseResult } from '@/lib/utils/columnar';
+import { useExperimentSeriesOverview } from '@/hooks/useExperimentSeriesOverview';
 import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
 import { useLicense } from '@/hooks/useLicense';
 import type { RheoStep } from '@/lib/analysis/types';
@@ -94,17 +95,24 @@ function DashboardContentInner({
     const canUseCalibration = isInitialized && (result?.license?.features?.calibrationAnalysis ?? false) && hasCalibrationData;
 
     // Keep source points as-is to avoid an extra full-array remap before chart processing.
+    const binarySeries = useExperimentSeriesOverview(
+        parseResult?.metadata?.experimentId,
+        activeTab === 'chart',
+    );
     const chartData = useMemo(() => {
         if (!parseResult) return [];
+        if (activeTab === 'chart' && (binarySeries.columnarData || parseResult.columnarData)) {
+            return [];
+        }
         return rawPointsFromParseResult(parseResult);
-    }, [parseResult]);
+    }, [activeTab, binarySeries.columnarData, parseResult]);
 
     if (!parseResult) {
         return null;
     }
 
     const currentGeometry = geometryOverride?.geometry || parseResult.metadata?.geometry || 'Unknown';
-    const chartColumnarData = parseResult.columnarData ?? null;
+    const chartColumnarData = binarySeries.columnarData ?? parseResult.columnarData ?? null;
     const currentGeometrySource = geometryOverride ? 'manual' : parseResult.metadata?.geometrySource || 'unknown';
 
     return (

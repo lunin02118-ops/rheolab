@@ -36,6 +36,8 @@ export interface ParseResult {
     columnarData?: ColumnarData;
     metadata: {
         filename: string;
+        /** Present when the result was loaded from the local experiment DB. */
+        experimentId?: string;
         sheetName?: string;
         instrumentType?: string;
         geometry?: string;
