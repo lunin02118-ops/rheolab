@@ -1823,10 +1823,10 @@ mod tests {
         build_analysis_cache_key_material, build_comparison_report_input_by_ids,
         count_experiments_in_value, enforce_comparison_excel_features,
         enforce_comparison_pdf_features, enforce_max_comparison_experiments,
-        generate_comparison_excel_by_ids_bytes, validate_comparison_by_ids_request,
-        validate_comparison_experiment_ids_exist, ComparisonByIdsChartConfig,
-        ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings, ComparisonByIdsMetrics,
-        ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
+        generate_comparison_excel_by_ids_bytes, generate_comparison_pdf_by_ids_bytes,
+        validate_comparison_by_ids_request, validate_comparison_experiment_ids_exist,
+        ComparisonByIdsChartConfig, ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings,
+        ComparisonByIdsMetrics, ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
         ComparisonByIdsTouchPointConfig, ComparisonReportByIdsRequest,
         ComparisonReportByIdsSettings, ReportFormat,
     };
@@ -2044,6 +2044,39 @@ mod tests {
             bytes.starts_with(b"PK"),
             "XLSX must start with ZIP signature"
         );
+
+        let as_str = String::from_utf8_lossy(&bytes);
+        for n in 1..=5 {
+            let needle = format!("xl/worksheets/sheet{}.xml", n);
+            assert!(
+                as_str.contains(&needle),
+                "expected workbook to contain {}",
+                needle
+            );
+        }
+    }
+
+    #[test]
+    fn comparison_pdf_by_ids_generates_pdf_from_db_experiments() {
+        let conn = rusqlite::Connection::open_in_memory().expect("in-memory db");
+        conn.pragma_update(None, "foreign_keys", true)
+            .expect("foreign keys");
+        run_migrations(&conn).expect("migrations");
+
+        let exp_a = stored_experiment_for_by_ids("exp_aaaaaaaaaaaaaaaaaaaa", "Alpha");
+        let exp_b = stored_experiment_for_by_ids("exp_bbbbbbbbbbbbbbbbbbbb", "Beta");
+        persist_experiment(&conn, &exp_a).expect("persist alpha");
+        persist_experiment(&conn, &exp_b).expect("persist beta");
+
+        let bytes = generate_comparison_pdf_by_ids_bytes(&conn, &valid_by_ids_request())
+            .expect("PDF by-ids generation should succeed");
+
+        assert!(!bytes.is_empty());
+        assert!(
+            bytes.starts_with(b"%PDF"),
+            "PDF must start with %PDF header"
+        );
+        assert!(bytes.len() > 20_000, "PDF too small: {} bytes", bytes.len());
     }
 
     #[test]
