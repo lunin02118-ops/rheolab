@@ -428,7 +428,7 @@ Approximate timing on the v3 critical sequence: **~7–8 active days** (up from 
 Progress as of this commit:
 
 - ✅ Commit #1 (S2-L1): `55912f6` shipped 2026-04-29.
-- 🔄 Commit #2 (S2-L2): in progress at the time of v3 amendment.
+- ✅ Commit #2 (S2-L2): shipped 2026-04-29 (`docs/db/V1_DDL.md`).
 - ⬜ Commits #3–#14: pending.
 
 ---
@@ -477,5 +477,5 @@ Sprint 2 closes only when **all** are true:
 - `docs/performance/MICROBENCH.md` — the bench harness Sprint 2 will extend with a `reports` target.
 - `docs/adr/ADR-0010-comparison-report-generation.md` — the architecture this sprint revises.
 - `docs/adr/ADR-0013-no-large-ipc-rule.md` — **created in S2-L1** (commit #1, 2026-04-29).
-- `docs/db/V1_DDL.md` — to be created in S2-L2.
+- `docs/db/V1_DDL.md` — **created in S2-L2** (commit #2, 2026-04-29).
 - `scripts/audit/check-large-ipc-contracts.mjs` — the lint whose exception this sprint retires.

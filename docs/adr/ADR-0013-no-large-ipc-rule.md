@@ -141,4 +141,5 @@ If a new exception is required during Sprint 2 (or any future sprint), this ADR 
 
 - ADR-0010 (Comparison report architecture) — the architecture this rule constrains; will be revised by Sprint 2 with a "post-Sprint-2 by-ids path" section that cites this ADR.
 - `docs/ipc-surface.md` — the catalogue of all current Tauri IPC commands, kept in sync with the lint scope.
+- `docs/db/V1_DDL.md` — schema contract for the 5 tables the by-ids handler reads from (Sprint 2 / S2-L2).
 - `docs/performance/FRONTEND-IPC-DEEP-AUDIT-LATEST.md` — original audit that motivated the rule.
