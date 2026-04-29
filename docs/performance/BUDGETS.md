@@ -189,7 +189,7 @@ long tasks is worse than 5 paths producing 6 each.
 | Job IPC and events | **implemented** — `jobs_list`, `jobs_get`, `jobs_cancel`, plus `job://created`, `job://progress`, `job://finished` |
 | AnalysisArtifact maintenance | **implemented** — `analysis_cache_stats` and scheduler-backed `analysis_cache_prune` |
 | Metrics action | **partial** — `queuedMs`, `wallMs`, cache hit/miss counts, artifact bytes, and output bytes are captured; CPU/RSS fields remain nullable pending loader-safe process sampler |
-| Merge gate | **green** — `cargo check`, `cargo test --lib` (426 passed / 1 ignored), `npm test`, `version:validate`, `audit:large-ipc`, and `git diff --check` pass |
+| Merge gate | **green** — `cargo check`, `cargo test --lib` (426 passed / 1 ignored), `npm ci`, `npm test`, `version:validate`, `audit:large-ipc`, and `git diff --check` pass |
 
 ## Binary size note (corrected)
 

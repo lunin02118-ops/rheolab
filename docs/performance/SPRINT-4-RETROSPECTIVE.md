@@ -8,7 +8,7 @@
 
 Sprint 4 now has the runtime architecture that Sprint 3 needed as its next layer: a scheduler in `AppState`, job status IPC, progress events, comparison PDF/XLSX by-IDs running through the scheduler, and AnalysisArtifact prune maintenance through the same runtime path.
 
-The local Rust test-binary loader issue found during implementation is resolved. The final branch gate passes with `cargo check`, full `cargo test --lib`, Vitest, version validation, large-IPC audit, and `git diff --check`.
+The local Rust test-binary loader issue found during implementation is resolved. The final branch gate passes with `cargo check`, full `cargo test --lib`, `npm ci`, Vitest, version validation, large-IPC audit, and `git diff --check`.
 
 ## What Shipped
 

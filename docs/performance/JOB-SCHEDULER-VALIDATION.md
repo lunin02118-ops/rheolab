@@ -40,6 +40,7 @@ The test-binary loader issue was resolved for the scheduler slice by keeping Tau
 cargo test --manifest-path src-tauri/Cargo.toml --lib --no-run
 cargo check --manifest-path src-tauri/Cargo.toml
 cargo test --manifest-path src-tauri/Cargo.toml --lib
+npm ci
 npm test
 npm run version:validate
 npm run audit:large-ipc
