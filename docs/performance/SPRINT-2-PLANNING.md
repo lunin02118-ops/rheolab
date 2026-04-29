@@ -430,7 +430,8 @@ Progress as of this commit:
 - ✅ Commit #1 (S2-L1): `55912f6` shipped 2026-04-29.
 - ✅ Commit #2 (S2-L2): shipped 2026-04-29 (`docs/db/V1_DDL.md`).
 - ✅ Commit #3 (S2-L5): shipped 2026-04-29 (orchestrator `--fixture-db` / `--all-experiments` + `npm run perf:microbench:dbsweep[:compare]`).
-- ⬜ Commits #4–#14: pending.
+- ✅ Commit #4 (S2-L4): shipped 2026-04-29 (`tests/e2e/comparison-smoke-perf.tauri.spec.ts` + `npm run perf:comparison:tauri`; N=3 measured today, N=5/N=10 require license-override helper as follow-up).
+- ⬜ Commits #5–#14: pending.
 
 ---
 
