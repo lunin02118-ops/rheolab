@@ -43,6 +43,8 @@
     "perf:microbench:analysis:build": "cargo build --release --example bench_analysis_pipeline --manifest-path src-tauri/Cargo.toml",
     "perf:microbench:analysis": "node scripts/test/run-rust-microbench.mjs --target analysis",
     "perf:microbench:analysis:compare": "node scripts/test/run-rust-microbench.mjs --target analysis --compare",
+    "perf:microbench:dbsweep": "node scripts/test/run-rust-microbench.mjs --target analysis --fixture-db outputs/seed/rheolab-fixture-seed-small.db --all-experiments --iterations 100 --quiet",
+    "perf:microbench:dbsweep:compare": "node scripts/test/db-sweep-compare.mjs",
     "audit:enterprise": "node scripts/audit/run-enterprise-deep-audit.js",
     "audit:bundle": "node scripts/test/run-bundle-audit.js",
     "audit:enterprise:quick": "node scripts/audit/run-enterprise-deep-audit.js --quick",

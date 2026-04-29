@@ -429,7 +429,8 @@ Progress as of this commit:
 
 - ✅ Commit #1 (S2-L1): `55912f6` shipped 2026-04-29.
 - ✅ Commit #2 (S2-L2): shipped 2026-04-29 (`docs/db/V1_DDL.md`).
-- ⬜ Commits #3–#14: pending.
+- ✅ Commit #3 (S2-L5): shipped 2026-04-29 (orchestrator `--fixture-db` / `--all-experiments` + `npm run perf:microbench:dbsweep[:compare]`).
+- ⬜ Commits #4–#14: pending.
 
 ---
 

@@ -1,38 +1,51 @@
 #!/usr/bin/env node
 /**
- * Sprint 1 / S1-1 + S1-2 — orchestrator for native Rust microbenches.
+ * Sprint 1 / S1-1 + S1-2 + Sprint 2 / S2-L5 — orchestrator for native Rust microbenches.
  *
  * Runs one of the cargo examples built into
- * `src-tauri/target/release/examples/` across a configurable sweep of
- * fixture sizes and writes the per-fixture JSON sidecars + an
- * aggregated index file to `outputs/perf/microbench/`.
+ * `src-tauri/target/release/examples/` and writes JSON sidecars to
+ * `outputs/perf/microbench/`.
  *
  * Supported targets (`--target`):
  *   - `pdf`       (default) — `bench_comparison_pdf`, S1-1
  *   - `analysis`            — `bench_analysis_pipeline`, S1-2
  *
- * Both targets share the same JSON sidecar shape (n_experiments,
- * duration_hours, total_points, iterations, wall_ms{p50,p95,...},
- * samples) and only differ in the `schema` slug — so compare mode is
- * target-agnostic and just refuses to mix sweeps from different
- * targets.
- *
- * Two modes:
- *   1. **Sweep mode** (default) — runs every fixture in `--fixtures`
- *      with `--iterations` reps each, dumps one JSON per fixture, and
- *      writes a `microbench-sweep-<target>-<label>-<ts>.json` index.
- *   2. **Compare mode** — given two existing sweep indexes via
+ * Three modes:
+ *   1. **Sweep mode** (default) — runs every synthetic fixture in
+ *      `--fixtures` with `--iterations` reps each, dumps one JSON per
+ *      fixture, and writes a `microbench-sweep-<target>-<label>-<ts>.json`
+ *      index. Synthetic data only.
+ *   2. **DB-sweep mode** (S2-L5, audit S1-AUD-002) — with `--fixture-db <path>`
+ *      [+ `--all-experiments` | `--experiment-index N`], invokes the bench
+ *      against real production-shaped fixtures from a SQLite seed DB. Only
+ *      `analysis` target supports this currently (PDF gains support via
+ *      Sprint 2 / S2-1.5). Writes a single
+ *      `dbsweep-<target>-<label>-<ts>.json` sidecar that
+ *      `db-sweep-compare.mjs` already understands.
+ *   3. **Compare mode** — given two existing sweep indexes via
  *      `--compare WITH NO`, computes per-fixture deltas and renders a
- *      Markdown report (stdout, plus optionally `--output PATH`).
+ *      Markdown report (stdout, plus optionally `--output PATH`). For
+ *      DB-sweep JSONs use the dedicated `scripts/test/db-sweep-compare.mjs`
+ *      tool which has Welch t-test + bootstrap CI + Bonferroni.
  *
  * Usage:
- *   node scripts/test/run-rust-microbench.mjs --target pdf      # PDF sweep (default)
- *   node scripts/test/run-rust-microbench.mjs --target analysis # analysis sweep
+ *   # synthetic sweep (default mode)
  *   node scripts/test/run-rust-microbench.mjs --target pdf --label WITH-P10
+ *
+ *   # DB-sweep mode (S2-L5)
+ *   node scripts/test/run-rust-microbench.mjs --target analysis \
+ *     --fixture-db outputs/seed/rheolab-fixture-seed-small.db \
+ *     --all-experiments --iterations 100 --label WITH-P10
+ *
+ *   # synthetic compare
  *   node scripts/test/run-rust-microbench.mjs --compare \
  *     outputs/perf/microbench/microbench-sweep-pdf-WITH-P10-1234.json \
  *     outputs/perf/microbench/microbench-sweep-pdf-NO-P10-1235.json \
  *     --output docs/performance/P10-VALIDATION-REPORT.md
+ *
+ *   # DB-sweep compare — use the dedicated tool with statistical rigour:
+ *   node scripts/test/db-sweep-compare.mjs <NO-P10.json> <WITH-P10.json> \
+ *     --bootstrap-resamples 2000 --out report.md
  *
  * Why a JS orchestrator and not a shell script: keeps Windows / macOS
  * symmetry, makes JSON aggregation typed and robust, and lets us
@@ -64,6 +77,7 @@ const TARGETS = {
             { n: 10, durationHours: 4 },
         ],
         humanName: 'comparison PDF',
+        supportsFixtureDb: false, // gains support via Sprint 2 / S2-1.5
     },
     analysis: {
         binary: 'bench_analysis_pipeline',
@@ -75,6 +89,7 @@ const TARGETS = {
             { n: 5, durationHours: 4 },
         ],
         humanName: 'analysis pipeline',
+        supportsFixtureDb: true, // S1-3 added --load-fixture, S1-5 added --all-experiments
     },
 };
 
@@ -103,6 +118,11 @@ function parseArgs(argv) {
         label: null,
         outputReport: null,
         compare: null,
+        // S2-L5 / audit S1-AUD-002 — DB-sweep mode
+        fixtureDb: null,            // path to a SQLite seed DB
+        allExperiments: false,      // sweep all rows in the fixture DB (analysis target only currently)
+        experimentIndex: null,      // pick a single 0-based experiment from the fixture DB
+        quiet: false,               // pass-through to bench (suppresses per-iteration stdout)
     };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
@@ -148,6 +168,22 @@ function parseArgs(argv) {
             case '--compare':
                 out.compare = { with: resolve(next()), no: resolve(next()) };
                 break;
+            case '--fixture-db':
+                out.fixtureDb = resolve(next());
+                break;
+            case '--all-experiments':
+                out.allExperiments = true;
+                break;
+            case '--experiment-index':
+                out.experimentIndex = parseInt(next(), 10);
+                if (!Number.isInteger(out.experimentIndex) || out.experimentIndex < 0) {
+                    console.error('--experiment-index requires a non-negative integer');
+                    process.exit(2);
+                }
+                break;
+            case '--quiet':
+                out.quiet = true;
+                break;
             case '--help':
             case '-h':
                 printHelp();
@@ -162,6 +198,33 @@ function parseArgs(argv) {
     if (out.fixtures === null) {
         out.fixtures = TARGETS[out.target].defaultFixtures;
     }
+
+    // S2-L5: DB-sweep mode validation.
+    if (out.fixtureDb !== null) {
+        if (!TARGETS[out.target].supportsFixtureDb) {
+            console.error(
+                `--fixture-db is only supported for targets with supportsFixtureDb=true; ` +
+                `target '${out.target}' does not yet (PDF target gains support via Sprint 2 / S2-1.5).`,
+            );
+            process.exit(2);
+        }
+        if (out.allExperiments && out.experimentIndex !== null) {
+            console.error('--all-experiments and --experiment-index are mutually exclusive');
+            process.exit(2);
+        }
+        if (!out.allExperiments && out.experimentIndex === null) {
+            console.error('--fixture-db requires either --all-experiments or --experiment-index <N>');
+            process.exit(2);
+        }
+        if (out.compare) {
+            console.error('--fixture-db cannot be combined with --compare; use scripts/test/db-sweep-compare.mjs for DB-sweep diffs');
+            process.exit(2);
+        }
+    } else if (out.allExperiments || out.experimentIndex !== null) {
+        console.error('--all-experiments / --experiment-index require --fixture-db <path>');
+        process.exit(2);
+    }
+
     return out;
 }
 
@@ -173,13 +236,21 @@ Targets:
                         pdf      → bench_comparison_pdf       (S1-1)
                         analysis → bench_analysis_pipeline    (S1-2)
 
-Sweep mode (default):
+Sweep mode (default, synthetic data):
   --fixtures LIST       Comma-separated fixtures, e.g. "3,5,10" or "3x4,5x4,10x8"
                         (per-target defaults — see TARGETS table)
   --iterations N        Iterations per fixture (default: 5)
   --label TEXT          Tag written into each JSON sidecar (e.g. "WITH-P10")
 
-Compare mode:
+DB-sweep mode (S2-L5; analysis target only currently):
+  --fixture-db PATH     Path to a SQLite seed DB (e.g. outputs/seed/rheolab-fixture-seed-small.db)
+  --all-experiments     Sweep every experiment in the fixture DB; mutually exclusive with --experiment-index
+  --experiment-index N  Pick a single 0-based experiment from the fixture DB
+  --iterations N        Iterations per experiment (default: 5; recommend 100 for stable corpus stats)
+  --label TEXT          Tag for the JSON sidecar
+  --quiet               Suppress per-iteration stdout from the bench (recommended for sweeps)
+
+Compare mode (synthetic sweeps; for DB-sweep diffs use db-sweep-compare.mjs):
   --compare WITH NO     Diff two sweep index files; print a Markdown delta report.
                         Both indexes must come from the same target — cross-target
                         comparison is rejected (different fixtures, different schema).
@@ -272,6 +343,82 @@ function runSweep(opts) {
     console.log('');
     console.log(`Index file: \`${indexPath}\``);
     return indexPath;
+}
+
+// ── DB-sweep mode (S2-L5 / audit S1-AUD-002) ────────────────────────────────
+
+/**
+ * Runs the bench binary in fixture-mode (--load-fixture + either
+ * --all-experiments or --experiment-index) and writes a single JSON
+ * sidecar to `outputs/perf/microbench/dbsweep-<target>-<labelSlug>-<ts>.json`.
+ *
+ * The bench binary itself produces the per-experiment-or-corpus JSON
+ * shape that `db-sweep-compare.mjs` already understands.  This wrapper
+ * only chooses the output path, validates the binary is built, and
+ * surfaces the compact stderr summary the bench prints.
+ */
+function runDbSweep(opts) {
+    mkdirSync(OUT_DIR, { recursive: true });
+    const target = opts.target;
+    const targetDef = TARGETS[target];
+    if (!targetDef.supportsFixtureDb) {
+        // Defensive — parseArgs already rejects this combination.
+        throw new Error(`target '${target}' does not support fixture-db mode`);
+    }
+
+    const exe = binaryPath(target);
+    if (!existsSync(exe)) {
+        throw new Error(
+            `Example binary not found: ${exe}\n` +
+            `Build it with: cargo build --release --example ${targetDef.binary} --manifest-path src-tauri/Cargo.toml`,
+        );
+    }
+    if (!existsSync(opts.fixtureDb)) {
+        throw new Error(`fixture DB not found: ${opts.fixtureDb}`);
+    }
+
+    const ts = Date.now();
+    const labelSlug = opts.label ? opts.label.replace(/[^a-zA-Z0-9._-]/g, '_') : 'unlabeled';
+    const sidecar = join(OUT_DIR, `dbsweep-${target}-${labelSlug}-${ts}.json`);
+
+    const args = [
+        '--load-fixture', opts.fixtureDb,
+        '--iterations', String(opts.iterations),
+        '--json', sidecar,
+    ];
+    if (opts.allExperiments) {
+        args.push('--all-experiments');
+    } else if (opts.experimentIndex !== null) {
+        args.push('--experiment-index', String(opts.experimentIndex));
+    }
+    if (opts.label) {
+        args.push('--label', opts.label);
+    }
+    if (opts.quiet) {
+        args.push('--quiet');
+    }
+
+    const modeDesc = opts.allExperiments
+        ? 'all-experiments'
+        : `experiment-index=${opts.experimentIndex}`;
+    process.stderr.write(
+        `[microbench:${target}:dbsweep] db=${opts.fixtureDb} mode=${modeDesc} iters=${opts.iterations}` +
+        `${opts.label ? ` label=${opts.label}` : ''}\n`,
+    );
+
+    const t0 = Date.now();
+    const proc = spawnSync(exe, args, { stdio: ['ignore', 'inherit', 'inherit'] });
+    const wallSec = ((Date.now() - t0) / 1000).toFixed(1);
+    if (proc.status !== 0) {
+        throw new Error(`${targetDef.binary} exited with code ${proc.status}`);
+    }
+    process.stderr.write(`[microbench:${target}:dbsweep] done in ${wallSec}s — wrote ${sidecar}\n`);
+    process.stderr.write(
+        `[microbench:${target}:dbsweep] compare two such sidecars with: ` +
+        `node scripts/test/db-sweep-compare.mjs <NO.json> <WITH.json> --bootstrap-resamples 2000\n`,
+    );
+
+    return sidecar;
 }
 
 // ── Compare mode ────────────────────────────────────────────────────────────
@@ -402,6 +549,8 @@ function main() {
     const opts = parseArgs(process.argv.slice(2));
     if (opts.compare) {
         runCompare(opts);
+    } else if (opts.fixtureDb) {
+        runDbSweep(opts);
     } else {
         runSweep(opts);
     }
