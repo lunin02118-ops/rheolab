@@ -1,4 +1,4 @@
-import { memo, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
+import { memo, useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
 import { BarChart3, Table, Droplets, Save, Settings, FileText } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
@@ -22,6 +22,7 @@ import { GeometrySelector } from '@/components/dashboard/geometry-selector';
 import type { ParseResult } from '@/lib/store/experiment-data-store';
 import { rawPointsFromParseResult } from '@/lib/utils/columnar';
 import { useExperimentSeriesOverview } from '@/hooks/useExperimentSeriesOverview';
+import { isTauri } from '@/lib/tauri/core';
 import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
 import { useLicense } from '@/hooks/useLicense';
 import type { RheoStep } from '@/lib/analysis/types';
@@ -80,6 +81,19 @@ function DashboardContentInner({
 }: DashboardContentProps) {
     const [activeTab, setActiveTab] = useState<'chart' | 'table' | 'recipe' | 'water' | 'calibration' | 'report'>('chart');
     const [editingCycleId, setEditingCycleId] = useState<number | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (!isTauri()) return;
+            import('@/lib/tauri/reports').then(({ parsing }) => {
+                void parsing.releaseCache().catch(() => {
+                    // Best-effort memory hint after leaving the detail view.
+                });
+            }).catch(() => {
+                // Older desktop binaries may not expose the cache-release command.
+            });
+        };
+    }, []);
 
     // Ref for the tab bar — used to scroll it into view on tab switch.
     const tabsRef = useRef<HTMLDivElement>(null);
