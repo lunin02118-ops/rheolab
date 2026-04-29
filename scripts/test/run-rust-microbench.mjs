@@ -17,9 +17,8 @@
  *      index. Synthetic data only.
  *   2. **DB-sweep mode** (S2-L5, audit S1-AUD-002) — with `--fixture-db <path>`
  *      [+ `--all-experiments` | `--experiment-index N`], invokes the bench
- *      against real production-shaped fixtures from a SQLite seed DB. Only
- *      `analysis` target supports this currently (PDF gains support via
- *      Sprint 2 / S2-1.5). Writes a single
+ *      against real production-shaped fixtures from a SQLite seed DB. Both
+ *      `analysis` and `pdf` targets support this mode. Writes a single
  *      `dbsweep-<target>-<label>-<ts>.json` sidecar that
  *      `db-sweep-compare.mjs` already understands.
  *   3. **Compare mode** — given two existing sweep indexes via
@@ -77,7 +76,7 @@ const TARGETS = {
             { n: 10, durationHours: 4 },
         ],
         humanName: 'comparison PDF',
-        supportsFixtureDb: false, // gains support via Sprint 2 / S2-1.5
+        supportsFixtureDb: true,
     },
     analysis: {
         binary: 'bench_analysis_pipeline',
@@ -242,10 +241,10 @@ Sweep mode (default, synthetic data):
   --iterations N        Iterations per fixture (default: 5)
   --label TEXT          Tag written into each JSON sidecar (e.g. "WITH-P10")
 
-DB-sweep mode (S2-L5; analysis target only currently):
+DB-sweep mode (S2-L5 + S2-1.5):
   --fixture-db PATH     Path to a SQLite seed DB (e.g. outputs/seed/rheolab-fixture-seed-small.db)
   --all-experiments     Sweep every experiment in the fixture DB; mutually exclusive with --experiment-index
-  --experiment-index N  Pick a single 0-based experiment from the fixture DB
+  --experiment-index N  Pick a 0-based experiment index (analysis) or first index (pdf)
   --iterations N        Iterations per experiment (default: 5; recommend 100 for stable corpus stats)
   --label TEXT          Tag for the JSON sidecar
   --quiet               Suppress per-iteration stdout from the bench (recommended for sweeps)
@@ -386,6 +385,9 @@ function runDbSweep(opts) {
         '--iterations', String(opts.iterations),
         '--json', sidecar,
     ];
+    if (target === 'pdf' && opts.fixtures?.length > 0) {
+        args.push('--n', String(opts.fixtures[0].n));
+    }
     if (opts.allExperiments) {
         args.push('--all-experiments');
     } else if (opts.experimentIndex !== null) {

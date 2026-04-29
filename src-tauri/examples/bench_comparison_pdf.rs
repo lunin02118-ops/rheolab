@@ -62,12 +62,13 @@ use std::process;
 use std::time::Instant;
 
 use rheolab_core::report_generator::comparison::{
-    generate_comparison_pdf, ComparisonChartConfig, ComparisonExperimentEntry,
-    ComparisonMetrics, ComparisonReportInput, SectionToggles, TouchPointConfig,
+    generate_comparison_pdf, ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics,
+    ComparisonReportInput, SectionToggles, TouchPointConfig,
 };
-use rheolab_core::report_generator::{
-    DataPoint, ReportInput, ReportMetadata, ReportSettings,
-};
+use rheolab_core::report_generator::{DataPoint, ReportInput, ReportMetadata, ReportSettings};
+use rheolab_core::types::RheoPoint;
+use rheolab_enterprise::db::columnar::decode_typed;
+use rusqlite::{params, Connection};
 
 #[derive(Debug)]
 struct Args {
@@ -77,6 +78,9 @@ struct Args {
     json_output: Option<String>,
     label: Option<String>,
     quiet: bool,
+    load_fixture: Option<String>,
+    experiment_index: usize,
+    all_experiments: bool,
 }
 
 impl Args {
@@ -88,6 +92,9 @@ impl Args {
             json_output: None,
             label: None,
             quiet: false,
+            load_fixture: None,
+            experiment_index: 0,
+            all_experiments: false,
         };
         let mut iter = env::args().skip(1);
         while let Some(arg) = iter.next() {
@@ -107,6 +114,14 @@ impl Args {
                 "--label" => {
                     args.label = Some(require_str(&mut iter, "--label"));
                 }
+                "--load-fixture" => {
+                    args.load_fixture = Some(require_str(&mut iter, "--load-fixture"));
+                }
+                "--experiment-index" => {
+                    args.experiment_index =
+                        parse_required::<usize>(&mut iter, "--experiment-index");
+                }
+                "--all-experiments" => args.all_experiments = true,
                 "--quiet" => args.quiet = true,
                 "--help" | "-h" => {
                     print_help();
@@ -119,24 +134,27 @@ impl Args {
                 }
             }
         }
-        if args.n == 0 || args.iterations == 0 || args.duration_hours <= 0.0 {
+        if args.n == 0 || args.iterations == 0 {
             eprintln!("invalid arguments: n, iterations, duration-hours must be positive");
+            process::exit(2);
+        }
+        if args.load_fixture.is_none() && args.duration_hours <= 0.0 {
+            eprintln!("invalid arguments: duration-hours must be positive in synthetic mode");
+            process::exit(2);
+        }
+        if args.all_experiments && args.load_fixture.is_none() {
+            eprintln!("invalid arguments: --all-experiments requires --load-fixture");
             process::exit(2);
         }
         args
     }
 }
 
-fn parse_required<T: std::str::FromStr>(
-    iter: &mut impl Iterator<Item = String>,
-    name: &str,
-) -> T {
-    iter.next()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or_else(|| {
-            eprintln!("{} requires a valid value", name);
-            process::exit(2);
-        })
+fn parse_required<T: std::str::FromStr>(iter: &mut impl Iterator<Item = String>, name: &str) -> T {
+    iter.next().and_then(|v| v.parse().ok()).unwrap_or_else(|| {
+        eprintln!("{} requires a valid value", name);
+        process::exit(2);
+    })
 }
 
 fn require_str(iter: &mut impl Iterator<Item = String>, name: &str) -> String {
@@ -153,10 +171,200 @@ fn print_help() {
     println!("  --n N                 Number of experiments (default: 3)");
     println!("  --iterations K        Iterations to run (default: 5)");
     println!("  --duration-hours H    Per-experiment data duration in hours (default: 4.0)");
+    println!("  --load-fixture PATH   Load production-shaped experiments from a SQLite seed DB");
+    println!("  --experiment-index I  First fixture experiment index to load (default: 0)");
+    println!("  --all-experiments     Use every valid experiment in the fixture DB");
     println!("  --json PATH           Write results as JSON to PATH (sidecar)");
     println!("  --label TEXT          Free-form label written into the JSON sidecar");
     println!("  --quiet               Suppress per-iteration progress lines on stderr");
     println!("  --help, -h            Show this help");
+}
+
+#[derive(Debug, Clone)]
+struct FixtureExperiment {
+    id: String,
+    name: String,
+    instrument_type: String,
+    points: Vec<RheoPoint>,
+}
+
+fn open_fixture_db(db_path: &str) -> Connection {
+    Connection::open(db_path).unwrap_or_else(|e| {
+        eprintln!("[bench] failed to open fixture DB '{}': {}", db_path, e);
+        process::exit(1);
+    })
+}
+
+fn count_experiments(conn: &Connection) -> i64 {
+    let total: i64 = conn
+        .query_row("SELECT COUNT(*) FROM Experiment", [], |r| r.get(0))
+        .unwrap_or_else(|e| {
+            eprintln!("[bench] failed to count experiments: {}", e);
+            process::exit(1);
+        });
+    if total == 0 {
+        eprintln!("[bench] fixture DB has 0 experiments");
+        process::exit(1);
+    }
+    total
+}
+
+fn try_load_fixture_experiment_at(
+    conn: &Connection,
+    experiment_index: usize,
+) -> Result<FixtureExperiment, String> {
+    let (id, name, instrument_type): (String, String, String) = conn
+        .query_row(
+            "SELECT id, name, instrumentType \
+             FROM Experiment ORDER BY rowid LIMIT 1 OFFSET ?1",
+            params![experiment_index as i64],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .map_err(|e| format!("read Experiment row idx={}: {}", experiment_index, e))?;
+
+    let blob: Vec<u8> = conn
+        .query_row(
+            "SELECT dataBlob FROM ExperimentData WHERE experimentId = ?1",
+            params![&id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("read ExperimentData for '{}': {}", id, e))?;
+
+    let typed = decode_typed(&blob).map_err(|e| format!("columnar decode for '{}': {}", id, e))?;
+    let n_points = typed.get("time_sec").map(|v| v.len()).unwrap_or(0);
+    if n_points == 0 {
+        return Err(format!("experiment '{}' has 0 points after decode", id));
+    }
+
+    let get_required = |name: &str| -> Result<&Vec<Option<f64>>, String> {
+        typed
+            .get(name)
+            .ok_or_else(|| format!("required channel '{}' missing from blob for '{}'", name, id))
+    };
+    let time = get_required("time_sec")?;
+    let viscosity = get_required("viscosity_cp")?;
+    let temperature = get_required("temperature_c")?;
+    let shear_rate = typed.get("shear_rate");
+    let shear_stress = typed.get("shear_stress_pa");
+    let pressure = typed.get("pressure_bar");
+    let rpm = typed.get("speed_rpm");
+    let bath = typed.get("bath_temperature_c");
+
+    let mut points = Vec::with_capacity(n_points);
+    for i in 0..n_points {
+        points.push(RheoPoint {
+            time_sec: time[i].unwrap_or(0.0),
+            viscosity_cp: viscosity[i].unwrap_or(0.0),
+            temperature_c: temperature[i].unwrap_or(0.0),
+            shear_rate: shear_rate.and_then(|v| v.get(i).copied()).flatten(),
+            shear_stress: shear_stress.and_then(|v| v.get(i).copied()).flatten(),
+            pressure_bar: pressure.and_then(|v| v.get(i).copied()).flatten(),
+            rpm: rpm.and_then(|v| v.get(i).copied()).flatten(),
+            bath_temperature_c: bath.and_then(|v| v.get(i).copied()).flatten(),
+        });
+    }
+
+    Ok(FixtureExperiment {
+        id,
+        name,
+        instrument_type,
+        points,
+    })
+}
+
+fn load_fixture_experiments(args: &Args) -> Vec<FixtureExperiment> {
+    let db_path = args
+        .load_fixture
+        .as_ref()
+        .expect("load_fixture checked by caller");
+    let conn = open_fixture_db(db_path);
+    let total = count_experiments(&conn) as usize;
+    let indexes: Vec<usize> = if args.all_experiments {
+        (0..total).collect()
+    } else {
+        let end = args.experiment_index.saturating_add(args.n).min(total);
+        if args.experiment_index >= end {
+            eprintln!(
+                "[bench] --experiment-index {} out of range (DB has {} experiments)",
+                args.experiment_index, total
+            );
+            process::exit(1);
+        }
+        (args.experiment_index..end).collect()
+    };
+
+    let mut experiments = Vec::with_capacity(indexes.len());
+    let mut skipped = 0usize;
+    for idx in indexes {
+        match try_load_fixture_experiment_at(&conn, idx) {
+            Ok(experiment) => experiments.push(experiment),
+            Err(e) => {
+                skipped += 1;
+                if !args.quiet {
+                    eprintln!("[bench] skipping idx={}: {}", idx, e);
+                }
+            }
+        }
+    }
+    if experiments.is_empty() {
+        eprintln!("[bench] no usable experiments loaded from '{}'", db_path);
+        process::exit(1);
+    }
+    if skipped > 0 && !args.quiet {
+        eprintln!(
+            "[bench] loaded {} fixture experiments ({} skipped)",
+            experiments.len(),
+            skipped
+        );
+    }
+    experiments
+}
+
+fn point_to_data_point(point: &RheoPoint) -> DataPoint {
+    DataPoint {
+        time_sec: point.time_sec,
+        viscosity_cp: point.viscosity_cp,
+        temperature_c: Some(point.temperature_c),
+        shear_rate: point.shear_rate,
+        shear_stress_pa: point.shear_stress,
+        speed_rpm: point.rpm,
+        pressure_bar: point.pressure_bar,
+        bath_temperature_c: point.bath_temperature_c,
+    }
+}
+
+fn fixture_to_entry(idx: usize, fixture: FixtureExperiment) -> ComparisonExperimentEntry {
+    let id = fixture.id;
+    let display_name = format!("[FIXTURE #{:03}] {}", idx, fixture.name);
+    let raw_data = fixture.points.iter().map(point_to_data_point).collect();
+
+    ComparisonExperimentEntry {
+        id: id.clone(),
+        display_name,
+        report_input: ReportInput {
+            raw_data,
+            metadata: ReportMetadata {
+                filename: format!("{}.dat", fixture.name),
+                test_id: Some(id),
+                instrument_type: Some(fixture.instrument_type),
+                ..Default::default()
+            },
+            cycle_results: vec![],
+            recipe: vec![],
+            water_params: None,
+            cycles: vec![],
+            settings: ReportSettings::default(),
+            chart_image_base64: None,
+            axis_values: None,
+        },
+        section_toggles: SectionToggles::default(),
+    }
 }
 
 /// Build a synthetic experiment.  Curve shape mirrors the existing
@@ -247,7 +455,10 @@ fn build_input(n: usize, duration_hours: f64) -> ComparisonReportInput {
     let experiments: Vec<ComparisonExperimentEntry> = (0..n)
         .map(|idx| mk_experiment(idx, duration_hours))
         .collect();
+    build_input_from_entries(experiments)
+}
 
+fn build_input_from_entries(experiments: Vec<ComparisonExperimentEntry>) -> ComparisonReportInput {
     ComparisonReportInput {
         language: "en".into(),
         unit_system: "SI".into(),
@@ -327,13 +538,29 @@ fn main() {
     let args = Args::parse();
 
     if !args.quiet {
-        eprintln!(
-            "[bench] Building input: n={}, duration_hours={}",
-            args.n, args.duration_hours
-        );
+        match &args.load_fixture {
+            Some(db_path) => eprintln!(
+                "[bench] Building input from fixture DB: {} (n={}, all_experiments={})",
+                db_path, args.n, args.all_experiments
+            ),
+            None => eprintln!(
+                "[bench] Building input: n={}, duration_hours={}",
+                args.n, args.duration_hours
+            ),
+        }
     }
     let t_build = Instant::now();
-    let input = build_input(args.n, args.duration_hours);
+    let (input, mode) = match &args.load_fixture {
+        Some(_) => {
+            let entries = load_fixture_experiments(&args)
+                .into_iter()
+                .enumerate()
+                .map(|(idx, fixture)| fixture_to_entry(idx, fixture))
+                .collect();
+            (build_input_from_entries(entries), "fixture")
+        }
+        None => (build_input(args.n, args.duration_hours), "synthetic"),
+    };
     let build_ms = t_build.elapsed().as_secs_f64() * 1000.0;
     let total_points: usize = input
         .experiments
@@ -406,8 +633,11 @@ fn main() {
     }
     println!("| Parameter        | Value |");
     println!("|------------------|------:|");
-    println!("| n_experiments    | {} |", args.n);
-    println!("| duration_hours   | {} |", args.duration_hours);
+    println!("| mode             | {} |", mode);
+    println!("| n_experiments    | {} |", input.experiments.len());
+    if mode == "synthetic" {
+        println!("| duration_hours   | {} |", args.duration_hours);
+    }
     println!("| total_points     | {} |", total_points);
     println!("| iterations       | {} |", wall_ms_samples.len());
     println!();
@@ -437,6 +667,7 @@ fn main() {
         let json = format!(
             r#"{{
   "schema": "rheolab.microbench.pdf_comparison.v1",
+  "mode": "{mode}",
   "n_experiments": {n},
   "duration_hours": {dh},
   "total_points": {tp},
@@ -455,8 +686,13 @@ fn main() {
   ]
 }}
 "#,
-            n = args.n,
-            dh = args.duration_hours,
+            mode = mode,
+            n = input.experiments.len(),
+            dh = if mode == "synthetic" {
+                args.duration_hours
+            } else {
+                0.0
+            },
             tp = total_points,
             it = wall_ms_samples.len(),
             label_field = label_field,
