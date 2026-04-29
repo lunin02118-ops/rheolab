@@ -31,6 +31,8 @@ type RheoTauriFixtures = {
 };
 
 const CDP_PORT = parseInt(process.env.TAURI_CDP_PORT || '9222', 10);
+const USE_REAL_REPORTS = process.env.RHEOLAB_E2E_REAL_REPORTS === '1';
+const REPORT_MOCKS_ENABLED = !USE_REAL_REPORTS && process.env.RHEOLAB_E2E_MOCK_REPORTS !== '0';
 
 export const test = base.extend<RheoTauriFixtures>({
     // ── Переопределяем browser: подключаемся к Tauri через CDP ───────────
@@ -134,8 +136,9 @@ export function setupBeforeEach(t: typeof test): void {
         //      видел мок (developer license) и не открывал модальный диалог.
         //      ВАЖНО: window.__TAURI_INTERNALS__.invoke имеет {writable:false, configurable:false}
         //      — заменяем весь __TAURI_INTERNALS__ через Object.defineProperty с configurable:true.
-        const patchResult = await page.evaluate(() => {
+        const patchResult = await page.evaluate((reportMocksEnabled) => {
              
+            (window as any).__RHEOLAB_E2E_REPORT_MOCK_INSTALLED = reportMocksEnabled;
             const internals: any = (window as any).__TAURI_INTERNALS__;
             if (!internals) return 'no-internals';
 
@@ -235,7 +238,7 @@ export function setupBeforeEach(t: typeof test): void {
                     return `invoke-patch-failed: ${String(e2)}`;
                 }
             }
-        });
+        }, REPORT_MOCKS_ENABLED);
         console.log('[E2E] Tauri IPC proxy patch result:', patchResult);
 
         // 3. Навигация к корню приложения через React Router (history API).

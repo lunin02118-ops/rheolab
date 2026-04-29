@@ -187,6 +187,20 @@ export class DashboardPage {
     await map[tab].click();
   }
 
+  private async dismissBlockingToasts() {
+    const closeButtons = this.page.locator('[aria-live="polite"] button[aria-label="Закрыть"]');
+    const count = await closeButtons.count().catch(() => 0);
+    for (let i = count - 1; i >= 0; i--) {
+      await closeButtons.nth(i).click({ timeout: 1_000 }).catch(() => undefined);
+    }
+  }
+
+  private async settleSaveUi() {
+    await expect(this.saveDialog).not.toBeVisible({ timeout: 10_000 }).catch(() => undefined);
+    await this.dismissBlockingToasts();
+    await this.page.waitForTimeout(100);
+  }
+
   /**
    * Open the save-experiment dialog, fill required fields, and click Save.
    * Returns the experiment name used.
@@ -205,7 +219,13 @@ export class DashboardPage {
     const well = overrides.well ?? `E2E-Well-${runId}`;
     const waterSource = overrides.waterSource ?? 'E2E Water Source';
 
-    await this.saveButton.click();
+    await this.settleSaveUi();
+    if (!(await this.saveDialog.isVisible().catch(() => false))) {
+      await expect(this.saveButton).toBeVisible({ timeout: 10_000 });
+      await expect(this.saveButton).toBeEnabled({ timeout: 10_000 });
+      await this.saveButton.scrollIntoViewIfNeeded();
+      await this.saveButton.click();
+    }
     await expect(this.saveDialog).toBeVisible({ timeout: 5_000 });
 
     // Fill all required fields
@@ -232,6 +252,7 @@ export class DashboardPage {
 
     // Wait for dialog to close (success)
     await expect(this.saveDialog).not.toBeVisible({ timeout: 10_000 });
+    await this.dismissBlockingToasts();
 
     return { name, field, operator, well };
   }
