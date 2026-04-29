@@ -10,6 +10,7 @@
 import { toFiniteNumber } from '@/lib/utils/numbers';
 import type { ParseResult } from '@/types';
 import type { RecipeComponent } from '@/components/analysis/recipe-panel';
+import type { ExperimentDetailMeta } from '@/types/tauri';
 
 /**
  * Map a raw experiment record from the DB into a ParseResult.
@@ -109,6 +110,105 @@ export function mapExperimentToParseResult(exp: Record<string, unknown>): ParseR
                 : undefined,
         },
     };
+}
+
+/**
+ * Map lightweight saved-experiment metadata into the dashboard's ParseResult
+ * shape without raw points. Chart and analysis hot paths then load by id.
+ */
+export function mapExperimentDetailMetaToParseResult(meta: ExperimentDetailMeta): ParseResult {
+    const calibrationRecord = meta.calibration as Record<string, unknown> | null | undefined;
+    const metrics = (meta.metrics ?? {}) as Record<string, unknown>;
+    const timeStart = meta.summary.timeRangeMin;
+    const timeEnd = meta.summary.timeRangeMax;
+
+    return {
+        success: true,
+        source: 'regex',
+        data: [],
+        parsedBy: (meta.parsedBy as ParseResult['parsedBy']) || undefined,
+        metadata: {
+            filename: meta.originalFilename,
+            experimentId: meta.id,
+            instrumentType: meta.instrumentType || undefined,
+            testDate: new Date(meta.testDate),
+            geometry: meta.geometry || undefined,
+            geometrySource: meta.geometry
+                ? ((meta.geometrySource as ParseResult['metadata']['geometrySource']) || 'default')
+                : 'default',
+            calibration: calibrationRecord
+                ? {
+                    deviceType: String(calibrationRecord.deviceType ?? ''),
+                    rSquared: toFiniteNumber(calibrationRecord.rSquared),
+                    slope: toFiniteNumber(calibrationRecord.slope),
+                    intercept: toFiniteNumber(calibrationRecord.intercept),
+                    hysteresis: toFiniteNumber(calibrationRecord.hysteresis),
+                    stdev: toFiniteNumber(calibrationRecord.stdev),
+                    status: calibrationRecord.status === 'PASS' ? 'PASS' : 'FAIL',
+                    lastCalDate: calibrationRecord.calibrationDate
+                        ? String(calibrationRecord.calibrationDate)
+                        : undefined,
+                    calibrationDate: calibrationRecord.calibrationDate
+                        ? new Date(String(calibrationRecord.calibrationDate))
+                        : undefined,
+                    issues: Array.isArray(calibrationRecord.issues)
+                        ? calibrationRecord.issues.map((issue: unknown) => String(issue))
+                        : [],
+                    rawData: typeof calibrationRecord.rawData === 'string'
+                        ? calibrationRecord.rawData
+                        : JSON.stringify(calibrationRecord.rawData ?? []),
+                }
+                : undefined,
+            filenameMetadata: {
+                testId: meta.testId || meta.name || undefined,
+                testType: meta.testType || undefined,
+                testTypeFull: meta.testCategory || undefined,
+                fieldName: meta.fieldName || undefined,
+                operatorName: meta.operatorName || undefined,
+                wellNumber: meta.wellNumber || undefined,
+                waterSource: meta.waterSource || undefined,
+                savedExperimentName: meta.name || undefined,
+                laboratoryName: meta.laboratory?.name,
+            },
+            parsedBy: meta.parsedBy || undefined,
+            parseSource: meta.parseSource || undefined,
+        },
+        summary: {
+            pointCount: meta.summary.pointCount,
+            viscosityRange: {
+                min: toFiniteNumber(meta.summary.viscosityMin, 0),
+                max: toFiniteNumber(meta.summary.maxViscosity ?? metrics.maxViscosity, 0),
+                avg: meta.summary.avgViscosity != null
+                    ? toFiniteNumber(meta.summary.avgViscosity, 0)
+                    : undefined,
+            },
+            temperatureRange: {
+                min: 0,
+                max: toFiniteNumber(metrics.maxTemp ?? metrics.maxTemperatureC, 0),
+                avg: metrics.avgTemperatureC != null
+                    ? toFiniteNumber(metrics.avgTemperatureC, 0)
+                    : undefined,
+            },
+            pressureRange: {
+                min: 0,
+                max: toFiniteNumber(meta.summary.pressureMax, 0),
+            },
+            timeRange: timeStart != null && timeEnd != null
+                ? {
+                    start: toFiniteNumber(timeStart, 0),
+                    end: toFiniteNumber(timeEnd, 0),
+                    durationMinutes: (toFiniteNumber(timeEnd, 0) - toFiniteNumber(timeStart, 0)) / 60,
+                }
+                : undefined,
+        },
+    };
+}
+
+export function isMetadataOnlyParseResult(parseResult: ParseResult | null): boolean {
+    return !!parseResult?.metadata?.experimentId
+        && (parseResult.data?.length ?? 0) === 0
+        && !parseResult.columnarData
+        && (parseResult.summary?.pointCount ?? 0) > 0;
 }
 
 /**

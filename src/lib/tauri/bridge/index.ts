@@ -61,6 +61,7 @@ function createTauriBridge(): PlatformBridge {
       count: () => tauriExperiments.count(),
       filterMetadata: () => tauriExperiments.filterMetadata(),
       get: (id) => tauriExperiments.get(id),
+      detailMeta: (id) => tauriExperiments.detailMeta(id),
       getBatch: (ids) => tauriExperiments.getBatch(ids),
       checkExistence: (ids) => tauriExperiments.checkExistence(ids),
       save: (payload) => tauriExperiments.save(payload),
@@ -148,6 +149,7 @@ function createTauriBridge(): PlatformBridge {
 
     analysis: {
       analyzeData: (...args) => tauriAnalysis.analyzeData(...args),
+      analyzeExperimentById: (...args) => tauriAnalysis.analyzeExperimentById(...args),
       detectSteps: (...args) => tauriAnalysis.detectSteps(...args),
       regroupByPattern: (...args) => tauriAnalysis.regroupByPattern(...args),
     },
@@ -192,6 +194,7 @@ export type {
   BackupResult,
   ExperimentDeleteResponse,
   ExperimentsExportToFileResponse,
+  ExperimentDetailMetaResponse,
   ExperimentGetResponse,
   ExperimentsImportResponse,
   ExperimentsLaboratoriesResponse,

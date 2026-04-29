@@ -254,6 +254,7 @@ export interface PlatformBridge {
     count: () => Promise<ExperimentsCountResponse>;
     filterMetadata: () => Promise<ExperimentsFilterMetadataResponse>;
     get: (id: string) => Promise<ExperimentGetResponse>;
+    detailMeta: (id: string) => Promise<ExperimentDetailMetaResponse>;
     getBatch: (ids: string[]) => Promise<ExperimentGetBatchResponse>;
     checkExistence: (ids: string[]) => Promise<ExperimentExistenceResponse>;
 
@@ -364,6 +365,13 @@ export interface PlatformBridge {
   analysis: {
     analyzeData: (
       rheoPoints: RheoPointsColumnar,
+      geometryKey: string,
+      settings: ExpertSettings,
+      detectionSettings: DetectionSettingsInput,
+      cycleOverrides?: Map<number, number[]>,
+    ) => Promise<AnalysisResult>;
+    analyzeExperimentById: (
+      experimentId: string,
       geometryKey: string,
       settings: ExpertSettings,
       detectionSettings: DetectionSettingsInput,

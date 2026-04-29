@@ -10,6 +10,7 @@ export type {
   ApiKeyDeleteResponse,
   ApiKeyValidationResponse,
   ExperimentDeleteResponse,
+  ExperimentDetailMetaResponse,
   BackupInfo,
   BackupResult,
   ExperimentsExportToFileResponse,

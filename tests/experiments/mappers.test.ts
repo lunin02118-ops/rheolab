@@ -3,7 +3,12 @@
  * DB record → ParseResult conversion and recipe mapping.
  */
 import { describe, it, expect } from 'vitest';
-import { mapExperimentToParseResult, mapReagentsToRecipe } from '@/lib/experiments/mappers';
+import {
+    isMetadataOnlyParseResult,
+    mapExperimentDetailMetaToParseResult,
+    mapExperimentToParseResult,
+    mapReagentsToRecipe
+} from '@/lib/experiments/mappers';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -129,6 +134,56 @@ describe('mapExperimentToParseResult', () => {
             ],
         }));
         expect(result.data[0].bath_temperature_c).toBeUndefined();
+    });
+});
+
+// ── mapExperimentDetailMetaToParseResult ──────────────────────────────────
+
+describe('mapExperimentDetailMetaToParseResult', () => {
+    it('creates metadata-only ParseResult without raw data', () => {
+        const result = mapExperimentDetailMetaToParseResult({
+            id: 'exp_1',
+            createdAt: '2026-04-30T00:00:00Z',
+            updatedAt: '2026-04-30T00:00:00Z',
+            name: 'Saved experiment',
+            fieldName: 'Field',
+            operatorName: 'Operator',
+            wellNumber: 'W-1',
+            testId: 'T-1',
+            originalFilename: 'saved.xlsx',
+            testDate: '2026-04-30',
+            instrumentType: 'Grace',
+            geometry: 'R1B5',
+            geometrySource: 'context',
+            waterSource: 'Fresh',
+            waterParams: { ph: 7 },
+            fluidType: 'Linear',
+            testGroup: 'Rheology',
+            testSubGroup: null,
+            metrics: { maxViscosity: 200, maxTemp: 90 },
+            calibration: null,
+            reagents: [],
+            summary: {
+                pointCount: 1234,
+                timeRangeMin: 0,
+                timeRangeMax: 600,
+                viscosityMin: 10,
+                maxViscosity: 200,
+                avgViscosity: 100,
+                pressureMax: 2,
+            },
+            user: null,
+            laboratory: { id: 'lab_1', name: 'Lab' },
+            parsedBy: 'native',
+            parseSource: 'xlsx',
+        });
+
+        expect(result.data).toEqual([]);
+        expect(result.metadata.experimentId).toBe('exp_1');
+        expect(result.summary.pointCount).toBe(1234);
+        expect(result.summary.timeRange?.durationMinutes).toBe(10);
+        expect(result.metadata.filenameMetadata?.laboratoryName).toBe('Lab');
+        expect(isMetadataOnlyParseResult(result)).toBe(true);
     });
 });
 

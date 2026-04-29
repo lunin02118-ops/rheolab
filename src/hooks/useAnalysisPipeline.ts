@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { RheoCycle, RheoStep, GraceCycleResult } from '@/lib/analysis/types';
-import { analyzeData, detectSteps, regroupByPattern } from '@/lib/analysis/client';
+import { analyzeData, analyzeExperimentById, detectSteps, regroupByPattern } from '@/lib/analysis/client';
 import type { RheoPointsColumnar } from '@/lib/tauri';
 import { toFiniteNumber, toOptionalFiniteNumber } from '@/lib/utils/numbers';
 import { PerfMon } from '@/lib/perf-monitor';
+import { isTauri } from '@/lib/tauri/core';
 
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 import type { ParseResult } from '@/lib/store/experiment-data-store';
@@ -103,11 +104,12 @@ export function useAnalysisPipeline({
     // hashing raw data — uses array length + filename as a proxy for data identity.
     const cacheKey = useMemo(() => {
         if (!parseResult) return '';
-        const dataLen = parseResult.data?.length
-            ?? parseResult.columnarData?.timeSec?.length
-            ?? 0;
+        const dataLen = (parseResult.data?.length ?? 0)
+            || (parseResult.columnarData?.timeSec?.length ?? 0)
+            || (parseResult.summary?.pointCount ?? 0);
         return [
             parseResult.metadata?.filename ?? '',
+            parseResult.metadata?.experimentId ?? '',
             dataLen,
             parseResult.metadata?.geometry ?? '',
             isExpert ? 1 : 0,
@@ -134,8 +136,18 @@ export function useAnalysisPipeline({
     ]);
 
     useEffect(() => {
+        // Support both AoS (data[]) and SoA (columnarData) paths.
+        // When columnarData is present the store sets data[] to [] to save memory.
+        const hasData = (parseResult?.data?.length ?? 0) > 0 ||
+            (parseResult?.columnarData?.timeSec?.length ?? 0) > 0;
+        const experimentId = parseResult?.metadata?.experimentId;
+        const canAnalyzeById = !hasData && !!experimentId && isTauri();
+
         // ── Cache hit — skip redundant Rust IPC ──────────────────────────
-        const cached = getAnalysisCache();
+        // Metadata-only by-id analysis deliberately bypasses the renderer
+        // cache: Rust owns the data-hash-aware AnalysisArtifact key, while
+        // the lightweight ParseResult only has summary-level identity.
+        const cached = !canAnalyzeById ? getAnalysisCache() : null;
         if (cacheKey && cached?.key === cacheKey) {
             // Use functional updater — return `prev` when already set to
             // avoid creating a new object that would trigger an infinite
@@ -160,12 +172,7 @@ export function useAnalysisPipeline({
         abortControllerRef.current = controller;
         const { signal } = controller;
 
-        // Support both AoS (data[]) and SoA (columnarData) paths.
-        // When columnarData is present the store sets data[] to [] to save memory.
-        const hasData = (parseResult?.data?.length ?? 0) > 0 ||
-            (parseResult?.columnarData?.timeSec?.length ?? 0) > 0;
-
-        if (!parseResult || !hasData) {
+        if (!parseResult || (!hasData && !canAnalyzeById)) {
             // Microtask deferral so the no-data reset doesn't appear as a
             // synchronous setState in the effect body.
             void Promise.resolve().then(() => {
@@ -183,6 +190,57 @@ export function useAnalysisPipeline({
             if (signal.aborted) return;
             setIsAnalyzing(true);
             try {
+                // In beginner mode, force ALL settings to defaults (like C# WPF creates a fresh ExpertSettingsDto)
+                // Expert overrides (patternOverride, cycleOverrides) are ignored in beginner mode
+                const detectionSettings = {
+                    stepSplitting: isExpert ? Boolean(expertSettings.stepSplitting) : true,
+                    splitStartDuration: Math.max(0, toFiniteNumber(isExpert ? expertSettings.splitStartDuration : 30, 30)),
+                    splitEndDuration: Math.max(0, toFiniteNumber(isExpert ? expertSettings.splitEndDuration : 30, 30)),
+                    minDurationForSplit: Math.max(0, toFiniteNumber(isExpert ? expertSettings.minDurationForSplit : 90, 90))
+                };
+
+                const settings = {
+                    pointsToAverage: Math.max(0, Math.round(toFiniteNumber(isExpert ? expertSettings.pointsToAverage : 1, 1))),
+                    viscosityShearRates: sanitizeViscosityRates(isExpert ? expertSettings.viscosityShearRates : DEFAULT_VISCOSITY_SHEAR_RATES),
+                    kIndexType: 'K_ind' as const,
+                    stepSplitting: detectionSettings.stepSplitting,
+                    splitStartDuration: detectionSettings.splitStartDuration,
+                    splitEndDuration: detectionSettings.splitEndDuration,
+                    minDurationForSplit: detectionSettings.minDurationForSplit
+                };
+
+                // In beginner mode, ignore expert overrides — always use standard analysis
+                const effectivePatternOverride = isExpert ? patternOverride : null;
+                const effectiveCycleOverrides = isExpert ? cycleOverridesRef.current : undefined;
+
+                const geometry = parseResult?.metadata?.geometry || 'R1B5';
+
+                if (canAnalyzeById) {
+                    if (effectivePatternOverride && effectivePatternOverride.length > 0) {
+                        setErrorRef.current('Экспертный паттерн требует полной загрузки данных');
+                        return;
+                    }
+                    PerfMon.mark('analysis:start');
+                    const result = await analyzeExperimentById(
+                        experimentId,
+                        geometry,
+                        settings,
+                        detectionSettings,
+                        effectiveCycleOverrides,
+                    );
+                    PerfMon.end('analysis');
+
+                    if (!signal.aborted) {
+                        const state = {
+                            cycles: result.cycles,
+                            cycleResults: result.results,
+                            allSteps: result.allSteps
+                        };
+                        setAnalysisState(state);
+                    }
+                    return;
+                }
+
                 // Build SoA rheoPoints for IPC.
                 // AoS path (data[]): single-pass loop — avoids N JS object allocations.
                 // SoA path (columnarData): pass arrays directly — zero extra allocations.
@@ -220,31 +278,6 @@ export function useAnalysisPipeline({
                         rpm:          col.speedRpm,  // rename: ColumnarData.speedRpm → RheoPointsColumnar.rpm
                     };
                 }
-
-                // In beginner mode, force ALL settings to defaults (like C# WPF creates a fresh ExpertSettingsDto)
-                // Expert overrides (patternOverride, cycleOverrides) are ignored in beginner mode
-                const detectionSettings = {
-                    stepSplitting: isExpert ? Boolean(expertSettings.stepSplitting) : true,
-                    splitStartDuration: Math.max(0, toFiniteNumber(isExpert ? expertSettings.splitStartDuration : 30, 30)),
-                    splitEndDuration: Math.max(0, toFiniteNumber(isExpert ? expertSettings.splitEndDuration : 30, 30)),
-                    minDurationForSplit: Math.max(0, toFiniteNumber(isExpert ? expertSettings.minDurationForSplit : 90, 90))
-                };
-
-                const settings = {
-                    pointsToAverage: Math.max(0, Math.round(toFiniteNumber(isExpert ? expertSettings.pointsToAverage : 1, 1))),
-                    viscosityShearRates: sanitizeViscosityRates(isExpert ? expertSettings.viscosityShearRates : DEFAULT_VISCOSITY_SHEAR_RATES),
-                    kIndexType: 'K_ind' as const,
-                    stepSplitting: detectionSettings.stepSplitting,
-                    splitStartDuration: detectionSettings.splitStartDuration,
-                    splitEndDuration: detectionSettings.splitEndDuration,
-                    minDurationForSplit: detectionSettings.minDurationForSplit
-                };
-
-                // In beginner mode, ignore expert overrides — always use standard analysis
-                const effectivePatternOverride = isExpert ? patternOverride : null;
-                const effectiveCycleOverrides = isExpert ? cycleOverridesRef.current : undefined;
-
-                const geometry = parseResult?.metadata?.geometry || 'R1B5';
 
                 // If patternOverride is set (expert only), use regroupByPattern instead of standard analysis
                 if (effectivePatternOverride && effectivePatternOverride.length > 0) {
@@ -310,6 +343,8 @@ export function useAnalysisPipeline({
         cacheKey,
         parseResult?.data,
         parseResult?.columnarData?.timeSec?.length,
+        parseResult?.summary?.pointCount,
+        parseResult?.metadata?.experimentId,
         expertSettings.stepSplitting,
         expertSettings.splitStartDuration,
         expertSettings.splitEndDuration,

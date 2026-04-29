@@ -75,6 +75,12 @@ export type ConflictItem = { id: string; mergeEventId: string | null; experiment
 
 export type ExperimentDeleteResponse = { success: boolean; error?: string | null }
 
+export type ExperimentDetailMeta = { id: string; createdAt: string; updatedAt: string; name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; calibration: JsonValue | null; reagents: StoredExperimentReagent[]; summary: ExperimentDetailSummary; user: StoredExperimentUser | null; laboratory: StoredExperimentLaboratory | null; parsedBy?: string | null; parseSource?: string | null; extraFields?: JsonValue | null }
+
+export type ExperimentDetailMetaResponse = { success: boolean; experiment?: ExperimentDetailMeta | null; error?: string | null }
+
+export type ExperimentDetailSummary = { pointCount: number; timeRangeMin?: number | null; timeRangeMax?: number | null; viscosityMin?: number | null; maxViscosity?: number | null; avgViscosity?: number | null; pressureMax?: number | null }
+
 /**
  * Lightweight existence check — returns only the IDs that exist in the DB.
  */

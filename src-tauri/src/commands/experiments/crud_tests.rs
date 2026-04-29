@@ -374,6 +374,44 @@ fn load_missing_experiment_returns_none() {
     );
 }
 
+/// MEM-1: detail metadata read must stay lightweight. It should return the
+/// fields needed for chart-first saved-detail open without serializing raw
+/// point arrays.
+#[test]
+fn detail_meta_excludes_raw_points_and_keeps_summary() {
+    let conn = open_db();
+    let mut exp = make_experiment("meta_001");
+    exp.reagents = vec![StoredExperimentReagent {
+        reagent_id: None,
+        reagent_name: Some("WG-9000F".to_string()),
+        concentration: 3.4,
+        unit: "kg/m3".to_string(),
+        batch_number: Some("B42".to_string()),
+        production_date: None,
+        category: Some("Viscosifier".to_string()),
+        reagent: None,
+    }];
+    persist_experiment(&conn, &exp).unwrap();
+
+    let meta = load_experiment_detail_meta_by_id(&conn, "meta_001")
+        .unwrap()
+        .expect("detail meta should exist");
+
+    assert_eq!(meta.id, exp.id);
+    assert_eq!(meta.name, exp.name);
+    assert_eq!(meta.geometry, exp.geometry);
+    assert_eq!(meta.summary.point_count, exp.raw_points.len());
+    assert_eq!(meta.summary.max_viscosity, exp.max_viscosity);
+    assert_eq!(meta.summary.avg_viscosity, exp.avg_viscosity);
+    assert_eq!(meta.summary.time_range_min, exp.time_range_min);
+    assert_eq!(meta.summary.time_range_max, exp.time_range_max);
+    assert_eq!(meta.reagents.len(), 1);
+
+    let json = serde_json::to_value(&meta).unwrap();
+    assert!(json.get("rawPoints").is_none(), "rawPoints must not serialize");
+    assert!(json.get("raw_points").is_none(), "raw_points must not serialize");
+}
+
 // ── Touch-point precompute (PR2 Phase B) ─────────────────────────────────
 
 /// Build a StoredExperiment whose raw_points form a declining curve that

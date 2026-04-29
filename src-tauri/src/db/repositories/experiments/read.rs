@@ -1,6 +1,6 @@
 use crate::commands::experiments::types::{
-    StoredExperiment, StoredExperimentLaboratory, StoredExperimentReagent, StoredExperimentUser,
-    StoredReagentDescriptor,
+    ExperimentDetailMeta, ExperimentDetailSummary, StoredExperiment, StoredExperimentLaboratory,
+    StoredExperimentReagent, StoredExperimentUser, StoredReagentDescriptor,
 };
 use crate::error::Result;
 use rusqlite::{params, OptionalExtension};
@@ -203,6 +203,133 @@ pub(crate) fn load_experiment_by_id(
     }
 
     Ok(row)
+}
+
+/// Load saved-experiment metadata for detail open without materializing raw
+/// points. This is the MEM-1 read path: it intentionally does not select
+/// `Experiment.rawPoints` or `ExperimentData.dataBlob`.
+pub(crate) fn load_experiment_detail_meta_by_id(
+    conn: &rusqlite::Connection,
+    id: &str,
+) -> Result<Option<ExperimentDetailMeta>> {
+    let row = conn
+        .query_row(
+            "SELECT e.id, e.createdAt, e.updatedAt, e.name, e.fieldName, e.operatorName,
+                    e.wellNumber, e.testId, e.originalFilename, e.testDate, e.instrumentType,
+                    e.geometry, e.geometrySource, e.waterSource, e.waterParams,
+                    e.fluidType, e.testGroup, e.testSubGroup, e.metrics,
+                    e.calibration, e.maxViscosity, e.avgViscosity, e.userId, e.laboratoryId,
+                    u.name, u.email, l.id, l.name,
+                    e.parsedBy, e.parseSource, e.timeRangeMin, e.timeRangeMax,
+                    e.viscosityMin, e.pressureMax, e.extraFields,
+                    e.testCategory, e.testType, e.dominantPattern,
+                    COALESCE(ed.pointCount, 0)
+             FROM Experiment e
+             LEFT JOIN User u ON e.userId = u.id
+             LEFT JOIN Laboratory l ON e.laboratoryId = l.id
+             LEFT JOIN ExperimentData ed ON ed.experimentId = e.id
+             WHERE e.id = ?1",
+            params![id],
+            |row| {
+                let user_id: String = row.get(22)?;
+                let user_name: Option<String> = row.get(24)?;
+                let user_email: Option<String> = row.get(25)?;
+                let lab_id: Option<String> = row.get(26)?;
+                let lab_name: Option<String> = row.get(27)?;
+
+                let user = user_name.map(|name| StoredExperimentUser {
+                    id: user_id,
+                    name,
+                    email: user_email,
+                });
+
+                let laboratory = match (lab_id, lab_name) {
+                    (Some(id), Some(name)) => Some(StoredExperimentLaboratory { id, name }),
+                    _ => None,
+                };
+
+                let water_params_str: Option<String> = row.get(14)?;
+                let water_params =
+                    water_params_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
+
+                let metrics_str: String = row.get(18)?;
+                let metrics = serde_json::from_str::<Value>(&metrics_str).unwrap_or_else(|e| {
+                    tracing::warn!("malformed metrics JSON (detail-meta): {}", e);
+                    json!({})
+                });
+
+                let calibration_str: Option<String> = row.get(19)?;
+                let calibration =
+                    calibration_str.and_then(|s| serde_json::from_str::<Value>(&s).ok());
+
+                let extra_fields_str: Option<String> = row.get(34)?;
+                let extra_fields = extra_fields_str.and_then(|s| {
+                    if s == "{}" {
+                        None
+                    } else {
+                        serde_json::from_str::<Value>(&s).ok()
+                    }
+                });
+
+                let point_count = row.get::<_, i64>(38)?.max(0) as usize;
+                let time_range_min = row.get(30)?;
+                let time_range_max = row.get(31)?;
+                let viscosity_min = row.get(32)?;
+                let max_viscosity = row.get(20)?;
+                let avg_viscosity = row.get(21)?;
+                let pressure_max = row.get(33)?;
+
+                Ok(ExperimentDetailMeta {
+                    id: row.get(0)?,
+                    created_at: row.get(1)?,
+                    updated_at: row.get(2)?,
+                    name: row.get(3)?,
+                    field_name: row.get(4)?,
+                    operator_name: row.get(5)?,
+                    well_number: row.get(6)?,
+                    test_id: row.get(7)?,
+                    original_filename: row.get(8)?,
+                    test_date: row.get(9)?,
+                    instrument_type: row.get(10)?,
+                    geometry: row.get(11)?,
+                    geometry_source: row.get(12)?,
+                    water_source: row.get(13)?,
+                    water_params,
+                    fluid_type: row.get(15)?,
+                    test_group: row.get(16)?,
+                    test_sub_group: row.get(17)?,
+                    test_category: row.get(35)?,
+                    test_type: row.get(36)?,
+                    dominant_pattern: row.get(37)?,
+                    metrics,
+                    calibration,
+                    reagents: vec![],
+                    summary: ExperimentDetailSummary {
+                        point_count,
+                        time_range_min,
+                        time_range_max,
+                        viscosity_min,
+                        max_viscosity,
+                        avg_viscosity,
+                        pressure_max,
+                    },
+                    user,
+                    laboratory,
+                    parsed_by: row.get(28)?,
+                    parse_source: row.get(29)?,
+                    extra_fields,
+                })
+            },
+        )
+        .optional()
+        .map_err(|e| format!("SQL detail-meta error: {}", e))?;
+
+    let Some(mut meta) = row else {
+        return Ok(None);
+    };
+
+    meta.reagents = load_reagents_for_experiment(conn, &meta.id)?;
+    Ok(Some(meta))
 }
 
 /// Batch-load multiple experiments in 3 queries rather than 3 × N.
@@ -421,6 +548,54 @@ pub(crate) fn load_experiments_batch(
 
     // Return in the same order as `ids`, omitting not-found entries.
     Ok(ids.iter().filter_map(|id| experiments.remove(id)).collect())
+}
+
+fn load_reagents_for_experiment(
+    conn: &rusqlite::Connection,
+    experiment_id: &str,
+) -> Result<Vec<StoredExperimentReagent>> {
+    let mut reagents_stmt = conn
+        .prepare(
+            "SELECT er.reagentId, er.reagentName, er.concentration, er.unit,
+                    er.batchNumber, er.productionDate, er.category,
+                    rc.name, rc.category
+             FROM ExperimentReagent er
+             LEFT JOIN ReagentCatalog rc ON er.reagentId = rc.id
+             WHERE er.experimentId = ?1",
+        )
+        .map_err(|e| format!("SQL error: {}", e))?;
+
+    let reagents = reagents_stmt
+        .query_map(params![experiment_id], |row| {
+            let reagent_id: Option<String> = row.get(0)?;
+            let denorm_name: Option<String> = row.get(1)?;
+            let catalog_name: Option<String> = row.get(7)?;
+            let denorm_category: Option<String> = row.get(6)?;
+            let catalog_category: Option<String> = row.get(8)?;
+
+            let reagent_name = catalog_name.or(denorm_name);
+            let category = catalog_category.or(denorm_category);
+            let reagent_descriptor = reagent_name.clone().map(|name| StoredReagentDescriptor {
+                name,
+                category: category.clone(),
+            });
+
+            Ok(StoredExperimentReagent {
+                reagent_id,
+                reagent_name: reagent_descriptor.as_ref().map(|d| d.name.clone()),
+                concentration: row.get(2)?,
+                unit: row.get(3)?,
+                batch_number: row.get(4)?,
+                production_date: row.get(5)?,
+                category,
+                reagent: reagent_descriptor,
+            })
+        })
+        .map_err(|e| format!("SQL error: {}", e))?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| format!("SQL error (reagent row): {}", e))?;
+
+    Ok(reagents)
 }
 
 /// Return sha256 hashes of the compressed ExperimentData blobs for the
