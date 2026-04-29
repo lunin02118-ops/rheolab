@@ -4,9 +4,9 @@
 **Sprint window:** TBD (recommend 5–6 active days).  
 **Theme:** **the main ROI lever** — see `PERF-ROADMAP-SPRINTS-1-6.md`.  
 **Inherits from:** Sprint 1 (3 carry-over docs items, see "Lead-in" below).  
-**Document version:** v2 (operator-reviewed; supersedes v1 draft from earlier the same day).
+**Document version:** v3 (external-audit-amended 2026-04-29; supersedes v2 from earlier the same day).
 
-> **TL;DR:** replace TS-side assembled `ComparisonReportInput` over IPC with native `reports_*_by_ids` IPC commands taking only experiment IDs + settings. Eliminates the only `LARGE-IPC-EXCEPTION` suppression, removes 3–10 MB JSON serialisation per export, simplifies the frontend, **ships native default in alpha with old TS path as fallback flag for one release**, and unblocks Sprint 3's analysis cache integration.
+> **TL;DR:** replace TS-side assembled `ComparisonReportInput` over IPC with native `reports_*_by_ids` IPC commands taking only experiment IDs + settings. Eliminates the only `LARGE-IPC-EXCEPTION` suppression, removes 3–10 MB JSON serialisation per export, simplifies the frontend, **ships native default in alpha with old TS path as fallback flag for one release**, and unblocks Sprint 3's analysis cache integration. v3 amendments fold an external static audit (`SPRINT-1-EXTERNAL-AUDIT.md`): S2-L3 promoted to mandatory, new S2-L5 (orchestrator fixture-mode) and S2-1.5 (production-shaped bench fixtures) added; total scope grows from ~5–6 days to ~7–8 active days; commit sequence grows from 11 to 14.
 
 ---
 
@@ -116,6 +116,31 @@ PDF can be the primary (more complex, slower, where the win is biggest), but XLS
 | XLSX | (a) sheet name list, (b) per-sheet cell value matrix hash, (c) per-sheet formula matrix hash, (d) per-sheet style hash where the style is semantically meaningful (number formats, conditional formats), (e) per-sheet `dimension` attribute. |
 
 The hash normalisation layer is itself a deliverable — it ships as `tests/integration/reports/hash-normalise.ts` (or `*.rs` for Rust-side helpers) and is reusable for any future report parity test.
+
+---
+
+## External audit response (added in v3, 2026-04-29)
+
+An external static-only audit of `main @ 463dce2` (alpha.2) produced 8 findings. The audit's verdict was **GO for Sprint 2 with 4 mandatory lead-in items + 3 plan amendments**. v3 folds those amendments. The full audit text is preserved at `docs/performance/SPRINT-1-EXTERNAL-AUDIT.md` for traceability.
+
+| Finding | v2 status | v3 status |
+| ------- | --------- | --------- |
+| **S1-AUD-001** Sprint 1 scope misses (high) | covered (4 lead-in items) | unchanged |
+| **S1-AUD-002** Orchestrator fixture mode still manual (medium) | deferred | **lifted: new S2-L5 in critical lead-in** |
+| **S1-AUD-003** PDF bench parity, production-shaped fixtures (medium) | partially covered | **explicit: new S2-1.5 in main work** |
+| **S1-AUD-004** P10 watch list (medium) | covered (P10-DB-SWEEP triggers) | unchanged |
+| **S1-AUD-005** TBDs remain TBD (high) | partially covered (S2-L3 non-blocking) | **S2-L3 promoted to mandatory critical lead-in** |
+| **S1-AUD-006** ADR-0013 + suppression (medium) | covered (#1 done; #10 retires) | unchanged |
+| **S1-AUD-007** V1_DDL contract (medium) | covered (#2 next) | unchanged |
+| **S1-AUD-008** CI status visibility (low) | not covered | deferred to Sprint 3+ (not Sprint 2 critical) |
+
+**3 amendments applied in v3:**
+
+1. **S2-L3 promoted from non-blocking → mandatory critical lead-in.** Per S1-AUD-005, the library smoke runner must produce baseline JSON + update `BUDGETS.md` / `BASELINES.md` before Sprint 2 closes; otherwise the L-LIB-* / L-FILTER / L-EXP-DETAIL / DB-LIST family stays TBD after the sprint that was supposed to close it. Adds ~4 hours to lead-in (~8 h total).
+2. **S2-L5 added: orchestrator fixture-mode integration.** Per S1-AUD-002, `--fixture-db <path>` and `--all-experiments` flags must move from manual `foreach` PowerShell into `run-rust-microbench.mjs`. Otherwise S2-3's A/B perf measurement requires manual stash dance for every reproduction. ~1.5 hours.
+3. **S2-1.5 added: production-shaped fixture mode in `bench_comparison_pdf.rs`.** Per S1-AUD-003, the comparison-PDF bench must be able to load real DB experiments by ID list (mirroring what S1-3 did for the analysis bench). The S2-1 native by-ids handler's internal builder is reusable here — no separate dump mechanism needed. ~2 hours.
+
+**Total scope adjustment:** Sprint 2 grows from ~5–6 active days to **~7–8 active days**. The 11-commit sequence becomes **14 commits**. The audit's recommended steps now map 1:1 to the v3 sequence.
 
 ---
 
@@ -269,13 +294,31 @@ After S2-1 lands, the audit lint (`scripts/audit/check-large-ipc-contracts.mjs`)
 
 **Deliverable.** Playwright spec exercising the comparison flow at 3 / 5 / 10 fixture sizes, both PDF and XLSX outputs. JSON sidecar emission for each budget. Records pre-S2-1 numbers. **Effort:** ~3 hours.
 
-### Non-blocking (parallel track or post-S2-1)
+#### S2-L3 — `test(perf): library smoke perf runner` *(promoted to mandatory in v3)*
 
-#### S2-L3 — `test(perf): library smoke perf runner`
+**Why now (v3 amendment).** Per audit finding S1-AUD-005, this runner must produce baseline JSON + update `BUDGETS.md` / `BASELINES.md` before Sprint 2 closes; otherwise 7 long-tail TBDs (L-LIB-OPEN-1K/10K, L-FILTER, L-EXP-DETAIL, DB-LIST, DB-LIST-LARGE, DB-DETAIL) outlive the sprint that was scoped to close them. Original v2 plan deferred this as a non-blocking parallel; v3 promotes it to mandatory critical lead-in to honour the audit verdict.
 
-**Status: NOT a blocker for S2-1 per operator decision.**
+**Deliverable.** Playwright spec or harness extension that exercises:
+- **L-LIB-OPEN-1K / -10K** — library page render after warm DB at 1k / 10k seeds (extends `perf:db:small` and `perf:db:large`).
+- **L-FILTER** — filter change → list re-render perceived latency.
+- **L-EXP-DETAIL** — experiment detail open.
+- **DB-LIST / -LARGE / DB-DETAIL** — query times underlying the above.
+- Per-budget JSON sidecar emission.
+- `BUDGETS.md` and `BASELINES.md` rows updated (severity stays `soft` per A3 protocol until 5 stable runs).
 
-Useful for filling 7 BUDGETS.md TBDs (L-LIB-OPEN-1K/10K, L-FILTER, L-EXP-DETAIL, DB-LIST, DB-LIST-LARGE, DB-DETAIL), but the by-ids report path is independent of the library page. Schedule S2-L3 as a parallel-track item or land it post-S2-1, **not before**. Risk-mitigated: Sprint 2 stays focused on its ROI mission rather than expanding into a "perf infra sprint". **Effort:** ~4 hours, can be done by anyone in parallel with the main backend work.
+**Effort:** ~4 hours.
+
+#### S2-L5 — `feat(perf): orchestrator fixture-mode integration` *(new in v3)*
+
+**Why now (v3 amendment).** Per audit finding S1-AUD-002, `run-rust-microbench.mjs` currently orchestrates only synthetic sweeps; fixture / all-experiment sweeps require manual `foreach` PowerShell loops. S2-3's A/B perf measurement (TS-assembly vs native by-ids on production-shaped DB fixtures) reproducibility benefits directly from automation here. Without this, every reproduction of the headline win number is a manual stash dance.
+
+**Deliverable.**
+- Add `--fixture-db <path>` flag to `run-rust-microbench.mjs` for both `analysis` and `pdf` targets.
+- Add `--all-experiments` flag passthrough.
+- Expose `npm run perf:microbench:dbsweep` and `npm run perf:microbench:dbsweep:compare` as wrapper scripts.
+- Reproducing recipes in P10 / Sprint-2 perf reports updated to use the new commands.
+
+**Effort:** ~1.5 hours.
 
 ---
 
@@ -305,6 +348,20 @@ Useful for filling 7 BUDGETS.md TBDs (L-LIB-OPEN-1K/10K, L-FILTER, L-EXP-DETAIL,
 - `comparison-experiment-adapter.ts` gains a feature-flag branch (G5).
 
 **Effort.** 2 active days. The bulk is wiring the existing builder's input from "deserialised payload" to "freshly-computed analysis result" without changing the builder itself.
+
+### S2-1.5 — `feat(perf): production-shaped fixture mode in bench_comparison_pdf.rs` *(new in v3)*
+
+**Why now (v3 amendment).** Per audit finding S1-AUD-003, `bench_comparison_pdf.rs` currently uses synthetic `ComparisonReportInput`; it does not mirror the real TS adapter or the native by-ids path. Without a production-shaped fixture mode, S2-3's A/B comparison only proves the win on synthetic data — operator and reviewers want the win on real production-shaped fixtures from `outputs/seed/rheolab-fixture-seed-small.db`.
+
+**Implementation outline:**
+
+- Add `--load-fixture <db> --experiment-ids <id1,id2,...>` mode to `bench_comparison_pdf.rs` (mirroring the S1-3 pattern from `bench_analysis_pipeline.rs`).
+- Reuse the **internal Rust builder** that S2-1's by-ids handler exposes (the part that turns `Vec<experiment_id>` + `ComparisonSettings` into a `ComparisonReportInput`-equivalent in-memory structure). No separate dump-from-running-app mechanism is needed because S2-1 already has the assembly logic.
+- Bench harness in TS-assembly arm: synthesises the input the same way the legacy frontend does (for parity).
+- Bench harness in native arm: calls the by-ids assembly directly.
+- Both arms call the same downstream PDF builder, so timing differences isolate the **input gathering** cost — exactly what S2-3 wants to measure.
+
+**Effort.** ~2 hours. Lands as a single commit between S2-1 (commits #4–#6) and S2-2 (commit #8 in v3).
 
 ### S2-2 — `test(reports): golden parity for by_ids PDF/XLSX`
 
@@ -345,27 +402,34 @@ Useful for filling 7 BUDGETS.md TBDs (L-LIB-OPEN-1K/10K, L-FILTER, L-EXP-DETAIL,
 
 ---
 
-## Recommended commit sequence (operator-specified)
+## Recommended commit sequence (v3, audit-amended)
 
-The 11-commit sequence preserves "one topic per commit":
+The **14-commit** sequence preserves "one topic per commit". v3 inserts S2-L3 (promoted), S2-L5 (new), and S2-1.5 (new) into the v2 sequence at their dependency-correct positions:
 
 ```
-1.  docs(adr): add no-large-ipc rule                            (S2-L1)
-2.  docs(db): document report-relevant V1 schema contract       (S2-L2)
-3.  test(perf): add comparison smoke baseline runner            (S2-L4)
-4.  feat(reports): add by-ids DTOs and validation               (G1, G2 enum, G4 key material)
-5.  feat(reports): add native comparison PDF by-ids             (S2-1 PDF arm + G3 semaphore)
-6.  feat(reports): add native comparison XLSX by-ids            (S2-1 XLSX arm)
-7.  test(reports): add by-ids golden parity tests               (S2-2 incl. corner cases + hash normalisation lib)
-8.  feat(frontend): route comparison exports through native by-ids flag  (G5)
-9.  perf(reports): add TS vs native validation report           (S2-3)
-10. chore(audit): remove comparison large-ipc exception         (final cleanup)
-11. docs(perf): update budgets and Sprint 2 retrospective       (close-out)
+ 1.  docs(adr): add no-large-ipc rule                            (S2-L1)
+ 2.  docs(db): document report-relevant V1 schema contract       (S2-L2)
+ 3.  feat(perf): orchestrator fixture-mode integration           (S2-L5, new in v3)
+ 4.  test(perf): comparison smoke baseline runner                (S2-L4)
+ 5.  test(perf): library smoke runner + L-LIB-* / DB-LIST*       (S2-L3, promoted in v3)
+ 6.  feat(reports): by-ids DTOs and validation                   (G1, G2 enum, G4 key material)
+ 7.  feat(reports): native comparison PDF by-ids                 (S2-1 PDF + G3 semaphore)
+ 8.  feat(reports): native comparison XLSX by-ids                (S2-1 XLSX)
+ 9.  feat(perf): production-shaped fixtures in bench_comparison_pdf  (S2-1.5, new in v3)
+10.  test(reports): by-ids golden parity tests                   (S2-2 incl. corner cases + hash normalisation lib)
+11.  feat(frontend): route comparison exports through native by-ids flag  (G5)
+12.  perf(reports): TS vs native validation report               (S2-3)
+13.  chore(audit): remove comparison large-ipc exception         (final cleanup)
+14.  docs(perf): update budgets and Sprint 2 retrospective       (close-out)
 ```
 
-S2-L3 (library smoke perf runner) commits in parallel whenever convenient; not part of the critical sequence.
+Approximate timing on the v3 critical sequence: **~7–8 active days** (up from 5–6 in v2 because S2-L3 is now mandatory and S2-L5 / S2-1.5 add ~3.5 hours).
 
-Approximate timing on the critical sequence: 5–6 active days.
+Progress as of this commit:
+
+- ✅ Commit #1 (S2-L1): `55912f6` shipped 2026-04-29.
+- 🔄 Commit #2 (S2-L2): in progress at the time of v3 amendment.
+- ⬜ Commits #3–#14: pending.
 
 ---
 
@@ -376,17 +440,19 @@ Sprint 2 closes only when **all** are true:
 - [ ] **Native PDF + XLSX by-ids paths default in alpha** (feature flag wired per G5; flag default = native).
 - [ ] **Old TS-assembly path** is reachable only via the fallback flag; `#[deprecated]` markers in place.
 - [ ] **Golden parity tests** cover 3 main fixtures + 6 corner cases (incl. duplicate-IDs reject + reordered-IDs preserve-order).
-- [ ] **A/B validation report** at `REPORTS-NATIVE-BY-IDS-VALIDATION.md` shows all 5 metrics: wall_ms (p50/p95), IPC payload size, JS heap peak, Rust RSS peak.
+- [ ] **A/B validation report** at `REPORTS-NATIVE-BY-IDS-VALIDATION.md` shows all 5 metrics: wall_ms (p50/p95), IPC payload size, JS heap peak, Rust RSS peak; A/B includes **synthetic + production-shaped DB fixtures** (S2-1.5).
 - [ ] **`LARGE-IPC-EXCEPTION` for `reports_generate_comparison_pdf` removed** from the audit lint config.
 - [ ] **`audit:large-ipc`, `cargo test --lib`, `vitest`, `version:validate` all green** on the closing commit.
 - [ ] **`BUDGETS.md` carries measured numbers** for `L-CMP-3`, `L-CMP-5`, `L-CMP-10`, `L-CMP-PDF-5`, `L-CMP-XLSX-5` (severity stays `soft` per A3 until 5 stable nightly runs).
+- [ ] **`BUDGETS.md` carries measured numbers** for `L-LIB-OPEN-1K`, `L-LIB-OPEN-10K`, `L-FILTER`, `L-EXP-DETAIL`, `DB-LIST`, `DB-LIST-LARGE`, `DB-DETAIL` (S2-L3 promoted in v3, audit S1-AUD-005). Severity stays `soft`.
+- [ ] **`run-rust-microbench.mjs` supports `--fixture-db` and `--all-experiments`** (S2-L5 / S1-AUD-002); `npm run perf:microbench:dbsweep[:compare]` exposed.
 - [ ] **`ADR-0010-comparison-report-generation.md` updated** with a "post-Sprint-2 by-ids path" section (so future readers find the new architecture from the original ADR).
 - [ ] **Sprint 2 retrospective doc** written (template: `SPRINT-1-RETROSPECTIVE.md`).
 - [ ] **Sprint 3 planning doc** drafted with the cache key material design from G4 already pre-loaded.
 
 ---
 
-## Risk register (v2)
+## Risk register (v3)
 
 | Risk | Likelihood | Impact | Mitigation |
 | ---- | ---------- | ------ | ---------- |
@@ -397,13 +463,15 @@ Sprint 2 closes only when **all** are true:
 | Old TS-assembly path silently used in production because feature flag default is wrong | low | medium | flag default = native; manifest in `BASELINES.md` runId; S2-3 perf report explicitly logs which path each iteration ran. |
 | ADR-0013 disagrees with the lint's actual behaviour | low | low | write the ADR after confirming the lint's current rules; cite the lint as source of truth. |
 | V1_DDL.md drifts from migration code over time | high (long-tail) | medium | future Sprint 3+ task: `npm run audit:db-schema-drift` lint that diffs documented schema vs `PRAGMA table_info()` of fresh seed DB. |
-| Sprint 2 expands into "perf infra sprint" via library smoke runner gating | low (mitigated by A1) | medium | S2-L3 explicitly non-blocking (operator decision); don't merge S2-L3 into critical-sequence PRs. |
+| Sprint 2 timeline slips because v3 added S2-L3 + S2-L5 + S2-1.5 to the critical sequence | medium | medium | accepted scope expansion; v3 explicitly costs +3.5 hours; if a hard deadline emerges, S2-L3 (4 h) is the cheapest item to defer because the audit wants it but the by-ids ROI doesn't strictly need it. |
+| Long-tail BUDGETS.md TBDs stay TBD if S2-L3 ships partially (only some L-LIB-* measurements land) | medium | high (audit accepts no excuse) | gate Sprint 2 close on the new DoD line item explicitly listing all 7 L-LIB / L-FILTER / L-EXP-DETAIL / DB-LIST budgets; partial S2-L3 = Sprint 2 not closed. |
 
 ---
 
 ## See also
 
 - `docs/performance/PERF-ROADMAP-SPRINTS-1-6.md` — program-level view (this is the active sprint at the top of the ROI ordering).
+- `docs/performance/SPRINT-1-EXTERNAL-AUDIT.md` — external static audit that drove v3 amendments.
 - `docs/performance/SPRINT-1-RETROSPECTIVE.md` — what shipped in Sprint 1, what's inherited.
 - `docs/performance/BUDGETS.md` — the contract this sprint moves the L-CMP-* numbers on.
 - `docs/performance/MICROBENCH.md` — the bench harness Sprint 2 will extend with a `reports` target.

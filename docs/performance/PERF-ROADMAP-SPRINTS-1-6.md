@@ -134,7 +134,7 @@ After critical lead-in, Sprint 2's main work is the three native-by-ids delivera
 ## Active state (this commit)
 
 - **Sprint 1:** closed `5f11efb`. Retrospective: `SPRINT-1-RETROSPECTIVE.md`. P10 verdict: KEEP narrowly. Microbench infrastructure: durable.
-- **Sprint 2:** active, GO confirmed by operator review. Plan: `SPRINT-2-PLANNING.md` (v2). Critical lead-in: S2-L1 + S2-L2 + S2-L4 (S2-L3 non-blocking parallel track). Main work: S2-1 (`feat`) + S2-2 (`test golden` with 3 main + 6 corner cases) + S2-3 (`perf` 5-metric A/B). 11-commit recommended sequence; tightened DoD includes feature-flag default native + LARGE-IPC-EXCEPTION removal + ADR-0010 update.
+- **Sprint 2:** active, GO confirmed by operator review + external static audit (see `SPRINT-1-EXTERNAL-AUDIT.md`). Plan: `SPRINT-2-PLANNING.md` v3 (audit-amended). Critical lead-in (5 items): S2-L1 (✅ commit #1) + S2-L2 + S2-L3 (promoted from non-blocking) + S2-L4 + S2-L5 (orchestrator fixture-mode, new in v3). Main work: S2-1 + S2-1.5 (production-shaped bench fixtures, new in v3) + S2-2 + S2-3. **14-commit** recommended sequence; ~7–8 active days. Tightened DoD includes feature-flag default native + LARGE-IPC-EXCEPTION removal + ADR-0010 update + L-LIB-* / DB-LIST family TBD-fill.
 - **Sprint 3:** queued behind Sprint 2.
 - **Sprint 4:** queued behind Sprint 3.
 - **Sprint 5–6:** independent; can slot whenever a budget in their family bites.
@@ -144,7 +144,8 @@ After critical lead-in, Sprint 2's main work is the three native-by-ids delivera
 ## See also
 
 - `docs/performance/SPRINT-1-RETROSPECTIVE.md` — what Sprint 1 actually delivered + 4 process lessons learned.
-- `docs/performance/SPRINT-2-PLANNING.md` — per-task plan for the active sprint.
+- `docs/performance/SPRINT-1-EXTERNAL-AUDIT.md` — external static audit of `main @ 463dce2` that drove the v3 plan amendments.
+- `docs/performance/SPRINT-2-PLANNING.md` — per-task plan for the active sprint (v3, audit-amended).
 - `docs/performance/BUDGETS.md` — the perf contract this whole roadmap is fulfilling.
 - `docs/performance/MICROBENCH.md` — the bench harness Sprint 1 built (used by every subsequent sprint that touches CPU-bound code).
 - `docs/performance/P10-DB-SWEEP-VALIDATION-REPORT.md` — Sprint 1 deep-dive that kept the program on a single canonical release profile.
