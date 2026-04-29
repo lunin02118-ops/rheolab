@@ -180,6 +180,17 @@ long tasks is worse than 5 paths producing 6 each.
 | CPU/RAM action | **deferred to Sprint 4 instrumentation** — Sprint 3 cache bench records wall time, bytes, artifact rows, and hit counts only |
 | Dashboard/single-report cache adoption | **deferred** — current dashboard/single-report IPC uses mutable frontend payloads; persistent cache needs by-id contracts before keying by DB blob is safe |
 
+## Sprint 4 deliverables tracker
+
+| Deliverable | Status |
+|---|---|
+| Runtime `JobScheduler` in `AppState` | **implemented** — scheduler records queued/running/terminal state, progress, cancellation token, and per-job metrics |
+| Comparison PDF/XLSX by-IDs through scheduler | **implemented** — both native by-IDs report commands use scheduler-owned comparison job gates |
+| Job IPC and events | **implemented** — `jobs_list`, `jobs_get`, `jobs_cancel`, plus `job://created`, `job://progress`, `job://finished` |
+| AnalysisArtifact maintenance | **implemented** — `analysis_cache_stats` and scheduler-backed `analysis_cache_prune` |
+| Metrics action | **partial** — `queuedMs`, `wallMs`, cache hit/miss counts, artifact bytes, and output bytes are captured; CPU/RSS fields remain nullable pending loader-safe process sampler |
+| Merge gate | **green** — `cargo check`, `cargo test --lib` (426 passed / 1 ignored), `npm ci`, `npm test`, `version:validate`, `audit:large-ipc`, and `git diff --check` pass |
+
 ## Binary size note (corrected)
 
 An earlier draft of this document estimated the installer at “~80 MB”. The

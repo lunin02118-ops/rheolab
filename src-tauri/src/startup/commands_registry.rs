@@ -80,6 +80,12 @@ macro_rules! register_tauri_commands {
             $crate::commands::reports::reports_generate_comparison_excel,
             $crate::commands::reports::reports_generate_comparison_pdf_by_ids,
             $crate::commands::reports::reports_generate_comparison_excel_by_ids,
+            // Runtime jobs and AnalysisArtifact cache maintenance
+            $crate::commands::jobs::jobs_list,
+            $crate::commands::jobs::jobs_get,
+            $crate::commands::jobs::jobs_cancel,
+            $crate::commands::jobs::analysis_cache_stats,
+            $crate::commands::jobs::analysis_cache_prune,
             // Native analysis pipeline commands
             $crate::commands::analysis::analysis_analyze_full,
             $crate::commands::analysis::analysis_detect_steps,

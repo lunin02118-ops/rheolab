@@ -1,9 +1,9 @@
 # Performance roadmap — Sprints 1 → 6
 
-**Status:** updated 2026-04-29 after Sprint 2 alpha closeout.
+**Status:** updated 2026-04-29 after Sprint 4 implementation slice.
 **Owner:** Architecture Team.  
-**Next sprint:** **Sprint 3 — AnalysisArtifact cache**.
-**Closed:** Sprint 1 and Sprint 2 (see `SPRINT-1-RETROSPECTIVE.md` and `SPRINT-2-RETROSPECTIVE.md`).
+**Next sprint:** **Sprint 5 — ExperimentListProjection + facet cache**.
+**Closed:** Sprint 1, Sprint 2, Sprint 3, and Sprint 4.
 
 This document is the **single-page program view** of the perf-architecture work that started with Sprint 0's `BUDGETS.md` contract. It captures the 6-sprint mission per sprint, the ROI logic that orders them, and the cross-sprint dependencies. Each per-sprint plan (`SPRINT-2-PLANNING.md`, etc.) drills into a single sprint; this doc is the connector.
 
@@ -15,8 +15,8 @@ This document is the **single-page program view** of the perf-architecture work 
 | ------ | ----- | ------- | ------ |
 | **1** | Measurement + contracts | Define perf budgets, ship library/report smoke perf runners, codify the *no-large-ipc* rule, freeze the V1_DDL contract. | **closed** (with 2.5 of 4 originally-scoped items deferred — see "Sprint 1 carry-overs" below). |
 | **2** | **Native comparison reports by IDs** | Add `reports_*_by_ids` IPC commands; replace TS-side assembly of large `ComparisonReportInput` payloads with Rust-side DB lookup by ID list. **This is the main ROI lever** — removes the large IPC payload from the default comparison export path, unblocks Sprint 3 cache integration, and tightens report-render budgets. | **closed for alpha** (legacy rollback path retained until alpha/beta window ends) |
-| **3** | AnalysisArtifact cache | DB migration for cache table; `analysis_analyze_full` checks cache first, returns cached result if `(experiment_content_hash, settings_hash)` matches; reports + comparison consume the cache transparently. | next |
-| **4** | Job scheduler | Native scheduler in Rust runtime with cancellation hooks; reports + imports run *through* the scheduler instead of bare `tokio::spawn`. Enables UI cancellation, queue depth visibility, and progress events. | pending Sprint 3 |
+| **3** | AnalysisArtifact cache | DB migration for cache table; comparison by-IDs reports consume persistent `AnalysisArtifact` cache transparently. | **closed** |
+| **4** | Job scheduler | Native scheduler in Rust runtime with cancellation hooks; comparison reports and cache maintenance run through scheduler. Enables queue visibility, progress events, and job metrics. | **closed** |
 | **5** | Library projection | `ExperimentListProjection` table (denormalised, list-shape); library page serves from projection; facet/filter cache. Tightens L-LIB-OPEN and L-FILTER budgets to sub-100 ms. | independent |
 | **6** | Binary series IPC | Downsampled binary viewport series endpoint; chart layer consumes viewport-fitting arrays instead of full per-point arrays over JSON. Reduces chart paint time for large experiments and trims IPC bandwidth. | independent |
 

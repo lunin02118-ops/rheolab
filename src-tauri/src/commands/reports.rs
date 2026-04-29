@@ -31,6 +31,7 @@ use crate::db::repositories::analysis_artifacts::{
 use crate::db::repositories::experiments::{load_experiment_data_hashes, load_experiments_batch};
 use crate::db::DbPool;
 use crate::error::{AppError, Result};
+use crate::runtime::jobs::{JobContext, JobKind};
 use crate::state::AppState;
 use crate::utils::time::now_rfc3339;
 use crate::utils::validation::{validate_bounded_str, validate_hash_id};
@@ -50,10 +51,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use tauri::State;
-use tokio::sync::Semaphore;
-
-static COMPARISON_REPORT_SEMAPHORE: Semaphore = Semaphore::const_new(1);
+use tauri::{AppHandle, State};
 
 /// Inner implementation used by tests — returns raw bytes.
 ///
@@ -263,6 +261,7 @@ pub async fn reports_generate_comparison_excel(
 
 #[tauri::command]
 pub async fn reports_generate_comparison_pdf_by_ids(
+    app: AppHandle,
     state: State<'_, AppState>,
     request: ComparisonReportByIdsRequest,
 ) -> Result<tauri::ipc::Response> {
@@ -271,33 +270,39 @@ pub async fn reports_generate_comparison_pdf_by_ids(
     }
     let features = current_features(&state).await;
     validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)?;
-    let _permit = COMPARISON_REPORT_SEMAPHORE
-        .acquire()
-        .await
-        .map_err(|error| AppError::Other(format!("comparison report semaphore closed: {error}")))?;
-
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
-            tracing::debug!(
-                "[E2E] reports_generate_comparison_pdf_by_ids: returning mock PDF bytes"
-            );
-            return Ok(tauri::ipc::Response::new(vec![
-                0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34,
-            ]));
-        }
-    }
 
     let pool = state.db_pool.clone();
-    let bytes = tokio::task::spawn_blocking(move || {
-        generate_comparison_pdf_by_ids_bytes_cached(&pool, &request)
-    })
-    .await??;
+    let scheduler = state.job_scheduler.clone();
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+    let bytes = scheduler
+        .run_blocking(app_handle, JobKind::ComparisonPdf, move |ctx| {
+            #[cfg(debug_assertions)]
+            {
+                if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+                    tracing::debug!(
+                        "[E2E] reports_generate_comparison_pdf_by_ids: returning mock PDF bytes"
+                    );
+                    let bytes = vec![0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34];
+                    ctx.record_output_bytes(bytes.len() as u64);
+                    return Ok(bytes);
+                }
+            }
+
+            generate_comparison_pdf_by_ids_bytes_cached_with_job(&pool, &request, &ctx)
+        })
+        .await?;
     Ok(tauri::ipc::Response::new(bytes))
 }
 
 #[tauri::command]
 pub async fn reports_generate_comparison_excel_by_ids(
+    app: AppHandle,
     state: State<'_, AppState>,
     request: ComparisonReportByIdsRequest,
 ) -> Result<tauri::ipc::Response> {
@@ -306,26 +311,33 @@ pub async fn reports_generate_comparison_excel_by_ids(
     }
     let features = current_features(&state).await;
     validate_comparison_by_ids_request(&request, &features, ReportFormat::Excel)?;
-    let _permit = COMPARISON_REPORT_SEMAPHORE
-        .acquire()
-        .await
-        .map_err(|error| AppError::Other(format!("comparison report semaphore closed: {error}")))?;
-
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
-            tracing::debug!(
-                "[E2E] reports_generate_comparison_excel_by_ids: returning mock XLSX bytes"
-            );
-            return Ok(tauri::ipc::Response::new(vec![0x50, 0x4b, 0x03, 0x04]));
-        }
-    }
 
     let pool = state.db_pool.clone();
-    let bytes = tokio::task::spawn_blocking(move || {
-        generate_comparison_excel_by_ids_bytes_cached(&pool, &request)
-    })
-    .await??;
+    let scheduler = state.job_scheduler.clone();
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+    let bytes = scheduler
+        .run_blocking(app_handle, JobKind::ComparisonExcel, move |ctx| {
+            #[cfg(debug_assertions)]
+            {
+                if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+                    tracing::debug!(
+                        "[E2E] reports_generate_comparison_excel_by_ids: returning mock XLSX bytes"
+                    );
+                    let bytes = vec![0x50, 0x4b, 0x03, 0x04];
+                    ctx.record_output_bytes(bytes.len() as u64);
+                    return Ok(bytes);
+                }
+            }
+
+            generate_comparison_excel_by_ids_bytes_cached_with_job(&pool, &request, &ctx)
+        })
+        .await?;
     Ok(tauri::ipc::Response::new(bytes))
 }
 
@@ -350,6 +362,7 @@ fn generate_comparison_pdf_by_ids_bytes(
     name = "reports::cmp::pdf::by_ids_cached",
     fields(n_experiments = request.experiment_ids.len())
 )]
+#[cfg(test)]
 fn generate_comparison_pdf_by_ids_bytes_cached(
     pool: &DbPool,
     request: &ComparisonReportByIdsRequest,
@@ -362,6 +375,31 @@ fn generate_comparison_pdf_by_ids_bytes_cached(
             error
         ))
     })
+}
+
+fn generate_comparison_pdf_by_ids_bytes_cached_with_job(
+    pool: &DbPool,
+    request: &ComparisonReportByIdsRequest,
+    ctx: &JobContext,
+) -> Result<Vec<u8>> {
+    let input = build_comparison_report_input_by_ids_cached_with_job(pool, request, Some(ctx))?;
+    ctx.ensure_not_cancelled()?;
+    ctx.progress(
+        "render_pdf",
+        request.experiment_ids.len() as u64,
+        Some(request.experiment_ids.len() as u64),
+        Some("Rendering comparison PDF".into()),
+    );
+    let bytes =
+        rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
+            tracing::error!("Comparison PDF by IDs generation failed: {}", error);
+            AppError::Other(format!(
+                "Comparison PDF by IDs generation failed: {}",
+                error
+            ))
+        })?;
+    ctx.record_output_bytes(bytes.len() as u64);
+    Ok(bytes)
 }
 
 #[cfg(test)]
@@ -400,6 +438,7 @@ fn generate_comparison_excel_by_ids_bytes(
     name = "reports::cmp::xlsx::by_ids_cached",
     fields(n_experiments = request.experiment_ids.len())
 )]
+#[cfg(test)]
 fn generate_comparison_excel_by_ids_bytes_cached(
     pool: &DbPool,
     request: &ComparisonReportByIdsRequest,
@@ -412,6 +451,31 @@ fn generate_comparison_excel_by_ids_bytes_cached(
             error
         ))
     })
+}
+
+fn generate_comparison_excel_by_ids_bytes_cached_with_job(
+    pool: &DbPool,
+    request: &ComparisonReportByIdsRequest,
+    ctx: &JobContext,
+) -> Result<Vec<u8>> {
+    let input = build_comparison_report_input_by_ids_cached_with_job(pool, request, Some(ctx))?;
+    ctx.ensure_not_cancelled()?;
+    ctx.progress(
+        "render_xlsx",
+        request.experiment_ids.len() as u64,
+        Some(request.experiment_ids.len() as u64),
+        Some("Rendering comparison XLSX".into()),
+    );
+    let bytes =
+        rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
+            tracing::error!("Comparison Excel by IDs generation failed: {}", error);
+            AppError::Other(format!(
+                "Comparison Excel by IDs generation failed: {}",
+                error
+            ))
+        })?;
+    ctx.record_output_bytes(bytes.len() as u64);
+    Ok(bytes)
 }
 
 #[cfg(test)]
@@ -438,31 +502,74 @@ fn build_comparison_report_input_by_ids(
     build_comparison_report_input_from_experiments(&experiments, request)
 }
 
+#[cfg(test)]
 fn build_comparison_report_input_by_ids_cached(
     pool: &DbPool,
     request: &ComparisonReportByIdsRequest,
 ) -> Result<ComparisonReportInput> {
+    build_comparison_report_input_by_ids_cached_with_job(pool, request, None)
+}
+
+fn build_comparison_report_input_by_ids_cached_with_job(
+    pool: &DbPool,
+    request: &ComparisonReportByIdsRequest,
+    ctx: Option<&JobContext>,
+) -> Result<ComparisonReportInput> {
+    if let Some(ctx) = ctx {
+        ctx.progress(
+            "load_experiments",
+            0,
+            Some(request.experiment_ids.len() as u64),
+            Some("Loading experiments and cache artifacts".into()),
+        );
+        ctx.ensure_not_cancelled()?;
+    }
+
     let mut resolved = {
         let conn = pool.get().map_err(AppError::Pool)?;
         load_comparison_experiments_with_cache_hits(&conn, request)?
     };
 
-    resolve_comparison_cache_misses(&mut resolved, &request.settings);
+    resolve_comparison_cache_misses_with_job(&mut resolved, &request.settings, ctx)?;
 
-    {
+    let artifact_bytes_written = {
         let conn = pool.get().map_err(AppError::Pool)?;
-        store_comparison_cache_misses(&conn, &mut resolved);
-    }
+        store_comparison_cache_misses_with_job(&conn, &mut resolved, ctx)?
+    };
 
     let hits = resolved
         .iter()
         .filter(|item| item.cache_status == AnalysisCacheStatus::Hit)
         .count();
-    let misses = resolved.len().saturating_sub(hits);
+    let misses = resolved
+        .iter()
+        .filter(|item| {
+            matches!(
+                item.cache_status,
+                AnalysisCacheStatus::MissPending
+                    | AnalysisCacheStatus::MissStored
+                    | AnalysisCacheStatus::MissStoreFailed
+            )
+        })
+        .count();
+    let artifact_bytes_read = resolved
+        .iter()
+        .map(|item| item.artifact_bytes_read)
+        .sum::<u64>();
+    if let Some(ctx) = ctx {
+        ctx.record_cache_stats(
+            hits as u64,
+            misses as u64,
+            artifact_bytes_read,
+            artifact_bytes_written,
+        );
+    }
     tracing::info!(
         n_experiments = resolved.len(),
         cache_hits = hits,
         cache_misses = misses,
+        artifact_bytes_read,
+        artifact_bytes_written,
         "comparison by-ids analysis cache resolved"
     );
 
@@ -522,6 +629,8 @@ fn load_cached_comparison_experiment(
             analysis: None,
             cache_key: None,
             cache_status: AnalysisCacheStatus::Bypass,
+            artifact_bytes_read: 0,
+            artifact_bytes_written: 0,
         });
     }
 
@@ -541,6 +650,15 @@ fn load_cached_comparison_experiment(
                     );
                     analysis = Some(output);
                     cache_status = AnalysisCacheStatus::Hit;
+                    return Ok(CachedComparisonExperiment {
+                        experiment,
+                        rheo_points,
+                        analysis,
+                        cache_key: Some(cache_key),
+                        cache_status,
+                        artifact_bytes_read: record.artifact_bytes.max(0) as u64,
+                        artifact_bytes_written: 0,
+                    });
                 }
                 Err(error) => {
                     tracing::warn!(
@@ -581,17 +699,30 @@ fn load_cached_comparison_experiment(
         analysis,
         cache_key: Some(cache_key),
         cache_status,
+        artifact_bytes_read: 0,
+        artifact_bytes_written: 0,
     })
 }
 
-fn resolve_comparison_cache_misses(
+fn resolve_comparison_cache_misses_with_job(
     experiments: &mut [CachedComparisonExperiment],
     settings: &ComparisonReportByIdsSettings,
-) {
+    ctx: Option<&JobContext>,
+) -> Result<()> {
     let expert_settings = build_expert_settings(&settings.analysis_settings);
     let schedule_config = build_schedule_config(&settings.detection_settings);
+    let total = experiments.len() as u64;
 
-    for item in experiments {
+    for (index, item) in experiments.iter_mut().enumerate() {
+        if let Some(ctx) = ctx {
+            ctx.ensure_not_cancelled()?;
+            ctx.progress(
+                "analysis",
+                index as u64,
+                Some(total),
+                Some("Resolving analysis cache misses".into()),
+            );
+        }
         if item.analysis.is_some() || item.rheo_points.is_empty() {
             continue;
         }
@@ -606,13 +737,26 @@ fn resolve_comparison_cache_misses(
         item.analysis = Some(output);
         item.cache_status = AnalysisCacheStatus::MissPending;
     }
+    Ok(())
 }
 
-fn store_comparison_cache_misses(
+fn store_comparison_cache_misses_with_job(
     conn: &rusqlite::Connection,
     experiments: &mut [CachedComparisonExperiment],
-) {
-    for item in experiments {
+    ctx: Option<&JobContext>,
+) -> Result<u64> {
+    let mut artifact_bytes_written = 0u64;
+    let total = experiments.len() as u64;
+    for (index, item) in experiments.iter_mut().enumerate() {
+        if let Some(ctx) = ctx {
+            ctx.ensure_not_cancelled()?;
+            ctx.progress(
+                "cache_store",
+                index as u64,
+                Some(total),
+                Some("Storing analysis cache misses".into()),
+            );
+        }
         if item.cache_status != AnalysisCacheStatus::MissPending {
             continue;
         }
@@ -640,6 +784,8 @@ fn store_comparison_cache_misses(
                     cache_status = "miss_stored",
                     "analysis artifact cache"
                 );
+                item.artifact_bytes_written = record.artifact_bytes.max(0) as u64;
+                artifact_bytes_written += item.artifact_bytes_written;
                 item.cache_status = AnalysisCacheStatus::MissStored;
             }
             Err(error) => {
@@ -653,6 +799,7 @@ fn store_comparison_cache_misses(
             }
         }
     }
+    Ok(artifact_bytes_written)
 }
 
 #[cfg(test)]
@@ -1430,6 +1577,8 @@ struct CachedComparisonExperiment {
     analysis: Option<AnalysisOutput>,
     cache_key: Option<AnalysisCacheKey>,
     cache_status: AnalysisCacheStatus,
+    artifact_bytes_read: u64,
+    artifact_bytes_written: u64,
 }
 
 const MAX_COMPANY_NAME_BYTES: usize = 255;

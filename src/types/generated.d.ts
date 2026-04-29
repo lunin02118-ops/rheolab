@@ -12,6 +12,10 @@ export type AiDiagnostics = { attempted: boolean; provider: string; model: strin
 
 export type AiDiagnosticsStatus = "accepted" | "failed" | "rejected"
 
+export type AnalysisCachePruneResponse = { maxTotalBytes: number; deletedRows: number; before: AnalysisCacheStats; after: AnalysisCacheStats }
+
+export type AnalysisCacheStats = { totalRows: number; totalBytes: number; accessedRows: number; oldestUpdatedAt: string | null; newestUpdatedAt: string | null; newestAccessedAt: string | null }
+
 export type ApiKeyCreatePayload = { name: string; key: string; provider: string | null }
 
 export type ApiKeyDeleteResponse = { success: boolean; error?: string | null }
@@ -189,6 +193,22 @@ export type FixtureReadResponse = { success: boolean; filename?: string | null; 
 export type FixturesListResponse = { success: boolean; fixtures: FixtureItem[]; count: number; error?: string | null }
 
 export type ImportBatchItem = { id: string; sourceLabId: string | null; sourceSystem: string | null; sourceAppVersion: string | null; importedByUserId: string | null; fileName: string | null; checksum: string | null; notes: string | null; experimentsImported: number; duplicatesDetected: number; status: string; createdAt: string; updatedAt: string }
+
+export type JobCancelResponse = { jobId: string; status: JobStatus; cancelled: boolean }
+
+export type JobFinishedEvent = { jobId: string; kind: JobKind; status: JobStatus; error: string | null; metrics: JobMetrics | null }
+
+export type JobKind = "comparisonPdf" | "comparisonExcel" | "singlePdf" | "singleExcel" | "importDb" | "backupRestore" | "analysisCachePrune" | "analysisCacheWarmup" | "maintenance"
+
+export type JobMetrics = { queuedMs: number; wallMs: number; cpuMsDelta: number | null; rssMbStart: number | null; rssMbPeak: number | null; rssMbEnd: number | null; cacheHits: number | null; cacheMisses: number | null; artifactBytesRead: number | null; artifactBytesWritten: number | null; outputBytes: number | null }
+
+export type JobProgress = { phase: string; current: number; total: number | null; message: string | null }
+
+export type JobProgressEvent = { jobId: string; kind: JobKind; status: JobStatus; phase: string; current: number; total: number | null; message: string | null }
+
+export type JobRecord = { id: string; kind: JobKind; status: JobStatus; createdAt: string; startedAt: string | null; finishedAt: string | null; progress: JobProgress; error: string | null; metrics: JobMetrics | null }
+
+export type JobStatus = "queued" | "running" | "cancelling" | "cancelled" | "succeeded" | "failed"
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 

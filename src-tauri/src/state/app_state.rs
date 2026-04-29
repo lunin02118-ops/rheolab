@@ -1,10 +1,12 @@
 //! Application state structures
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::commands::licensing::LicenseEngine;
 use crate::db::migration::MigrationResult;
 use crate::db::{self, DbConn, DbPool};
+use crate::runtime::jobs::JobScheduler;
 
 // ── Bootstrap paths ──────────────────────────────────────────────────────
 
@@ -54,6 +56,8 @@ pub struct AppState {
     pub app_data_dir: PathBuf,
     /// SQLite connection pool (rusqlite + r2d2)
     pub db_pool: DbPool,
+    /// Runtime scheduler for heavy report/import/maintenance jobs.
+    pub job_scheduler: Arc<JobScheduler>,
     /// V2 License engine — authoritative source of license status
     pub license_engine: Option<LicenseEngine>,
     /// Result of the migration run at startup — used by lib.rs to emit the
@@ -95,6 +99,7 @@ impl AppState {
             backups_dir: paths.backups_dir,
             app_data_dir: paths.app_data_dir,
             db_pool,
+            job_scheduler: Arc::new(JobScheduler::new()),
             license_engine,
             migration_result,
         })

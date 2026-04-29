@@ -17,15 +17,19 @@ pub mod analysis_cache;
 pub mod commands;
 pub mod db;
 pub mod error;
+pub mod runtime;
 pub mod startup;
 pub mod state;
 pub mod types;
 pub mod utils;
 
+#[cfg(not(test))]
 use startup::logging::{log_to_file, rotate_startup_log};
+#[cfg(not(test))]
 use tauri_plugin_log::log::LevelFilter;
 
 /// Initialize and run the Tauri application.
+#[cfg(not(test))]
 pub fn run() {
     // Rotate previous startup log if it grew too large (keeps 7 archives).
     rotate_startup_log(7);
@@ -109,6 +113,9 @@ pub fn run() {
         std::process::exit(1);
     }
 }
+
+#[cfg(test)]
+pub fn run() {}
 
 // ── specta TypeScript bindings export test ────────────────────────────────
 /// Run `cargo test export_ts_bindings -- --nocapture` from src-tauri/ to regenerate.
