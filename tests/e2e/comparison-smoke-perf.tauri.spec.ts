@@ -20,11 +20,9 @@
  * - Tauri build available (debug or release). Debug uses report mocks
  *   (see `base-test.tauri.ts`); release runs real Typst/XLSX. Recorded
  *   `mode` field disambiguates the two so future readers know which it is.
- * - Demo license caps `maxComparisonExperiments` at 3. **N=5 and N=10 are
- *   currently SKIPPED with an explicit `skipped: 'license-cap'` JSON entry.**
- *   A follow-up patch (license-feature override helper) will unlock those
- *   sizes; the spec is written so adding the override is a single-line
- *   change in `setupComparisonExperiments`.
+ * - The effective `maxComparisonExperiments` cap is read from the same
+ *   `licensing_check` IPC that the app uses. Counts above that runtime cap are
+ *   recorded as skipped instead of being silently absent from the sidecar.
  *
  * Run:
  *   npm run perf:comparison:tauri
@@ -63,13 +61,6 @@ const OUTPUT_DIR = path.resolve('outputs', 'e2e', 'perf');
 const TARGET_FIXTURE_COUNTS = [3, 5, 10] as const;
 
 /**
- * Demo-license cap on `maxComparisonExperiments`. Mirrors the runtime check
- * in the existing `multi-fixture-perf.tauri.spec.ts` (line 285 there sets
- * CMP_FIXTURES_COUNT = 3 with the same comment).
- */
-const DEMO_LICENSE_CMP_CAP = 3;
-
-/**
  * Fixture rotation pool. The spec uploads N copies of these in sequence,
  * suffixing each saved name with `_${runId}_${i}` so the comparison selector
  * has N distinct rows to pick. Picked from DEMO_FIXTURES so they don't
@@ -102,7 +93,7 @@ interface ComparisonSmokeReport {
     mode: 'tauri-debug-mocked' | 'tauri-release-real';
     generatedAt: string;
     platform: string;
-    license_cap_assumed: number;
+    license_cap: number;
     measurements: ComparisonSmokeMeasurement[];
 }
 
@@ -126,6 +117,16 @@ async function detectMockMode(page: Page): Promise<'tauri-debug-mocked' | 'tauri
     return page.evaluate<'tauri-debug-mocked' | 'tauri-release-real'>(() => {
         const w = window as unknown as { __RHEOLAB_E2E_REPORT_MOCK_INSTALLED?: boolean };
         return w.__RHEOLAB_E2E_REPORT_MOCK_INSTALLED ? 'tauri-debug-mocked' : 'tauri-release-real';
+    });
+}
+
+async function readComparisonCap(page: Page): Promise<number> {
+    return page.evaluate<number>(async () => {
+        const internals = (window as any).__TAURI_INTERNALS__;
+        if (!internals) return 3;
+        const result = await internals.invoke('licensing_check', {});
+        const cap = Number(result?.features?.maxComparisonExperiments);
+        return Number.isFinite(cap) && cap > 0 ? cap : 3;
     });
 }
 
@@ -164,21 +165,22 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
         const cmpReports = new ComparisonReportsPage(page);
 
         const mode = await detectMockMode(page);
-        console.log(`[CmpSmoke] mode=${mode} runId=${runId}`);
+        const comparisonCap = await readComparisonCap(page);
+        console.log(`[CmpSmoke] mode=${mode} cap=${comparisonCap} runId=${runId}`);
 
         for (const n of TARGET_FIXTURE_COUNTS) {
             console.log(`\n━━━ N=${n} ━━━`);
 
             // 1. License-cap gate — record skipped entry, continue.
-            if (n > DEMO_LICENSE_CMP_CAP) {
-                console.log(`  [skip] N=${n} > demo license cap (${DEMO_LICENSE_CMP_CAP})`);
+            if (n > comparisonCap) {
+                console.log(`  [skip] N=${n} > runtime comparison cap (${comparisonCap})`);
                 measurements.push({
                     n,
                     cmp_ready_ms: null,
                     pdf_ms: null,
                     xlsx_ms: null,
                     skipped: 'license-cap',
-                    skipReason: `demo license caps maxComparisonExperiments at ${DEMO_LICENSE_CMP_CAP}; license-feature override helper TBD`,
+                    skipReason: `runtime license caps maxComparisonExperiments at ${comparisonCap}`,
                 });
                 continue;
             }
@@ -277,11 +279,11 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
         const report: ComparisonSmokeReport = {
             schema: 'rheolab.e2e.perf.comparison_smoke.v1',
             runId,
-            label: 'TS-assembly', // post-S2-1: re-run with label='native-by-ids' for the A/B
+            label: 'native-by-ids',
             mode,
             generatedAt: new Date().toISOString(),
             platform: process.platform,
-            license_cap_assumed: DEMO_LICENSE_CMP_CAP,
+            license_cap: comparisonCap,
             measurements,
         };
 

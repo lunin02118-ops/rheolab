@@ -294,7 +294,8 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                 activeCount={locationCount}
             >
                 <RangeFilter label="Дата теста" minValue={filters.dateFrom} maxValue={filters.dateTo}
-                    onMinChange={v => handleChange('dateFrom', v)} onMaxChange={v => handleChange('dateTo', v)} type="date" />
+                    onMinChange={v => handleChange('dateFrom', v)} onMaxChange={v => handleChange('dateTo', v)} type="date"
+                    minTestId="DateFromFilterInput" maxTestId="DateToFilterInput" />
 
                 <TextFilter label="Лаборатория" value={filters.laboratoryName}
                     onChange={v => handleChange('laboratoryName', v)} placeholder="Название лаб..." testId="ExperimentLaboratoryFilterInput" />

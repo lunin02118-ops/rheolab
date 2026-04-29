@@ -3,6 +3,7 @@
 **Status:** v1 (2026-04-28, Sprint 0 — baseline captured by S0-5).  
 **Owner:** Architecture Team.  
 **Linked baseline:** **AlphaBaseline-0.2.2-alpha.2** (see `BASELINES.md`, runId family `1777393597912`–`1777393927970`).  
+**Latest RC scorecard:** `RC-PERFORMANCE-SCORECARD.md` (2026-04-29 local hardening pass).
 **Compare gate:** any PR touching the comparison/report/library/filter paths
 must run `npm run perf:compare` and prove it stays inside the budget envelope.
 

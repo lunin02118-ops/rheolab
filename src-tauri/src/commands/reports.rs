@@ -94,6 +94,7 @@ async fn generate_excel_bytes(input: ReportInput) -> Result<Vec<u8>> {
     name = "reports::comparison::pdf::spawn_blocking",
     fields(n_experiments = input.experiments.len())
 )]
+#[cfg(test)]
 async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
         rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
@@ -112,6 +113,7 @@ async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<V
     name = "reports::comparison::excel::spawn_blocking",
     fields(n_experiments = input.experiments.len())
 )]
+#[cfg(test)]
 async fn generate_comparison_excel_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
         rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
