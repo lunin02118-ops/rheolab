@@ -42,6 +42,7 @@ export function mapExperimentToParseResult(exp: Record<string, unknown>): ParseR
         data,
         metadata: {
             filename: String(exp.originalFilename ?? ''),
+            experimentId: exp.id != null ? String(exp.id) : undefined,
             instrumentType: exp.instrumentType != null ? String(exp.instrumentType) : undefined,
             testDate: new Date(exp.testDate as string),
             geometry: exp.geometry != null ? String(exp.geometry) : undefined,

@@ -47,6 +47,10 @@ macro_rules! register_tauri_commands {
             $crate::commands::experiments::experiments_export_laboratories,
             $crate::commands::experiments::experiments_export_to_file,
             $crate::commands::experiments::experiments_import,
+            // Binary chart series commands (Sprint 6)
+            $crate::commands::series::experiments_series_meta,
+            $crate::commands::series::experiments_series_overview,
+            $crate::commands::series::experiments_series_window,
             // Reagents commands — RISK: MEDIUM (writes catalog data)
             $crate::commands::reagents::reagents_list,
             $crate::commands::reagents::reagents_create,

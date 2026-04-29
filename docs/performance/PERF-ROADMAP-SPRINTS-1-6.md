@@ -1,9 +1,9 @@
 # Performance roadmap — Sprints 1 → 6
 
-**Status:** updated 2026-04-29 after Sprint 5 implementation slice.
+**Status:** updated 2026-04-29 after Sprint 6 implementation slice.
 **Owner:** Architecture Team.  
-**Next sprint:** **Sprint 6 — Binary series IPC / viewport downsampled chart data**.
-**Closed:** Sprint 1, Sprint 2, Sprint 3, Sprint 4, and Sprint 5.
+**Next sprint:** hardening lane — remove legacy fallbacks, add by-id detail analysis, CPU/RSS sampler, and UI metric extraction.
+**Closed:** Sprint 1, Sprint 2, Sprint 3, Sprint 4, Sprint 5, and Sprint 6.
 
 This document is the **single-page program view** of the perf-architecture work that started with Sprint 0's `BUDGETS.md` contract. It captures the 6-sprint mission per sprint, the ROI logic that orders them, and the cross-sprint dependencies. Each per-sprint plan (`SPRINT-2-PLANNING.md`, etc.) drills into a single sprint; this doc is the connector.
 
@@ -18,7 +18,7 @@ This document is the **single-page program view** of the perf-architecture work 
 | **3** | AnalysisArtifact cache | DB migration for cache table; comparison by-IDs reports consume persistent `AnalysisArtifact` cache transparently. | **closed** |
 | **4** | Job scheduler | Native scheduler in Rust runtime with cancellation hooks; comparison reports and cache maintenance run through scheduler. Enables queue visibility, progress events, and job metrics. | **closed** |
 | **5** | Library projection | `ExperimentListProjection` table (denormalised, list-shape); library page serves from projection for supported ready queries; facet/filter cache. | **closed** |
-| **6** | Binary series IPC | Downsampled binary viewport series endpoint; chart layer consumes viewport-fitting arrays instead of full per-point arrays over JSON. Reduces chart paint time for large experiments and trims IPC bandwidth. | independent |
+| **6** | Binary series IPC | Downsampled binary viewport series endpoint; chart layer can consume viewport-fitting arrays instead of full per-point arrays over JSON. | **closed as initial vertical slice** |
 
 ---
 
@@ -138,7 +138,7 @@ After critical lead-in, Sprint 2's main work is the three native-by-ids delivera
 - **Sprint 3:** closed. AnalysisArtifact cache is integrated into comparison by-IDs reports.
 - **Sprint 4:** closed. Runtime job scheduler owns report/cache maintenance jobs.
 - **Sprint 5:** closed. Library projection and facet cache vertical slice shipped with safe legacy fallback.
-- **Sprint 6:** next independent perf lever: binary/downsampled viewport series IPC for charts.
+- **Sprint 6:** closed as an initial vertical slice. Binary `RHEOSR1` overview/window IPC and frontend decoder are in place; dashboard chart can use binary overview for DB-loaded experiments. Full detail-open rawPoints removal remains a hardening follow-up because dashboard analysis/report/raw-table workflows still depend on full data.
 
 ---
 
@@ -149,6 +149,8 @@ After critical lead-in, Sprint 2's main work is the three native-by-ids delivera
 - `docs/performance/SPRINT-2-PLANNING.md` — closed Sprint 2 plan (v3, audit-amended).
 - `docs/performance/SPRINT-5-RETROSPECTIVE.md` — closed Sprint 5 projection slice.
 - `docs/performance/LIBRARY-PROJECTION-VALIDATION.md` — Sprint 5 DB-level validation.
+- `docs/performance/SPRINT-6-RETROSPECTIVE.md` — closed Sprint 6 binary series slice.
+- `docs/performance/BINARY-SERIES-IPC-VALIDATION.md` — Sprint 6 binary series validation.
 - `docs/performance/BUDGETS.md` — the perf contract this whole roadmap is fulfilling.
 - `docs/performance/MICROBENCH.md` — the bench harness Sprint 1 built (used by every subsequent sprint that touches CPU-bound code).
 - `docs/performance/P10-DB-SWEEP-VALIDATION-REPORT.md` — Sprint 1 deep-dive that kept the program on a single canonical release profile.

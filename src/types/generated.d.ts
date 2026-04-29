@@ -390,6 +390,10 @@ export type RecipeComponentResponse = { abbreviation: string; concentration: num
 
 export type ReportArtifactItem = { id: string; experimentId: string; importBatchId: string | null; reportType: string; templateVersion: string | null; storagePath: string | null; binarySha256: string | null; sizeBytes: number | null; createdAt: string }
 
+export type SeriesMetaResponse = { experimentId: string; pointCount: number; timeMinSec: number | null; timeMaxSec: number | null; availableMetrics: SeriesMetricDescriptor[]; dataHash: string }
+
+export type SeriesMetricDescriptor = { id: number; key: string }
+
 export type SimpleResult = { success: boolean; message: string | null; error: string | null; deletedCount: number | null }
 
 export type StoredExperiment = { id: string; createdAt: string; updatedAt: string; name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; rawPoints: JsonValue[]; calibration: JsonValue | null; reagents: StoredExperimentReagent[]; maxViscosity: number | null; avgViscosity: number | null; user: StoredExperimentUser | null; laboratory: StoredExperimentLaboratory | null; parsedBy?: string | null; parseSource?: string | null; timeRangeMin?: number | null; timeRangeMax?: number | null; viscosityMin?: number | null; pressureMax?: number | null; extraFields?: JsonValue | null }

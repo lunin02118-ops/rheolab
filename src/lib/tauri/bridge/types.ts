@@ -50,3 +50,4 @@ export type {
   PlatformType,
   PlatformBridge,
 } from '@/types/tauri';
+export type { SeriesMetaResponse, SeriesWindow } from '@/lib/series/binary-series';

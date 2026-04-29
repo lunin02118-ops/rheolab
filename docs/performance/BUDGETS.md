@@ -203,6 +203,16 @@ long tasks is worse than 5 paths producing 6 each.
 | DB-level validation | **captured** — see `LIBRARY-PROJECTION-VALIDATION.md`; synthetic 1k list query measured 3 ms legacy and 3 ms projection, facet rebuild 2 ms |
 | Budget action | **partial** — `DB-LIST`/`DB-FACET` now have real synthetic DB-level values; UI-level L-LIB/L-FILTER budgets remain unchanged until the Playwright runner emits DB spans |
 
+## Sprint 6 deliverables tracker
+
+| Deliverable | Status |
+|---|---|
+| Binary by-id chart series IPC | **implemented** — `experiments_series_meta`, `experiments_series_overview`, and `experiments_series_window` read `ExperimentData.dataBlob` and return `RHEOSR1` binary f64 columns |
+| Downsample strategy | **implemented** — min/max bucket downsampling preserves first/last points and primary metric extrema |
+| Frontend decoder and chart adoption | **implemented as initial slice** — DB-loaded dashboard charts attempt binary overview and fall back to the legacy AoS/SoA path |
+| Validation | **captured** — see `BINARY-SERIES-IPC-VALIDATION.md`; targeted Rust and TS codec/downsample tests pass |
+| Budget action | **no hard tightening yet** — binary payload formula is documented, but chart first paint, JS heap, and long-task budgets wait for Playwright instrumentation and by-id detail analysis |
+
 ## Binary size note (corrected)
 
 An earlier draft of this document estimated the installer at “~80 MB”. The
