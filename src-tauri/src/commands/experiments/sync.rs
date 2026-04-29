@@ -211,6 +211,15 @@ fn import_experiments_blocking(db_pool: DbPool, experiments: Vec<Value>) -> Resu
         }
     }
 
+    if imported > 0 {
+        if let Err(e) = crate::db::repositories::experiment_projection::rebuild_facet_cache(&tx) {
+            tracing::warn!(
+                "[experiment_projection] facet rebuild after import failed: {}",
+                e
+            );
+        }
+    }
+
     tx.commit()?;
     super::list::invalidate_filter_metadata_cache();
     Ok(json!({

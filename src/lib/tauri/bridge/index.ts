@@ -23,6 +23,7 @@ import {
   analysis as tauriAnalysis,
   jobs as tauriJobs,
   analysisCache as tauriAnalysisCache,
+  experimentProjection as tauriExperimentProjection,
   operators as tauriOperators,
   laboratories as tauriLaboratories,
 } from '../index';
@@ -128,6 +129,11 @@ function createTauriBridge(): PlatformBridge {
       prune: (maxTotalBytes) => tauriAnalysisCache.prune(maxTotalBytes),
     },
 
+    experimentProjection: {
+      status: () => tauriExperimentProjection.status(),
+      rebuild: () => tauriExperimentProjection.rebuild(),
+    },
+
     logger: {
       info: (message) => tauriLogger.info(message),
       error: (message) => tauriLogger.error(message),
@@ -199,6 +205,8 @@ export type {
   JobCancelResponse,
   AnalysisCacheStats,
   AnalysisCachePruneResponse,
+  ExperimentProjectionStatus,
+  ExperimentProjectionRebuildResponse,
   PlatformBridge,
 } from './types';
 

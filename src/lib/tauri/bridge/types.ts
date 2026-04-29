@@ -45,6 +45,8 @@ export type {
   JobCancelResponse,
   AnalysisCacheStats,
   AnalysisCachePruneResponse,
+  ExperimentProjectionStatus,
+  ExperimentProjectionRebuildResponse,
   PlatformType,
   PlatformBridge,
 } from '@/types/tauri';

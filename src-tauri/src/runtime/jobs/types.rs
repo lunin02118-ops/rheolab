@@ -11,6 +11,8 @@ pub enum JobKind {
     BackupRestore,
     AnalysisCachePrune,
     AnalysisCacheWarmup,
+    ExperimentProjectionRebuild,
+    ExperimentFacetRebuild,
     Maintenance,
 }
 

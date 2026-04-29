@@ -265,6 +265,15 @@ pub async fn experiments_filter_metadata(
 
     let conn = state.pool_conn()?;
 
+    if let Some(result) =
+        crate::db::repositories::experiment_projection::filter_metadata_from_facet_cache(&conn)?
+    {
+        if let Ok(mut guard) = FILTER_META_CACHE.lock() {
+            *guard = Some((Instant::now(), result.clone()));
+        }
+        return Ok(result);
+    }
+
     fn query_distinct(conn: &rusqlite::Connection, sql: &str) -> Result<Vec<String>> {
         let mut stmt = conn.prepare(sql)?;
         let values: Vec<String> = stmt

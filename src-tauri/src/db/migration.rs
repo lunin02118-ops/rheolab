@@ -46,7 +46,7 @@ use serde::Serialize;
 /// the migration registry.  Reviewers must reject any PR that mutates
 /// `V1_DDL` without an accompanying `CURRENT_SCHEMA_VERSION` bump and a
 /// fresh migration module.
-pub const CURRENT_SCHEMA_VERSION: i64 = 8;
+pub const CURRENT_SCHEMA_VERSION: i64 = 9;
 
 /// Information returned after a successful migration run.
 ///

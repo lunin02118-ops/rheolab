@@ -1,6 +1,10 @@
 use super::super::helpers::*;
 use super::super::types::*;
 use crate::db::migrations::v0003_multi_threshold_touch_point::LIBRARY_TOUCH_THRESHOLDS_CP;
+use crate::db::repositories::experiment_projection::{
+    can_use_projection, is_projection_ready, query_experiments_list_projection,
+    ProjectionEligibility,
+};
 use crate::error::Result;
 use crate::state::AppState;
 use rusqlite::params;
@@ -340,6 +344,14 @@ pub(crate) fn query_experiments_list_sql(
     state: &AppState,
     query: &ExperimentsListQuery,
 ) -> Result<(Vec<ExperimentListItem>, usize)> {
+    if matches!(can_use_projection(query), ProjectionEligibility::Projection) {
+        let conn = state.pool_conn()?;
+        if is_projection_ready(&conn)? {
+            tracing::debug!("experiments_list served from ExperimentListProjection");
+            return query_experiments_list_projection(&conn, query);
+        }
+    }
+
     // Resolve the threshold that determines WHICH `TouchPointPrecompute`
     // row this query reads from.  Custom thresholds escape to the slow
     // path because the side table has no row for them.
