@@ -299,12 +299,28 @@ pub async fn reports_generate_comparison_excel_by_ids(
     }
     let features = current_features(&state).await;
     validate_comparison_by_ids_request(&request, &features, ReportFormat::Excel)?;
-    let conn = state.pool_conn()?;
-    validate_comparison_experiment_ids_exist(&conn, &request.experiment_ids)?;
-    Err(AppError::Other(
-        "reports_generate_comparison_excel_by_ids is not implemented until Sprint 2 commit #8"
-            .into(),
-    ))
+    let _permit = COMPARISON_REPORT_SEMAPHORE
+        .acquire()
+        .await
+        .map_err(|error| AppError::Other(format!("comparison report semaphore closed: {error}")))?;
+
+    #[cfg(debug_assertions)]
+    {
+        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+            tracing::debug!(
+                "[E2E] reports_generate_comparison_excel_by_ids: returning mock XLSX bytes"
+            );
+            return Ok(tauri::ipc::Response::new(vec![0x50, 0x4b, 0x03, 0x04]));
+        }
+    }
+
+    let pool = state.db_pool.clone();
+    let bytes = tokio::task::spawn_blocking(move || {
+        let conn = pool.get().map_err(AppError::Pool)?;
+        generate_comparison_excel_by_ids_bytes(&conn, &request)
+    })
+    .await??;
+    Ok(tauri::ipc::Response::new(bytes))
 }
 
 #[tracing::instrument(
@@ -322,6 +338,26 @@ fn generate_comparison_pdf_by_ids_bytes(
         tracing::error!("Comparison PDF by IDs generation failed: {}", error);
         AppError::Other(format!(
             "Comparison PDF by IDs generation failed: {}",
+            error
+        ))
+    })
+}
+
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    name = "reports::cmp::xlsx::by_ids",
+    fields(n_experiments = request.experiment_ids.len())
+)]
+fn generate_comparison_excel_by_ids_bytes(
+    conn: &rusqlite::Connection,
+    request: &ComparisonReportByIdsRequest,
+) -> Result<Vec<u8>> {
+    let input = build_comparison_report_input_by_ids(conn, request)?;
+    rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
+        tracing::error!("Comparison Excel by IDs generation failed: {}", error);
+        AppError::Other(format!(
+            "Comparison Excel by IDs generation failed: {}",
             error
         ))
     })
@@ -1787,9 +1823,10 @@ mod tests {
         build_analysis_cache_key_material, build_comparison_report_input_by_ids,
         count_experiments_in_value, enforce_comparison_excel_features,
         enforce_comparison_pdf_features, enforce_max_comparison_experiments,
-        validate_comparison_by_ids_request, validate_comparison_experiment_ids_exist,
-        ComparisonByIdsChartConfig, ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings,
-        ComparisonByIdsMetrics, ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
+        generate_comparison_excel_by_ids_bytes, validate_comparison_by_ids_request,
+        validate_comparison_experiment_ids_exist, ComparisonByIdsChartConfig,
+        ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings, ComparisonByIdsMetrics,
+        ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
         ComparisonByIdsTouchPointConfig, ComparisonReportByIdsRequest,
         ComparisonReportByIdsSettings, ReportFormat,
     };
@@ -1985,6 +2022,28 @@ mod tests {
             Some("RheoLab")
         );
         assert_eq!(input.comparison_chart.metrics.primary, "viscosity_cp");
+    }
+
+    #[test]
+    fn comparison_excel_by_ids_generates_xlsx_from_db_experiments() {
+        let conn = rusqlite::Connection::open_in_memory().expect("in-memory db");
+        conn.pragma_update(None, "foreign_keys", true)
+            .expect("foreign keys");
+        run_migrations(&conn).expect("migrations");
+
+        let exp_a = stored_experiment_for_by_ids("exp_aaaaaaaaaaaaaaaaaaaa", "Alpha");
+        let exp_b = stored_experiment_for_by_ids("exp_bbbbbbbbbbbbbbbbbbbb", "Beta");
+        persist_experiment(&conn, &exp_a).expect("persist alpha");
+        persist_experiment(&conn, &exp_b).expect("persist beta");
+
+        let bytes = generate_comparison_excel_by_ids_bytes(&conn, &valid_by_ids_request())
+            .expect("Excel by-ids generation should succeed");
+
+        assert!(!bytes.is_empty());
+        assert!(
+            bytes.starts_with(b"PK"),
+            "XLSX must start with ZIP signature"
+        );
     }
 
     #[test]
