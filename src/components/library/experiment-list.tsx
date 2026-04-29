@@ -15,6 +15,7 @@ import { EMPTY_FILTERS } from '@/types/experiment-filters';
 import type { ExperimentCardItem } from '@/types/experiment-list-item';
 import { useExperimentFilterMetadata } from '@/hooks/useExperimentFilterMetadata';
 import { touchPointEmptyStateMessage } from '@/lib/library/touch-point-hints';
+import { emitLibraryFilterPerfEvent } from '@/lib/perf/library-filter-spans';
 
 /**
  * Touch-point RANGE filter keys (not `hasCrossing` — that's a tri-state
@@ -32,6 +33,13 @@ const TOUCH_POINT_RANGE_KEYS = [
     'viscosityAtTargetMin',
     'viscosityAtTargetMax',
 ] as const satisfies readonly (keyof ExperimentFilters)[];
+
+function activeFilterKeys(filters: ExperimentFilters): string[] {
+    return Object.entries(filters)
+        .filter(([, value]) => Array.isArray(value) ? value.length > 0 : value !== '' && value !== undefined)
+        .map(([key]) => key)
+        .sort();
+}
 
 interface ExperimentListProps {
     filters: ExperimentFilters;
@@ -138,6 +146,13 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
     const [deleteError, setDeleteError] = useState<string | null>(null);
     // Which card has the reagent list expanded (only one at a time)
     const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+    const requestSeqRef = useRef(0);
+    const completedRequestRef = useRef<{
+        requestId: number;
+        resultCount: number;
+        totalCount: number | null;
+    } | null>(null);
+    const emittedRenderCommitsRef = useRef<Set<number>>(new Set());
 
     const handleExpandToggle = useCallback((id: string) => {
         setExpandedCardId(prev => prev === id ? null : id);
@@ -202,17 +217,62 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
     // doesn't overwrite results from a newer filter change.
     useEffect(() => {
         let aborted = false;
+        const requestId = ++requestSeqRef.current;
+        const filterKeys = activeFilterKeys(filters);
+        emitLibraryFilterPerfEvent({
+            name: 'debounce_scheduled',
+            request_id: requestId,
+            filter_keys: filterKeys,
+            page: 1,
+            limit: pageLimit,
+            view_mode: viewMode,
+        });
         const timer = setTimeout(() => {
+            const ipcStartedAt = performance.now();
+            emitLibraryFilterPerfEvent({
+                name: 'debounce_fired',
+                request_id: requestId,
+                filter_keys: filterKeys,
+                page: 1,
+                limit: pageLimit,
+                view_mode: viewMode,
+            });
             setPage(1);
             setIsLoading(true);
+            emitLibraryFilterPerfEvent({
+                name: 'ipc_start',
+                request_id: requestId,
+                filter_keys: filterKeys,
+                page: 1,
+                limit: pageLimit,
+                view_mode: viewMode,
+            });
             listExperiments({ page: 1, limit: pageLimit, ...filters, ...(sortBy ? { sortBy, sortDir } : {}) })
                 .then((data) => {
                     if (aborted) return;
+                    const resultCount = data.experiments?.length ?? 0;
+                    const total = data.pagination?.total ?? null;
+                    emitLibraryFilterPerfEvent({
+                        name: 'ipc_end',
+                        request_id: requestId,
+                        filter_keys: filterKeys,
+                        page: 1,
+                        limit: pageLimit,
+                        view_mode: viewMode,
+                        result_count: resultCount,
+                        total_count: total,
+                        duration_ms: Math.round((performance.now() - ipcStartedAt) * 10) / 10,
+                    });
                     setFetchError(null);
                     if (data.experiments) {
                         setExperiments(data.experiments);
                         setHasMore(data.pagination.page < data.pagination.totalPages);
                         setTotalCount(data.pagination.total);
+                        completedRequestRef.current = {
+                            requestId,
+                            resultCount,
+                            totalCount: total,
+                        };
                     }
                 })
                 .catch((err) => {
@@ -225,7 +285,24 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
                 });
         }, 200);
         return () => { aborted = true; clearTimeout(timer); };
-    }, [filters, sortBy, sortDir, pageLimit]);
+    }, [filters, sortBy, sortDir, pageLimit, viewMode]);
+
+    useLayoutEffect(() => {
+        const completed = completedRequestRef.current;
+        if (!completed || isLoading || emittedRenderCommitsRef.current.has(completed.requestId)) {
+            return;
+        }
+        emittedRenderCommitsRef.current.add(completed.requestId);
+        emitLibraryFilterPerfEvent({
+            name: 'render_commit',
+            request_id: completed.requestId,
+            result_count: completed.resultCount,
+            total_count: completed.totalCount,
+            page: 1,
+            limit: pageLimit,
+            view_mode: viewMode,
+        });
+    }, [experiments, isLoading, pageLimit, totalCount, viewMode]);
 
     // When the backend's startup backfill finishes precomputing missing
     // touch-point values, refresh the list so the user sees accurate
