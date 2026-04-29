@@ -1,6 +1,6 @@
 # Memory Hardening Track
 
-**Status:** MEM-0 through MEM-6 implemented in stacked PRs; MEM-7 validation pending.
+**Status:** MEM-0 through MEM-7 implemented in stacked PRs; validation scorecard recorded.
 **Date:** 2026-04-30.
 **Scope:** RC hardening after Sprints 1-6.
 **Base:** after the legacy comparison payload IPC removal lane.
