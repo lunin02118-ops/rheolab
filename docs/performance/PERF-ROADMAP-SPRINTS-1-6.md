@@ -1,6 +1,6 @@
 # Performance roadmap — Sprints 1 → 6
 
-**Status:** drafted 2026-04-29 from operator's program-level brief.  
+**Status:** drafted 2026-04-29 from operator's program-level brief; Sprint 2 GO confirmed by operator review (same day).  
 **Owner:** Architecture Team.  
 **Active sprint:** **Sprint 2 — Native comparison reports by IDs** (the main ROI lever).  
 **Closed:** Sprint 1 (see `SPRINT-1-RETROSPECTIVE.md`).
@@ -101,16 +101,21 @@ In place of the broad TBD-fill mission, Sprint 1 produced (from the retrospectiv
 - 4 P10 validation reports + 1 microbench guide.
 - **Final P10 verdict: KEEP, narrowly** — settles a contentious release-profile question that was implicitly blocking every L-CMP-* / L-XLSX TBD measurement.
 
-### Sprint 2 lead-in
+### Sprint 2 lead-in (operator-reviewed)
 
-Sprint 2 should **start** with a small lead-in cluster covering the inherited items, then move to the main ROI work. Estimated total lead-in: **2–3 hours**, all single-shot deliverables:
+Sprint 2 starts with **3 critical lead-in items** + **1 non-blocking parallel-track item**. Operator decision: the library smoke runner is **not** a blocker for the main ROI work — it can land in parallel or post-S2-1, so Sprint 2 stays focused on the report-path mission rather than expanding into a "perf infra sprint".
 
-1. `docs(arch): add ADR-0013-no-large-ipc-rule` (formalises the rule the lint already enforces; current LARGE-IPC-EXCEPTION on `reports_generate_comparison_pdf` is documented as "to be retired in Sprint 2").
-2. `docs(db): add V1_DDL.md` (table-by-table reference for migrations v0001-v0007; Sprint 2's native by-ids handler will reference it directly).
-3. `test(perf): add library smoke perf runner` (the L-LIB-OPEN-1K / L-FILTER / L-EXP-DETAIL family) — gets the easy TBDs measurable so Sprint 2's report-path improvements show up cleanly against a non-TBD baseline.
-4. `test(perf): add comparison smoke perf runner` (the L-CMP-3 / L-CMP-5 / L-CMP-10 family) — directly used by the perf comparison in Sprint 2's third deliverable.
+**Critical lead-in (must land before S2-1):**
 
-After lead-in, Sprint 2's main work is the three native-by-ids deliverables. See `SPRINT-2-PLANNING.md` for the per-task plan.
+1. **S2-L1** — `docs(arch): add ADR-0013-no-large-ipc-rule` (~1 h). Formalises the rule the lint already enforces; current `LARGE-IPC-EXCEPTION` on `reports_generate_comparison_pdf` is documented as "to be retired in Sprint 2".
+2. **S2-L2** — `docs(db): document report-relevant V1 schema contract` (~1 h, **narrowed scope** — only the tables S2-1 actually touches: `Experiment`, `ExperimentData`, `User`, `Laboratory`, `WaterSourceCatalog`).
+3. **S2-L4** — `test(perf): add comparison smoke baseline runner` (~3 h). Records pre-S2-1 baseline numbers for `L-CMP-3 / 5 / 10 / PDF-5 / XLSX-5`. Directly fed by S2-3's A/B comparison.
+
+**Non-blocking parallel track:**
+
+4. **S2-L3** — `test(perf): add library smoke perf runner` (~4 h). Fills 7 BUDGETS.md TBDs (L-LIB / L-FILTER / L-EXP-DETAIL / DB-LIST family). Useful but **decoupled** from the by-ids critical sequence per operator decision.
+
+After critical lead-in, Sprint 2's main work is the three native-by-ids deliverables (S2-1 / S2-2 / S2-3). See `SPRINT-2-PLANNING.md` § "Operator decisions" for the binding constraints (feature flag policy, golden corner cases, XLSX requirement, budget tightening protocol, hash normalisation depth) and § "Architectural guardrails" for the design constraints baked into S2-1 (input validation, output enum, semaphore, cache-key pre-load).
 
 ---
 
@@ -129,7 +134,7 @@ After lead-in, Sprint 2's main work is the three native-by-ids deliverables. See
 ## Active state (this commit)
 
 - **Sprint 1:** closed `5f11efb`. Retrospective: `SPRINT-1-RETROSPECTIVE.md`. P10 verdict: KEEP narrowly. Microbench infrastructure: durable.
-- **Sprint 2:** active. Plan: `SPRINT-2-PLANNING.md`. Lead-in items inherited from Sprint 1: 4 small deliverables; main work: 3 native-by-ids deliverables (`feat`, `test golden`, `perf compare`).
+- **Sprint 2:** active, GO confirmed by operator review. Plan: `SPRINT-2-PLANNING.md` (v2). Critical lead-in: S2-L1 + S2-L2 + S2-L4 (S2-L3 non-blocking parallel track). Main work: S2-1 (`feat`) + S2-2 (`test golden` with 3 main + 6 corner cases) + S2-3 (`perf` 5-metric A/B). 11-commit recommended sequence; tightened DoD includes feature-flag default native + LARGE-IPC-EXCEPTION removal + ADR-0010 update.
 - **Sprint 3:** queued behind Sprint 2.
 - **Sprint 4:** queued behind Sprint 3.
 - **Sprint 5–6:** independent; can slot whenever a budget in their family bites.

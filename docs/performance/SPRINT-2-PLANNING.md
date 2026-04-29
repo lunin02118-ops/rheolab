@@ -1,17 +1,18 @@
 # Sprint 2 planning — native comparison reports by IDs
 
-**Status:** active draft (2026-04-29)  
-**Sprint window:** TBD (recommend 5–6 active days)  
-**Theme:** **the main ROI lever** in the perf roadmap (see `PERF-ROADMAP-SPRINTS-1-6.md`).  
-**Inherits from:** Sprint 1 (4 carry-over items, see "Lead-in" below).
+**Status:** active, GO confirmed by operator review (2026-04-29).  
+**Sprint window:** TBD (recommend 5–6 active days).  
+**Theme:** **the main ROI lever** — see `PERF-ROADMAP-SPRINTS-1-6.md`.  
+**Inherits from:** Sprint 1 (3 carry-over docs items, see "Lead-in" below).  
+**Document version:** v2 (operator-reviewed; supersedes v1 draft from earlier the same day).
 
-> **TL;DR:** replace the TS-side assembled `ComparisonReportInput` over IPC with a native `reports_*_by_ids` IPC that just takes a list of experiment IDs and reads the data straight from the DB inside Rust. Eliminates the only `LARGE-IPC-EXCEPTION` suppression, removes 3–10 MB of JSON serialisation per export, simplifies the frontend, and unblocks Sprint 3's analysis cache integration.
+> **TL;DR:** replace TS-side assembled `ComparisonReportInput` over IPC with native `reports_*_by_ids` IPC commands taking only experiment IDs + settings. Eliminates the only `LARGE-IPC-EXCEPTION` suppression, removes 3–10 MB JSON serialisation per export, simplifies the frontend, **ships native default in alpha with old TS path as fallback flag for one release**, and unblocks Sprint 3's analysis cache integration.
 
 ---
 
 ## Mission
 
-Per the operator's program brief:
+Per the operator's program brief, restated:
 
 > **Sprint 2 — Native comparison reports by IDs**
 > - `feat(reports): add comparison report by experiment ids`
@@ -20,190 +21,393 @@ Per the operator's program brief:
 >
 > *Это главный ROI.*
 
-Three numbered deliverables (S2-1, S2-2, S2-3 below), preceded by four small lead-in tasks inherited from Sprint 1.
+Three numbered deliverables (S2-1 / S2-2 / S2-3 below) preceded by **3 critical lead-in items** (S2-L1, S2-L2, S2-L4) and **1 non-blocking parallel-track item** (S2-L3) inherited from Sprint 1.
+
+---
+
+## Operator decisions (post-draft review)
+
+The v1 draft posed 5 open questions; v2 incorporates the operator's answers as binding constraints:
+
+### Q1 → A1: Feature flag, not hard switch
+
+**Decision: native default in alpha; old TS-assembly path behind a fallback flag for one release.**
+
+| Release | Default path | Old path |
+| ------- | ------------ | -------- |
+| alpha.2 / alpha.3 | native by-ids | available behind `RHEOLAB_REPORTS_LEGACY_TS_ASSEMBLY=1` env / settings flag |
+| beta | native by-ids | disabled by default; only via emergency feature flag |
+| Sprint 3 | native by-ids | **deleted** after one alpha + one beta cycle with no regressions |
+
+**Why not hard switch in S2-1.** Golden parity tests (S2-2) cover the structural cases but cannot exhaustively cover all user data edge cases. The fallback flag is a one-release rollback lane; it is not a long-term API contract.
+
+### Q2 → A2: Golden fixtures must include corner cases
+
+**Decision: 3 representative fixtures + 6 explicit corner cases, all in S2-2.**
+
+| Case | Why it matters |
+| ---- | -------------- |
+| Chandler / BSL / Grace (3 main) | typical viscosity profile shapes; covers the dominant code paths |
+| 1-experiment "comparison" | exercises degenerate layout / report builder paths without crash |
+| missing optional metadata (`Laboratory`, `operator`, `water source`, `calibration`) | most common real-world incomplete data |
+| missing / empty columnar data | must produce **controlled error**, not panic / blank report |
+| over-cap (more than `max_comparison_experiments`) | must reject **at IPC validation** before any DB read; covers REP-001 cap |
+| duplicate experiment IDs in input | **policy: reject as `ValidationError`**; do not silently dedupe |
+| reordered IDs | **report order must equal input order**, *not* SQLite `WHERE id IN (...)` order |
+
+**Critical: order preservation.** SQLite does not guarantee row order from `WHERE id IN (...)`. The Rust handler must explicitly reorder fetched rows to match the input `experiment_ids` Vec. This is a hard correctness requirement — the test for it lives in S2-2.
+
+### Q3 → A3: Budget tightening protocol — measured candidate now, hard gate later
+
+**Decision: BUDGETS.md gets new measured numbers immediately on S2-3, but severity stays `warn` until 5 stable nightly/alpha runs.**
+
+```
+Sprint 2 close:
+  BUDGETS.md L-CMP-{3,5,10}, L-CMP-PDF-5, L-CMP-XLSX-5 = measured numbers
+  severity = soft (warn-only)
+
+After 5 stable nightly/alpha runs:
+  severity = hard (block on regression)
+```
+
+This avoids flaky perf gates blocking releases on a freshly-shipped path while still recording the new performance reality.
+
+### Q4 → A4: XLSX is mandatory in A/B, not optional
+
+**Decision: PDF + XLSX both required in S2-3.**
+
+```
+Required in S2-3 perf report:
+  L-CMP-PDF-5  ← primary
+  L-CMP-XLSX-5
+
+Optional in S2-3 perf report:
+  L-CMP-PDF-10
+  L-CMP-XLSX-10
+```
+
+PDF can be the primary (more complex, slower, where the win is biggest), but XLSX must have at least baseline A/B numbers in the validation report. Sprint 2 cannot ship S2-1 (which adds **both** `_pdf_by_ids` and `_xlsx_by_ids`) without measuring both.
+
+### Q5 → A5: Hash normalisation must go deeper than timestamps
+
+**Decision: full normalisation list, with structural-hash fallback if byte equality is impossible.**
+
+**PDF normalisation targets (strip / canonicalise before hashing):**
+- `/CreationDate`
+- `/ModDate`
+- `/Producer`
+- `/Creator`
+- Document ID / trailer ID (both halves of `/ID [...]`)
+- Object stream ordering (if the PDF generator produces non-deterministic streams)
+
+**XLSX normalisation targets (strip / canonicalise before hashing):**
+- `docProps/core.xml`: `dcterms:created`, `dcterms:modified`
+- `docProps/core.xml`: `dc:creator`, `cp:lastModifiedBy`
+- `xl/calcChain.xml` (if present)
+- Workbook relationship IDs (rId1, rId2, ... when ordering is unstable)
+- ZIP entry timestamps
+- ZIP entry ordering (if archive packer is non-deterministic)
+
+**If byte equality cannot be achieved after normalisation, fall back to structural hash:**
+
+| Format | Structural hash composition |
+| ------ | --------------------------- |
+| PDF | (a) text-extraction hash (page-by-page text concatenation, normalised whitespace), (b) page count, (c) normalised object graph hash for selected text blocks, (d) optional: perceptual hash for chart raster regions. |
+| XLSX | (a) sheet name list, (b) per-sheet cell value matrix hash, (c) per-sheet formula matrix hash, (d) per-sheet style hash where the style is semantically meaningful (number formats, conditional formats), (e) per-sheet `dimension` attribute. |
+
+The hash normalisation layer is itself a deliverable — it ships as `tests/integration/reports/hash-normalise.ts` (or `*.rs` for Rust-side helpers) and is reusable for any future report parity test.
+
+---
+
+## Architectural guardrails (added in v2 review)
+
+These are mandatory design constraints for S2-1, beyond the bare "feat: add by-ids handler" scope.
+
+### G1 — IPC input validation must fail fast, before any DB read or analysis
+
+The new IPC commands must validate **before** entering `tokio::task::spawn_blocking`:
+
+```rust
+fn validate_request(
+    experiment_ids: &[String],
+    settings: &ComparisonSettings,
+    license: &LicenseFeatures,
+) -> Result<(), ReportError> {
+    // 1. Non-empty
+    require!(!experiment_ids.is_empty(), ReportError::EmptyExperimentList);
+
+    // 2. Within cap (REP-001 cap, currently MISSING_VALUE — re-use the same constant)
+    require!(experiment_ids.len() <= MAX_COMPARISON_EXPERIMENTS,
+             ReportError::OverCap(experiment_ids.len(), MAX_COMPARISON_EXPERIMENTS));
+
+    // 3. No duplicate IDs
+    require!(no_duplicates(experiment_ids), ReportError::DuplicateExperimentIds);
+
+    // 4. ID shape (UUID-like or whatever the schema enforces)
+    for id in experiment_ids {
+        require!(is_valid_experiment_id(id), ReportError::InvalidExperimentIdShape(id.clone()));
+    }
+
+    // 5. Settings bounded — chart dimensions, viscosity rate count, etc.
+    settings.validate()?;
+
+    // 6. License features
+    license.require(LicenseFeature::ComparisonReports)?;
+    if format == ReportFormat::Pdf {
+        license.require(LicenseFeature::ExportPdf)?;
+    } else {
+        license.require(LicenseFeature::ExportExcel)?;
+    }
+
+    Ok(())
+}
+```
+
+Rationale: fail-fast continues the alpha.2 pattern from REP-001 (per-feature license + cap checks before heavy work). The new IPC commands must not be a weaker validation layer than the old one.
+
+### G2 — Output abstraction: don't bake `Vec<u8>` as the long-term contract
+
+**Decision: return `Vec<u8>` in S2-1, but design an internal abstraction that allows streaming-to-file in Sprint 4/5.**
+
+```rust
+pub enum ReportOutput {
+    /// Whole report buffered in memory. Acceptable for small/medium reports.
+    Bytes(Vec<u8>),
+    /// Report written to a temp file; caller streams it to the user. Acceptable
+    /// for large reports where holding the full bytes would balloon RSS.
+    TempFile { path: PathBuf, byte_count: u64 },
+}
+
+#[tauri::command]
+pub async fn reports_generate_comparison_pdf_by_ids(
+    experiment_ids: Vec<String>,
+    settings: ComparisonSettings,
+) -> Result<Vec<u8>> {
+    match build_comparison_report_by_ids(experiment_ids, settings, ReportFormat::Pdf).await? {
+        ReportOutput::Bytes(b) => Ok(b),
+        ReportOutput::TempFile { path, .. } => fs::read(&path).await.map_err(into),
+    }
+}
+```
+
+Sprint 2 only ships the `Bytes` arm; the `TempFile` arm is the placeholder Sprint 4/5 will fill when streaming-to-file becomes the preferred path for large comparisons.
+
+### G3 — Concurrency cap: semaphore on comparison reports
+
+**Decision: `max_concurrent_comparison_reports = 1` from S2-1.**
+
+Two concurrent PDF comparison exports can each consume hundreds of MB of RAM and saturate CPU; with two running at once the UI grinds to a halt. A simple `tokio::sync::Semaphore` with `permits=1` around the comparison-report code path is a small change with a large UX impact.
+
+```rust
+static COMPARISON_REPORT_SEMAPHORE: Semaphore = Semaphore::const_new(1);
+
+pub async fn reports_generate_comparison_pdf_by_ids(...) -> Result<Vec<u8>> {
+    let _permit = COMPARISON_REPORT_SEMAPHORE.acquire().await?;
+    // ... actual work
+}
+```
+
+This is a lighter-weight precursor to Sprint 4's full job scheduler — Sprint 4 will replace this semaphore with a queue + cancellation API but keep the cap at 1 for comparison reports specifically.
+
+### G4 — Cache key material design (Sprint 3 pre-load)
+
+**Decision: design the cache key now, persist in Sprint 3.**
+
+The S2-1 handler does not add a cache, but **the data it gathers must include everything Sprint 3's cache key will hash over**:
+
+```rust
+struct AnalysisCacheKey {
+    experiment_id: ExperimentId,
+    experiment_data_hash: ContentHash,     // hash of decoded columnar data
+    geometry: GeometryDescriptor,           // bob/cup/cone/plate descriptor
+    analysis_settings_hash: ContentHash,   // hash of (Reynolds, sliding window, etc.)
+    report_viscosity_rates_hash: ContentHash, // hash of comparison-report-specific rate list
+    rheolab_core_version: SemVer,           // bump → cache invalidation
+    algorithm_version: u32,                 // explicit version bump for breaking algorithm changes
+}
+```
+
+Sprint 2 computes these but doesn't persist them anywhere. Sprint 3 adds the migration + cache table + lookup-before-recompute logic.
+
+### G5 — Frontend feature-flag wiring + audit lint hardening
+
+```ts
+const useNativeByIds = featureFlags.get("REPORTS_NATIVE_BY_IDS_DEFAULT");
+
+if (useNativeByIds) {
+  await invoke("reports_generate_comparison_pdf_by_ids", { experimentIds, settings });
+} else {
+  // legacy TS-assembly path (deprecated, retained for one release)
+  const input = await assembleComparisonReportInput(experimentIds, settings);
+  await invoke("reports_generate_comparison_pdf", { input });
+}
+```
+
+After S2-1 lands, the audit lint (`scripts/audit/check-large-ipc-contracts.mjs`) must reject any **new** large IPC suppression — the existing one on `reports_generate_comparison_pdf` is being retired by Sprint 2, and no new ones should be allowed without an ADR.
 
 ---
 
 ## Lead-in (Sprint 1 carry-overs)
 
-These were originally Sprint 1 deliverables that didn't ship; Sprint 1 swapped them for the P10 deep-dive. They are small (each is a single PR's worth) and Sprint 2 needs them as foundations:
+### Critical (must land before S2-1)
 
-### S2-L1 — `docs(arch): add ADR-0013-no-large-ipc-rule`
+#### S2-L1 — `docs(adr): add ADR-0013-no-large-ipc-rule`
 
-**Why now.** Sprint 2 retires the `LARGE-IPC-EXCEPTION` suppression on `reports_generate_comparison_pdf`. That's the cleanest moment to formalise the architectural rule the audit lint has been quietly enforcing.
+**Why now.** S2-1 retires the `LARGE-IPC-EXCEPTION` suppression. That's the cleanest moment to formalise the rule. Allows S2-1's PR to cite the ADR as the reason the suppression goes away.
 
-**Deliverable.**
+**Deliverable.** Standard ADR format (`docs/adr/ADR-0013-no-large-ipc-rule.md`). States the rule positively, cites the lint as enforcement, references BUDGETS.md M-IPC-PAYLOAD, names the historical exception that Sprint 2 removes. **Effort:** 1 hour.
 
-- `docs/adr/ADR-0013-no-large-ipc-rule.md` written in the standard ADR format used by ADR-0001 → ADR-0012.
-- Cites `scripts/audit/check-large-ipc-contracts.mjs` as the enforcement, BUDGETS.md § "M-IPC-PAYLOAD" (or equivalent) as the budget, and the `reports_generate_comparison_pdf` LARGE-IPC-EXCEPTION as the historical exception that Sprint 2 removes.
-- States the rule positively: "every IPC handler payload must fit within `LARGE_IPC_BYTE_LIMIT` (configurable, default `MISSING_VALUE`); large data must travel via DB or shared memory, not over the IPC channel". Updates the audit script's documentation if the constant needs to be exposed.
+#### S2-L2 — `docs(db): document report-relevant V1 schema contract`
 
-**Effort.** 1 hour.
+**Why now.** S2-1's handler reads experiment data directly from the DB; without a schema reference doc the handler ends up grepping migration files. Operator scope adjustment: **short**, only the tables S2-1 actually touches.
 
-### S2-L2 — `docs(db): freeze V1_DDL contract fully`
+**Deliverable.** `docs/db/V1_DDL.md` — concise table-by-table reference for **only** the tables the by-ids handler touches: `Experiment`, `ExperimentData`, `User`, `Laboratory`, `WaterSourceCatalog` (+ FTS triggers if relevant to lookup). Per-table sections: column list with types, primary key, indexes, FK relationships, source migration. Cross-references `src-tauri/src/db/migrations/v0001..v0007*.rs`. **Effort:** ~1 hour (down from 1.5–2 hours in v1 because of the narrower scope).
 
-**Why now.** S2-1 (the by-ids feature) reads experiment data directly from the DB inside the Rust handler. That code path needs a stable schema reference: which tables, which columns, which indexes, which FK relationships, which migration introduced each. Without the contract doc, "the schema is just whatever migration v0007 last did" — which is fine for incremental migrations but blocks any cross-cutting work that touches multiple tables.
+#### S2-L4 — `test(perf): comparison smoke baseline runner`
 
-**Deliverable.**
+**Why now.** S2-3's A/B comparison wants a measured baseline for `L-CMP-3 / 5 / 10 / PDF-5 / XLSX-5` *before* the by-ids path lands. S2-3 then re-runs and diffs. Without S2-L4 there's no baseline to diff against.
 
-- `docs/db/V1_DDL.md` documenting the schema as of migration v0007. Per-table sections covering: column list with types, primary key, indexes (including the V2 touch-point precompute additions in v0002), FK relationships, FTS triggers, and the migration that introduced each piece.
-- Cross-references the migration files (`src-tauri/src/db/migrations/v0001..v0007`) so a future reader can trace each row back to its origin commit.
-- The doc is **not a duplicate of the migration code** — it's a *human-readable contract* that the migration code happens to express in Rust. If someone needs to write a query that joins three tables, they read this doc, not 7 migration files.
+**Deliverable.** Playwright spec exercising the comparison flow at 3 / 5 / 10 fixture sizes, both PDF and XLSX outputs. JSON sidecar emission for each budget. Records pre-S2-1 numbers. **Effort:** ~3 hours.
 
-**Effort.** 1.5–2 hours (it's bigger than S2-L1 because the schema is non-trivial — `Experiment`, `ExperimentData`, `User`, `Laboratory`, `WaterSourceCatalog`, `ArtifactImportBatch`, plus the FTS virtual table + several indexes added across the 7 migrations).
+### Non-blocking (parallel track or post-S2-1)
 
-### S2-L3 — `test(perf): library smoke perf runner`
+#### S2-L3 — `test(perf): library smoke perf runner`
 
-**Why now.** Sprint 2's perf-comparison deliverable (S2-3) will measure native-by-ids vs TS-assembly times. Both numbers want to be measured against a stable backdrop where the *rest* of the workflow (library page open, filter response, experiment-detail open) is also non-TBD. Without these baselines, S2-3's "native is X % faster" claim has nothing to anchor against.
+**Status: NOT a blocker for S2-1 per operator decision.**
 
-**Deliverable.**
-
-- New Playwright spec or harness extension that exercises:
-  - **L-LIB-OPEN-1K**: library page render after warm DB with 1k seed.
-  - **L-LIB-OPEN-10K**: same with 10k seed (extends `perf:db:large`).
-  - **L-FILTER**: filter change → list re-render perceived latency.
-  - **L-EXP-DETAIL**: experiment detail open.
-  - **DB-LIST / DB-LIST-LARGE / DB-DETAIL**: query times underlying the above.
-- Per-budget JSON sidecar emission so `compare-db-scale.js` (existing) or a sibling can validate against `BUDGETS.md` thresholds.
-- `BUDGETS.md` and `BASELINES.md` updated with the first measured numbers (replace TBDs in those budget rows).
-
-**Effort.** ~4 hours. It's the biggest lead-in but it's all extension of existing infrastructure (Playwright + perf:db:* configs); no new framework choices.
-
-### S2-L4 — `test(perf): comparison smoke perf runner`
-
-**Why now.** This is the *direct* baseline for Sprint 2's main perf comparison (S2-3). Without it, "native by-ids is X % faster than TS-assembly" has no L-CMP-* budget number to validate against.
-
-**Deliverable.**
-
-- Playwright spec exercising the comparison flow at three fixture sizes:
-  - **L-CMP-3**, **L-CMP-5**, **L-CMP-10** (UI-ready latency).
-  - **L-CMP-PDF-5** (single PDF generation across 5 experiments).
-  - **L-CMP-XLSX-5**, **L-XLSX**.
-- Both arms (current TS-assembled flow + the new by-ids flow once S2-1 lands) report into the same harness so S2-3 just diffs the two.
-- `BUDGETS.md` / `BASELINES.md` updated for these rows.
-
-**Effort.** ~3 hours. Reuses `bench_comparison_pdf.rs` (Sprint 1) for synthetic baselines + new Playwright wiring for the prod-data measurement.
-
-**Lead-in total:** ~8–9 hours of single-shot deliverables, ideally landed as 4 separate commits before the main Sprint 2 work starts.
+Useful for filling 7 BUDGETS.md TBDs (L-LIB-OPEN-1K/10K, L-FILTER, L-EXP-DETAIL, DB-LIST, DB-LIST-LARGE, DB-DETAIL), but the by-ids report path is independent of the library page. Schedule S2-L3 as a parallel-track item or land it post-S2-1, **not before**. Risk-mitigated: Sprint 2 stays focused on its ROI mission rather than expanding into a "perf infra sprint". **Effort:** ~4 hours, can be done by anyone in parallel with the main backend work.
 
 ---
 
 ## Main work
 
-### S2-1 — `feat(reports): add comparison report by experiment ids`
+### S2-1 — `feat(reports): add comparison report by experiment IDs`
 
-**Goal.** New IPC commands that take a list of experiment IDs (and the analysis / report settings) and produce a comparison PDF / XLSX entirely in Rust, reading data from the DB.
-
-**Concrete IPC additions:**
-
-```rust
-#[tauri::command]
-pub async fn reports_generate_comparison_pdf_by_ids(
-    experiment_ids: Vec<String>,
-    settings: ComparisonSettings,
-) -> Result<Vec<u8>>;
-
-#[tauri::command]
-pub async fn reports_generate_comparison_xlsx_by_ids(
-    experiment_ids: Vec<String>,
-    settings: ComparisonSettings,
-) -> Result<Vec<u8>>;
-```
+**Goal.** Ship `reports_generate_comparison_{pdf,xlsx}_by_ids` IPC commands. Native default behind feature flag. Old IPC marked `#[deprecated]` but functional for one release.
 
 **Implementation outline:**
 
-- Inside `tokio::task::spawn_blocking`, for each `experiment_id`:
-  - Fetch row from `Experiment` (using V1_DDL contract from S2-L2).
-  - Fetch `ExperimentData.dataBlob`, decode via `rheolab_enterprise::db::columnar::decode_typed`.
-  - Run the analysis pipeline via `rheolab_enterprise::commands::analysis::run_full_analysis_kernel` (Sprint 1 / S1-4 kernel — already public).
-- Once all experiments are analyzed, call into the existing PDF/XLSX builder code (the same Typst/plotters chain that today consumes `ComparisonReportInput`). The internal builder shape stays the same; only the *input gathering* moves from TS to Rust.
-- The handler must register a tracing span (`reports::cmp::pdf::by_ids`) with experiment count + total raw points so the existing `withPerf<T>` instrumentation continues to work.
+1. **Validation layer (G1).** `validate_request()` runs before any heavy work; covers empty-list / over-cap / duplicate / shape / settings-bounds / license checks.
+2. **DB read layer.** For each `experiment_id` in the input order:
+   - `SELECT ... FROM Experiment WHERE id = ?` (one query per ID, **explicitly to preserve order**, unless we batch with `WHERE id IN (...)` and **then sort the results by input position**).
+   - `SELECT dataBlob FROM ExperimentData WHERE experiment_id = ?` → `decode_typed`.
+   - Fetch `Laboratory`, `User`, `WaterSourceCatalog` rows for metadata (using S2-L2 contract).
+3. **Analysis layer.** Call `rheolab_enterprise::commands::analysis::run_full_analysis_kernel` per experiment (Sprint 1 / S1-4 public kernel). Compute the `AnalysisCacheKey` material from G4 (don't persist yet).
+4. **Report layer.** Pass the analyzed data into the existing PDF/XLSX builder code (Typst/plotters chain for PDF, openpyxl-equivalent Rust path for XLSX). The builder shape stays the same; only its input source moves from "deserialised IPC payload" to "in-Rust analysis result".
+5. **Concurrency cap (G3).** Semaphore wrap around steps 2–4.
+6. **Output (G2).** Return `Vec<u8>` from the IPC; internal `ReportOutput` enum reserved for Sprint 4/5.
+7. **Tracing.** Register `reports::cmp::pdf::by_ids` and `reports::cmp::xlsx::by_ids` spans with experiment count + total raw points + total wall ms.
 
 **Backwards compat.**
 
-- The old `reports_generate_comparison_pdf` IPC stays for at least one release for parity testing (S2-2 golden smoke), but is marked `#[deprecated(note = "use reports_generate_comparison_pdf_by_ids; this path will be removed in Sprint 3")]`.
-- Frontend `comparison-experiment-adapter.ts` gets a new `assembleByIds(ids, settings)` path; the old assembly path stays behind a feature flag or A/B for the sprint.
+- Old `reports_generate_comparison_pdf` IPC stays. `#[deprecated(note = "use reports_generate_comparison_pdf_by_ids; this command will be removed in Sprint 3")]`.
+- Same for `reports_generate_comparison_xlsx`.
+- `comparison-experiment-adapter.ts` gains a feature-flag branch (G5).
 
-**Effort.** 2 active days. This is the heart of the sprint and dominates the timeline.
+**Effort.** 2 active days. The bulk is wiring the existing builder's input from "deserialised payload" to "freshly-computed analysis result" without changing the builder itself.
 
-### S2-2 — `test(reports): golden smoke for by_ids PDF/XLSX`
+### S2-2 — `test(reports): golden parity for by_ids PDF/XLSX`
 
-**Goal.** Prove the by-ids output is byte-for-byte (or hash-equivalent) identical to the current TS-assembled output on a representative fixture set, so the migration carries no silent regressions in the report content.
-
-**Concrete deliverables:**
-
-- New test file `tests/integration/reports/golden-by-ids.spec.ts` (or similar location) that:
-  - Loads 3 representative fixtures from `outputs/seed/rheolab-fixture-seed-small.db` (a Chandler 5550 multi-cycle, a small BSL, a Grace M5600).
-  - Generates the comparison PDF + XLSX via **both** paths.
-  - Compares: byte-equality where possible, otherwise structural hash (PDF object tree comparison, XLSX sheet hash) — choose the strictest comparison the format allows.
-  - Snapshots the expected hash so future runs catch any drift.
-- Tests must pass before S2-1 is merged. After merge, they are the regression detector for any future change to either path.
-
-**Why hashes and not byte-equality.** PDFs include creation timestamps in the trailer; XLSXs include workbook-level metadata that differs between TS-assembly and Rust-assembly even when the content is identical. The test should normalise these (strip metadata) before comparing — this is itself a useful piece of testing infrastructure.
-
-**Effort.** ~1 day. Fixture choice + hash normalisation logic are the bulk of the work; the actual diff-and-snapshot code is straightforward.
-
-### S2-3 — `perf(reports): compare TS assembly vs native by_ids`
-
-**Goal.** Quantify the win. Use the bench harness from Sprint 1 + the new comparison smoke runner (S2-L4) to produce A/B numbers that prove the native by-ids path is faster on the metrics that matter (`L-CMP-PDF-5`, `cmp:pdf:ipcRoundtrip`).
+**Goal.** Prove byte-for-byte (after normalisation) or hash-equivalent identity between by-ids and TS-assembly outputs. Cover both **3 representative fixtures** and **6 corner cases** from A2 above.
 
 **Concrete deliverables:**
 
-- A/B run script (extension of `run-rust-microbench.mjs` or a new sibling) that runs each fixture through both code paths, captures per-iter timings, and emits a `db-sweep-compare`-style markdown report with:
-  - Per-fixture mean wall time (TS-assembly arm vs native arm).
-  - 95 % CI on Δ %.
-  - Welch t-test p-value.
-  - Bonferroni-survivor flag.
-  - Headline corpus verdict.
-- The report lands in `docs/performance/REPORTS-NATIVE-BY-IDS-VALIDATION.md` with: methodology, results, final verdict on whether to retire the TS-assembly path immediately or keep it for one release.
-- `BUDGETS.md` L-CMP-PDF-5 / L-CMP-XLSX-5 rows tightened (the 30–50 % reduction the BUDGETS.md comment promises after Sprint 2 — measured rather than estimated).
+- `tests/integration/reports/hash-normalise.ts` — reusable hash-normalisation library (PDF + XLSX, normalisation list per A5 above).
+- `tests/integration/reports/golden-by-ids.spec.ts` — runs each fixture through both paths, normalises, hashes, snapshots.
+- Test naming: one test per fixture × format (so `Chandler / PDF`, `Chandler / XLSX`, `1-experiment / PDF`, `duplicate-IDs / error`, ...).
+- Negative-path tests assert the **exact error variant** (`ReportError::DuplicateExperimentIds`, `ReportError::EmptyExperimentList`, etc.), not just "fails".
+- Snapshot file: `tests/integration/reports/__snapshots__/golden-by-ids.snap`.
 
-**Effort.** ~1 day. The harness + stats infrastructure is already there from Sprint 1; this just wires the new arm.
+**Effort.** ~1 day. Hash normalisation library + corner-case fixture authoring is the bulk.
+
+### S2-3 — `perf(reports): TS-assembly vs native by-ids A/B validation`
+
+**Goal.** Quantify the win across **5 metrics**, write the validation report.
+
+**5 metrics in the A/B report:**
+
+| Metric | Why |
+| ------ | --- |
+| **wall_ms** (per-iter, p50/p95) | the headline number — does native get the report out faster? |
+| **IPC payload size** (bytes per call) | proves the LARGE-IPC-EXCEPTION removal is real — should drop from 3–10 MB to ~1 KB |
+| **JS heap peak** (browser-side) | proves the frontend-side serialisation cost goes away |
+| **Rust RSS peak** (handler-side) | proves we don't accidentally trade IPC RAM for Rust handler RAM |
+| **p50 / p95 distribution** | proves the win isn't only at the mean; tail behaviour matters for L-CMP-PDF-5 budget |
+
+**Concrete deliverables:**
+
+- Extend `run-rust-microbench.mjs` (Sprint 1 / S1-1) with a third target: `--target reports`. Or add a sibling A/B harness if the reports flow doesn't fit cleanly.
+- Drives **PDF + XLSX** at 5 experiments (`L-CMP-PDF-5`, `L-CMP-XLSX-5`) **mandatory**. PDF + XLSX at 10 experiments (`L-CMP-PDF-10`, `L-CMP-XLSX-10`) **optional** if time allows.
+- Validation report at `docs/performance/REPORTS-NATIVE-BY-IDS-VALIDATION.md` with all 5 metrics, statistical methodology from S1-6 (Welch + bootstrap + Bonferroni), final verdict.
+- `BUDGETS.md` rows updated with measured candidate budgets per A3 (severity stays `soft` for now).
+
+**Effort.** ~1 day. Stats + harness already exist from Sprint 1; this is wiring the new arm and the 5-metric capture.
 
 ---
 
-## Definition of done
+## Recommended commit sequence (operator-specified)
 
-Sprint 2 closes when:
+The 11-commit sequence preserves "one topic per commit":
 
-- [ ] **All 4 lead-in items shipped** (ADR-0013, V1_DDL.md, library smoke runner, comparison smoke runner).
-- [ ] **All 3 main deliverables shipped** (S2-1, S2-2, S2-3).
-- [ ] **`LARGE-IPC-EXCEPTION` suppression on `reports_generate_comparison_pdf` removed** from the audit lint config (the original suppression was always temporary; Sprint 2 makes it unnecessary).
-- [ ] **L-CMP-PDF-5 / L-CMP-XLSX-5 / L-CMP-3 / L-CMP-5 / L-CMP-10 budgets** in `BUDGETS.md` carry measured numbers (no more TBDs in this family).
-- [ ] **Validation report** at `docs/performance/REPORTS-NATIVE-BY-IDS-VALIDATION.md` with the A/B numbers and final verdict.
+```
+1.  docs(adr): add no-large-ipc rule                            (S2-L1)
+2.  docs(db): document report-relevant V1 schema contract       (S2-L2)
+3.  test(perf): add comparison smoke baseline runner            (S2-L4)
+4.  feat(reports): add by-ids DTOs and validation               (G1, G2 enum, G4 key material)
+5.  feat(reports): add native comparison PDF by-ids             (S2-1 PDF arm + G3 semaphore)
+6.  feat(reports): add native comparison XLSX by-ids            (S2-1 XLSX arm)
+7.  test(reports): add by-ids golden parity tests               (S2-2 incl. corner cases + hash normalisation lib)
+8.  feat(frontend): route comparison exports through native by-ids flag  (G5)
+9.  perf(reports): add TS vs native validation report           (S2-3)
+10. chore(audit): remove comparison large-ipc exception         (final cleanup)
+11. docs(perf): update budgets and Sprint 2 retrospective       (close-out)
+```
+
+S2-L3 (library smoke perf runner) commits in parallel whenever convenient; not part of the critical sequence.
+
+Approximate timing on the critical sequence: 5–6 active days.
+
+---
+
+## Definition of done (tightened)
+
+Sprint 2 closes only when **all** are true:
+
+- [ ] **Native PDF + XLSX by-ids paths default in alpha** (feature flag wired per G5; flag default = native).
+- [ ] **Old TS-assembly path** is reachable only via the fallback flag; `#[deprecated]` markers in place.
+- [ ] **Golden parity tests** cover 3 main fixtures + 6 corner cases (incl. duplicate-IDs reject + reordered-IDs preserve-order).
+- [ ] **A/B validation report** at `REPORTS-NATIVE-BY-IDS-VALIDATION.md` shows all 5 metrics: wall_ms (p50/p95), IPC payload size, JS heap peak, Rust RSS peak.
+- [ ] **`LARGE-IPC-EXCEPTION` for `reports_generate_comparison_pdf` removed** from the audit lint config.
+- [ ] **`audit:large-ipc`, `cargo test --lib`, `vitest`, `version:validate` all green** on the closing commit.
+- [ ] **`BUDGETS.md` carries measured numbers** for `L-CMP-3`, `L-CMP-5`, `L-CMP-10`, `L-CMP-PDF-5`, `L-CMP-XLSX-5` (severity stays `soft` per A3 until 5 stable nightly runs).
+- [ ] **`ADR-0010-comparison-report-generation.md` updated** with a "post-Sprint-2 by-ids path" section (so future readers find the new architecture from the original ADR).
 - [ ] **Sprint 2 retrospective doc** written (template: `SPRINT-1-RETROSPECTIVE.md`).
-- [ ] **Sprint 3 planning doc** drafted (`SPRINT-3-PLANNING.md` — analysis cache work pre-loaded).
-- [ ] **All gates green**: cargo `--lib`, vitest, audit:large-ipc (now without the suppression), version-validate, hard budgets compare.
+- [ ] **Sprint 3 planning doc** drafted with the cache key material design from G4 already pre-loaded.
 
 ---
 
-## Open questions for stakeholder
-
-1. **Frontend feature flag vs hard switch.** S2-1 plans `comparison-experiment-adapter.ts` to keep the old assembly path behind a flag for one release. Is that the right migration cadence, or should the old path be deleted in S2-1's PR (and the golden smoke test become the only proof of equivalence)?
-2. **Fixture count for golden smoke.** Three fixtures (Chandler / BSL / Grace) is the proposed minimum. Should we also test a **degenerate corner case** (1-experiment "comparison", empty experiment, missing-channel experiment) in S2-2?
-3. **L-CMP-PDF-5 budget tightening.** `BUDGETS.md` currently has L-CMP-PDF-5 at 12 000 ms p50 / 20 000 ms p95 with a comment "will tighten by 30-50 % after Sprint 2". Should we tighten *immediately* on the new measurement (Sprint 2 sets the new band) or wait for **5 stable nightly runs** per the BUDGETS.md severity policy?
-4. **XLSX scope.** The brief says "PDF/XLSX" for both S2-1 and S2-2. The current TS-assembly path supports both, so by-ids must too. But S2-3's `perf` measurement could be PDF-only initially since PDF is the slower of the two. Is that an acceptable simplification or do we want both numbers in the validation report?
-5. **Hash normalisation depth.** S2-2's golden test needs to strip PDF/XLSX metadata before hashing. Do we want to strip just timestamps + creator strings, or do we go further (e.g. normalise all Producer/CreationDate/ModDate fields and any randomised IDs)?
-
----
-
-## Risk register
+## Risk register (v2)
 
 | Risk | Likelihood | Impact | Mitigation |
 | ---- | ---------- | ------ | ---------- |
-| Native by-ids handler reads stale data because the analysis cache (Sprint 3) doesn't exist yet, so every report re-runs analysis | high (it's the current behaviour, just inside Rust now) | low | document explicitly that Sprint 2 doesn't add caching; `perf:reports` numbers are the **post-Sprint-2 / pre-Sprint-3** baseline that Sprint 3 then improves on. |
-| Golden smoke test flaky on PDF metadata even after stripping | medium | medium | use structural hash (PDF object graph) instead of binary hash; ship a normalisation library function reused by all golden tests. |
-| Large-DB fixture causes the by-ids handler to run out of memory loading all experiments at once | low | high (release blocker) | stream the experiment data instead of loading all at once; benchmark with the 28 442-point Chandler from `small.db` as the largest single experiment, and a 10-experiment comparison as the worst-case multiplier. |
-| ADR-0013 wording disagrees with how the lint actually behaves | low | low | write the ADR after the lint behaviour is finalised; cite the lint as the source of truth. |
-| V1_DDL doc drift from migration code (someone updates the code, forgets the doc) | high (long-tail) | medium | add a `npm run audit:db-schema-drift` lint that diffs the documented schema against `PRAGMA table_info(...)` output of a fresh seed DB. Sprint 3 task. |
+| Native handler reads stale data because Sprint 3 cache doesn't exist yet, so every report re-runs analysis | high (it's the current behaviour, just inside Rust now) | low | document explicitly; S2-3 numbers are the post-Sprint-2 / pre-Sprint-3 baseline; Sprint 3 multiplies the win. |
+| Order preservation regression: SQLite `WHERE id IN (...)` returns wrong order | high | high (correctness) | explicit test in S2-2 (reordered-IDs fixture); per-row loop or post-fetch sort by input index in the handler. |
+| Two concurrent comparison exports OOM the process | medium | high | G3 semaphore with `permits=1` from S2-1 PR. |
+| Golden test flaky on PDF/XLSX metadata even after normalisation | medium | medium | structural-hash fallback per A5; ship the normalisation lib as a reusable artefact. |
+| Old TS-assembly path silently used in production because feature flag default is wrong | low | medium | flag default = native; manifest in `BASELINES.md` runId; S2-3 perf report explicitly logs which path each iteration ran. |
+| ADR-0013 disagrees with the lint's actual behaviour | low | low | write the ADR after confirming the lint's current rules; cite the lint as source of truth. |
+| V1_DDL.md drifts from migration code over time | high (long-tail) | medium | future Sprint 3+ task: `npm run audit:db-schema-drift` lint that diffs documented schema vs `PRAGMA table_info()` of fresh seed DB. |
+| Sprint 2 expands into "perf infra sprint" via library smoke runner gating | low (mitigated by A1) | medium | S2-L3 explicitly non-blocking (operator decision); don't merge S2-L3 into critical-sequence PRs. |
 
 ---
 
 ## See also
 
-- `docs/performance/PERF-ROADMAP-SPRINTS-1-6.md` — the program-level view (this sprint is at the top of the ROI ordering).
-- `docs/performance/SPRINT-1-RETROSPECTIVE.md` — what shipped in Sprint 1 and what's inherited.
-- `docs/performance/BUDGETS.md` — the contract Sprint 2 finally moves the L-CMP-* needles on.
-- `docs/performance/MICROBENCH.md` — the bench harness Sprint 2 will extend with a third target (`reports`).
-- `docs/adr/ADR-0010-comparison-report-generation.md` — the current architecture (Sprint 2 will revise this with a "post-Sprint-2 by-ids path" section).
-- `scripts/audit/check-large-ipc-contracts.mjs` — the lint whose exception Sprint 2 retires.
+- `docs/performance/PERF-ROADMAP-SPRINTS-1-6.md` — program-level view (this is the active sprint at the top of the ROI ordering).
+- `docs/performance/SPRINT-1-RETROSPECTIVE.md` — what shipped in Sprint 1, what's inherited.
+- `docs/performance/BUDGETS.md` — the contract this sprint moves the L-CMP-* numbers on.
+- `docs/performance/MICROBENCH.md` — the bench harness Sprint 2 will extend with a `reports` target.
+- `docs/adr/ADR-0010-comparison-report-generation.md` — the architecture this sprint revises.
+- `docs/adr/ADR-0013-no-large-ipc-rule.md` — to be created in S2-L1.
+- `docs/db/V1_DDL.md` — to be created in S2-L2.
+- `scripts/audit/check-large-ipc-contracts.mjs` — the lint whose exception this sprint retires.
