@@ -123,7 +123,8 @@ function ComparisonChartUPlotInner({
     const committedBrushViewportRef = useRef<ComparisonViewport | null>(null);
     const debouncedChartExperiments = useDebouncedValue(chartExperiments, 150);
     const debouncedBrushExperiments = useDebouncedValue(brushExperiments, 150);
-    const debouncedExperiments = isBrushPreviewing ? brushExperiments : debouncedChartExperiments;
+    const canUseBrushPreview = isBrushPreviewing && binarySeries.isBrushOverviewReady;
+    const debouncedExperiments = canUseBrushPreview ? brushExperiments : debouncedChartExperiments;
 
     /**
      * Brush range is stored in BOTH a mutable ref and React state:
@@ -400,6 +401,20 @@ function ComparisonChartUPlotInner({
         comparisonAxisMode,
     });
 
+    useEffect(() => {
+        const u = uPlotRef.current;
+        const range = brushRangeRef.current;
+        if (!u || !range) return;
+
+        const raf = requestAnimationFrame(() => {
+            if (uPlotRef.current !== u) return;
+            const currentRange = brushRangeRef.current;
+            if (!currentRange || !brushRangesEqual(currentRange, range)) return;
+            u.setScale('x', { min: currentRange[0], max: currentRange[1] });
+        });
+        return () => cancelAnimationFrame(raf);
+    }, [uPlotData]);
+
     const { uPlotData: brushUPlotData } = useComparisonChartData({
         debouncedExperiments: debouncedBrushExperiments,
         primaryMetric,
@@ -412,6 +427,26 @@ function ComparisonChartUPlotInner({
         targetTime,
         comparisonAxisMode,
     });
+
+    useEffect(() => {
+        if (!viewport) return;
+        if (isBrushPreviewing) return;
+        if (!binarySeries.isViewportWindowReady) return;
+        if (binarySeries.readyCount < experiments.length) return;
+        if ((uPlotData[0] as ArrayLike<unknown>).length > 0) return;
+        if ((brushUPlotData[0] as ArrayLike<unknown>).length === 0) return;
+
+        onViewportChange?.(null);
+    }, [
+        binarySeries.isViewportWindowReady,
+        binarySeries.readyCount,
+        brushUPlotData,
+        experiments.length,
+        isBrushPreviewing,
+        onViewportChange,
+        uPlotData,
+        viewport,
+    ]);
 
     // Stale viewport guard — clears `viewport` when it falls entirely outside
     // the loaded data extent (e.g. warm navigation restored a viewport from
@@ -573,6 +608,9 @@ function ComparisonChartUPlotInner({
                 className="flex-1 min-h-0 relative overflow-hidden"
                 data-testid="ComparisonChart"
                 data-brush-previewing={isBrushPreviewing ? 'true' : 'false'}
+                data-chart-layer={canUseBrushPreview ? 'brush-overview' : chartViewport ? 'window' : 'overview'}
+                data-brush-overview-ready={binarySeries.isBrushOverviewReady ? 'true' : 'false'}
+                data-viewport-window-ready={binarySeries.isViewportWindowReady ? 'true' : 'false'}
                 role="img"
                 aria-label="График сравнения экспериментов"
             >

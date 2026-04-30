@@ -56,6 +56,7 @@ export interface UseComparisonSeriesWindowsResult {
     readyCount: number;
     errorCount: number;
     usedViewportFallback: boolean;
+    isBrushOverviewReady: boolean;
     isViewportWindowReady: boolean;
 }
 
@@ -348,8 +349,37 @@ export function useComparisonSeriesWindows({
                 fallbackViewportKey?: string,
                 timeOriginSec?: number,
                 overviewColumnarData?: ChartColumnarData | null,
+                allowEmpty = false,
             ) => {
                 if (isEmptySeriesWindow(seriesWindow)) {
+                    if (allowEmpty) {
+                        const resolvedTimeOriginSec = Number.isFinite(timeOriginSec)
+                            ? Number(timeOriginSec)
+                            : 0;
+                        const columnarData = seriesWindowToColumnarData(seriesWindow, {
+                            timeOriginSec: resolvedTimeOriginSec,
+                        });
+                        seriesWindowCache.set(readyCacheKey, columnarData);
+                        setLineStates(prev => {
+                            if (prev[exp.id]?.cacheKey !== expectedSerializedKey && prev[exp.id]?.cacheKey !== readySerializedKey) {
+                                return prev;
+                            }
+                            return {
+                                ...prev,
+                                [exp.id]: {
+                                    experimentId: exp.id,
+                                    status: 'ready',
+                                    columnarData,
+                                    overviewColumnarData: overviewColumnarData ?? prev[exp.id]?.overviewColumnarData ?? cachedOverview,
+                                    cacheKey: readySerializedKey,
+                                    fallbackViewportKey,
+                                    lastLoadedAt: Date.now(),
+                                },
+                            };
+                        });
+                        return;
+                    }
+
                     setLineStates(prev => {
                         if (prev[exp.id]?.cacheKey !== expectedSerializedKey && prev[exp.id]?.cacheKey !== readySerializedKey) {
                             return prev;
@@ -454,51 +484,6 @@ export function useComparisonSeriesWindows({
                     .then(seriesWindow => {
                         if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
 
-                        if (requestViewport && fallbackKey && isEmptySeriesWindow(seriesWindow)) {
-                            emptyViewportFallbacksRef.current.add(fallbackKey);
-                            const cachedOverview = seriesWindowCache.get(overviewCacheKey);
-                            if (cachedOverview) {
-                                setLineStates(prev => {
-                                    if (prev[exp.id]?.cacheKey !== serializedKey && prev[exp.id]?.cacheKey !== overviewSerializedKey) {
-                                        return prev;
-                                    }
-                                    return {
-                                            ...prev,
-                                            [exp.id]: {
-                                                experimentId: exp.id,
-                                                status: 'ready',
-                                                columnarData: cachedOverview,
-                                                overviewColumnarData: cachedOverview,
-                                                cacheKey: overviewSerializedKey,
-                                                fallbackViewportKey: fallbackKey,
-                                                lastLoadedAt: Date.now(),
-                                        },
-                                    };
-                                });
-                                return;
-                            }
-
-                            series.overview(exp.id, metrics, maxPoints)
-                                .then(overviewWindow => {
-                                    if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
-                                    const overviewTimeOriginSec = minFiniteSeriesTimeSec(overviewWindow);
-                                    setReadyFromSeriesWindow(
-                                        overviewWindow,
-                                        overviewCacheKey,
-                                        overviewSerializedKey,
-                                        serializedKey,
-                                        fallbackKey,
-                                        overviewTimeOriginSec,
-                                        undefined,
-                                    );
-                                })
-                                .catch(error => {
-                                    if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
-                                    setLineError(error, overviewSerializedKey, serializedKey, fallbackKey);
-                                });
-                            return;
-                        }
-
                         if (requestViewport) {
                             resolveWindowTimeOriginSec()
                                 .then(timeOriginSec => {
@@ -511,6 +496,7 @@ export function useComparisonSeriesWindows({
                                         undefined,
                                         timeOriginSec,
                                         cachedOverview,
+                                        true,
                                     );
                                 })
                                 .catch(error => {
@@ -603,6 +589,11 @@ export function useComparisonSeriesWindows({
             maxPoints,
         )
     ));
+    const isBrushOverviewReady = !binaryEnabled || !activeViewport || experiments.every(exp => {
+        if (isFileExperiment(exp)) return true;
+        const overview = lineStates[exp.id]?.overviewColumnarData;
+        return !!overview?.timeSec && overview.timeSec.length > 0;
+    });
     const isViewportWindowReady = !binaryEnabled || !activeViewport || experiments.every(exp => {
         if (isFileExperiment(exp)) return true;
         const state = lineStates[exp.id];
@@ -627,6 +618,7 @@ export function useComparisonSeriesWindows({
         readyCount,
         errorCount,
         usedViewportFallback,
+        isBrushOverviewReady,
         isViewportWindowReady,
     };
 }

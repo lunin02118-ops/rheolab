@@ -338,7 +338,7 @@ describe('useComparisonSeriesWindows', () => {
         }
     });
 
-    it('falls back to overview when a persisted viewport returns an empty window', async () => {
+    it('keeps an empty viewport window ready without mixing overview into the chart layer', async () => {
         const viewport: ComparisonViewport | null = { xMinSec: 3000, xMaxSec: 3600 };
         const experiments = [makeExperiment('exp-1')];
         const initialProps: HookProps = { experiments, viewport };
@@ -356,19 +356,54 @@ describe('useComparisonSeriesWindows', () => {
 
         expect(series.window).toHaveBeenCalledTimes(1);
         expect(series.overview).toHaveBeenCalledTimes(1);
-        expect(result.current.usedViewportFallback).toBe(true);
-        expect((result.current.experiments[0] as Record<string, any>).columnarData.timeSec.length).toBe(3);
+        expect(result.current.usedViewportFallback).toBe(false);
+        expect(result.current.isViewportWindowReady).toBe(true);
+        expect(result.current.isBrushOverviewReady).toBe(true);
+        expect((result.current.experiments[0] as Record<string, any>).columnarData.timeSec.length).toBe(0);
+        expect((result.current.brushExperiments[0] as Record<string, any>).columnarData.timeSec.length).toBe(3);
 
         rerender({ experiments, viewport });
         await new Promise(resolve => window.setTimeout(resolve, 150));
 
         expect(series.window).toHaveBeenCalledTimes(1);
         expect(series.overview).toHaveBeenCalledTimes(1);
+    });
 
-        rerender({ experiments, viewport: null });
-        await waitFor(() => {
-            expect(result.current.usedViewportFallback).toBe(false);
+    it('does not mix overview data into the chart layer when only one viewport line is empty', async () => {
+        const viewport: ComparisonViewport | null = { xMinSec: 3000, xMaxSec: 3600 };
+        const experiments = [makeExperiment('exp-1'), makeExperiment('exp-2')];
+        vi.mocked(series.window).mockImplementation((experimentId: string) =>
+            Promise.resolve(experimentId === 'exp-1'
+                ? makeEmptySeriesWindow()
+                : makeSeriesWindow(experimentId, [3000, 3060, 3120])),
+        );
+        vi.mocked(series.overview).mockImplementation((experimentId: string) =>
+            Promise.resolve(makeSeriesWindow(experimentId, [0, 60, 120, 3000, 3600])),
+        );
+
+        const { result } = renderHook(({ experiments, viewport }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, viewport, sessionId: 'session-1' }), {
+            initialProps: { experiments, viewport },
         });
+
+        await waitFor(() => {
+            expect(result.current.readyCount).toBe(2);
+        });
+
+        const firstChartColumnar = (result.current.experiments[0] as Record<string, any>).columnarData;
+        const secondChartColumnar = (result.current.experiments[1] as Record<string, any>).columnarData;
+        const firstBrushColumnar = (result.current.brushExperiments[0] as Record<string, any>).columnarData;
+        const secondBrushColumnar = (result.current.brushExperiments[1] as Record<string, any>).columnarData;
+
+        expect(result.current.usedViewportFallback).toBe(false);
+        expect(result.current.isViewportWindowReady).toBe(true);
+        expect(result.current.isBrushOverviewReady).toBe(true);
+        expect(Array.from(firstChartColumnar.timeSec)).toEqual([]);
+        expect(Array.from(secondChartColumnar.timeSec)).toEqual([3000, 3060, 3120]);
+        expect(Array.from(firstBrushColumnar.timeSec)).toEqual([0, 60, 120, 3000, 3600]);
+        expect(Array.from(secondBrushColumnar.timeSec)).toEqual([0, 60, 120, 3000, 3600]);
+        expect(firstChartColumnar).not.toBe(firstBrushColumnar);
+        expect(secondChartColumnar).not.toBe(secondBrushColumnar);
     });
 
     it('keeps existing lines ready and loads only the added experiment for the same viewport', async () => {

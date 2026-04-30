@@ -379,6 +379,17 @@ function expectBrushExtentStable(before: BrushState | null, after: BrushState | 
   expect(after!.brush_max).toBeCloseTo(before!.brush_max, 4);
 }
 
+async function expectComparisonChartLayer(
+  page: Page,
+  layer: 'overview' | 'window' | 'brush-overview',
+): Promise<void> {
+  const chart = page.getByTestId('ComparisonChart');
+  await expect(chart).toHaveAttribute('data-chart-layer', layer, { timeout: 15_000 });
+  if (layer === 'window') {
+    await expect(chart).toHaveAttribute('data-viewport-window-ready', 'true', { timeout: 15_000 });
+  }
+}
+
 async function dragComparisonBrushCenter(
   page: Page,
   deltaRatio: number,
@@ -605,12 +616,14 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         initialDragZoomViewport = dragZoomStep.result;
         expect(initialDragZoomViewport).toBeTruthy();
         await waitForSeriesCalls(page, 'experiments_series_window', initialIds, initialN);
+        await expectComparisonChartLayer(page, 'window');
         await comparison.expectCanvasPainted();
 
         const resetStep = await timeStep(() => doubleClickResetComparisonChart(page));
         doubleClickResetMs = resetStep.ms;
         resetViewport = resetStep.result;
         expect(resetViewport).toBeNull();
+        await expectComparisonChartLayer(page, 'overview');
         await comparison.expectCanvasPainted();
 
         const callsBeforePersistedViewport = (await readWarmNavPerfState(page)).series_calls.length;
@@ -625,6 +638,7 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
           callsBeforePersistedViewport,
           initialN,
         );
+        await expectComparisonChartLayer(page, 'window');
         await comparison.expectCanvasPainted();
 
         brushExtentBeforePan = await readComparisonBrushState(page);
@@ -654,6 +668,7 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         brushPanSeriesRequestsAfterCommit = callsSince(afterBrushCommitPerf, callsBeforeBrushPan)
           .filter(call => call.command === 'experiments_series_window');
         expect(countCallsFor(brushPanSeriesRequestsAfterCommit, initialIds)).toBe(initialN);
+        await expectComparisonChartLayer(page, 'window');
         await comparison.expectCanvasPainted();
 
         const callsBeforeNoopClick = afterBrushCommitPerf.series_calls.length;
@@ -696,6 +711,7 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         await comparison.expectLoaded();
         await comparison.expectChipCount(initialN);
         await comparison.expectChartVisible();
+        await expectComparisonChartLayer(page, 'window');
         await comparison.expectCanvasPainted();
       });
       await page.waitForTimeout(SERIES_SETTLE_MS);
@@ -716,6 +732,7 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
           const state = await readWarmNavPerfState(page);
           return countCallsFor(callsSince(state, callsBeforeRezoom), initialIds);
         }, { timeout: 45_000 }).toBe(initialN);
+        await expectComparisonChartLayer(page, 'window');
         await comparison.expectCanvasPainted();
         return viewportAfterRezoom;
       });
@@ -729,6 +746,7 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         await comparison.addExperimentByName(addedExperiment.name);
         await comparison.expectChipCount(initialN + 1);
         await waitForSeriesCalls(page, 'experiments_series_window', [addedExperiment.id], 1);
+        await expectComparisonChartLayer(page, 'window');
         await comparison.expectCanvasPainted();
       });
       await page.waitForTimeout(SERIES_SETTLE_MS);
