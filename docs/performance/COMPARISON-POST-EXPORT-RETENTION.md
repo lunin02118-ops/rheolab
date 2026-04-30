@@ -32,6 +32,7 @@ removes app-controlled transient references where we can.
 ```powershell
 npm test -- --run tests/reports/useComparisonReportExport.test.ts tests/pages/comparison-page.cleanup.test.tsx
 npm run perf:comparison:tauri:memory
+npm run perf:comparison:memory:summary -- --write-md
 ```
 
 Use the memory runner sidecar to compare these phases:
@@ -55,3 +56,26 @@ Interpretation:
   mounted report/chart tab is the likely retained surface.
 - If both stay high, treat WebView2/download manager/runtime retention as the
   next diagnostic target before changing product architecture.
+
+## Latest N=5 Readout
+
+Latest beta-readiness diagnostic:
+
+```powershell
+$env:COMPARISON_SMOKE_MEMORY_STEPS = "1"
+$env:COMPARISON_SMOKE_N = "5"
+npm run perf:comparison:tauri
+npm run perf:comparison:memory:summary -- --write-md
+```
+
+`docs/performance/COMPARISON-MEMORY-PHASE-READOUT.md` contains the generated
+p50/p95 table over the latest three N=5 memory sidecars.
+
+Key p50 deltas from the current readout:
+
+- `after_xlsx - after_export_gc_hint`: -100.12 MB total RSS, including
+  -16.23 MB renderer RSS and -83.82 MB GPU RSS.
+- `after_export_gc_hint - after_route_leave`: renderer changes by only
+  -0.68 MB. Route leave does not reveal an additional app-controlled release.
+- Remaining post-route RSS should stay documented as WebView2/GPU/runtime
+  retention unless a later phase table points at a retained app reference.

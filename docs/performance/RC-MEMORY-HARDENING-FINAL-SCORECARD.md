@@ -164,6 +164,27 @@ N=10 UI smoke, the test license/runtime cap must be raised for that runner.
 Memory-step mode is diagnostic only. It uses direct Win32 sampling and CDP GC
 hints, so it must not be mixed into latency p50/p95 claims.
 
+The latest N=5 beta-readiness follow-up is summarized in
+`docs/performance/COMPARISON-MEMORY-PHASE-READOUT.md` over three diagnostic
+runs:
+
+| Phase | Total p50 | Total p95 | Renderer p50 | Renderer p95 | GPU p50 | GPU p95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| after_chart_visible | 644.33 MB | 649.19 MB | 143.27 MB | 145.55 MB | 261.14 MB | 265.15 MB |
+| after_pdf | 736.34 MB | 748.93 MB | 207.28 MB | 207.48 MB | 259.71 MB | 272.53 MB |
+| after_xlsx | 726.19 MB | 731.43 MB | 209.05 MB | 209.19 MB | 248.00 MB | 253.93 MB |
+| after_export_gc_hint | 626.07 MB | 627.92 MB | 192.82 MB | 193.18 MB | 164.18 MB | 165.57 MB |
+| after_route_leave | 631.44 MB | 631.94 MB | 192.14 MB | 195.08 MB | 166.32 MB | 167.59 MB |
+
+Current p50 read:
+
+- export cleanup + diagnostic GC reclaims about 100.12 MB Total RSS after
+  XLSX, including 16.23 MB renderer RSS and 83.82 MB GPU RSS;
+- after GC hint vs route leave is near-flat for renderer RSS, so there is no
+  new evidence of retained app-level comparison state after navigation;
+- keep Total RSS soft because the remaining movement is dominated by
+  WebView2/GPU/runtime behavior.
+
 | N | Phase | Total RSS | Renderer RSS | GPU RSS | Tauri RSS |
 | ---: | --- | ---: | ---: | ---: | ---: |
 | 3 | after_chart_visible | 537.93 MB | 171.66 MB | 130.48 MB | 65.52 MB |
