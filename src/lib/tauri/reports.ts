@@ -39,29 +39,6 @@ export const reports = {
     return new Uint8Array(buffer);
   },
 
-  /**
-   * Generate a multi-experiment comparison PDF (page 1 = shared chart +
-   * summary, pages 2..N+1 = per-experiment bodies).
-   *
-   * Input is deserialised on the Rust side directly as
-   * `ComparisonReportInput` — the TS caller is expected to pass the output
-   * of `convertComparisonReportInputToWasm` (snake_case wire shape).
-   */
-  async generateComparisonPdf(input: unknown): Promise<Uint8Array> {
-    const buffer = await invoke<ArrayBuffer>('reports_generate_comparison_pdf', { input });
-    return new Uint8Array(buffer);
-  },
-
-  /**
-   * Generate a multi-experiment comparison XLSX workbook (Summary sheet +
-   * per-experiment sheets + hidden DebugInfo).  Same payload shape as
-   * `generateComparisonPdf`.
-   */
-  async generateComparisonExcel(input: unknown): Promise<Uint8Array> {
-    const buffer = await invoke<ArrayBuffer>('reports_generate_comparison_excel', { input });
-    return new Uint8Array(buffer);
-  },
-
   async generateComparisonPdfByIds(request: ComparisonReportByIdsRequest): Promise<Uint8Array> {
     const buffer = await invoke<ArrayBuffer>('reports_generate_comparison_pdf_by_ids', { request });
     return new Uint8Array(buffer);

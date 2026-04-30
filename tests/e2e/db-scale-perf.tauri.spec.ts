@@ -171,6 +171,7 @@ test.describe(`[DBScale/${scale.toUpperCase()}] Library performance with ${scale
         // ── Step 4: filter_fluid_type ────────────────────────────────────────
         {
             console.log(`\n── Step 4: filter_fluid_type ──`);
+            await library.ensureFilterGroupOpen('Параметры теста', library.fluidTypeFilter);
             const wallStart = Date.now();
             // Очищаем поиск, устанавливаем фильтр по типу жидкости
             await library.search('');
@@ -195,10 +196,11 @@ test.describe(`[DBScale/${scale.toUpperCase()}] Library performance with ${scale
         // ── Step 5: filter_date_range ────────────────────────────────────────
         {
             console.log(`\n── Step 5: filter_date_range ──`);
-            const wallStart = Date.now();
             // Пробуем найти date range фильтр через testid
             const dateFromInput = page.getByTestId('DateFromFilterInput');
             const dateToInput   = page.getByTestId('DateToFilterInput');
+            await library.ensureFilterGroupOpen('Локация и объект', dateFromInput);
+            const wallStart = Date.now();
             const hasDateFrom = await dateFromInput.isVisible({ timeout: 2_000 }).catch(() => false);
             if (hasDateFrom) {
                 await dateFromInput.fill('2024-01-01');

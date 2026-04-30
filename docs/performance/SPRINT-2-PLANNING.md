@@ -449,10 +449,10 @@ Progress as of closeout:
 Sprint 2 closes only when **all** are true:
 
 - [x] **Native PDF + XLSX by-ids paths default in alpha** (frontend default path calls `generateComparison*ByIdsBlob`).
-- [x] **Old TS-assembly path** is reachable only via explicit rollback fallback (`rheolab.comparisonReports.forceLegacy=1`) or missing by-IDs IPC.
+- [x] **Old TS-assembly path** was reachable only via explicit rollback fallback during alpha; RC hardening removed the fallback and legacy payload IPC.
 - [x] **Golden parity tests** cover by-IDs PDF/XLSX correctness, missing IDs, toggles, request order, and generated workbook/PDF structure.
 - [x] **Validation report** at `REPORTS-NATIVE-BY-IDS-VALIDATION.md` captures wall_ms p50/p95 and artifact bytes for production-shaped PDF/XLSX N=5/N=10; IPC payload reduction is validated by hook/client tests. JS heap and Rust RSS are deferred to Sprint 3/4 instrumentation.
-- [ ] **`LARGE-IPC-EXCEPTION` for `reports_generate_comparison_pdf` removed** — intentionally deferred until the alpha/beta rollback window ends because the legacy command remains as emergency fallback only.
+- [x] **`LARGE-IPC-EXCEPTION` for `reports_generate_comparison_pdf` removed** — resolved in RC hardening after the rollback window.
 - [x] **`audit:large-ipc`, `cargo test --lib`, `vitest`, `version:validate` all green** on the implementation commits; `audit:large-ipc` passes with the expected legacy suppression.
 - [x] **`BUDGETS.md` carries measured numbers** for `L-CMP-PDF-5` and `L-CMP-XLSX-5`; `L-CMP-5/10` UI setup remains blocked by the demo-license cap and is deferred to the Sprint 3 license test helper.
 - [x] **`BUDGETS.md` carries measured numbers** for `L-LIB-OPEN-1K`, `L-LIB-OPEN-10K`, `L-FILTER`, `L-EXP-DETAIL`, `DB-LIST`, `DB-LIST-LARGE`, `DB-DETAIL` (S2-L3 promoted in v3, audit S1-AUD-005). Severity stays `soft`.

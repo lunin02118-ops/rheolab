@@ -1,14 +1,14 @@
 # Sprint 2 retrospective — native comparison reports by IDs
 
 **Sprint window:** 2026-04-29  
-**Status:** closed for alpha with explicit rollback-window deferrals  
+**Status:** closed for alpha; rollback-window deferrals resolved in RC hardening
 **Mission:** replace the default comparison report export path with native by-IDs commands so the frontend no longer assembles large per-experiment report payloads.
 
 ## Verdict
 
 Sprint 2 delivered the main ROI lever: comparison PDF/XLSX exports now default to native by-IDs IPC. The frontend sends experiment IDs plus settings; Rust loads experiments from SQLite, runs analysis, and renders PDF/XLSX without the heavy TypeScript payload assembly on the default path.
 
-The legacy TypeScript payload path remains available only as a rollback lane for one alpha/beta cycle. That means the historical `LARGE-IPC-EXCEPTION` marker is still present on `reports_generate_comparison_pdf`, but it is no longer the default production path.
+The legacy TypeScript payload rollback lane was retained for alpha, then removed in the RC hardening lane after Sprint 6. The historical `LARGE-IPC-EXCEPTION` marker is no longer present.
 
 External closeout review on `3994022` confirmed Sprint 2 as alpha-complete with one condition: run the full release gate on the merge commit before alpha release. The review explicitly rejected deleting the legacy payload path during the rollback window.
 
@@ -21,7 +21,7 @@ External closeout review on `3994022` confirmed Sprint 2 as alpha-complete with 
 | Backend | `reports_generate_comparison_pdf_by_ids` and `reports_generate_comparison_excel_by_ids` generate real native reports. |
 | Validation | Request validation, license gating, duplicate/missing ID handling, order preservation, parity/golden tests. |
 | Frontend | `useComparisonReportExport` routes default PDF/XLSX downloads through by-IDs wrappers. |
-| Fallback | Emergency `localStorage['rheolab.comparisonReports.forceLegacy']='1'` path retained. |
+| Fallback | Emergency legacy path retained for alpha, then removed during RC hardening. |
 | DB lifetime | Pooled SQLite connection is released immediately after loading experiments, before analysis/rendering. |
 
 ## Key commits on the feature branch
@@ -45,7 +45,7 @@ Earlier backend by-IDs and parity coverage landed on `main` before the UI-switch
 | Full `npm test` for UI switch | Passed |
 | TypeScript `tsc --noEmit` | Passed |
 | `npm run version:validate` | Passed |
-| `npm run audit:large-ipc` | Passed with expected legacy suppression |
+| `npm run audit:large-ipc` | Passed with expected legacy suppression at Sprint 2 close; RC hardening target is zero suppressions |
 | `git diff --check` | Passed |
 | `bench_comparison_pdf` fixture DB PDF N=5/N=10 | Passed |
 | `bench_comparison_pdf --format xlsx` fixture DB XLSX N=5/N=10 | Passed |
@@ -67,8 +67,8 @@ The UI-level `L-CMP-3/5/10` setup budgets still depend on a comparison smoke run
 
 | Deferred item | Why | Owner sprint |
 | --- | --- | --- |
-| Remove legacy comparison payload path | Rollback lane required for one alpha/beta cycle. | Sprint 3 close / release hardening |
-| Remove `LARGE-IPC-EXCEPTION` marker | Same rollback lane; marker belongs to legacy command only. | Sprint 3 close / release hardening |
+| Remove legacy comparison payload path | Resolved in RC hardening after Sprint 6. | Done |
+| Remove `LARGE-IPC-EXCEPTION` marker | Resolved in RC hardening after Sprint 6. | Done |
 | Per-report JS heap peak | Current fixture microbench is Rust-only and does not attach browser heap sampling. | Sprint 3/4 instrumentation |
 | Per-report Rust RSS peak | Needs process-level RSS sampling around handler/job spans. | Sprint 4 scheduler/instrumentation |
 | UI `L-CMP-5/10` smoke | Demo license cap still blocks N > 3 in Playwright flow. | Sprint 3 license test helper |

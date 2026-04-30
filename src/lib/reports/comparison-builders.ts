@@ -1,9 +1,9 @@
 /**
  * @fileoverview Pure UI-side builder for {@link ComparisonReportInput}.
  *
- * This module assembles the camelCase `ComparisonReportInput` payload that
- * the UI passes to `generateComparisonPdfReportBlob` /
- * `generateComparisonExcelReportBlob` in {@link ../reports/client.ts}.
+ * This module assembles the camelCase `ComparisonReportInput` payload used by
+ * renderer/unit tests and legacy fixture tooling. Production comparison
+ * exports use bounded by-IDs IPC and assemble this shape inside Rust.
  *
  * It is intentionally minimal: per-experiment `reportInput` objects are
  * expected to already be built via the existing

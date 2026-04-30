@@ -295,12 +295,12 @@ async function mockTauriIPC(page: import('@playwright/test').Page) {
           }
           // Multi-experiment comparison reports — use distinct size markers so
           // accidental single↔multi wiring regressions show up in byte asserts.
-          if (cmd === 'reports_generate_comparison_pdf') {
+          if (cmd === 'reports_generate_comparison_pdf_by_ids') {
             const fakePdf = new Uint8Array(8000);
             fakePdf[0] = 0x25; fakePdf[1] = 0x50; fakePdf[2] = 0x44; fakePdf[3] = 0x46; // %PDF
             return Promise.resolve(fakePdf);
           }
-          if (cmd === 'reports_generate_comparison_excel') {
+          if (cmd === 'reports_generate_comparison_excel_by_ids') {
             const fakeXlsx = new Uint8Array(8000);
             fakeXlsx[0] = 0x50; fakeXlsx[1] = 0x4B; fakeXlsx[2] = 0x03; fakeXlsx[3] = 0x04; // PK (ZIP)
             return Promise.resolve(fakeXlsx);

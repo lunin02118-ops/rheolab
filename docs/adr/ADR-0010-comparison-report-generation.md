@@ -207,8 +207,8 @@ pub fn generate_comparison_excel_from_input(input: &ComparisonReportInput) -> Re
            │       language, companyName, companyLogo, unitSystem
            │     })
            │
-           ├─▶ bridge.reports.generateComparisonPdf(payload)
-           │    / generateComparisonExcel(payload)
+           ├─▶ bridge.reports.generateComparisonPdfByIds(request)
+           │    / generateComparisonExcelByIds(request)
            │
            │     Rust:
            │       1) build SVG chart (multi_experiment generator)
@@ -275,7 +275,7 @@ interface ComparisonReportInput {
 
 ---
 
-## 4.6 Post-Sprint-2 architecture — native by-IDs default
+## 4.6 Post-Sprint-2 / RC architecture — native by-IDs only
 
 Sprint 2 changes the default export path without changing the downstream PDF/XLSX renderer contract:
 
@@ -294,18 +294,7 @@ useComparisonReportExport
          └─ call generate_comparison_pdf / generate_comparison_excel
 ```
 
-The legacy payload commands remain registered only as rollback fallback for one alpha/beta window:
-
-- `reports_generate_comparison_pdf`
-- `reports_generate_comparison_excel`
-
-The frontend uses that legacy path only when the by-IDs IPC command is missing or when the emergency flag is set:
-
-```ts
-localStorage.setItem('rheolab.comparisonReports.forceLegacy', '1')
-```
-
-This means the original `ComparisonReportInput` shape is still the renderer contract, but it is no longer the default IPC contract. The default IPC payload is now bounded by experiment IDs plus settings, which removes the heavy TypeScript-side `comparison-experiment-adapter` work from normal exports and prepares the Rust path for Sprint 3's AnalysisArtifact cache.
+The legacy payload commands were removed during the RC hardening lane after Sprint 6. The original `ComparisonReportInput` shape is still the renderer contract inside Rust, but it is no longer an IPC contract. The IPC payload is bounded by experiment IDs plus settings, which removes the heavy TypeScript-side `comparison-experiment-adapter` work from exports and lets Rust check the AnalysisArtifact cache before repeated analysis.
 
 Validation is captured in `docs/performance/REPORTS-NATIVE-BY-IDS-VALIDATION.md`.
 
@@ -321,10 +310,9 @@ Deliverables:
 1. `report_generator/comparison/{mod,types,summary_sheet,per_exp_sheet}.rs`.
 2. Рефакторинг `excel/mod.rs`: вынести `write_single_experiment_to_sheet(&mut Worksheet, &ReportInput, &Styles, bool)` как `pub(crate)` функцию — чтобы single-sheet flow переиспользовал её + comparison вызывал её в цикле.
 3. Рефакторинг `pdf/template/mod.rs`: выделить `pub(crate) fn build_single_experiment_typst_fragment(input) -> String` (возвращает фрагмент Typst), объединять фрагменты через include в comparison-template.
-4. Новые Tauri-команды в `src-tauri/src/commands/reports/` (существующий паттерн):
-   - `reports_generate_comparison_pdf(payload) -> Vec<u8>`
-   - `reports_generate_comparison_excel(payload) -> Vec<u8>`
-   Регистрация в `tauri::Builder::.invoke_handler`.
+4. Historical Tauri payload commands were used during the initial implementation, then replaced by by-IDs commands and removed in RC hardening:
+   - `reports_generate_comparison_pdf_by_ids(request) -> Vec<u8>`
+   - `reports_generate_comparison_excel_by_ids(request) -> Vec<u8>`
 5. Unit-тесты в `rheolab-core/tests/comparison_report_tests.rs`:
    - 2 эксперимента → PDF содержит ≥2 страницы, ≥1 image stream.
    - 3 эксперимента → Excel содержит ровно `1 (summary) + 3 (per-exp) + 1 (DebugInfo hidden) = 5` worksheets; sheet name #1 = `Сравнение` (ru) / `Comparison` (en); sheet names 2..4 — first 31 chars of `displayName` (Excel sheet name limit).
@@ -333,7 +321,7 @@ Deliverables:
 
 ---
 
-### Phase 2 — Client payload builders
+### Phase 2 — Client payload builders (historical; superseded by by-IDs IPC)
 
 **Goal**: TypeScript умеет собрать корректный `ComparisonReportInput` из текущего state вкладки Comparison.
 
@@ -342,8 +330,8 @@ Deliverables:
 2. `comparison-report-builders.ts`:
    - `buildComparisonPdfInput(ctx: ComparisonReportContext): ComparisonReportInput`
    - `buildComparisonExcelInput(...)` (в 1-й версии — тот же payload, differ только в IPC target).
-3. Расширение `src/lib/tauri/bridge.ts` → `bridge.reports.generateComparisonPdf / generateComparisonExcel`.
-4. `src/lib/reports/client.ts` → `generateComparisonPdfBlob / generateComparisonExcelBlob` — зеркало существующих `generatePdfReportBlob/generateExcelReportBlob`, с тем же retry-fallback паттерном.
+3. Superseded in RC hardening: production bridge exposes `generateComparisonPdfByIds / generateComparisonExcelByIds` only.
+4. Superseded in RC hardening: production client exposes `generateComparisonPdfReportByIdsBlob / generateComparisonExcelReportByIdsBlob` only.
 5. Vitest:
    - `tests/reports/comparison-builders.test.ts` — входной mock из 2 experiments, убедиться что все секции корректно разложены, `sectionToggles` уважаются, `brushRange` пробрасывается.
 

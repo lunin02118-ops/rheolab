@@ -3,6 +3,7 @@
 **Status:** v1 (2026-04-28, Sprint 0 — baseline captured by S0-5).  
 **Owner:** Architecture Team.  
 **Linked baseline:** **AlphaBaseline-0.2.2-alpha.2** (see `BASELINES.md`, runId family `1777393597912`–`1777393927970`).  
+**Latest RC scorecard:** `RC-PERFORMANCE-SCORECARD.md` (2026-04-29 local hardening pass).
 **Compare gate:** any PR touching the comparison/report/library/filter paths
 must run `npm run perf:compare` and prove it stays inside the budget envelope.
 
@@ -136,7 +137,7 @@ long tasks is worse than 5 paths producing 6 each.
 | Deliverable | Status |
 |---|---|
 | `docs/perf/BUDGETS.md` (this file) | **done** — commit `5fd4308` |
-| `scripts/audit/check-large-ipc-contracts.mjs` (P14 lint) + `LARGE-IPC-EXCEPTION` suppression on `reports_generate_comparison_pdf` | **done** — commits `9fb902f`, `e77fb26`; rule formalised by `docs/adr/ADR-0013-no-large-ipc-rule.md` (Sprint 2 lead-in S2-L1, 2026-04-29) |
+| `scripts/audit/check-large-ipc-contracts.mjs` (P14 lint) | **done** — commits `9fb902f`, `e77fb26`; rule formalised by `docs/adr/ADR-0013-no-large-ipc-rule.md`; RC hardening removed the final comparison-payload suppression, so `audit:large-ipc` is expected to report zero suppressions |
 | Cargo `[profile.release.package.*]` per-package opt-level=3 (P10) for `rheolab-core` + Typst stack + plotters | **done** — commit `7df0209` |
 | Comparison-path `tracing::instrument` (Rust, 4 spans) + `withPerf<T>` (TS, 3 handlers) | **done** — commit `ca2496e` |
 | `docs/perf/BASELINES.md` AlphaBaseline-0.2.2-alpha.2 entry | **done** — S0-5 measurements |

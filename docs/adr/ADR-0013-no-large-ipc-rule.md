@@ -1,6 +1,6 @@
 # ADR-0013 — No-large-IPC rule for Tauri commands
 
-- **Status**: Accepted
+- **Status**: Accepted — enforced with zero active suppressions
 - **Date**: 2026-04-29
 - **Deciders**: Architecture Team
 - **Related**: ADR-0010 (comparison report architecture), Sprint 0 P14 audit, Sprint 2 plan
@@ -18,9 +18,9 @@ The Tauri IPC channel between the React frontend and the Rust backend marshals e
 
 The combined cost is non-linear above ~100 KB and dominates wall-clock time for payloads built from thousands of nested objects (e.g., a comparison report carrying 5–10 experiments, each with ~10 000 raw rheology points). Real measurements from Sprint 0's `FRONTEND-IPC-DEEP-AUDIT-LATEST.md` showed the comparison-export path spending **30–50 % of its wall time in the IPC marshalling itself**, before any actual report generation runs in Rust.
 
-Sprint 0's audit-v2 added the **P14 lint** (`scripts/audit/check-large-ipc-contracts.mjs`) which scans every `#[tauri::command]` signature in `src-tauri/src/commands/` and flags forbidden parameter types. The lint identified one Tauri command — `reports_generate_comparison_pdf` — that legitimately needed a `serde_json::Value` parameter (for the REP-001 anti-DoS pre-deserialise count check) and would otherwise have failed the lint. The lint was therefore shipped with a **suppression mechanism** (the `LARGE-IPC-EXCEPTION:` marker, see § 2.2 below) and one suppressed finding.
+Sprint 0's audit-v2 added the **P14 lint** (`scripts/audit/check-large-ipc-contracts.mjs`) which scans every `#[tauri::command]` signature in `src-tauri/src/commands/` and flags forbidden parameter types. The lint originally shipped with one temporary suppression for the legacy comparison PDF payload IPC while Sprint 2 moved comparison reports to bounded by-IDs commands.
 
-The "one suppressed finding" was always intended as temporary scaffolding pending a Sprint 2 architectural fix that would let the count gate work without large IPC payloads. This ADR formalises the rule the lint has been quietly enforcing, names the existing exception explicitly, and commits to retiring it as part of Sprint 2.
+The RC hardening lane removed that legacy comparison payload IPC and the suppression marker. As of this update, `npm run audit:large-ipc` is expected to report zero unsuppressed findings and zero suppressions.
 
 ---
 
@@ -51,7 +51,7 @@ pub async fn some_command(...) -> Result<...> { ... }
 CI greps for the marker, so every exception is auditable. Adding a new exception requires:
 
 1. The reason string in the marker (visible to reviewers and to grep-based audits).
-2. An ADR amendment (this document) listing the new exception alongside the existing one.
+2. An ADR amendment (this document) listing the new exception and a dated removal gate.
 
 A new exception without ADR amendment is grounds to block the PR.
 
@@ -80,67 +80,47 @@ CI gates `audit:large-ipc` alongside `cargo test`, `vitest`, and `version:valida
 - **Forces by-ids design.** When a command genuinely needs heavy data, the architecturally-correct answer is "fetch it from SQLite by ID inside the handler, not over IPC". The lint nudges authors towards this pattern at design time, not after profiling.
 - **Free schema visibility.** Forbidding `serde_json::Value` ensures every typed DTO is visible at the signature, which makes reviewers' jobs easier and gives the IPC contract free schema validation via `serde`.
 - **Drift detection in CI.** A change that would re-introduce a large-IPC pattern on a previously-clean command fails CI immediately.
-- **Sprint 2 baseline.** After Sprint 2 retires the existing exception, the lint will report **zero suppressed findings** — a cleaner architectural baseline going forward.
+- **Zero-suppression baseline.** The lint now reports **zero suppressed findings**. Any future exception is a new architecture decision, not inherited debt.
 
 ### 3.2 Negative / costs
 
-- **One-time architectural cost.** The comparison report flow needs the native-by-ids fix in Sprint 2 (~5–6 active days, see `SPRINT-2-PLANNING.md`). This is the cost of formalising the rule rather than continuing to ship the suppression.
+- **One-time architectural cost.** The comparison report flow paid this cost across Sprint 2 and the RC hardening lane: default exports moved to by-IDs, and the legacy payload IPC was removed.
 - **Regex-based lint accepts false negatives.** A future Rust-aware linter (clippy custom lint, `rustc_lint`-style plugin) would be more robust, but is out of scope. The existing regex catches the realistic patterns.
 - **Authors of new commands must justify exceptions in writing.** The marker reason must articulate why a by-ids / binary / downsampled alternative does not work. This is mild friction but a desired behaviour — exceptions should be rare and well-reasoned.
 
 ### 3.3 Neutral
 
-- The XLSX comparison path (`reports_generate_comparison_excel`) currently uses the typed `ComparisonReportInput` parameter and does **not** trigger the lint, even though its payload is similar in size to the PDF path. This is allowed because:
-  - The lint flags only `Vec<f64>`/`Vec<f32>`/`Vec<RawPoint>`/`Vec<DataPoint>`/`serde_json::Value` at the signature level. Typed DTOs are out of scope for this lint (they are visible at review time, which is the lint's purpose).
-  - REP-001 anti-DoS for XLSX is enforced after typed deserialisation. The XLSX experiment-tree is roughly half the size of the PDF tree, so the resource cost of a malicious 100k-experiment payload is bounded enough to accept.
-  - Sprint 2's `reports_generate_comparison_xlsx_by_ids` will replace the XLSX path with the same by-ids architecture, making the typed-DTO-vs-`Value` distinction moot for the comparison family.
+The lint remains intentionally regex-based and signature-scoped. Typed DTOs are visible at review time, while explicit raw arrays and `serde_json::Value` stay forbidden for Tauri command parameters. The comparison family now uses by-IDs IPC, so it no longer relies on this typed-DTO distinction for large report payloads.
 
 This neutral consequence will be revisited in a future ADR if the lint is ever extended to flag *all* large typed DTOs (not just the explicit raw-data shapes). Current scope is intentionally narrow.
 
 ---
 
-## 4. Existing exception (default path retired in Sprint 2; marker removal deferred)
+## 4. Historical exception and final removal
 
-There is **one** active `LARGE-IPC-EXCEPTION` suppression in the codebase as of this ADR:
+There are **no active `LARGE-IPC-EXCEPTION` suppressions** in the codebase.
 
-| File | Line | Command | Reason |
-| ---- | ---- | ------- | ------ |
-| `src-tauri/src/commands/reports.rs` | ~174 | `reports_generate_comparison_pdf` | REP-001 anti-DoS pre-deserialise count check; the input must be `serde_json::Value` to count experiments **before** the second-pass typed deserialisation that builds the heavy `ComparisonExperimentEntry` tree. |
+The historical suppression was:
 
-This was added in Sprint 0 audit-v2 (commits `9fb902f`, `e77fb26`).
+| File | Command | Reason |
+| ---- | ------- | ------ |
+| `src-tauri/src/commands/reports.rs` | `reports_generate_comparison_pdf` | REP-001 anti-DoS pre-deserialise count check for the legacy large payload command. |
 
-### 4.1 Retirement plan
+It was added in Sprint 0 audit-v2 (commits `9fb902f`, `e77fb26`) and removed during the RC hardening lane after Sprint 6.
+
+### 4.1 Final state
 
 Sprint 2 shipped:
 
 - **S2-1** — new IPC commands `reports_generate_comparison_pdf_by_ids(...)` and `_excel_by_ids(...)`. The payload is bounded by experiment IDs plus settings, which is naturally small by construction.
 - **S2-2** — parity/golden tests proving by-ids and the legacy path produce equivalent PDF/XLSX outputs.
 - **S2-3** — validation report quantifying fixture-backed native render wall time and artifact sizes.
-- **S2 frontend switch** — default comparison exports use by-IDs IPC. The legacy payload path is reachable only through the emergency rollback flag or missing by-IDs IPC.
-
-The `LARGE-IPC-EXCEPTION` marker remains while the legacy command remains registered for the alpha/beta rollback window. This is a deliberate release-risk decision, not a failure of the by-IDs migration. Once the rollback window ends, remove the legacy payload commands and this suppression together; at that point `npm run audit:large-ipc` should report zero suppressions.
+- **S2 frontend switch** — default comparison exports use by-IDs IPC.
+- **RC hardening** — removed the legacy comparison payload frontend fallback, removed the legacy comparison payload IPC commands, and removed the remaining suppression marker.
 
 ### 4.2 What if a future sprint cannot complete the final removal?
 
-If the legacy rollback path must survive longer than one alpha/beta window, this ADR must be amended again with the release reason and a new removal gate. This ADR is **not** a deadline contract; it is the architectural rule with a documented retirement plan for the only known exception.
-
-If a new exception is required during Sprint 2 (or any future sprint), this ADR must be amended to list it, with the same level of detail as § 4 above.
-
-### 4.3 Removal issue seed
-
-Create a dated release-hardening issue after Sprint 2 merge:
-
-```text
-Title: Remove legacy comparison payload IPC and LARGE-IPC-EXCEPTION
-Gate: after one alpha + one beta window with no by-IDs regressions
-Owner: Sprint 3 close / release hardening
-Scope:
-- Remove or hard-disable legacy comparison payload frontend fallback.
-- Remove legacy comparison payload IPC commands.
-- Remove the remaining LARGE-IPC-EXCEPTION marker.
-- Require npm run audit:large-ipc to report zero suppressions.
-- Update ADR-0010 and ADR-0013 to the final no-exception state.
-```
+If a future exception is required, this ADR must be amended with the same level of detail as the historical row above plus a dated removal gate. A new exception is release-risk debt and must not be treated as a casual lint bypass.
 
 ---
 

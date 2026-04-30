@@ -132,8 +132,8 @@
 |---|---|---|---|
 | `reports_generate_pdf` | Построить PDF-отчёт (до 6 локалей графиков, опционально калибровка). | LOW | feature:reportPdf |
 | `reports_generate_excel` | Построить многолистовый XLSX. | LOW | feature:reportExcel |
-| `reports_generate_comparison_pdf` | Comparison-отчёт PDF по группе экспериментов (ADR-0010). Нативный pipeline в `rheolab-core::report_generator::comparison`. | LOW | feature:reportPdf |
-| `reports_generate_comparison_excel` | Comparison-отчёт XLSX (Сводная таблица + per-experiment листы). | LOW | feature:reportExcel |
+| `reports_generate_comparison_pdf_by_ids` | Comparison-отчёт PDF по списку experiment IDs; Rust сам загружает данные из SQLite и использует AnalysisArtifact cache. | LOW | feature:reportPdf |
+| `reports_generate_comparison_excel_by_ids` | Comparison-отчёт XLSX по списку experiment IDs; Rust сам загружает данные из SQLite и использует AnalysisArtifact cache. | LOW | feature:reportExcel |
 
 ---
 

@@ -49,7 +49,7 @@ The local Rust test-binary loader issue found during implementation is resolved.
 | S4-FU-001 | Add loader-safe per-job CPU/RSS sampler. | Scheduler hardening |
 | S4-FU-002 | Move cache-hit raw point parsing fully outside the first DB scope. | Sprint 5 or scheduler hardening |
 | S4-FU-003 | Add async start/result API for report jobs when UI is ready for a full job center. | Later UI sprint |
-| S4-FU-004 | Remove legacy comparison payload fallback after alpha + beta rollback window. | Release hardening |
+| S4-FU-004 | Remove legacy comparison payload fallback after alpha + beta rollback window. | Done in RC hardening |
 
 ## See Also
 

@@ -156,11 +156,19 @@ export class LibraryPage {
 
   /** Type into the global search input and wait for results to render */
   async search(query: string) {
+    await this.ensureFilterGroupOpen('Поиск', this.searchInput);
     await this.searchInput.fill(query);
     // Wait for debounce (200ms) + IPC round-trip + render
     await this.page.waitForTimeout(500);
     // Wait for experiment list to settle: cards/rows appear OR empty-state message
     await this.waitForListSettled();
+  }
+
+  /** Open a collapsed filter group when a test needs controls inside it. */
+  async ensureFilterGroupOpen(title: string, probe: Locator) {
+    if (await probe.isVisible({ timeout: 500 }).catch(() => false)) return;
+    await this.filtersPanel.getByRole('button', { name: title }).first().click();
+    await expect(probe).toBeVisible({ timeout: 5_000 });
   }
 
   /** Wait until the experiment list finishes loading — cards/rows or "no results" shown */
@@ -184,6 +192,17 @@ export class LibraryPage {
       batch: this.batchFilter,
     };
     const input = map[filter];
+    const groupByFilter: Record<string, string> = {
+      name: 'Поиск',
+      author: 'Поиск',
+      lab: 'Локация и объект',
+      field: 'Локация и объект',
+      operator: 'Параметры теста',
+      well: 'Локация и объект',
+      water: 'Локация и объект',
+      batch: 'QA / Реагенты',
+    };
+    await this.ensureFilterGroupOpen(groupByFilter[filter], input);
     await input.clear();
     await input.fill(value);
     await this.page.waitForTimeout(500);
