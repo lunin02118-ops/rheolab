@@ -128,6 +128,26 @@ function sanitizeRates(rates: readonly number[]): number[] {
     return unique.size > 0 ? [...unique] : [...DEFAULT_VISCOSITY_SHEAR_RATES];
 }
 
+type ReportByIdExportKind = 'pdf' | 'excel' | 'all';
+
+function emitReportByIdRequest(kind: ReportByIdExportKind, request: ExperimentReportByIdRequest): void {
+    if (typeof window === 'undefined') return;
+
+    try {
+        const hook = (window as unknown as {
+            __RHEOLAB_REPORT_BY_ID_REQUEST_HOOK__?: (event: {
+                kind: ReportByIdExportKind;
+                request: ExperimentReportByIdRequest;
+            }) => void;
+        }).__RHEOLAB_REPORT_BY_ID_REQUEST_HOOK__;
+        if (typeof hook === 'function') {
+            hook({ kind, request });
+        }
+    } catch {
+        // Best-effort E2E observer only. Report export must not depend on it.
+    }
+}
+
 export function useReportExportById(options: UseReportExportByIdOptions) {
     const [isExporting, setIsExporting] = useState(false);
     const [isExcelExporting, setIsExcelExporting] = useState(false);
@@ -257,7 +277,9 @@ export function useReportExportById(options: UseReportExportByIdOptions) {
         setExportError(null);
         let bytes: Uint8Array | null = null;
         try {
-            bytes = await generatePdfReportByIdBytes(buildRequest());
+            const request = buildRequest();
+            emitReportByIdRequest('pdf', request);
+            bytes = await generatePdfReportByIdBytes(request);
             await saveBytes({
                 bytes,
                 filename: `${baseFilename}.pdf`,
@@ -279,7 +301,9 @@ export function useReportExportById(options: UseReportExportByIdOptions) {
         setExportError(null);
         let bytes: Uint8Array | null = null;
         try {
-            bytes = await generateExcelReportByIdBytes(buildRequest());
+            const request = buildRequest();
+            emitReportByIdRequest('excel', request);
+            bytes = await generateExcelReportByIdBytes(request);
             await saveBytes({
                 bytes,
                 filename: `${baseFilename}.xlsx`,
@@ -315,6 +339,7 @@ export function useReportExportById(options: UseReportExportByIdOptions) {
         let excelBytes: Uint8Array | null = null;
         try {
             const request = buildRequest();
+            emitReportByIdRequest('all', request);
             pdfBytes = await generatePdfReportByIdBytes(request);
             items.push({ bytes: pdfBytes, filename: `${baseFilename}.pdf`, mimeType: PDF_MIME });
             excelBytes = await generateExcelReportByIdBytes(request);

@@ -39,6 +39,27 @@ function isLegacyDetailRawPointsForced(): boolean {
     }
 }
 
+type FullDataLoadReason = 'save' | 'legacy-detail-fallback' | 'unknown';
+
+function emitFullDataLoadEvent(experimentId: string, reason: FullDataLoadReason): void {
+    if (typeof window === 'undefined') return;
+
+    try {
+        const hook = (window as unknown as {
+            __RHEOLAB_FULL_DATA_LOAD_HOOK__?: (event: {
+                experimentId: string;
+                reason: FullDataLoadReason;
+            }) => void;
+        }).__RHEOLAB_FULL_DATA_LOAD_HOOK__;
+        const event = { experimentId, reason };
+        if (typeof hook === 'function') {
+            hook(event);
+        }
+    } catch {
+        // Best-effort E2E observer only. Detail loading must never depend on it.
+    }
+}
+
 export default function Dashboard() {
     const { isExpert } = useUIMode();
     const expertSettings = useAnalysisSettingsStore(s => s.expertSettings);
@@ -150,8 +171,14 @@ export default function Dashboard() {
 
     const loadFullExperimentById = useCallback(async (
         experimentId: string,
-        options?: { replaceUrl?: boolean; scroll?: boolean; shouldApply?: () => boolean },
+        options?: {
+            replaceUrl?: boolean;
+            scroll?: boolean;
+            shouldApply?: () => boolean;
+            reason?: FullDataLoadReason;
+        },
     ) => {
+        emitFullDataLoadEvent(experimentId, options?.reason ?? 'unknown');
         setIsFullDataLoading(true);
         try {
             const data = await getExperimentById(experimentId);
@@ -179,7 +206,7 @@ export default function Dashboard() {
         }
     }, [applyFullExperiment, scrollToChart, setError]);
 
-    const ensureFullExperimentLoaded = useCallback(() => {
+    const ensureFullExperimentLoaded = useCallback((reason: FullDataLoadReason = 'unknown') => {
         if (!isMetadataOnly) {
             return Promise.resolve(true);
         }
@@ -188,7 +215,7 @@ export default function Dashboard() {
             return Promise.resolve(false);
         }
         if (!fullDataLoadRef.current) {
-            fullDataLoadRef.current = loadFullExperimentById(experimentId)
+            fullDataLoadRef.current = loadFullExperimentById(experimentId, { reason })
                 .finally(() => {
                     fullDataLoadRef.current = null;
                 });
@@ -278,6 +305,7 @@ export default function Dashboard() {
                 : loadFullExperimentById(loadExperimentId, {
                     replaceUrl: true,
                     scroll: true,
+                    reason: 'legacy-detail-fallback',
                     shouldApply: () => !cancelled,
                 });
 
@@ -327,7 +355,7 @@ export default function Dashboard() {
 
     const handleSaveClick = useCallback(() => {
         if (isMetadataOnly) {
-            void ensureFullExperimentLoaded().then((loaded) => {
+            void ensureFullExperimentLoaded('save').then((loaded) => {
                 if (loaded) {
                     setShowSaveDialog(true);
                 }

@@ -213,6 +213,29 @@ PR #21 closed the last large saved-detail Report tab export gap:
 - full water override fields are carried end-to-end:
   `fe`, `ca`, `mg`, `cl`, `so4`, `hco3`.
 
+The manual RC checklist is now covered by a real Tauri smoke:
+
+```powershell
+npx cross-env RHEOLAB_E2E_REAL_REPORTS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/saved-report-by-id-smoke.tauri.spec.ts
+```
+
+Result on this branch: 1 passed. The smoke opens a saved experiment through the
+metadata-first library flow, verifies Report tab does not trigger full-data
+loading, exports real PDF/XLSX bytes by id, checks beginner defaults, checks
+expert settings, forwards full water overrides, and verifies Save triggers the
+lazy full-data load only at Save-dialog time.
+
+Observed real export bytes:
+
+| Export | Bytes |
+| --- | ---: |
+| Beginner PDF | 53,678 |
+| XLSX | 52,048 |
+| Expert PDF | 53,989 |
+
+The only full-data load event recorded by the smoke was:
+`{ reason: "save" }`.
+
 Targeted PR #21 gate was already green before this scorecard branch:
 
 - targeted frontend tests: 39 passed;
