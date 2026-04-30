@@ -200,6 +200,26 @@ describe('useComparisonReportExport', () => {
             expect(saveBytes).not.toHaveBeenCalled();
             expect(result.current.exportError).toContain('reports_generate_comparison_pdf_by_ids');
         });
+
+        it('emits a buffer-release diagnostic event after saving PDF bytes', async () => {
+            const releases: unknown[] = [];
+            const onRelease = (event: Event) => {
+                releases.push((event as CustomEvent).detail);
+            };
+            window.addEventListener('rheolab:comparison-export-buffers-released', onRelease);
+
+            try {
+                const { result } = renderHook(() => useComparisonReportExport(makeOptions()));
+
+                await act(async () => {
+                    await result.current.handleDownloadPdf();
+                });
+            } finally {
+                window.removeEventListener('rheolab:comparison-export-buffers-released', onRelease);
+            }
+
+            expect(releases).toEqual([{ kind: 'pdf' }]);
+        });
     });
 
     // ── Touch-point config propagation ────────────────────────────────
@@ -352,6 +372,26 @@ describe('useComparisonReportExport', () => {
             expect(items.map(i => i.filename)).toEqual(
                 expect.arrayContaining([expect.stringMatching(/\.pdf$/), expect.stringMatching(/\.xlsx$/)]),
             );
+        });
+
+        it('emits one combined buffer-release diagnostic event after saving both formats', async () => {
+            const releases: unknown[] = [];
+            const onRelease = (event: Event) => {
+                releases.push((event as CustomEvent).detail);
+            };
+            window.addEventListener('rheolab:comparison-export-buffers-released', onRelease);
+
+            try {
+                const { result } = renderHook(() => useComparisonReportExport(makeOptions()));
+
+                await act(async () => {
+                    await result.current.handleDownloadAll(true, true);
+                });
+            } finally {
+                window.removeEventListener('rheolab:comparison-export-buffers-released', onRelease);
+            }
+
+            expect(releases).toEqual([{ kind: 'all' }]);
         });
 
         it('does nothing when both format flags are false', async () => {

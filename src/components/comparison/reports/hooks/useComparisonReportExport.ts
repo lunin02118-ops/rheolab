@@ -143,6 +143,33 @@ const DEFAULT_SECTION_TOGGLES: ComparisonSectionToggles = {
 const PDF_MIME = 'application/pdf';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
+type ComparisonExportKind = 'pdf' | 'excel' | 'all';
+
+function releaseComparisonExportBuffers(kind: ComparisonExportKind): void {
+    if (typeof window === 'undefined') return;
+
+    try {
+        if (typeof performance !== 'undefined' && typeof performance.getEntriesByType === 'function') {
+            for (const entry of performance.getEntriesByType('measure')) {
+                if (entry.name.startsWith('cmp:')) {
+                    performance.clearMeasures(entry.name);
+                }
+            }
+        }
+    } catch {
+        // Best-effort cleanup only. Export success/failure must not depend on
+        // browser User Timing support.
+    }
+
+    try {
+        window.dispatchEvent(new CustomEvent('rheolab:comparison-export-buffers-released', {
+            detail: { kind },
+        }));
+    } catch {
+        // Non-fatal diagnostic hook for perf runners.
+    }
+}
+
 // ── Sprint 0 / S0-6: comparison-flow perf instrumentation ──────────────────
 //
 // Lightweight wrapper around an async stage of the comparison-export
@@ -286,6 +313,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             setExportError(`Ошибка генерации PDF: ${msg}`);
         } finally {
             bytes = null;
+            releaseComparisonExportBuffers('pdf');
             setIsExporting(false);
         }
     }, [options.experiments.length, generatePdfBytes, baseFilename]);
@@ -312,6 +340,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             setExportError(`Ошибка генерации Excel: ${msg}`);
         } finally {
             bytes = null;
+            releaseComparisonExportBuffers('excel');
             setIsExcelExporting(false);
         }
     }, [options.experiments.length, generateExcelBytes, baseFilename]);
@@ -351,6 +380,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             items.length = 0;
             pdfBytes = null;
             excelBytes = null;
+            releaseComparisonExportBuffers('all');
             setIsExporting(false);
             setIsExcelExporting(false);
         }

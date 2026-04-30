@@ -36,7 +36,7 @@
  */
 
 import { test, expect, setupBeforeEach } from './base-test.tauri';
-import type { Page } from '@playwright/test';
+import type { CDPSession, Page } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
@@ -106,6 +106,7 @@ interface ComparisonSmokeMeasurement {
     pdf_bytes: number | null;
     xlsx_ms: number | null;
     xlsx_bytes: number | null;
+    post_export_cleanup_hint?: RendererCleanupHint;
     memory_steps?: NativeMemoryStep[];
     skipped?: 'license-cap' | 'mock-inactive' | 'error';
     skipReason?: string;
@@ -140,6 +141,13 @@ interface NativeMemoryStep extends Partial<NativeMemorySnapshot> {
     phase: string;
     at_ms: number;
     source: 'direct-win32' | 'unavailable';
+    error?: string;
+}
+
+interface RendererCleanupHint {
+    phase: string;
+    page_event: boolean;
+    cdp_collect_garbage: boolean;
     error?: string;
 }
 
@@ -314,6 +322,50 @@ async function readComparisonCap(page: Page): Promise<number> {
     });
 }
 
+async function requestRendererCleanupHint(page: Page, phase: string): Promise<RendererCleanupHint> {
+    const hint: RendererCleanupHint = {
+        phase,
+        page_event: false,
+        cdp_collect_garbage: false,
+    };
+
+    try {
+        await page.evaluate((eventPhase) => {
+            try {
+                for (const entry of performance.getEntriesByType('measure')) {
+                    if (entry.name.startsWith('cmp:')) {
+                        performance.clearMeasures(entry.name);
+                    }
+                }
+            } catch {
+                // Diagnostic cleanup only.
+            }
+            window.dispatchEvent(new CustomEvent('rheolab:comparison-export-cleanup', {
+                detail: { phase: eventPhase },
+            }));
+        }, phase);
+        hint.page_event = true;
+    } catch (error) {
+        hint.error = `page cleanup hint failed: ${error instanceof Error ? error.message : String(error)}`;
+    }
+
+    let cdp: CDPSession | null = null;
+    try {
+        cdp = await page.context().newCDPSession(page);
+        await cdp.send('HeapProfiler.enable');
+        await cdp.send('HeapProfiler.collectGarbage');
+        hint.cdp_collect_garbage = true;
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        hint.error = hint.error ? `${hint.error}; CDP GC failed: ${message}` : `CDP GC failed: ${message}`;
+    } finally {
+        await cdp?.detach().catch(() => undefined);
+    }
+
+    await page.waitForTimeout(500);
+    return hint;
+}
+
 /**
  * Uploads + saves N experiments rotating through FIXTURE_POOL.
  * Returns the list of saved experiment names.
@@ -429,6 +481,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 let xlsxMs: number | null = null;
                 let pdfBytes: number | null = null;
                 let xlsxBytes: number | null = null;
+                let postExportCleanupHint: RendererCleanupHint | undefined;
                 let skipped: ComparisonSmokeMeasurement['skipped'];
                 let skipReason: string | undefined;
                 const minExportBytes = reportPayloadMode === 'mocked' ? 4 : 4096;
@@ -465,6 +518,11 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     console.log(`  [skip xlsx] ${skipReason}`);
                 }
 
+                if (MEMORY_STEPS_ENABLED) {
+                    postExportCleanupHint = await requestRendererCleanupHint(page, `n${n}:after_exports`);
+                    await recordMem('after_export_gc_hint');
+                }
+
                 await page.evaluate(() => {
                     const store = (window as unknown as { __rheolab_comparison_store?: { setState: (s: { experiments: unknown[] }) => void } }).__rheolab_comparison_store;
                     if (store) store.setState({ experiments: [] });
@@ -481,6 +539,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     pdf_bytes: pdfBytes,
                     xlsx_ms: xlsxMs,
                     xlsx_bytes: xlsxBytes,
+                    post_export_cleanup_hint: postExportCleanupHint,
                     ...(MEMORY_STEPS_ENABLED ? { memory_steps: memorySteps } : {}),
                     ...(skipped ? { skipped, skipReason } : {}),
                 });

@@ -129,7 +129,10 @@ export class ComparisonReportsPage {
         const fs = await import('fs');
         const stats = fs.statSync(filePath!);
         expect(stats.size).toBeGreaterThanOrEqual(minSizeBytes);
+        const size = stats.size;
 
-        return { filename, size: stats.size };
+        await download.delete().catch(() => undefined);
+
+        return { filename, size };
     }
 }
