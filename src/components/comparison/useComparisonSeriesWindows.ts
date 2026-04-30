@@ -30,6 +30,11 @@ export interface ComparisonLineSeriesState {
     status: ComparisonLineSeriesStatus;
     error?: string;
     columnarData?: ChartColumnarData;
+    // Allow `null` here because `seriesWindowCache.get()` returns
+    // `ChartColumnarData | null` and we forward that value verbatim into the
+    // line state to avoid a redundant null-to-undefined coercion at every
+    // assignment site (set/setReady/setError flows in this file).
+    overviewColumnarData?: ChartColumnarData | null;
     cacheKey?: string;
     fallbackViewportKey?: string;
     lastLoadedAt?: number;
@@ -45,6 +50,7 @@ export interface UseComparisonSeriesWindowsParams {
 
 export interface UseComparisonSeriesWindowsResult {
     experiments: Experiment[];
+    brushExperiments: Experiment[];
     lineStates: Record<string, ComparisonLineSeriesState>;
     isLoading: boolean;
     readyCount: number;
@@ -218,6 +224,8 @@ export function useComparisonSeriesWindows({
             const requestViewport = fallbackKey && emptyViewportFallbacksRef.current.has(fallbackKey)
                 ? null
                 : activeViewport;
+            const overviewCacheKey = makeSeriesCacheKey(exp.id, metricsKey, maxPoints, null, sessionId);
+            const cachedOverview = seriesWindowCache.get(overviewCacheKey);
             const cacheKey = makeSeriesCacheKey(exp.id, metricsKey, maxPoints, requestViewport, sessionId);
             const serializedKey = serializeSeriesWindowCacheKey(cacheKey);
             const cached = seriesWindowCache.get(cacheKey);
@@ -228,10 +236,14 @@ export function useComparisonSeriesWindows({
                 const fallbackViewportKey = requestViewport === null && fallbackKey ? fallbackKey : undefined;
                 updateLineStatesAsync(prev => {
                     const existing = prev[exp.id];
+                    const overviewColumnarData = requestViewport
+                        ? cachedOverview ?? existing?.overviewColumnarData
+                        : cached;
                     if (
                         existing?.status === 'ready' &&
                         existing.cacheKey === serializedKey &&
                         existing.columnarData === cached &&
+                        existing.overviewColumnarData === overviewColumnarData &&
                         existing.fallbackViewportKey === fallbackViewportKey
                     ) {
                         return prev;
@@ -242,6 +254,7 @@ export function useComparisonSeriesWindows({
                             experimentId: exp.id,
                             status: 'ready',
                             columnarData: cached,
+                            overviewColumnarData,
                             cacheKey: serializedKey,
                             fallbackViewportKey,
                             lastLoadedAt: Date.now(),
@@ -256,6 +269,15 @@ export function useComparisonSeriesWindows({
                 continue;
             }
             if (current?.status === 'ready' && current.cacheKey === serializedKey) {
+                if (cachedOverview && current.overviewColumnarData !== cachedOverview) {
+                    updateLineStatesAsync(prev => ({
+                        ...prev,
+                        [exp.id]: {
+                            ...prev[exp.id],
+                            overviewColumnarData: cachedOverview,
+                        },
+                    }));
+                }
                 continue;
             }
 
@@ -265,6 +287,7 @@ export function useComparisonSeriesWindows({
                     experimentId: exp.id,
                     status: 'loading',
                     columnarData: prev[exp.id]?.columnarData,
+                    overviewColumnarData: prev[exp.id]?.overviewColumnarData ?? cachedOverview,
                     cacheKey: serializedKey,
                 },
             }));
@@ -276,6 +299,7 @@ export function useComparisonSeriesWindows({
                 expectedSerializedKey = readySerializedKey,
                 fallbackViewportKey?: string,
                 timeOriginSec?: number,
+                overviewColumnarData?: ChartColumnarData | null,
             ) => {
                 if (isEmptySeriesWindow(seriesWindow)) {
                     setLineStates(prev => {
@@ -289,6 +313,7 @@ export function useComparisonSeriesWindows({
                                 status: 'error',
                                 error: 'Series contains no chart points',
                                 columnarData: prev[exp.id]?.columnarData,
+                                overviewColumnarData: prev[exp.id]?.overviewColumnarData ?? cachedOverview,
                                 cacheKey: readySerializedKey,
                                 fallbackViewportKey,
                             },
@@ -309,12 +334,16 @@ export function useComparisonSeriesWindows({
                     if (prev[exp.id]?.cacheKey !== expectedSerializedKey && prev[exp.id]?.cacheKey !== readySerializedKey) {
                         return prev;
                     }
+                    const nextOverviewColumnarData = readyCacheKey.kind === 'overview'
+                        ? columnarData
+                        : overviewColumnarData ?? prev[exp.id]?.overviewColumnarData ?? cachedOverview;
                     return {
                         ...prev,
                         [exp.id]: {
                             experimentId: exp.id,
                             status: 'ready',
                             columnarData,
+                            overviewColumnarData: nextOverviewColumnarData,
                             cacheKey: readySerializedKey,
                             fallbackViewportKey,
                             lastLoadedAt: Date.now(),
@@ -360,6 +389,7 @@ export function useComparisonSeriesWindows({
                             status: 'error',
                             error: error instanceof Error ? error.message : String(error),
                             columnarData: prev[exp.id]?.columnarData,
+                            overviewColumnarData: prev[exp.id]?.overviewColumnarData ?? cachedOverview,
                             cacheKey: errorCacheKey,
                             fallbackViewportKey,
                         },
@@ -387,14 +417,15 @@ export function useComparisonSeriesWindows({
                                         return prev;
                                     }
                                     return {
-                                        ...prev,
-                                        [exp.id]: {
-                                            experimentId: exp.id,
-                                            status: 'ready',
-                                            columnarData: cachedOverview,
-                                            cacheKey: overviewSerializedKey,
-                                            fallbackViewportKey: fallbackKey,
-                                            lastLoadedAt: Date.now(),
+                                            ...prev,
+                                            [exp.id]: {
+                                                experimentId: exp.id,
+                                                status: 'ready',
+                                                columnarData: cachedOverview,
+                                                overviewColumnarData: cachedOverview,
+                                                cacheKey: overviewSerializedKey,
+                                                fallbackViewportKey: fallbackKey,
+                                                lastLoadedAt: Date.now(),
                                         },
                                     };
                                 });
@@ -412,6 +443,7 @@ export function useComparisonSeriesWindows({
                                         serializedKey,
                                         fallbackKey,
                                         overviewTimeOriginSec,
+                                        undefined,
                                     );
                                 })
                                 .catch(error => {
@@ -432,6 +464,7 @@ export function useComparisonSeriesWindows({
                                         serializedKey,
                                         undefined,
                                         timeOriginSec,
+                                        cachedOverview,
                                     );
                                 })
                                 .catch(error => {
@@ -448,6 +481,7 @@ export function useComparisonSeriesWindows({
                             serializedKey,
                             undefined,
                             minFiniteSeriesTimeSec(seriesWindow),
+                            undefined,
                         );
                     })
                     .catch(error => {
@@ -488,6 +522,25 @@ export function useComparisonSeriesWindows({
         });
     }, [binaryEnabled, experiments, lineStates]);
 
+    const brushExperiments = useMemo(() => {
+        if (!binaryEnabled) return experiments;
+        return experiments.map(exp => {
+            if (isFileExperiment(exp)) return exp;
+
+            const state = lineStates[exp.id];
+            const columnarData = state?.overviewColumnarData ?? state?.columnarData;
+            if (columnarData) {
+                return {
+                    ...exp,
+                    rawPoints: [],
+                    columnarData,
+                } as Experiment;
+            }
+
+            return exp;
+        });
+    }, [binaryEnabled, experiments, lineStates]);
+
     const readyCount = experiments.filter(exp => (
         isFileExperiment(exp) ||
         lineStates[exp.id]?.status === 'ready' ||
@@ -511,6 +564,7 @@ export function useComparisonSeriesWindows({
 
     return {
         experiments: augmentedExperiments,
+        brushExperiments,
         lineStates,
         isLoading,
         readyCount,

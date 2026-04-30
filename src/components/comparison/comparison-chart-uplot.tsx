@@ -42,6 +42,38 @@ function brushRangesEqual(a: [number, number] | null, b: [number, number] | null
     return Math.abs(a[0] - b[0]) < 0.001 && Math.abs(a[1] - b[1]) < 0.001;
 }
 
+/**
+ * Decide whether a transition from `previous` to `next` experiment ids should
+ * proactively reset the persisted viewport.
+ *
+ * Policy — keep the viewport for "add one more experiment" or "remove one"
+ * flows so a user who already zoomed in does not get snapped back to the full
+ * range when their selection grows or shrinks by a single line.  Only when
+ * the entire selection is REPLACED (no shared experiment ids between the two
+ * sets) do we clear the viewport: the previous zoom was meaningful for a
+ * different time range and would render the new chart sparse / out-of-range.
+ *
+ * Initial mount (`previous === null`) preserves the persisted viewport so
+ * route-return restores the user's window.  Identical id strings short-
+ * circuit because no actual change happened (e.g. spurious re-render).
+ *
+ * Exported for unit testing — keep in sync with the effect inside
+ * `ComparisonChartUPlotInner`.
+ */
+export function shouldResetViewportOnExperimentChange(
+    previous: string | null,
+    next: string,
+): boolean {
+    if (previous === null) return false;
+    if (previous === next) return false;
+    const previousIds = previous.split(',').filter(Boolean);
+    const nextIds = next.split(',').filter(Boolean);
+    if (nextIds.length === 0) return previousIds.length > 0;
+    const nextIdSet = new Set(nextIds);
+    const hasSharedSelection = previousIds.some(id => nextIdSet.has(id));
+    return !hasSharedSelection;
+}
+
 function ComparisonChartUPlotInner({
     experiments,
     sessionId,
@@ -80,7 +112,9 @@ function ComparisonChartUPlotInner({
     const binarySeries = useComparisonSeriesWindows({ experiments, sessionId, viewport });
     const chartViewport = viewport;
     const chartExperiments = binarySeries.experiments;
+    const brushExperiments = binarySeries.brushExperiments;
     const debouncedExperiments = useDebouncedValue(chartExperiments, 150);
+    const debouncedBrushExperiments = useDebouncedValue(brushExperiments, 150);
 
     /**
      * Brush range is stored in BOTH a mutable ref and React state:
@@ -300,6 +334,19 @@ function ComparisonChartUPlotInner({
         comparisonAxisMode,
     });
 
+    const { uPlotData: brushUPlotData } = useComparisonChartData({
+        debouncedExperiments: debouncedBrushExperiments,
+        primaryMetric,
+        leftSecondaryMetric,
+        secondaryMetric,
+        tertiaryMetric,
+        showTouchPoints: false,
+        viscosityThreshold,
+        showTargetTime: false,
+        targetTime,
+        comparisonAxisMode,
+    });
+
     // Stale viewport guard — clears `viewport` when it falls entirely outside
     // the loaded data extent (e.g. warm navigation restored a viewport from
     // another experiment whose time range no longer overlaps).  Without this,
@@ -479,11 +526,11 @@ function ComparisonChartUPlotInner({
             </div>
 
             {/* Brush / range selector – aligned with the plot area */}
-            {experiments.length > 0 && uPlotData[0].length > 0 && brushWidth > 0 && (
+            {experiments.length > 0 && brushUPlotData[0].length > 0 && brushWidth > 0 && (
                 <div className="flex-none py-1" style={{ paddingLeft: plotBbox.left, paddingRight: brushPaddingRight }}>
                     <ChartBrush
-                        times={uPlotData[0] as number[]}
-                        values={uPlotData[1] as (number | null)[]}
+                        times={brushUPlotData[0] as number[]}
+                        values={brushUPlotData[1] as (number | null)[]}
                         range={brushRange}
                         onChange={handleBrushChange}
                         onReset={handleBrushReset}

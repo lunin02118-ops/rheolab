@@ -234,6 +234,40 @@ describe('useComparisonSeriesWindows', () => {
             ['exp-1', 30, 90],
             ['exp-2', 30, 90],
         ]);
+        expect(result.current.brushExperiments).toHaveLength(2);
+    });
+
+    it('keeps brush experiments on overview data while chart experiments use window data', async () => {
+        const experiment = makeExperiment('exp-1');
+        vi.mocked(series.overview).mockResolvedValue(makeSeriesWindow('exp-1', [0, 600, 1200]));
+        vi.mocked(series.window).mockResolvedValue(makeSeriesWindow('exp-1', [600, 660, 720]));
+
+        // Explicitly widen `initialProps` to `HookProps` so TypeScript does not
+        // infer `viewport: null` as a literal type — the second `rerender`
+        // call below passes a viewport object on the same prop.
+        const initialProps: HookProps = { experiments: [experiment], viewport: null };
+        const { result, rerender } = renderHook(({ experiments, viewport }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, viewport, sessionId: 'session-1' }), {
+            initialProps,
+        });
+
+        await waitFor(() => {
+            expect(result.current.readyCount).toBe(1);
+        });
+        const overviewColumnar = (result.current.experiments[0] as Record<string, any>).columnarData;
+
+        rerender({ experiments: [experiment], viewport: { xMinSec: 600, xMaxSec: 720 } });
+
+        await waitFor(() => {
+            const chartColumnar = (result.current.experiments[0] as Record<string, any>).columnarData;
+            expect(Array.from(chartColumnar.timeSec)).toEqual([600, 660, 720]);
+        });
+
+        const chartColumnar = (result.current.experiments[0] as Record<string, any>).columnarData;
+        const brushColumnar = (result.current.brushExperiments[0] as Record<string, any>).columnarData;
+        expect(chartColumnar).not.toBe(overviewColumnar);
+        expect(brushColumnar).toBe(overviewColumnar);
+        expect(Array.from(brushColumnar.timeSec)).toEqual([0, 600, 1200]);
     });
 
     it('keeps window series on the same time origin as the full experiment', async () => {
