@@ -31,6 +31,7 @@
     "perf:soak:tauri": "npx playwright test --config playwright.tauri-soak.config.ts",
     "perf:comparison:tauri": "npx playwright test --config playwright.tauri.config.ts tests/e2e/comparison-smoke-perf.tauri.spec.ts",
     "perf:comparison:tauri:real": "npx cross-env RHEOLAB_E2E_REAL_REPORTS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/comparison-smoke-perf.tauri.spec.ts",
+    "perf:comparison:tauri:memory": "npx cross-env COMPARISON_SMOKE_MEMORY_STEPS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/comparison-smoke-perf.tauri.spec.ts",
     "perf:stress": "npx playwright test --config playwright.benchmark.config.ts tests/e2e/memory-stress.spec.ts",
     "perf:compare": "node scripts/test/compare-perf-baselines.js",
     "db:seed:large": "cargo run --manifest-path tools/fixture_seed/Cargo.toml --release",

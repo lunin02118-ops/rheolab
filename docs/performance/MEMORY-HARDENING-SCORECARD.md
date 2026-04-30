@@ -141,10 +141,15 @@ Source artifacts:
 
 Comparison runner caveats:
 
-- N=3 setup is measured.
-- PDF/XLSX download payloads still show tiny mock-inactive bytes in this e2e
-  runner, so report-render timings are not trusted here.
-- N=5 still hits runner state/overlay click interception.
+- N=3 and N=5 setup are supported by the hardened comparison smoke runner.
+- Mocked payload mode is still the default fast e2e path; real PDF/XLSX
+  payloads are available through `npm run perf:comparison:tauri:real`.
+- For renderer-RSS diagnosis, run
+  `COMPARISON_SMOKE_N=3 npm run perf:comparison:tauri:memory`. This opt-in
+  mode writes per-phase `memory_steps` into the sidecar, including
+  `before_setup`, `after_save_N`, `after_add_N`, `after_pdf`,
+  `after_xlsx`, and `after_route_leave`. It intentionally adds measurement
+  overhead and should not be mixed into latency p50/p95 claims.
 - N=10 is skipped by the runtime comparison cap of 8.
 
 ## Runtime Hardening Validation
@@ -176,6 +181,7 @@ runtime queue refactor, not a blocker for this memory track.
 | Repeated workflow p50/p95 | done |
 | Repeated DB-scale p50/p95 | done |
 | Repeated comparison smoke p50/p95 | done; N=5 and real-payload runner hardened |
+| Comparison renderer RSS phase markers | done; opt-in diagnostic runner |
 
 ## Release Read
 
@@ -184,6 +190,9 @@ For beta/stable, keep these as follow-up release gates:
 
 - keep running `npm run perf:comparison:tauri` and
   `npm run perf:comparison:tauri:real` during release candidates;
+- use `npm run perf:comparison:tauri:memory` when investigating comparison
+  renderer RSS; keep it separate from latency scorecards because the direct
+  Win32 sampling adds overhead;
 - add chart first-paint / pan-zoom latency runner around
   `experiments_series_window`;
 - keep total RSS budget soft until WebView2/GPU variability is separated from
