@@ -72,6 +72,10 @@ npm run audit:large-ipc
 git diff --check
 ```
 
+GitHub Actions are not the authoritative gate for this repository. This
+scorecard, PR readiness, and merge recommendations are based on local
+top-of-stack validation plus the relevant Tauri perf/smoke runners.
+
 The chart runner was repeated after reverting temporary product zoom changes;
 only the Playwright runner fix remains. This confirms the window-refetch result
 comes from the existing chart behavior plus a deterministic visible drag in the
@@ -266,7 +270,8 @@ Targeted PR #21 gate was already green before this scorecard branch:
 ## Release Gate Read
 
 GO for review/merge. The top-of-stack gate passed on this final scorecard
-branch.
+branch. GitHub Actions status is informational only for this track; do not
+block merge/readiness on it unless the release owner explicitly requests that.
 
 Keep these as beta/stable watch items:
 
