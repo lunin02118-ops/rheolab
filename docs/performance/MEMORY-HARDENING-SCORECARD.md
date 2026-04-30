@@ -175,14 +175,15 @@ runtime queue refactor, not a blocker for this memory track.
 | Windows scheduler CPU/RSS sampler | done |
 | Repeated workflow p50/p95 | done |
 | Repeated DB-scale p50/p95 | done |
-| Repeated comparison smoke p50/p95 | done with runner caveats |
+| Repeated comparison smoke p50/p95 | done; N=5 and real-payload runner hardened |
 
 ## Release Read
 
 This track is ready for review/merge as a memory-architecture hardening track.
 For beta/stable, keep these as follow-up release gates:
 
-- fix comparison smoke N=5 runner state and real export payload capture;
+- keep running `npm run perf:comparison:tauri` and
+  `npm run perf:comparison:tauri:real` during release candidates;
 - add chart first-paint / pan-zoom latency runner around
   `experiments_series_window`;
 - keep total RSS budget soft until WebView2/GPU variability is separated from

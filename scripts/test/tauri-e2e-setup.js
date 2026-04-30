@@ -32,6 +32,8 @@ const DIST_DIR = path.join(ROOT, 'dist');
 const PID_FILE = path.join(ROOT, '.tauri-e2e.pid');
 const SAMPLER_PID_FILE = path.join(ROOT, '.tauri-e2e-sampler.pid');
 const SAMPLER_SCRIPT = path.join(ROOT, 'scripts', 'test', 'tauri-native-memory-sampler.ps1');
+const USE_REAL_REPORTS = process.env.RHEOLAB_E2E_REAL_REPORTS === '1';
+const MOCK_REPORTS = !USE_REAL_REPORTS && process.env.RHEOLAB_E2E_MOCK_REPORTS !== '0';
 
 /**
  * Side-channel files used to communicate per-run temp paths to the teardown
@@ -246,24 +248,32 @@ module.exports = async function globalSetup() {
 
     // ── 3. Запуск приложения с CDP ─────────────────────────────────────────
     console.log(`[tauri-e2e] Запускаем приложение с CDP на порту ${CDP_PORT}...`);
+    console.log(
+        `[tauri-e2e] Report export mode: ${MOCK_REPORTS ? 'mocked debug bytes' : 'real Rust renderer'}`,
+    );
+    const childEnv = {
+        ...process.env,
+        // WebView2 (Windows) принимает дополнительные аргументы Chromium:
+        WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${CDP_PORT}`,
+        // WebView2 isolation — keeps the spawned binary from contending
+        // with any other RheoLab instance for the default UserData folder.
+        WEBVIEW2_USER_DATA_FOLDER: process.env.WEBVIEW2_USER_DATA_FOLDER,
+        // E2E bypass: skip native Rust license gate so experiments_save works
+        // without a real license in the test DB.
+        RHEOLAB_E2E_SKIP_LICENSE_GATE: '1',
+        // DB isolation — see the long comment above the spawn block.
+        RHEOLAB_E2E_DB_PATH: process.env.RHEOLAB_E2E_DB_PATH,
+    };
+    if (MOCK_REPORTS) {
+        // E2E mock: reports_generate_* return stub bytes instead of running
+        // Typst in debug builds. Set RHEOLAB_E2E_REAL_REPORTS=1 for real
+        // payload capture runners.
+        childEnv.RHEOLAB_E2E_MOCK_REPORTS = '1';
+    } else {
+        delete childEnv.RHEOLAB_E2E_MOCK_REPORTS;
+    }
     const child = spawn(BINARY_PATH, [], {
-        env: {
-            ...process.env,
-            // WebView2 (Windows) принимает дополнительные аргументы Chromium:
-            WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${CDP_PORT}`,
-            // WebView2 isolation — keeps the spawned binary from contending
-            // with any other RheoLab instance for the default UserData folder.
-            WEBVIEW2_USER_DATA_FOLDER: process.env.WEBVIEW2_USER_DATA_FOLDER,
-            // E2E mock: reports_generate_pdf/excel return stub bytes instead of
-            // running Typst (which at opt-level=0 takes 5+ minutes).
-            // Remove this line when Typst is compiled with opt-level=2 (rebuild needed).
-            RHEOLAB_E2E_MOCK_REPORTS: '1',
-            // E2E bypass: skip native Rust license gate so experiments_save works
-            // without a real license in the test DB. Mirror of RHEOLAB_E2E_MOCK_REPORTS.
-            RHEOLAB_E2E_SKIP_LICENSE_GATE: '1',
-            // DB isolation — see the long comment above the spawn block.
-            RHEOLAB_E2E_DB_PATH: process.env.RHEOLAB_E2E_DB_PATH,
-        },
+        env: childEnv,
         detached: false,
         stdio: 'pipe',
     });

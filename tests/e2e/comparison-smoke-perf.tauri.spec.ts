@@ -26,9 +26,11 @@
  *
  * Run:
  *   npm run perf:comparison:tauri
- *   # or with a specific N (still capped at 3 until license-override lands):
- *   COMPARISON_SMOKE_N=3 npx playwright test tests/e2e/comparison-smoke-perf.tauri.spec.ts \
+ *   # or with specific N values:
+ *   COMPARISON_SMOKE_N=3,5 npx playwright test tests/e2e/comparison-smoke-perf.tauri.spec.ts \
  *     --config playwright.tauri.config.ts
+ *   # capture real PDF/XLSX payloads instead of debug mock bytes:
+ *   RHEOLAB_E2E_REAL_REPORTS=1 COMPARISON_SMOKE_N=3 npm run perf:comparison:tauri
  */
 
 import { test, expect, setupBeforeEach } from './base-test.tauri';
@@ -53,12 +55,23 @@ setupBeforeEach(test);
 const OUTPUT_DIR = path.resolve('outputs', 'e2e', 'perf');
 
 /**
- * Sizes the spec measures. Each is gated by license cap; only N=3 currently
- * runs end-to-end without a license override. N=5 and N=10 are recorded as
- * skipped in the JSON sidecar so consumers (S2-3 A/B report) can see the gap
- * explicitly instead of inferring it from absent fields.
+ * Sizes the spec measures. Each is gated by the runtime license cap. Set
+ * COMPARISON_SMOKE_N=3,5 to keep a local run focused while preserving the
+ * default broad smoke matrix for scorecards.
  */
-const TARGET_FIXTURE_COUNTS = [3, 5, 10] as const;
+const DEFAULT_TARGET_FIXTURE_COUNTS = [3, 5, 10] as const;
+
+function parseTargetFixtureCounts(): number[] {
+    const raw = process.env.COMPARISON_SMOKE_N?.trim();
+    if (!raw) return [...DEFAULT_TARGET_FIXTURE_COUNTS];
+    const parsed = raw
+        .split(',')
+        .map((part) => Number(part.trim()))
+        .filter((n) => Number.isInteger(n) && n > 0);
+    return parsed.length > 0 ? [...new Set(parsed)] : [...DEFAULT_TARGET_FIXTURE_COUNTS];
+}
+
+const TARGET_FIXTURE_COUNTS = parseTargetFixtureCounts();
 
 /**
  * Fixture rotation pool. The spec uploads N copies of these in sequence,
@@ -79,9 +92,12 @@ const FIXTURE_POOL: TestFixture[] = [
 
 interface ComparisonSmokeMeasurement {
     n: number;
+    report_payload: 'mocked' | 'real';
     cmp_ready_ms: number | null;
     pdf_ms: number | null;
+    pdf_bytes: number | null;
     xlsx_ms: number | null;
+    xlsx_bytes: number | null;
     skipped?: 'license-cap' | 'mock-inactive' | 'error';
     skipReason?: string;
 }
@@ -145,7 +161,7 @@ async function setupComparisonExperiments(
         await dashboard.goto();
         await dashboard.uploadFile(fx);
         await dashboard.waitForAnalysis(90_000);
-        const expName = `CmpSmoke_${fx.displayName.replace(/\s+/g, '')}_${runId}_${i}`;
+        const expName = `CmpSmoke_N${n}_${fx.displayName.replace(/\s+/g, '')}_${runId}_${i}`;
         const { name } = await dashboard.saveExperiment({ name: expName });
         names.push(name);
     }
@@ -165,8 +181,10 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
         const cmpReports = new ComparisonReportsPage(page);
 
         const mode = await detectMockMode(page);
+        const reportPayloadMode = mode === 'tauri-debug-mocked' ? 'mocked' : 'real';
         const comparisonCap = await readComparisonCap(page);
         console.log(`[CmpSmoke] mode=${mode} cap=${comparisonCap} runId=${runId}`);
+        console.log(`[CmpSmoke] target counts=${TARGET_FIXTURE_COUNTS.join(', ')}`);
 
         for (const n of TARGET_FIXTURE_COUNTS) {
             console.log(`\n━━━ N=${n} ━━━`);
@@ -176,9 +194,12 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 console.log(`  [skip] N=${n} > runtime comparison cap (${comparisonCap})`);
                 measurements.push({
                     n,
+                    report_payload: reportPayloadMode,
                     cmp_ready_ms: null,
                     pdf_ms: null,
+                    pdf_bytes: null,
                     xlsx_ms: null,
+                    xlsx_bytes: null,
                     skipped: 'license-cap',
                     skipReason: `runtime license caps maxComparisonExperiments at ${comparisonCap}`,
                 });
@@ -207,8 +228,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     });
                     await page.waitForTimeout(300);
                     for (let idx = 0; idx < n; idx++) {
-                        await comparison.openSelector();
-                        await comparison.addExperimentByIndex(idx);
+                        await comparison.addExperimentByName(names[idx]);
                         await comparison.expectChipCount(idx + 1);
                     }
                     await comparison.expectChartVisible();
@@ -225,40 +245,48 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
 
                 let pdfMs: number | null = null;
                 let xlsxMs: number | null = null;
+                let pdfBytes: number | null = null;
+                let xlsxBytes: number | null = null;
                 let skipped: ComparisonSmokeMeasurement['skipped'];
                 let skipReason: string | undefined;
+                const minExportBytes = reportPayloadMode === 'mocked' ? 4 : 4096;
 
                 try {
-                    const { result: pdfDownload, ms } = await timeStep('pdf', async () => {
+                    const { result: pdfDownload, ms } = await timeStep('pdf', () => {
                         return cmpReports.downloadPdf(60_000);
                     });
+                    const pdfInfo = await cmpReports.assertDownload(pdfDownload, 'pdf', minExportBytes);
                     pdfMs = ms;
-                    await cmpReports.assertDownload(pdfDownload, 'pdf');
-                    console.log(`  [L-CMP-PDF-${n}] pdf=${pdfMs} ms`);
+                    pdfBytes = pdfInfo.size;
+                    console.log(`  [L-CMP-PDF-${n}] pdf=${pdfMs} ms bytes=${pdfBytes}`);
                 } catch (err) {
-                    skipped = 'mock-inactive';
+                    skipped = reportPayloadMode === 'mocked' ? 'mock-inactive' : 'error';
                     skipReason = `PDF download failed: ${err instanceof Error ? err.message : String(err)}`;
                     console.log(`  [skip pdf] ${skipReason}`);
                 }
 
                 try {
-                    const { result: xlsxDownload, ms } = await timeStep('xlsx', async () => {
+                    const { result: xlsxDownload, ms } = await timeStep('xlsx', () => {
                         return cmpReports.downloadExcel(60_000);
                     });
+                    const xlsxInfo = await cmpReports.assertDownload(xlsxDownload, 'xlsx', minExportBytes);
                     xlsxMs = ms;
-                    await cmpReports.assertDownload(xlsxDownload, 'xlsx');
-                    console.log(`  [L-CMP-XLSX-${n}] xlsx=${xlsxMs} ms`);
+                    xlsxBytes = xlsxInfo.size;
+                    console.log(`  [L-CMP-XLSX-${n}] xlsx=${xlsxMs} ms bytes=${xlsxBytes}`);
                 } catch (err) {
-                    skipped = skipped ?? 'mock-inactive';
+                    skipped = skipped ?? (reportPayloadMode === 'mocked' ? 'mock-inactive' : 'error');
                     skipReason = (skipReason ? `${skipReason}; ` : '') + `XLSX download failed: ${err instanceof Error ? err.message : String(err)}`;
                     console.log(`  [skip xlsx] ${skipReason}`);
                 }
 
                 measurements.push({
                     n,
+                    report_payload: reportPayloadMode,
                     cmp_ready_ms: cmpReadyMs,
                     pdf_ms: pdfMs,
+                    pdf_bytes: pdfBytes,
                     xlsx_ms: xlsxMs,
+                    xlsx_bytes: xlsxBytes,
                     ...(skipped ? { skipped, skipReason } : {}),
                 });
             } catch (err) {
@@ -266,9 +294,12 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 console.log(`  [error] N=${n}: ${msg}`);
                 measurements.push({
                     n,
+                    report_payload: reportPayloadMode,
                     cmp_ready_ms: null,
                     pdf_ms: null,
+                    pdf_bytes: null,
                     xlsx_ms: null,
+                    xlsx_bytes: null,
                     skipped: 'error',
                     skipReason: msg,
                 });
@@ -294,17 +325,18 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
 
         // 7. Summary table on stdout for CI logs.
         console.log('\n# Comparison smoke baseline summary\n');
-        console.log('| N | cmp_ready_ms | pdf_ms | xlsx_ms | status |');
-        console.log('|---:|---:|---:|---:|---|');
+        console.log('| N | payload | cmp_ready_ms | pdf_ms | pdf_bytes | xlsx_ms | xlsx_bytes | status |');
+        console.log('|---:|---|---:|---:|---:|---:|---:|---|');
         for (const m of measurements) {
             const status = m.skipped ? `SKIP (${m.skipped})` : 'OK';
             console.log(
-                `| ${m.n} | ${m.cmp_ready_ms ?? '—'} | ${m.pdf_ms ?? '—'} | ${m.xlsx_ms ?? '—'} | ${status} |`,
+                `| ${m.n} | ${m.report_payload} | ${m.cmp_ready_ms ?? '—'} | ${m.pdf_ms ?? '—'} | ${m.pdf_bytes ?? '—'} | ${m.xlsx_ms ?? '—'} | ${m.xlsx_bytes ?? '—'} | ${status} |`,
             );
         }
 
-        // 8. Sanity assertion: at least N=3 must produce a cmp_ready_ms number.
-        const baseline = measurements.find((m) => m.n === 3);
+        // 8. Sanity assertion: the first requested in-cap N must produce a cmp_ready_ms number.
+        const firstMeasuredN = TARGET_FIXTURE_COUNTS.find((n) => n <= comparisonCap);
+        const baseline = measurements.find((m) => m.n === firstMeasuredN);
         expect(baseline).toBeTruthy();
         expect(baseline?.cmp_ready_ms).toBeGreaterThan(0);
     });
