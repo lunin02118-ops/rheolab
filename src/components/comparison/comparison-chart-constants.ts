@@ -9,6 +9,7 @@ export const showPointsWhenZoomed: uPlot.Series['points'] = {
 
 export interface ComparisonChartProps {
     experiments: import('@/types').Experiment[];
+    sessionId?: string;
     primaryMetric?: string;
     leftSecondaryMetric?: string;
     secondaryMetric?: string;

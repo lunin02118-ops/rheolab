@@ -37,6 +37,7 @@ vi.mock('@/lib/store/comparison-store', () => {
         isInComparison: () => false,
         rehydrateIfNeeded: vi.fn(),
         releaseHeavyData: vi.fn(),
+        sessionId: 'test-session',
         activeTab: 'chart',
         setActiveTab: vi.fn(),
         viewport: null,

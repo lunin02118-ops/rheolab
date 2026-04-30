@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChartColumnarData, Experiment } from '@/types';
+import type { ComparisonViewport } from '@/lib/store/comparison-store';
 import { isTauri } from '@/lib/tauri/core';
 import { series } from '@/lib/tauri/series';
 import { seriesWindowToColumnarData } from '@/lib/series/binary-series';
@@ -20,6 +21,7 @@ const COMPARISON_SERIES_METRICS = [
 ];
 
 const DEFAULT_COMPARISON_SERIES_MAX_POINTS = 1500;
+const WINDOW_DEBOUNCE_MS = 100;
 
 export type ComparisonLineSeriesStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -27,7 +29,7 @@ export interface ComparisonLineSeriesState {
     experimentId: string;
     status: ComparisonLineSeriesStatus;
     error?: string;
-    overview?: ChartColumnarData;
+    columnarData?: ChartColumnarData;
     cacheKey?: string;
     lastLoadedAt?: number;
 }
@@ -36,6 +38,7 @@ export interface UseComparisonSeriesWindowsParams {
     experiments: Experiment[];
     enabled?: boolean;
     sessionId?: string;
+    viewport?: ComparisonViewport | null;
     maxPoints?: number;
 }
 
@@ -67,10 +70,30 @@ function isFileExperiment(exp: Experiment): boolean {
     return exp.id.startsWith('file-');
 }
 
-function makeOverviewCacheKey(
+function roundedSeconds(value: number): number {
+    return Math.round(value * 1000) / 1000;
+}
+
+function normalizeViewport(viewport: ComparisonViewport | null | undefined): ComparisonViewport | null {
+    if (
+        !viewport ||
+        !Number.isFinite(viewport.xMinSec) ||
+        !Number.isFinite(viewport.xMaxSec) ||
+        viewport.xMaxSec <= viewport.xMinSec
+    ) {
+        return null;
+    }
+    return {
+        xMinSec: roundedSeconds(viewport.xMinSec),
+        xMaxSec: roundedSeconds(viewport.xMaxSec),
+    };
+}
+
+function makeSeriesCacheKey(
     experimentId: string,
     metricsKey: string,
     maxPoints: number,
+    viewport: ComparisonViewport | null,
     sessionId?: string,
 ): SeriesWindowCacheKey {
     return {
@@ -78,7 +101,13 @@ function makeOverviewCacheKey(
         experimentId,
         metricsKey,
         maxPoints,
-        kind: 'overview',
+        kind: viewport ? 'window' : 'overview',
+        ...(viewport
+            ? {
+                xMinSec: viewport.xMinSec,
+                xMaxSec: viewport.xMaxSec,
+            }
+            : {}),
     };
 }
 
@@ -91,10 +120,18 @@ export function useComparisonSeriesWindows({
     experiments,
     enabled = true,
     sessionId,
+    viewport,
     maxPoints = DEFAULT_COMPARISON_SERIES_MAX_POINTS,
 }: UseComparisonSeriesWindowsParams): UseComparisonSeriesWindowsResult {
     const metrics = useMemo(() => COMPARISON_SERIES_METRICS, []);
     const metricsKey = useMemo(() => metrics.join(','), [metrics]);
+    const activeViewport = useMemo(
+        () => normalizeViewport(viewport),
+        [viewport?.xMinSec, viewport?.xMaxSec],
+    );
+    const activeViewportKey = activeViewport
+        ? `${activeViewport.xMinSec}:${activeViewport.xMaxSec}`
+        : 'overview';
     const [lineStates, setLineStates] = useState<Record<string, ComparisonLineSeriesState>>({});
     const lineStatesRef = useRef(lineStates);
     const activeIdsRef = useRef<Set<string>>(new Set());
@@ -130,16 +167,18 @@ export function useComparisonSeriesWindows({
     useEffect(() => {
         if (!binaryEnabled || experiments.length === 0) return;
 
+        const timers: number[] = [];
+
         for (const exp of experiments) {
             if (isFileExperiment(exp)) continue;
 
-            const cacheKey = makeOverviewCacheKey(exp.id, metricsKey, maxPoints, sessionId);
+            const cacheKey = makeSeriesCacheKey(exp.id, metricsKey, maxPoints, activeViewport, sessionId);
             const serializedKey = serializeSeriesWindowCacheKey(cacheKey);
             const cached = seriesWindowCache.get(cacheKey);
             if (cached) {
                 setLineStates(prev => {
                     const existing = prev[exp.id];
-                    if (existing?.status === 'ready' && existing.cacheKey === serializedKey && existing.overview === cached) {
+                    if (existing?.status === 'ready' && existing.cacheKey === serializedKey && existing.columnarData === cached) {
                         return prev;
                     }
                     return {
@@ -147,7 +186,7 @@ export function useComparisonSeriesWindows({
                         [exp.id]: {
                             experimentId: exp.id,
                             status: 'ready',
-                            overview: cached,
+                            columnarData: cached,
                             cacheKey: serializedKey,
                             lastLoadedAt: Date.now(),
                         },
@@ -169,54 +208,78 @@ export function useComparisonSeriesWindows({
                 [exp.id]: {
                     experimentId: exp.id,
                     status: 'loading',
-                    overview: prev[exp.id]?.overview,
+                    columnarData: prev[exp.id]?.columnarData,
                     cacheKey: serializedKey,
                 },
             }));
 
-            series.overview(exp.id, metrics, maxPoints)
-                .then(seriesWindow => {
-                    if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
-                    const overview = seriesWindowToColumnarData(seriesWindow);
-                    seriesWindowCache.set(cacheKey, overview);
-                    setLineStates(prev => ({
-                        ...prev,
-                        [exp.id]: {
-                            experimentId: exp.id,
-                            status: 'ready',
-                            overview,
-                            cacheKey: serializedKey,
-                            lastLoadedAt: Date.now(),
-                        },
-                    }));
-                })
-                .catch(error => {
-                    if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
-                    setLineStates(prev => ({
-                        ...prev,
-                        [exp.id]: {
-                            experimentId: exp.id,
-                            status: 'error',
-                            error: error instanceof Error ? error.message : String(error),
-                            overview: prev[exp.id]?.overview,
-                            cacheKey: serializedKey,
-                        },
-                    }));
-                });
+            const loadSeries = () => {
+                const request = activeViewport
+                    ? series.window(exp.id, activeViewport.xMinSec, activeViewport.xMaxSec, metrics, maxPoints, 'minmax')
+                    : series.overview(exp.id, metrics, maxPoints);
+
+                request
+                    .then(seriesWindow => {
+                        if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
+                        const columnarData = seriesWindowToColumnarData(seriesWindow);
+                        seriesWindowCache.set(cacheKey, columnarData);
+                        setLineStates(prev => {
+                            if (prev[exp.id]?.cacheKey !== serializedKey) return prev;
+                            return {
+                                ...prev,
+                                [exp.id]: {
+                                    experimentId: exp.id,
+                                    status: 'ready',
+                                    columnarData,
+                                    cacheKey: serializedKey,
+                                    lastLoadedAt: Date.now(),
+                                },
+                            };
+                        });
+                    })
+                    .catch(error => {
+                        if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
+                        setLineStates(prev => {
+                            if (prev[exp.id]?.cacheKey !== serializedKey) return prev;
+                            return {
+                                ...prev,
+                                [exp.id]: {
+                                    experimentId: exp.id,
+                                    status: 'error',
+                                    error: error instanceof Error ? error.message : String(error),
+                                    columnarData: prev[exp.id]?.columnarData,
+                                    cacheKey: serializedKey,
+                                },
+                            };
+                        });
+                    });
+            };
+
+            if (activeViewport) {
+                timers.push(window.setTimeout(loadSeries, WINDOW_DEBOUNCE_MS));
+            } else {
+                loadSeries();
+            }
         }
-    }, [binaryEnabled, experimentIds, experiments, maxPoints, metrics, metricsKey, sessionId]);
+
+        return () => {
+            for (const timer of timers) {
+                window.clearTimeout(timer);
+            }
+        };
+    }, [activeViewport, activeViewportKey, binaryEnabled, experimentIds, experiments, maxPoints, metrics, metricsKey, sessionId]);
 
     const augmentedExperiments = useMemo(() => {
         if (!binaryEnabled) return experiments;
         return experiments.map(exp => {
             if (isFileExperiment(exp)) return exp;
 
-            const overview = lineStates[exp.id]?.overview;
-            if (overview) {
+            const columnarData = lineStates[exp.id]?.columnarData;
+            if (columnarData) {
                 return {
                     ...exp,
                     rawPoints: [],
-                    columnarData: overview,
+                    columnarData,
                 } as Experiment;
             }
 
@@ -233,7 +296,7 @@ export function useComparisonSeriesWindows({
     const isLoading = binaryEnabled && experiments.some(exp => (
         !isFileExperiment(exp) &&
         lineStates[exp.id]?.status === 'loading' &&
-        !lineStates[exp.id]?.overview &&
+        !lineStates[exp.id]?.columnarData &&
         !hasColumnarData(exp)
     ));
 

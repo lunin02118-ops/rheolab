@@ -6,9 +6,11 @@ import { useComparisonSeriesWindows } from '@/components/comparison/useCompariso
 import { series } from '@/lib/tauri/series';
 import { seriesWindowCache } from '@/lib/series/series-window-cache';
 import type { SeriesWindow } from '@/lib/series/binary-series';
+import type { ComparisonViewport } from '@/lib/store/comparison-store';
 
 interface HookProps {
     experiments: Experiment[];
+    viewport?: ComparisonViewport | null;
 }
 
 vi.mock('@/lib/tauri/core', () => ({
@@ -18,6 +20,7 @@ vi.mock('@/lib/tauri/core', () => ({
 vi.mock('@/lib/tauri/series', () => ({
     series: {
         overview: vi.fn(),
+        window: vi.fn(),
     },
 }));
 
@@ -78,6 +81,9 @@ describe('useComparisonSeriesWindows', () => {
         vi.mocked(series.overview).mockImplementation((experimentId: string) =>
             Promise.resolve(makeSeriesWindow(experimentId)),
         );
+        vi.mocked(series.window).mockImplementation((experimentId: string) =>
+            Promise.resolve(makeSeriesWindow(experimentId)),
+        );
     });
 
     it('loads each DB-backed experiment independently', async () => {
@@ -91,6 +97,7 @@ describe('useComparisonSeriesWindows', () => {
         });
 
         expect(series.overview).toHaveBeenCalledTimes(2);
+        expect(series.window).not.toHaveBeenCalled();
         expect(result.current.experiments[0]).toMatchObject({ id: 'exp-1', rawPoints: [] });
         expect((result.current.experiments[0] as Record<string, any>).columnarData.timeSec.length).toBe(3);
     });
@@ -186,6 +193,84 @@ describe('useComparisonSeriesWindows', () => {
         });
 
         expect(series.overview).toHaveBeenCalledTimes(1);
+        expect(series.window).not.toHaveBeenCalled();
         expect(second.result.current.experiments[1]).toBe(fileExperiment);
+    });
+
+    it('requests bounded windows for a persisted viewport', async () => {
+        const viewport = { xMinSec: 30, xMaxSec: 90 };
+        const experiments = [makeExperiment('exp-1'), makeExperiment('exp-2')];
+        const { result } = renderHook(({ experiments, viewport }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, viewport, sessionId: 'session-1' }), {
+            initialProps: { experiments, viewport },
+        });
+
+        await waitFor(() => {
+            expect(result.current.readyCount).toBe(2);
+        });
+
+        expect(series.overview).not.toHaveBeenCalled();
+        expect(series.window).toHaveBeenCalledTimes(2);
+        expect(vi.mocked(series.window).mock.calls.map(call => call.slice(0, 3))).toEqual([
+            ['exp-1', 30, 90],
+            ['exp-2', 30, 90],
+        ]);
+    });
+
+    it('keeps existing lines ready and loads only the added experiment for the same viewport', async () => {
+        const viewport = { xMinSec: 30, xMaxSec: 90 };
+        const initial = [
+            makeExperiment('exp-1'),
+            makeExperiment('exp-2'),
+            makeExperiment('exp-3'),
+            makeExperiment('exp-4'),
+            makeExperiment('exp-5'),
+        ];
+        const { result, rerender } = renderHook(({ experiments, viewport }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, viewport, sessionId: 'session-1' }), {
+            initialProps: { experiments: initial, viewport },
+        });
+
+        await waitFor(() => {
+            expect(result.current.readyCount).toBe(5);
+        });
+        expect(series.window).toHaveBeenCalledTimes(5);
+
+        rerender({ experiments: [...initial, makeExperiment('exp-6')], viewport });
+
+        await waitFor(() => {
+            expect(result.current.readyCount).toBe(6);
+        });
+
+        expect(series.overview).not.toHaveBeenCalled();
+        expect(series.window).toHaveBeenCalledTimes(6);
+        expect(vi.mocked(series.window).mock.calls.map(call => call[0])).toEqual([
+            'exp-1',
+            'exp-2',
+            'exp-3',
+            'exp-4',
+            'exp-5',
+            'exp-6',
+        ]);
+    });
+
+    it('debounces rapid viewport changes before requesting window data', async () => {
+        const experiment = makeExperiment('exp-1');
+        const experiments = [experiment];
+        const { rerender } = renderHook(({ experiments, viewport }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, viewport }), {
+            initialProps: { experiments, viewport: { xMinSec: 0, xMaxSec: 60 } },
+        });
+
+        rerender({ experiments, viewport: { xMinSec: 10, xMaxSec: 70 } });
+        rerender({ experiments, viewport: { xMinSec: 20, xMaxSec: 80 } });
+
+        await new Promise(resolve => window.setTimeout(resolve, 50));
+        expect(series.window).not.toHaveBeenCalled();
+
+        await waitFor(() => {
+            expect(series.window).toHaveBeenCalledTimes(1);
+        });
+        expect(vi.mocked(series.window).mock.calls[0].slice(0, 3)).toEqual(['exp-1', 20, 80]);
     });
 });

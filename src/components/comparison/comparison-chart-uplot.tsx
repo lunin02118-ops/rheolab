@@ -44,6 +44,7 @@ function brushRangesEqual(a: [number, number] | null, b: [number, number] | null
 
 function ComparisonChartUPlotInner({
     experiments,
+    sessionId,
     primaryMetric = 'viscosity_cp',
     leftSecondaryMetric = 'none',
     secondaryMetric = 'none',
@@ -76,7 +77,7 @@ function ComparisonChartUPlotInner({
     // destroy+create cycle — leaving N lazy-GC GPU textures (~70 MB each) alive
     // simultaneously.  150 ms covers typical click-through speed; the list
     // re-renders instantly, only chart GPU recreation is deferred.
-    const binarySeries = useComparisonSeriesWindows({ experiments });
+    const binarySeries = useComparisonSeriesWindows({ experiments, sessionId, viewport });
     const chartExperiments = binarySeries.experiments;
     const debouncedExperiments = useDebouncedValue(chartExperiments, 150);
 

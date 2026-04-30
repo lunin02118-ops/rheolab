@@ -36,6 +36,7 @@ export default function ComparisonPage() {
     const isInComparison = useComparisonStore(s => s.isInComparison);
     const rehydrateIfNeeded = useComparisonStore(s => s.rehydrateIfNeeded);
     const releaseHeavyData = useComparisonStore(s => s.releaseHeavyData);
+    const sessionId = useComparisonStore(s => s.sessionId);
     const activeTab = useComparisonStore(s => s.activeTab);
     const setActiveTab = useComparisonStore(s => s.setActiveTab);
     const viewport = useComparisonStore(s => s.viewport);
@@ -371,6 +372,7 @@ export default function ComparisonPage() {
                                     <ChartErrorBoundary height={500}>
                                         <ComparisonChart
                                             experiments={experiments}
+                                            sessionId={sessionId}
                                             primaryMetric={primaryMetric}
                                             leftSecondaryMetric={leftSecondaryMetric}
                                             secondaryMetric={secondaryMetric}
