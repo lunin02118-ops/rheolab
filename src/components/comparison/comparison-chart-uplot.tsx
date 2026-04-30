@@ -13,6 +13,7 @@ import type uPlot from 'uplot';
 import { ComparisonLegend } from './ComparisonLegend';
 import { type ComparisonChartProps } from './comparison-chart-constants';
 import { useComparisonChartData } from './useComparisonChartData';
+import { useComparisonSeriesWindows } from './useComparisonSeriesWindows';
 
 function ComparisonChartUPlotInner({
     experiments,
@@ -46,7 +47,9 @@ function ComparisonChartUPlotInner({
     // destroy+create cycle — leaving N lazy-GC GPU textures (~70 MB each) alive
     // simultaneously.  150 ms covers typical click-through speed; the list
     // re-renders instantly, only chart GPU recreation is deferred.
-    const debouncedExperiments = useDebouncedValue(experiments, 150);
+    const binarySeries = useComparisonSeriesWindows({ experiments });
+    const chartExperiments = binarySeries.experiments;
+    const debouncedExperiments = useDebouncedValue(chartExperiments, 150);
 
     /**
      * Brush range is stored in BOTH a mutable ref and React state:
@@ -364,7 +367,11 @@ function ComparisonChartUPlotInner({
                     </div>
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                        {experiments.length === 0 ? 'Добавьте эксперименты для сравнения' : 'Загрузка данных...'}
+                        {experiments.length === 0
+                            ? 'Добавьте эксперименты для сравнения'
+                            : binarySeries.errorCount > 0 && binarySeries.readyCount === 0
+                                ? 'Не удалось загрузить данные'
+                                : 'Загрузка данных...'}
                     </div>
                 )}
             </div>

@@ -8,6 +8,7 @@ import type { Experiment } from '@/types';
 import { useComparisonStore } from '@/lib/store/comparison-store';
 import { checkExperimentsExist } from '@/lib/experiments/client';
 import { useShallow } from 'zustand/react/shallow';
+import { isComparisonBinarySeriesEnabled } from '@/components/comparison/useComparisonSeriesWindows';
 
 // Lazy-loaded: report tab is only rendered on explicit tab switch
 const ComparisonReportTab = lazy(() => import('@/components/comparison/reports/ComparisonReportTab').then(m => ({ default: m.ComparisonReportTab })));
@@ -41,6 +42,7 @@ export default function ComparisonPage() {
     // Track whether a rehydration IPC call is in flight (shows spinner in chart area)
     const [isRehydrating, setIsRehydrating] = useState(false);
     const [rehydrationFailed, setRehydrationFailed] = useState(false);
+    const canUseBinaryComparisonSeries = isComparisonBinarySeriesEnabled();
 
     // Re-hydrate stale experiments only after zustand/persist has finished loading
     // from localStorage. Without this guard, rehydrateIfNeeded() sees experiments=[]
@@ -50,6 +52,9 @@ export default function ComparisonPage() {
         if (!_hasHydrated) return;
         // Check if any experiment is already missing columnarData (stale from localStorage)
         const needsRehydration = useComparisonStore.getState().experiments.some(e => {
+            if (!e.id.startsWith('file-') && canUseBinaryComparisonSeries) {
+                return false;
+            }
             const c = (e as Record<string, unknown>).columnarData as { timeSec?: ArrayLike<unknown> } | undefined;
             return !c || !c.timeSec || c.timeSec.length === 0;
         });
@@ -68,6 +73,9 @@ export default function ComparisonPage() {
             .then(() => {
                 // If still no data after rehydration — mark as failed so UI can offer retry
                 const hasData = useComparisonStore.getState().experiments.some(e => {
+                    if (!e.id.startsWith('file-') && canUseBinaryComparisonSeries) {
+                        return true;
+                    }
                     const c = (e as Record<string, unknown>).columnarData as { timeSec?: ArrayLike<unknown> } | undefined;
                     return c && c.timeSec && c.timeSec.length > 0;
                 });
@@ -78,7 +86,7 @@ export default function ComparisonPage() {
             .catch(() => setRehydrationFailed(true))
             .finally(() => setIsRehydrating(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once after hydration
-    }, [_hasHydrated]);
+    }, [_hasHydrated, canUseBinaryComparisonSeries]);
 
     // Deferred existence check: 2 s after mount, verify that DB-backed experiments
     // still exist.  If the user deleted an experiment from the library while it was
