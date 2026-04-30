@@ -37,6 +37,10 @@ vi.mock('@/lib/store/comparison-store', () => {
         isInComparison: () => false,
         rehydrateIfNeeded: vi.fn(),
         releaseHeavyData: vi.fn(),
+        activeTab: 'chart',
+        setActiveTab: vi.fn(),
+        viewport: null,
+        setViewport: vi.fn(),
         _hasHydrated: true,
     };
     const useComparisonStore = Object.assign(

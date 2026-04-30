@@ -14,6 +14,33 @@ import { ComparisonLegend } from './ComparisonLegend';
 import { type ComparisonChartProps } from './comparison-chart-constants';
 import { useComparisonChartData } from './useComparisonChartData';
 import { useComparisonSeriesWindows } from './useComparisonSeriesWindows';
+import type { ComparisonViewport } from '@/lib/store/comparison-store';
+
+function viewportToBrushRange(viewport: ComparisonViewport | null | undefined): [number, number] | null {
+    if (
+        !viewport ||
+        !Number.isFinite(viewport.xMinSec) ||
+        !Number.isFinite(viewport.xMaxSec) ||
+        viewport.xMaxSec <= viewport.xMinSec
+    ) {
+        return null;
+    }
+    return [viewport.xMinSec / 60, viewport.xMaxSec / 60];
+}
+
+function brushRangeToViewport(min: number, max: number): ComparisonViewport | null {
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return null;
+    return {
+        xMinSec: Math.round(min * 60 * 1000) / 1000,
+        xMaxSec: Math.round(max * 60 * 1000) / 1000,
+    };
+}
+
+function brushRangesEqual(a: [number, number] | null, b: [number, number] | null): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    return Math.abs(a[0] - b[0]) < 0.001 && Math.abs(a[1] - b[1]) < 0.001;
+}
 
 function ComparisonChartUPlotInner({
     experiments,
@@ -25,7 +52,9 @@ function ComparisonChartUPlotInner({
     showTouchPoints = false,
     viscosityThreshold = 200,
     showTargetTime = true,
-    targetTime = 10
+    targetTime = 10,
+    viewport,
+    onViewportChange,
 }: ComparisonChartProps) {
     const chartContainerRef = useRef<HTMLDivElement | null>(null);
     const chartSize = useChartResize(chartContainerRef);
@@ -60,8 +89,9 @@ function ComparisonChartUPlotInner({
      *   (handle positions, range labels). It NEVER feeds back into setScale
      *   via a useEffect, avoiding the async batching / effect-chain races.
      */
-    const brushRangeRef = useRef<[number, number] | null>(null);
-    const [brushRange, setBrushRange] = useState<[number, number] | null>(null);
+    const initialBrushRange = viewportToBrushRange(viewport);
+    const brushRangeRef = useRef<[number, number] | null>(initialBrushRange);
+    const [brushRange, setBrushRange] = useState<[number, number] | null>(initialBrushRange);
     const [hiddenSeries, setHiddenSeries] = useState<Set<number>>(new Set());
     // Use ref instead of state for hovered legend item to avoid React re-renders
     // on every mouse-enter/leave event. Opacity is set directly on DOM elements.
@@ -78,7 +108,8 @@ function ComparisonChartUPlotInner({
             u.setScale('x', { min: times[0], max: times[times.length - 1] });
         }
         setBrushRange(null);
-    }, []);
+        onViewportChange?.(null);
+    }, [onViewportChange]);
 
     /** Read the plot-area bounding box from the live uPlot instance. */
     const readPlotBbox = useCallback((u: uPlot) => {
@@ -148,7 +179,8 @@ function ComparisonChartUPlotInner({
             });
         }
         setBrushRange([min, max]);
-    }, []);
+        onViewportChange?.(brushRangeToViewport(min, max));
+    }, [onViewportChange]);
 
     const handleBrushReset = useCallback(() => {
         const u = uPlotRef.current;
@@ -156,18 +188,16 @@ function ComparisonChartUPlotInner({
         else {
             brushRangeRef.current = null;
             setBrushRange(null);
+            onViewportChange?.(null);
         }
-    }, [resetZoom]);
+    }, [onViewportChange, resetZoom]);
 
-    // Reset brush and hidden series when experiments change (add/remove).
-    // Microtask deferral avoids the synchronous setState-in-effect violation;
-    // the brushRangeRef write is sync (refs are unbatched) but the React
-    // state setters move into the next tick.
+    // Reset hidden series when experiments change (add/remove). The viewport
+    // intentionally stays intact so route return and add-one-more flows do not
+    // snap the user's comparison window back to the full range.
     const expIds = experiments.map(e => e.id).join(',');
     useEffect(() => {
-        brushRangeRef.current = null;
         void Promise.resolve().then(() => {
-            setBrushRange(null);
             setHiddenSeries(new Set());
         });
     }, [expIds]);
@@ -201,11 +231,39 @@ function ComparisonChartUPlotInner({
     const handleZoom = useCallback((min: number, max: number) => {
         brushRangeRef.current = [min, max];
         setBrushRange([min, max]);
-    }, []);
+        onViewportChange?.(brushRangeToViewport(min, max));
+    }, [onViewportChange]);
     const handleZoomReset = useCallback(() => {
         brushRangeRef.current = null;
         setBrushRange(null);
-    }, []);
+        onViewportChange?.(null);
+    }, [onViewportChange]);
+
+    const viewportXMinSec = viewport?.xMinSec;
+    const viewportXMaxSec = viewport?.xMaxSec;
+    useEffect(() => {
+        const nextRange = viewportToBrushRange(
+            viewportXMinSec == null || viewportXMaxSec == null
+                ? null
+                : { xMinSec: viewportXMinSec, xMaxSec: viewportXMaxSec },
+        );
+        if (!brushRangesEqual(brushRangeRef.current, nextRange)) {
+            brushRangeRef.current = nextRange;
+            setBrushRange(nextRange);
+        }
+
+        const u = uPlotRef.current;
+        if (!u) return;
+        if (nextRange) {
+            u.setScale('x', { min: nextRange[0], max: nextRange[1] });
+            return;
+        }
+
+        const times = u.data[0] as number[] | undefined;
+        if (times && times.length > 0) {
+            u.setScale('x', { min: times[0], max: times[times.length - 1] });
+        }
+    }, [viewportXMinSec, viewportXMaxSec]);
 
     const { uPlotData, seriesConfig, axesConfig, touchPoints } = useComparisonChartData({
         debouncedExperiments,

@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 const releaseHeavyData = vi.fn();
 const rehydrateIfNeeded = vi.fn().mockResolvedValue(undefined);
 const updateDisplaySettings = vi.fn();
 const addExperiment = vi.fn().mockReturnValue(true);
 const removeExperiment = vi.fn();
+const setActiveTab = vi.fn();
+const setViewport = vi.fn();
 const clearComparisonSelectorCache = vi.fn();
 
 vi.mock('@/lib/store/comparison-store', () => {
@@ -40,6 +42,10 @@ vi.mock('@/lib/store/comparison-store', () => {
         isInComparison: () => false,
         rehydrateIfNeeded,
         releaseHeavyData,
+        activeTab: 'chart',
+        setActiveTab,
+        viewport: null,
+        setViewport,
         _hasHydrated: true,
     };
 
@@ -77,6 +83,8 @@ describe('ComparisonPage cleanup', () => {
         updateDisplaySettings.mockClear();
         addExperiment.mockClear();
         removeExperiment.mockClear();
+        setActiveTab.mockClear();
+        setViewport.mockClear();
         clearComparisonSelectorCache.mockClear();
     });
 
@@ -88,5 +96,16 @@ describe('ComparisonPage cleanup', () => {
 
         expect(releaseHeavyData).toHaveBeenCalledTimes(1);
         expect(clearComparisonSelectorCache).toHaveBeenCalledTimes(1);
+    });
+
+    it('persists comparison tab selection through the store', async () => {
+        const { default: ComparisonPage } = await import('@/app/dashboard/comparison/page');
+        render(<ComparisonPage />);
+
+        fireEvent.click(screen.getByTestId('ComparisonReportTabTrigger'));
+        expect(setActiveTab).toHaveBeenCalledWith('report');
+
+        fireEvent.click(screen.getByTestId('ComparisonChartTabTrigger'));
+        expect(setActiveTab).toHaveBeenCalledWith('chart');
     });
 });

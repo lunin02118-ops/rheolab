@@ -1,5 +1,6 @@
 import type uPlot from 'uplot';
 import type { LineKey } from '@/lib/store/chart-settings-store';
+import type { ComparisonViewport } from '@/lib/store/comparison-store';
 
 /** Show per-series dots only when zoomed in enough (< 60 visible data points). */
 export const showPointsWhenZoomed: uPlot.Series['points'] = {
@@ -17,6 +18,8 @@ export interface ComparisonChartProps {
     viscosityThreshold?: number;
     showTargetTime?: boolean;
     targetTime?: number;
+    viewport?: ComparisonViewport | null;
+    onViewportChange?: (viewport: ComparisonViewport | null) => void;
 }
 
 export const METRIC_COLORS: Record<string, string> = {

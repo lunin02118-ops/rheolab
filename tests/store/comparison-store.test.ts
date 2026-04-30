@@ -254,6 +254,28 @@ describe('ComparisonStore — displaySettings', () => {
     });
 });
 
+describe('ComparisonStore — session viewport and tab', () => {
+    beforeEach(() => {
+        resetComparisonStore();
+    });
+
+    test('setViewport stores and clears the comparison viewport', () => {
+        useComparisonStore.getState().setViewport({ xMinSec: 30, xMaxSec: 120 });
+        expect(useComparisonStore.getState().viewport).toEqual({ xMinSec: 30, xMaxSec: 120 });
+
+        useComparisonStore.getState().setViewport(null);
+        expect(useComparisonStore.getState().viewport).toBeNull();
+    });
+
+    test('setActiveTab stores the comparison active tab', () => {
+        useComparisonStore.getState().setActiveTab('report');
+        expect(useComparisonStore.getState().activeTab).toBe('report');
+
+        useComparisonStore.getState().setActiveTab('chart');
+        expect(useComparisonStore.getState().activeTab).toBe('chart');
+    });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('ComparisonStore — releaseHeavyData', () => {

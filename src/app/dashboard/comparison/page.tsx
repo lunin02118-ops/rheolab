@@ -36,6 +36,10 @@ export default function ComparisonPage() {
     const isInComparison = useComparisonStore(s => s.isInComparison);
     const rehydrateIfNeeded = useComparisonStore(s => s.rehydrateIfNeeded);
     const releaseHeavyData = useComparisonStore(s => s.releaseHeavyData);
+    const activeTab = useComparisonStore(s => s.activeTab);
+    const setActiveTab = useComparisonStore(s => s.setActiveTab);
+    const viewport = useComparisonStore(s => s.viewport);
+    const setViewport = useComparisonStore(s => s.setViewport);
     const _hasHydrated = useComparisonStore(s => s._hasHydrated);
     const maxExperiments = getMaxExperiments();
 
@@ -143,7 +147,6 @@ export default function ComparisonPage() {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [limitWarning, setLimitWarning] = useState(false);
     const [duplicateWarning, setDuplicateWarning] = useState(false);
-    const [activeTab, setActiveTab] = useState<'chart' | 'report'>('chart');
     const warningTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     // Clean up warning timer on unmount
     useEffect(() => () => clearTimeout(warningTimerRef.current), []);
@@ -377,6 +380,8 @@ export default function ComparisonPage() {
                                             viscosityThreshold={viscosityThreshold}
                                             showTargetTime={showTargetTime}
                                             targetTime={targetTime}
+                                            viewport={viewport}
+                                            onViewportChange={setViewport}
                                         />
                                     </ChartErrorBoundary>
                                 </div>
