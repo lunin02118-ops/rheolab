@@ -151,6 +151,8 @@ After critical lead-in, Sprint 2's main work is the three native-by-ids delivera
 - `docs/performance/LIBRARY-PROJECTION-VALIDATION.md` — Sprint 5 DB-level validation.
 - `docs/performance/SPRINT-6-RETROSPECTIVE.md` — closed Sprint 6 binary series slice.
 - `docs/performance/BINARY-SERIES-IPC-VALIDATION.md` — Sprint 6 binary series validation.
+- `docs/performance/PERF-ROADMAP-RC-HARDENING.md` — RC hardening lane after Sprints 1-6.
+- `docs/performance/MEMORY-HARDENING-PLAN.md` — memory hardening plan to remove full rawPoints from saved-experiment hot paths.
 - `docs/performance/BUDGETS.md` — the perf contract this whole roadmap is fulfilling.
 - `docs/performance/MICROBENCH.md` — the bench harness Sprint 1 built (used by every subsequent sprint that touches CPU-bound code).
 - `docs/performance/P10-DB-SWEEP-VALIDATION-REPORT.md` — Sprint 1 deep-dive that kept the program on a single canonical release profile.
