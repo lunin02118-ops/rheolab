@@ -4,7 +4,7 @@ import {
   type ExcelReportInput,
   type PdfReportInput,
 } from '@/lib/analysis/report-types/converters';
-import type { ComparisonReportByIdsRequest } from '@/types/tauri';
+import type { ComparisonReportByIdsRequest, ExperimentReportByIdRequest } from '@/types/tauri';
 
 const TAURI_REPORT_RETRY_DELAY_MS = 150;
 
@@ -56,6 +56,26 @@ async function tryGenerateExcelNative(input: ExcelReportInput): Promise<Blob> {
   });
 }
 
+async function tryGeneratePdfByIdNative(
+  request: ExperimentReportByIdRequest,
+): Promise<Uint8Array> {
+  const bridge = getBridge();
+  if (!bridge.reports?.generatePdfById) {
+    throw new Error('Unknown IPC command reports_generate_pdf_by_id');
+  }
+  return await bridge.reports.generatePdfById(request);
+}
+
+async function tryGenerateExcelByIdNative(
+  request: ExperimentReportByIdRequest,
+): Promise<Uint8Array> {
+  const bridge = getBridge();
+  if (!bridge.reports?.generateExcelById) {
+    throw new Error('Unknown IPC command reports_generate_excel_by_id');
+  }
+  return await bridge.reports.generateExcelById(request);
+}
+
 /**
  * Generate PDF report blob via native Tauri IPC.
  */
@@ -84,6 +104,50 @@ export async function generateExcelReportBlob(input: ExcelReportInput): Promise<
     }
     throw error;
   }
+}
+
+export async function generatePdfReportByIdBytes(
+  request: ExperimentReportByIdRequest,
+): Promise<Uint8Array> {
+  try {
+    return await tryGeneratePdfByIdNative(request);
+  } catch (error) {
+    if (isTauriRuntimeUnavailable(error)) {
+      await delay(TAURI_REPORT_RETRY_DELAY_MS);
+      return await tryGeneratePdfByIdNative(request);
+    }
+    throw error;
+  }
+}
+
+export async function generateExcelReportByIdBytes(
+  request: ExperimentReportByIdRequest,
+): Promise<Uint8Array> {
+  try {
+    return await tryGenerateExcelByIdNative(request);
+  } catch (error) {
+    if (isTauriRuntimeUnavailable(error)) {
+      await delay(TAURI_REPORT_RETRY_DELAY_MS);
+      return await tryGenerateExcelByIdNative(request);
+    }
+    throw error;
+  }
+}
+
+export async function generatePdfReportByIdBlob(
+  request: ExperimentReportByIdRequest,
+): Promise<Blob> {
+  const bytes = await generatePdfReportByIdBytes(request);
+  return new Blob([toArrayBuffer(bytes)], { type: 'application/pdf' });
+}
+
+export async function generateExcelReportByIdBlob(
+  request: ExperimentReportByIdRequest,
+): Promise<Blob> {
+  const bytes = await generateExcelReportByIdBytes(request);
+  return new Blob([toArrayBuffer(bytes)], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
 }
 
 // ── Comparison (multi-experiment) report generation ───────────────────────

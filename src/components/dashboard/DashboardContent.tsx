@@ -76,8 +76,7 @@ function DashboardContentInner({
     patternOverride,
     setPatternOverride,
     isMetadataOnly = false,
-    isFullDataLoading = false,
-    onRequireFullData
+    isFullDataLoading = false
 }: DashboardContentProps) {
     const [activeTab, setActiveTab] = useState<'chart' | 'table' | 'recipe' | 'water' | 'calibration' | 'report'>('chart');
     const [editingCycleId, setEditingCycleId] = useState<number | null>(null);
@@ -100,16 +99,13 @@ function DashboardContentInner({
 
     const switchTab = useCallback((tab: typeof activeTab) => {
         setActiveTab(tab);
-        if (tab === 'report' && isMetadataOnly) {
-            void onRequireFullData?.();
-        }
         requestAnimationFrame(() => {
             if (tabsRef.current) {
                 const top = tabsRef.current.getBoundingClientRect().top + window.scrollY - 72;
                 window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
             }
         });
-    }, [isMetadataOnly, onRequireFullData]);
+    }, []);
 
     // Get license info from context (reactive)
     const { result, isInitialized } = useLicense();
@@ -332,13 +328,6 @@ function DashboardContentInner({
 
                 {activeTab !== 'chart' && (
                     <Suspense fallback={<div className="flex h-48 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /></div>}>
-                        {isMetadataOnly && activeTab === 'report' && (
-                            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent mr-3" />
-                                Загружаем полный набор данных
-                            </div>
-                        )}
-
                         {activeTab === 'table' && isMetadataOnly && experimentId && (
                             <RawDataTableById experimentId={experimentId} pageSize={25} />
                         )}
@@ -379,16 +368,23 @@ function DashboardContentInner({
                             </div>
                         )}
 
-                        {activeTab === 'report' && !isMetadataOnly && (
+                        {activeTab === 'report' && (!isMetadataOnly || experimentId) && (
                             <div className="w-full">
                                 <ReportTab
                                     parseResult={parseResult}
+                                    savedExperimentId={isMetadataOnly ? experimentId : undefined}
                                     editedRecipe={editedRecipe}
                                     editedWaterParams={editedWaterParams}
                                     editedWaterSource={editedWaterSource}
                                     cycleResults={cycleResults}
                                     cycles={cycles}
                                 />
+                            </div>
+                        )}
+
+                        {activeTab === 'report' && isMetadataOnly && !experimentId && (
+                            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                                Не удалось открыть отчёт: отсутствует id эксперимента
                             </div>
                         )}
                     </Suspense>

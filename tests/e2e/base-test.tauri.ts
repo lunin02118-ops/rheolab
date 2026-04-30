@@ -194,8 +194,12 @@ export function setupBeforeEach(t: typeof test): void {
                         if (cmd === 'api_keys_list')               return [];
                         if (cmd === 'plugin:dialog|save' || cmd === 'plugin:dialog|open' ||
                             cmd === 'plugin:dialog|ask'  || cmd === 'plugin:dialog|confirm') return null;
-                        if (cmd === 'reports_generate_pdf')   return new Uint8Array([0x25,0x50,0x44,0x46,0x2d,0x31,0x2e,0x34]).buffer;
-                        if (cmd === 'reports_generate_excel') return new Uint8Array([0x50,0x4b,0x03,0x04]).buffer;
+                        if (cmd === 'reports_generate_pdf' || cmd === 'reports_generate_pdf_by_id') {
+                            return new Uint8Array([0x25,0x50,0x44,0x46,0x2d,0x31,0x2e,0x34]).buffer;
+                        }
+                        if (cmd === 'reports_generate_excel' || cmd === 'reports_generate_excel_by_id') {
+                            return new Uint8Array([0x50,0x4b,0x03,0x04]).buffer;
+                        }
                         return target.invoke(...args);
                     };
                 },
@@ -229,8 +233,12 @@ export function setupBeforeEach(t: typeof test): void {
                         if (cmd === 'api_keys_list') return [];
                         if (cmd === 'plugin:dialog|save' || cmd === 'plugin:dialog|open' ||
                             cmd === 'plugin:dialog|ask'  || cmd === 'plugin:dialog|confirm') return null;
-                        if (cmd === 'reports_generate_pdf') return new Uint8Array([0x25,0x50,0x44,0x46,0x2d,0x31,0x2e,0x34]).buffer;
-                        if (cmd === 'reports_generate_excel') return new Uint8Array([0x50,0x4b,0x03,0x04]).buffer;
+                        if (cmd === 'reports_generate_pdf' || cmd === 'reports_generate_pdf_by_id') {
+                            return new Uint8Array([0x25,0x50,0x44,0x46,0x2d,0x31,0x2e,0x34]).buffer;
+                        }
+                        if (cmd === 'reports_generate_excel' || cmd === 'reports_generate_excel_by_id') {
+                            return new Uint8Array([0x50,0x4b,0x03,0x04]).buffer;
+                        }
                         return origInvoke(...args);
                     };
                     return 'invoke-patched';

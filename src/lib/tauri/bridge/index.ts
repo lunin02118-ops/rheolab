@@ -115,6 +115,8 @@ function createTauriBridge(): PlatformBridge {
     reports: {
       generatePdf: (input) => tauriReports.generatePdf(input),
       generateExcel: (input) => tauriReports.generateExcel(input),
+      generatePdfById: (request) => tauriReports.generatePdfById(request),
+      generateExcelById: (request) => tauriReports.generateExcelById(request),
       generateComparisonPdfByIds: (request) => tauriReports.generateComparisonPdfByIds(request),
       generateComparisonExcelByIds: (request) =>
         tauriReports.generateComparisonExcelByIds(request),

@@ -43,8 +43,17 @@ vi.mock('@/components/analysis/cycle-results-table', () => ({
 }));
 
 vi.mock('@/components/analysis/ReportTab', () => ({
-    ReportTab: ({ parseResult }: { parseResult: { metadata: { filename: string } } }) => (
-        <div data-testid="MockReportTab">Report for {parseResult.metadata.filename}</div>
+    ReportTab: ({
+        parseResult,
+        savedExperimentId,
+    }: {
+        parseResult: { metadata: { filename: string } };
+        savedExperimentId?: string;
+    }) => (
+        <div data-testid="MockReportTab">
+            Report for {parseResult.metadata.filename}
+            {savedExperimentId ? ` by-id ${savedExperimentId}` : ''}
+        </div>
     ),
 }));
 
@@ -202,6 +211,21 @@ describe('DashboardContent', () => {
         const panel = await screen.findByTestId('MockReportTab');
         expect(panel).toBeDefined();
         expect(panel.textContent).toContain('test.xlsx');
+    });
+
+    it('renders saved report tab by id without full-data load for metadata-only experiments', async () => {
+        const onRequireFullData = vi.fn().mockResolvedValue(true);
+        render(<DashboardContent {...makeProps({
+            isMetadataOnly: true,
+            onRequireFullData,
+        })} />);
+        const reportBtn = screen.getByTestId('ReportTabButton');
+        fireEvent.click(reportBtn);
+        const panel = await screen.findByTestId('MockReportTab');
+
+        expect(onRequireFullData).not.toHaveBeenCalled();
+        expect(panel.textContent).toContain('by-id exp_1');
+        expect(screen.queryByText(/Загружаем полный набор данных/i)).toBeNull();
     });
 
     // ── save callback ──────────────────────────────────────────────────────

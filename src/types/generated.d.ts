@@ -102,6 +102,12 @@ export type ExperimentProjectionRebuildResponse = { before: ExperimentProjection
 
 export type ExperimentProjectionStatus = { experimentCount: number; projectionCount: number; currentProjectionCount: number; missingOrStaleCount: number; facetCount: number; facetDirty: boolean; projectionVersion: number; lastFullRebuildAt: string | null; lastFacetRebuildAt: string | null; ready: boolean }
 
+export type ExperimentReportByIdRequest = { experimentId: string; settings: ComparisonReportByIdsSettings; recipeOverride?: ExperimentReportRecipeOverride[] | null; waterOverride?: ExperimentReportWaterOverride | null }
+
+export type ExperimentReportRecipeOverride = { name: string; concentration: number; unit: string; category?: string | null; batchNumber?: string | null }
+
+export type ExperimentReportWaterOverride = { source?: string | null; salinity?: number | null; ph?: number | null; hardness?: number | null }
+
 export type ExperimentSavePayload = { name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; rawPoints?: JsonValue[]; calibration: JsonValue | null; reagents?: StoredExperimentReagent[]; overwrite: boolean | null; laboratoryId?: string | null; parsedBy?: string | null; parseSource?: string | null; timeRangeMin?: number | null; timeRangeMax?: number | null; viscosityMin?: number | null; pressureMax?: number | null; extraFields?: JsonValue | null }
 
 export type ExperimentSaveResponse = { success: boolean; experimentId?: string | null; message?: string | null; error?: string | null; code?: string | null }

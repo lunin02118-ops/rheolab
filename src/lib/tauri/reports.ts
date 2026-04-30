@@ -10,9 +10,22 @@ import type {
   FixtureReadResponse,
   FixtureSummaryResponse,
   ComparisonReportByIdsRequest,
+  ExperimentReportByIdRequest,
   ParseFileRequest,
   ParseFileResponse,
 } from '@/types/tauri';
+
+type BinaryResponse = ArrayBuffer | ArrayBufferView | number[];
+
+function toUint8Array(input: BinaryResponse): Uint8Array {
+  if (input instanceof ArrayBuffer) {
+    return new Uint8Array(input);
+  }
+  if (Array.isArray(input)) {
+    return Uint8Array.from(input);
+  }
+  return new Uint8Array(input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength));
+}
 
 // ── Native Report Commands ────────────────────────────────────────────────────
 
@@ -24,8 +37,8 @@ export const reports = {
    * side — no intermediate `serde_json::Value` or re-serialisation step.
    */
   async generatePdf(input: unknown): Promise<Uint8Array> {
-    const buffer = await invoke<ArrayBuffer>('reports_generate_pdf', { input });
-    return new Uint8Array(buffer);
+    const buffer = await invoke<BinaryResponse>('reports_generate_pdf', { input });
+    return toUint8Array(buffer);
   },
 
   /**
@@ -35,18 +48,28 @@ export const reports = {
    * side — no intermediate `serde_json::Value` or re-serialisation step.
    */
   async generateExcel(input: unknown): Promise<Uint8Array> {
-    const buffer = await invoke<ArrayBuffer>('reports_generate_excel', { input });
-    return new Uint8Array(buffer);
+    const buffer = await invoke<BinaryResponse>('reports_generate_excel', { input });
+    return toUint8Array(buffer);
+  },
+
+  async generatePdfById(request: ExperimentReportByIdRequest): Promise<Uint8Array> {
+    const buffer = await invoke<BinaryResponse>('reports_generate_pdf_by_id', { request });
+    return toUint8Array(buffer);
+  },
+
+  async generateExcelById(request: ExperimentReportByIdRequest): Promise<Uint8Array> {
+    const buffer = await invoke<BinaryResponse>('reports_generate_excel_by_id', { request });
+    return toUint8Array(buffer);
   },
 
   async generateComparisonPdfByIds(request: ComparisonReportByIdsRequest): Promise<Uint8Array> {
-    const buffer = await invoke<ArrayBuffer>('reports_generate_comparison_pdf_by_ids', { request });
-    return new Uint8Array(buffer);
+    const buffer = await invoke<BinaryResponse>('reports_generate_comparison_pdf_by_ids', { request });
+    return toUint8Array(buffer);
   },
 
   async generateComparisonExcelByIds(request: ComparisonReportByIdsRequest): Promise<Uint8Array> {
-    const buffer = await invoke<ArrayBuffer>('reports_generate_comparison_excel_by_ids', { request });
-    return new Uint8Array(buffer);
+    const buffer = await invoke<BinaryResponse>('reports_generate_comparison_excel_by_ids', { request });
+    return toUint8Array(buffer);
   },
 };
 

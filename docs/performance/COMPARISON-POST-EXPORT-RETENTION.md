@@ -13,8 +13,9 @@ removes app-controlled transient references where we can.
 
 - `useComparisonReportExport` now releases transient PDF/XLSX byte references
   and clears `cmp:` User Timing measures in every export `finally` block.
-- The hook emits `rheolab:comparison-export-buffers-released` as a diagnostic
-  event for perf runners/tests; product logic must not depend on this event.
+- The hook emits `rheolab:comparison-export-buffers-released` as a product-side,
+  best-effort diagnostic signal after it has dropped local PDF/XLSX byte
+  references; product logic must not depend on this event.
 - Browser/e2e report download fallback now passes the `Uint8Array` directly to
   `Blob` instead of first copying it through `ArrayBuffer.slice`.
 - The comparison smoke memory runner records `after_export_gc_hint` only when
@@ -39,6 +40,13 @@ Use the memory runner sidecar to compare these phases:
 - `after_export_gc_hint`
 - `after_route_leave`
 
+Diagnostic event naming:
+
+- `rheolab:comparison-export-buffers-released` comes from the product export
+  hook after hook-owned byte references are cleared.
+- `rheolab:comparison-export-cleanup` comes from the perf runner immediately
+  before the CDP GC hint and RSS sample.
+
 Interpretation:
 
 - If `after_export_gc_hint` drops materially below `after_xlsx`, the export
@@ -47,4 +55,3 @@ Interpretation:
   mounted report/chart tab is the likely retained surface.
 - If both stay high, treat WebView2/download manager/runtime retention as the
   next diagnostic target before changing product architecture.
-
