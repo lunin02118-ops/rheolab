@@ -6,6 +6,22 @@
 
 ---
 
+## [0.2.2-alpha.12] — 2026-05-01
+
+> Follow-up hotfix для `0.2.2-alpha.11`. Закрывает edge-case нижней полосы масштабирования Comparison: простой клик без движения или `pointercancel` больше не оставляет график в overview-preview режиме.
+
+### Исправлено
+- **Brush noop/cancel lifecycle**: `ChartBrush` теперь явно сообщает `onDragEnd('commit' | 'noop' | 'cancel')`. При `noop` и `cancel` Comparison выключает preview-mode и возвращает шкалу к последнему committed viewport.
+- **Cancel rollback**: если drag был отменён после локального preview-сдвига, незакоммиченный диапазон не остаётся на графике и не попадает в store.
+- **Runtime proof**: warm-navigation Tauri smoke проверяет реальный no-move click по brush: preview выключается, а новых `experiments_series_window` запросов нет.
+
+### Проверки
+- Targeted Vitest: `chart-brush` + `useComparisonSeriesWindows` — 19 passed.
+- Full `npm test`, `npm run build:ci`, `npm run lint`, `npm run typecheck`, `npm run version:validate`, `npm run audit:large-ipc`, `git diff --check` — passed.
+- Tauri warm-nav smoke: `brush_noop_series_requests: []`, `brush_pan_series_requests_during_drag: []`, return old-line refetch `0`, add 6th line window requests `1`.
+
+---
+
 ## [0.2.2-alpha.11] — 2026-05-01
 
 > Hotfix alpha после ручной проверки `0.2.2-alpha.10`. Возвращает бесшовное масштабирование Comparison: узкую brush-полосу снова можно вести влево/вправо без постоянных window-подгрузок, прыжков и “схлопывания” графика.
