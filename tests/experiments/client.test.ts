@@ -4,6 +4,7 @@ import {
   exportExperimentsToFile,
   getExperimentFilterMetadata,
   getExperimentById,
+  getExperimentDetailMetaById,
   getExperimentExportLaboratories,
   getExperimentsCount,
   getLastExperimentContext,
@@ -23,6 +24,7 @@ describe('experiments client', () => {
       count: vi.fn(),
       filterMetadata: vi.fn(),
       get: vi.fn(),
+      detailMeta: vi.fn(),
       getBatch: vi.fn(),
       checkExistence: vi.fn(),
       save: vi.fn(),
@@ -44,16 +46,19 @@ describe('experiments client', () => {
 
     bridge.experiments.list.mockResolvedValue({ experiments: [], pagination: { page: 2, limit: 10, total: 0, totalPages: 0 } });
     bridge.experiments.get.mockResolvedValue({ success: true, experiment: { id: 'exp_1' } });
+    bridge.experiments.detailMeta.mockResolvedValue({ success: true, experiment: { id: 'exp_1' } });
     bridge.experiments.save.mockResolvedValue({ success: true, experimentId: 'exp_1' });
     bridge.experiments.delete.mockResolvedValue({ success: true });
 
     await listExperiments(query);
     await getExperimentById('exp_1');
+    await getExperimentDetailMetaById('exp_1');
     await saveExperiment(payload as never);
     await deleteExperiment('exp_1');
 
     expect(bridge.experiments.list).toHaveBeenCalledWith(query);
     expect(bridge.experiments.get).toHaveBeenCalledWith('exp_1');
+    expect(bridge.experiments.detailMeta).toHaveBeenCalledWith('exp_1');
     // save() calls toWirePayload() before forwarding — verify routing only (not the payload shape)
     expect(bridge.experiments.save).toHaveBeenCalledWith(expect.any(Object));
     expect(bridge.experiments.delete).toHaveBeenCalledWith('exp_1');

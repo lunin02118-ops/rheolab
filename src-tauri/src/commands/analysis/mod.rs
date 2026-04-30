@@ -3,8 +3,10 @@
 //! Executes rheology calculations directly in Rust via `tokio::spawn_blocking`,
 //! replacing the old browser-side WebAssembly pipeline.
 //!
-//! Three public Tauri commands mirror the original worker message types:
+//! Public Tauri commands mirror the original worker message types plus the
+//! saved-experiment by-id analysis path:
 //! - [`analysis_analyze_full`]        ← `ANALYZE_FULL`
+//! - [`analysis_analyze_experiment_by_id`]
 //! - [`analysis_detect_steps`]        ← `DETECT_STEPS`
 //! - [`analysis_regroup_by_pattern`]  ← `REGROUP_BY_PATTERN`
 //!
@@ -25,8 +27,8 @@ mod dto;
 // `commands::analysis::__cmd__analysis_*` from `tauri::generate_handler!`.
 pub use commands::*;
 pub use dto::{
-    AnalysisOutput, AnalyzeFullInput, DetectStepsInput, DetectStepsOutput, RegroupByPatternInput,
-    RheoPointsColumnar,
+    AnalysisOutput, AnalyzeExperimentByIdInput, AnalyzeFullInput, DetectStepsInput,
+    DetectStepsOutput, RegroupByPatternInput, RheoPointsColumnar,
 };
 
 // Re-export `RheoPoint` for the test module — kept for backward compatibility

@@ -28,6 +28,26 @@ export async function analyzeData(
 }
 
 /**
+ * Full analysis for a saved experiment. The backend loads persisted
+ * ExperimentData by id, avoiding full rawPoints IPC in the renderer.
+ */
+export async function analyzeExperimentById(
+    experimentId: string,
+    geometryKey: string,
+    settings: ExpertSettings,
+    detectionSettings: DetectionSettingsInput,
+    cycleOverrides?: Map<number, number[]>,
+): Promise<AnalysisResult> {
+    return getBridge().analysis.analyzeExperimentById(
+        experimentId,
+        geometryKey,
+        settings,
+        detectionSettings,
+        cycleOverrides,
+    );
+}
+
+/**
  * Detect schedule steps only (no cycle grouping, no Grace calculation).
  */
 export async function detectSteps(

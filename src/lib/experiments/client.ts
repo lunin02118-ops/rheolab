@@ -4,6 +4,7 @@ import { getBridge } from '@/lib/tauri/bridge';
 import { resetExperimentFilterMetadataCache } from './filter-metadata-cache';
 import type {
   ExperimentDeleteResponse,
+  ExperimentDetailMetaResponse,
   ExperimentsFilterMetadataResponse,
   ExperimentsExportToFileResponse,
   ExperimentGetResponse,
@@ -27,6 +28,10 @@ export async function listExperiments(query?: ExperimentsListQuery): Promise<Exp
 
 export async function getExperimentById(id: string): Promise<ExperimentGetResponse> {
   return getBridge().experiments.get(id);
+}
+
+export async function getExperimentDetailMetaById(id: string): Promise<ExperimentDetailMetaResponse> {
+  return getBridge().experiments.detailMeta(id);
 }
 
 /**

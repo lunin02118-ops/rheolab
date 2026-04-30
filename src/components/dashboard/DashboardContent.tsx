@@ -48,6 +48,9 @@ export interface DashboardContentProps {
     setCycleOverrides: (updater: (prev: Map<number, number[]>) => Map<number, number[]>) => void;
     patternOverride: number[] | null;
     setPatternOverride: (pattern: number[] | null) => void;
+    isMetadataOnly?: boolean;
+    isFullDataLoading?: boolean;
+    onRequireFullData?: () => Promise<boolean>;
 }
 
 function DashboardContentInner({
@@ -69,7 +72,10 @@ function DashboardContentInner({
     cycleOverrides,
     setCycleOverrides,
     patternOverride,
-    setPatternOverride
+    setPatternOverride,
+    isMetadataOnly = false,
+    isFullDataLoading = false,
+    onRequireFullData
 }: DashboardContentProps) {
     const [activeTab, setActiveTab] = useState<'chart' | 'table' | 'recipe' | 'water' | 'calibration' | 'report'>('chart');
     const [editingCycleId, setEditingCycleId] = useState<number | null>(null);
@@ -79,13 +85,16 @@ function DashboardContentInner({
 
     const switchTab = useCallback((tab: typeof activeTab) => {
         setActiveTab(tab);
+        if ((tab === 'table' || tab === 'report') && isMetadataOnly) {
+            void onRequireFullData?.();
+        }
         requestAnimationFrame(() => {
             if (tabsRef.current) {
                 const top = tabsRef.current.getBoundingClientRect().top + window.scrollY - 72;
                 window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
             }
         });
-    }, []);
+    }, [isMetadataOnly, onRequireFullData]);
 
     // Get license info from context (reactive)
     const { result, isInitialized } = useLicense();
@@ -265,9 +274,10 @@ function DashboardContentInner({
                     onClick={onSaveClick}
                     data-testid="SaveExperimentButton"
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-foreground rounded-lg font-medium transition-colors ml-auto shadow-lg shadow-green-900/20"
+                    disabled={isFullDataLoading}
                 >
                     <Save className="w-4 h-4" />
-                    Сохранить
+                    {isFullDataLoading ? 'Загрузка...' : 'Сохранить'}
                 </button>
             </div>
 
@@ -295,7 +305,14 @@ function DashboardContentInner({
 
                 {activeTab !== 'chart' && (
                     <Suspense fallback={<div className="flex h-48 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /></div>}>
-                        {activeTab === 'table' && (
+                        {isMetadataOnly && (activeTab === 'table' || activeTab === 'report') && (
+                            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent mr-3" />
+                                Загружаем полный набор данных
+                            </div>
+                        )}
+
+                        {activeTab === 'table' && !isMetadataOnly && (
                             <RawDataTable data={chartData} pageSize={25} />
                         )}
 
@@ -325,7 +342,7 @@ function DashboardContentInner({
                             </div>
                         )}
 
-                        {activeTab === 'report' && (
+                        {activeTab === 'report' && !isMetadataOnly && (
                             <div className="w-full">
                                 <ReportTab
                                     parseResult={parseResult}

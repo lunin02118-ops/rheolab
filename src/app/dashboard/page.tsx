@@ -16,12 +16,28 @@ import { Upload } from 'lucide-react';
 import { ConfirmationDialogs } from './ConfirmationDialogs';
 import { DemoDropdown } from './DemoDropdown';
 import { useLicense } from '@/hooks/useLicense';
-import { getExperimentById } from '@/lib/experiments/client';
-import { mapExperimentToParseResult, mapReagentsToRecipe } from '@/lib/experiments/mappers';
+import { getExperimentById, getExperimentDetailMetaById } from '@/lib/experiments/client';
+import {
+    isMetadataOnlyParseResult,
+    mapExperimentDetailMetaToParseResult,
+    mapExperimentToParseResult,
+    mapReagentsToRecipe
+} from '@/lib/experiments/mappers';
+import { isTauri } from '@/lib/tauri/core';
 import type { WaterParams } from '@/types';
+import type { ExperimentDetailMeta, StoredExperiment } from '@/types/tauri';
 
 // Custom hooks
 import { useFixtureLoader, useExperimentSave } from './hooks';
+
+function isLegacyDetailRawPointsForced(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        return window.localStorage?.getItem('RHEOLAB_DETAIL_LEGACY_RAWPOINTS') === '1';
+    } catch (_e) {
+        return false;
+    }
+}
 
 export default function Dashboard() {
     const { isExpert } = useUIMode();
@@ -78,6 +94,7 @@ export default function Dashboard() {
     // Ref for auto-scroll to chart after parsing
     const chartSectionRef = useRef<HTMLDivElement>(null);
     const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const fullDataLoadRef = useRef<Promise<boolean> | null>(null);
     // Clean up pending scroll timer on unmount
     useEffect(() => () => clearTimeout(scrollTimerRef.current), []);
 
@@ -92,6 +109,92 @@ export default function Dashboard() {
     }, [isExpert, setCycleOverrides, setPatternOverride]);
 
     const [geometryOverride, setGeometryOverride] = useState<{ geometry: string; kFactor: number } | null>(null);
+    const [isFullDataLoading, setIsFullDataLoading] = useState(false);
+    const isMetadataOnly = useMemo(() => isMetadataOnlyParseResult(parseResult), [parseResult]);
+
+    const scrollToChart = useCallback(() => {
+        clearTimeout(scrollTimerRef.current);
+        scrollTimerRef.current = setTimeout(() => {
+            if (chartSectionRef.current) {
+                const top = chartSectionRef.current.getBoundingClientRect().top + window.scrollY - 72;
+                window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+            }
+        }, 200);
+    }, []);
+
+    const applyFullExperiment = useCallback((exp: StoredExperiment) => {
+        const result = mapExperimentToParseResult(exp as unknown as Record<string, unknown>);
+        setParseResult(result);
+        if (exp.reagents && exp.reagents.length > 0) {
+            setRecipe(mapReagentsToRecipe(exp.reagents as unknown as Record<string, unknown>[]));
+        } else {
+            setRecipe([]);
+        }
+        setWaterSource(exp.waterSource || '');
+        setWaterParams((exp.waterParams as Partial<WaterParams>) || {});
+        setGeometryOverride(exp.geometry ? { geometry: exp.geometry, kFactor: 1 } : null);
+    }, [setParseResult, setRecipe, setWaterSource, setWaterParams]);
+
+    const applyDetailMeta = useCallback((meta: ExperimentDetailMeta) => {
+        const result = mapExperimentDetailMetaToParseResult(meta);
+        setParseResult(result);
+        if (meta.reagents && meta.reagents.length > 0) {
+            setRecipe(mapReagentsToRecipe(meta.reagents as unknown as Record<string, unknown>[]));
+        } else {
+            setRecipe([]);
+        }
+        setWaterSource(meta.waterSource || '');
+        setWaterParams((meta.waterParams as Partial<WaterParams>) || {});
+        setGeometryOverride(meta.geometry ? { geometry: meta.geometry, kFactor: 1 } : null);
+    }, [setParseResult, setRecipe, setWaterSource, setWaterParams]);
+
+    const loadFullExperimentById = useCallback(async (
+        experimentId: string,
+        options?: { replaceUrl?: boolean; scroll?: boolean; shouldApply?: () => boolean },
+    ) => {
+        setIsFullDataLoading(true);
+        try {
+            const data = await getExperimentById(experimentId);
+            if (options?.shouldApply && !options.shouldApply()) {
+                return false;
+            }
+            if (data.success && data.experiment) {
+                applyFullExperiment(data.experiment);
+                if (options?.scroll) {
+                    scrollToChart();
+                }
+                if (options?.replaceUrl) {
+                    window.history.replaceState({}, '', '/dashboard');
+                }
+                return true;
+            }
+            setError(data.error || 'Failed to load experiment');
+            return false;
+        } catch (err) {
+            logger.error('Failed to load full experiment:', err);
+            setError('Failed to load experiment from library');
+            return false;
+        } finally {
+            setIsFullDataLoading(false);
+        }
+    }, [applyFullExperiment, scrollToChart, setError]);
+
+    const ensureFullExperimentLoaded = useCallback(() => {
+        if (!isMetadataOnly) {
+            return Promise.resolve(true);
+        }
+        const experimentId = parseResult?.metadata?.experimentId;
+        if (!experimentId) {
+            return Promise.resolve(false);
+        }
+        if (!fullDataLoadRef.current) {
+            fullDataLoadRef.current = loadFullExperimentById(experimentId)
+                .finally(() => {
+                    fullDataLoadRef.current = null;
+                });
+        }
+        return fullDataLoadRef.current;
+    }, [isMetadataOnly, loadFullExperimentById, parseResult?.metadata?.experimentId]);
 
     // Analysis pipeline
     const { cycles, cycleResults, allSteps, isAnalyzing } = useAnalysisPipeline({
@@ -118,13 +221,7 @@ export default function Dashboard() {
             setRecipe(result.metadata.filenameMetadata?.recipe || []);
             setWaterSource(result.metadata.filenameMetadata?.waterSource || '');
             setWaterParams({});
-            clearTimeout(scrollTimerRef.current);
-            scrollTimerRef.current = setTimeout(() => {
-                if (chartSectionRef.current) {
-                    const top = chartSectionRef.current.getBoundingClientRect().top + window.scrollY - 72;
-                    window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
-                }
-            }, 200);
+            scrollToChart();
         },
         onError: setError
     });
@@ -165,42 +262,29 @@ export default function Dashboard() {
             setIsLoading(true);
             setError(null);
 
-            getExperimentById(loadExperimentId)
+            const metadataFirst = isTauri() && !isLegacyDetailRawPointsForced();
+            const loadPromise = metadataFirst
+                ? getExperimentDetailMetaById(loadExperimentId)
+                    .then(data => {
+                        if (cancelled) return;
+                        if (data.success && data.experiment) {
+                            applyDetailMeta(data.experiment);
+                            scrollToChart();
+                            window.history.replaceState({}, '', '/dashboard');
+                        } else {
+                            setError(data.error || 'Failed to load experiment');
+                        }
+                    })
+                : loadFullExperimentById(loadExperimentId, {
+                    replaceUrl: true,
+                    scroll: true,
+                    shouldApply: () => !cancelled,
+                });
+
+            Promise.resolve(loadPromise)
                 .then(data => {
                     if (cancelled) return;
-                    if (data.success && data.experiment) {
-                        const exp = data.experiment;
-                        const result = mapExperimentToParseResult(exp);
-                        setParseResult(result);
-
-                        // Auto-scroll to chart after loading experiment
-                        clearTimeout(scrollTimerRef.current);
-                        scrollTimerRef.current = setTimeout(() => {
-                            if (chartSectionRef.current) {
-                                const top = chartSectionRef.current.getBoundingClientRect().top + window.scrollY - 72;
-                                window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
-                            }
-                        }, 200);
-
-                        if (exp.reagents && exp.reagents.length > 0) {
-                            setRecipe(mapReagentsToRecipe(exp.reagents));
-                        } else {
-                            setRecipe([]);
-                        }
-                        setWaterSource(exp.waterSource || '');
-                        setWaterParams((exp.waterParams as Partial<WaterParams>) || {});
-
-                        if (exp.geometry) {
-                            setGeometryOverride({
-                                geometry: exp.geometry,
-                                kFactor: 1
-                            });
-                        }
-
-                        window.history.replaceState({}, '', '/dashboard');
-                    } else {
-                        setError(data.error || 'Failed to load experiment');
-                    }
+                    return data;
                 })
                 .catch(err => {
                     if (cancelled) return;
@@ -212,7 +296,13 @@ export default function Dashboard() {
                 });
         }
         return () => { cancelled = true; };
-    }, [setIsLoading, setError, setParseResult, setRecipe, setWaterSource, setWaterParams]);
+    }, [
+        applyDetailMeta,
+        loadFullExperimentById,
+        scrollToChart,
+        setError,
+        setIsLoading,
+    ]);
 
     const handleFileProcessed = useCallback((result: ParseResult) => {
         setParseResult(result);
@@ -222,15 +312,8 @@ export default function Dashboard() {
         setRecipe(result.metadata.filenameMetadata?.recipe || []);
         setWaterSource(result.metadata.filenameMetadata?.waterSource || '');
         setWaterParams({});
-        // Auto-scroll to chart after parsing
-        clearTimeout(scrollTimerRef.current);
-        scrollTimerRef.current = setTimeout(() => {
-            if (chartSectionRef.current) {
-                const top = chartSectionRef.current.getBoundingClientRect().top + window.scrollY - 72;
-                window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
-            }
-        }, 200);
-    }, [setParseResult, setError, setIsLoading, setRecipe, setWaterSource, setWaterParams]);
+        scrollToChart();
+    }, [setParseResult, setError, setIsLoading, setRecipe, setWaterSource, setWaterParams, scrollToChart]);
 
     const handleGeometryChange = useCallback((geometry: string, kFactor: number) => {
         setGeometryOverride({ geometry, kFactor });
@@ -243,8 +326,16 @@ export default function Dashboard() {
     }, [setError, setIsLoading]);
 
     const handleSaveClick = useCallback(() => {
+        if (isMetadataOnly) {
+            void ensureFullExperimentLoaded().then((loaded) => {
+                if (loaded) {
+                    setShowSaveDialog(true);
+                }
+            });
+            return;
+        }
         setShowSaveDialog(true);
-    }, [setShowSaveDialog]);
+    }, [ensureFullExperimentLoaded, isMetadataOnly, setShowSaveDialog]);
 
     const handleInstrumentChange = useCallback((inst: string) => {
         updateMetadata({ instrumentType: inst });
@@ -390,6 +481,9 @@ export default function Dashboard() {
                         setCycleOverrides={setCycleOverrides}
                         patternOverride={patternOverride}
                         setPatternOverride={setPatternOverride}
+                        isMetadataOnly={isMetadataOnly}
+                        isFullDataLoading={isFullDataLoading}
+                        onRequireFullData={ensureFullExperimentLoaded}
                     />
                     </Suspense>
                     </div>

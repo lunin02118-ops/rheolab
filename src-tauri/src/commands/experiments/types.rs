@@ -180,6 +180,34 @@ impl ExperimentGetResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub struct ExperimentDetailMetaResponse {
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub experiment: Option<ExperimentDetailMeta>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+impl ExperimentDetailMetaResponse {
+    pub(super) fn ok(experiment: ExperimentDetailMeta) -> Self {
+        Self {
+            success: true,
+            experiment: Some(experiment),
+            error: None,
+        }
+    }
+
+    pub(super) fn err(error: impl Into<String>) -> Self {
+        Self {
+            success: false,
+            experiment: None,
+            error: Some(error.into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ExperimentGetBatchResponse {
     pub success: bool,
     pub experiments: Vec<StoredExperiment>,
@@ -393,6 +421,65 @@ pub struct StoredExperimentUser {
 pub struct StoredExperimentLaboratory {
     pub id: String,
     pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ExperimentDetailMeta {
+    pub id: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub name: String,
+    pub field_name: Option<String>,
+    pub operator_name: Option<String>,
+    pub well_number: Option<String>,
+    pub test_id: Option<String>,
+    pub original_filename: String,
+    pub test_date: String,
+    pub instrument_type: String,
+    pub geometry: Option<String>,
+    pub geometry_source: Option<String>,
+    pub water_source: String,
+    pub water_params: Option<Value>,
+    pub fluid_type: String,
+    pub test_group: String,
+    pub test_sub_group: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test_category: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dominant_pattern: Option<String>,
+    pub metrics: Value,
+    pub calibration: Option<Value>,
+    pub reagents: Vec<StoredExperimentReagent>,
+    pub summary: ExperimentDetailSummary,
+    pub user: Option<StoredExperimentUser>,
+    pub laboratory: Option<StoredExperimentLaboratory>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parsed_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parse_source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra_fields: Option<Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ExperimentDetailSummary {
+    pub point_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_range_min: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_range_max: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub viscosity_min: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_viscosity: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avg_viscosity: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pressure_max: Option<f64>,
 }
 
 /// Lightweight experiment summary for list/table views.

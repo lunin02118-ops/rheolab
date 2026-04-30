@@ -9,6 +9,7 @@ import { safeInvoke as invoke } from './core';
 import type {
   ExperimentDeleteResponse,
   ExperimentsExportToFileResponse,
+  ExperimentDetailMetaResponse,
   ExperimentGetResponse,
   ExperimentGetBatchResponse,
   ExperimentExistenceResponse,
@@ -58,6 +59,13 @@ export const experiments = {
    */
   async get(id: string): Promise<ExperimentGetResponse> {
     return invoke<ExperimentGetResponse>('experiments_get', { id });
+  },
+
+  /**
+   * Get saved-experiment detail metadata by id without rawPoints/dataBlob.
+   */
+  async detailMeta(id: string): Promise<ExperimentDetailMetaResponse> {
+    return invoke<ExperimentDetailMetaResponse>('experiments_detail_meta_by_id', { id });
   },
 
   /**

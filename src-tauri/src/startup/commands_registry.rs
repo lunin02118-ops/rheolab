@@ -37,6 +37,7 @@ macro_rules! register_tauri_commands {
             $crate::commands::experiments::experiments_list,
             $crate::commands::experiments::experiments_count,
             $crate::commands::experiments::experiments_get,
+            $crate::commands::experiments::experiments_detail_meta_by_id,
             $crate::commands::experiments::experiments_get_batch,
             $crate::commands::experiments::experiments_check_existence,
             $crate::commands::experiments::experiments_save,
@@ -92,6 +93,7 @@ macro_rules! register_tauri_commands {
             $crate::commands::jobs::experiments_projection_rebuild,
             // Native analysis pipeline commands
             $crate::commands::analysis::analysis_analyze_full,
+            $crate::commands::analysis::analysis_analyze_experiment_by_id,
             $crate::commands::analysis::analysis_detect_steps,
             $crate::commands::analysis::analysis_regroup_by_pattern,
             // Logger commands

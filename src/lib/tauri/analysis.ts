@@ -130,6 +130,34 @@ export const analysis = {
   },
 
   /**
+   * Full analysis by persisted experiment id. Rust loads ExperimentData.dataBlob
+   * directly and uses the persistent AnalysisArtifact cache, so the renderer
+   * does not need a full rawPoints payload for saved-experiment detail open.
+   */
+  async analyzeExperimentById(
+    experimentId: string,
+    geometryKey: string,
+    settings: ExpertSettings,
+    detectionSettings: DetectionSettingsInput,
+    cycleOverrides?: Map<number, number[]>,
+  ): Promise<{ cycles: RheoCycle[]; results: Map<number, GraceCycleResult>; allSteps: RheoStep[] }> {
+    const reportViscosityRates = settings.viscosityShearRates
+      .filter(rate => Number.isFinite(rate) && rate > 0)
+      .map(rate => Math.round(rate));
+    const raw = await invoke<RawAnalysisOutput>('analysis_analyze_experiment_by_id', {
+      input: {
+        experimentId,
+        geometryKey,
+        settings: prepareSettings(settings),
+        detectionSettings: prepareDetectionSettings(detectionSettings),
+        cycleOverrides: cycleOverrides ? Array.from(cycleOverrides.entries()) : [],
+        reportViscosityRates,
+      },
+    });
+    return mapAnalysisOutput(raw);
+  },
+
+  /**
    * Detect schedule steps only (no cycle grouping, no Grace calculation).
    * Native Tauri equivalent of the `DETECT_STEPS` worker message.
    */

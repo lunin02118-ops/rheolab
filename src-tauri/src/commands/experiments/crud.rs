@@ -28,6 +28,21 @@ pub async fn experiments_get(
     }
 }
 
+#[tauri::command]
+pub async fn experiments_detail_meta_by_id(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<ExperimentDetailMetaResponse> {
+    validate_hash_id(&id, "id")?;
+
+    let conn = state.pool_conn()?;
+    let exp = load_experiment_detail_meta_by_id(&conn, &id)?;
+    match exp {
+        Some(experiment) => Ok(ExperimentDetailMetaResponse::ok(experiment)),
+        None => Ok(ExperimentDetailMetaResponse::err("Experiment not found")),
+    }
+}
+
 /// Hard cap on how many experiments can be loaded in a single batch request.
 /// Prevents OOM from unconstrained payloads — callers that need more should
 /// paginate via multiple IPC calls.
@@ -485,7 +500,8 @@ fn normalize_reagent(mut reagent: StoredExperimentReagent) -> StoredExperimentRe
 // Re-exported here so existing callers (sync_engine, experiments::sync) do not
 // need to change their import paths.
 pub(crate) use crate::db::repositories::experiments::{
-    load_experiment_by_id, load_experiments_batch, persist_experiment,
+    load_experiment_by_id, load_experiment_detail_meta_by_id, load_experiments_batch,
+    persist_experiment,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

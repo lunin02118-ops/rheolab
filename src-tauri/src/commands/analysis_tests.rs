@@ -68,6 +68,71 @@ fn make_analyze_full_input(count: usize) -> AnalyzeFullInput {
     .unwrap()
 }
 
+fn make_analyze_experiment_by_id_input(experiment_id: &str) -> AnalyzeExperimentByIdInput {
+    serde_json::from_value(serde_json::json!({
+        "experimentId": experiment_id,
+        "geometryKey": "R1B1",
+        "settings": {
+            "pointsToAverage": 0,
+            "viscosityShearRates": [40.0, 100.0, 170.0]
+        },
+        "detectionSettings": {
+            "shearRateTolerance": 2.0,
+            "shearRateRelTolerance": 5.0,
+            "minStepDuration": 5.0,
+            "stepSplitting": true,
+            "splitStartDuration": 30.0,
+            "splitEndDuration": 30.0,
+            "minDurationForSplit": 90.0
+        },
+        "cycleOverrides": [],
+        "reportViscosityRates": [40, 100, 170]
+    }))
+    .unwrap()
+}
+
+fn insert_analysis_experiment(pool: &crate::db::DbPool, experiment_id: &str, count: usize) {
+    let conn = pool.get().unwrap();
+    crate::db::migration::run_migrations(&conn).unwrap();
+    conn.execute(
+        "INSERT OR IGNORE INTO User (id, name, email, createdAt, updatedAt) \
+         VALUES ('default-user', 'Default User', NULL, '2026-04-30T00:00:00Z', \
+                 '2026-04-30T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO Experiment \
+         (id, originalFilename, testDate, instrumentType, name, waterSource, fluidType, \
+          testGroup, metrics, rawPoints, userId, geometry) \
+         VALUES (?1, 'analysis.xlsx', '2026-04-30', 'Grace', 'Analysis', 'Water', \
+                 'Linear', 'Rheology', '{}', '[]', 'default-user', 'R1B1')",
+        [experiment_id],
+    )
+    .unwrap();
+    let points = make_test_points(count)
+        .into_iter()
+        .map(|p| serde_json::json!({
+            "time_sec": p.time_sec,
+            "viscosity_cp": p.viscosity_cp,
+            "temperature_c": p.temperature_c,
+            "shear_rate_s1": p.shear_rate,
+            "shear_stress_pa": p.shear_stress,
+            "pressure_bar": p.pressure_bar,
+            "speed_rpm": p.rpm,
+        }))
+        .collect::<Vec<_>>();
+    let blob = crate::db::columnar::encode(&points).unwrap();
+    conn.execute(
+        "INSERT INTO ExperimentData \
+         (experimentId, dataBlob, encoding, pointCount, createdAt, updatedAt) \
+         VALUES (?1, ?2, 'columnar-v1-zstd', ?3, '2026-04-30T00:00:00Z', \
+                 '2026-04-30T00:00:00Z')",
+        rusqlite::params![experiment_id, blob, count as i64],
+    )
+    .unwrap();
+}
+
 #[tokio::test]
 async fn detect_steps_returns_steps_array() {
     let result = analysis_detect_steps(make_detect_steps_input(60)).await;
@@ -79,6 +144,27 @@ async fn detect_steps_returns_steps_array() {
 async fn analyze_full_returns_analysis_output() {
     let result = analysis_analyze_full(make_analyze_full_input(60)).await;
     assert!(result.is_ok(), "analyze_full should succeed: {:?}", result);
+}
+
+#[test]
+fn analyze_experiment_by_id_uses_columnar_blob_and_persists_cache() {
+    let path = tempfile::NamedTempFile::new().unwrap();
+    let pool = crate::db::create_pool(path.path()).unwrap();
+    let experiment_id = "exp_aaaaaaaaaaaaaaaaaaaa";
+    insert_analysis_experiment(&pool, experiment_id, 60);
+
+    let output = analyze_experiment_by_id_blocking(
+        pool.clone(),
+        make_analyze_experiment_by_id_input(experiment_id),
+    )
+    .expect("by-id analysis should succeed");
+    assert!(!output.all_steps.is_empty() || output.cycles.is_empty());
+
+    let conn = pool.get().unwrap();
+    let artifact_count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM AnalysisArtifact", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(artifact_count, 1);
 }
 
 #[tokio::test]

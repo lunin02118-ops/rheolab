@@ -106,6 +106,30 @@ impl AnalyzeFullInput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AnalyzeExperimentByIdInput {
+    pub(super) experiment_id: String,
+    pub(super) geometry_key: String,
+    pub(super) settings: ExpertSettings,
+    pub(super) detection_settings: ScheduleConfig,
+    /// Serialised as `[[cycleId, [stepId, …]], …]` (JSON has no integer Map keys).
+    #[serde(default)]
+    pub(super) cycle_overrides: Vec<(i32, Vec<i32>)>,
+    /// Extra cache-key material used by report flows. Dashboard callers pass
+    /// their displayed viscosity rates so by-id analysis and report analysis
+    /// do not collide across rate sets.
+    #[serde(default)]
+    pub(super) report_viscosity_rates: Vec<i32>,
+}
+
+impl AnalyzeExperimentByIdInput {
+    pub(super) fn validate(&self) -> Result<()> {
+        crate::utils::validation::validate_hash_id(&self.experiment_id, "experimentId")?;
+        validate_geometry_key(&self.geometry_key)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DetectStepsInput {
     pub(super) rheo_points: RheoPointsColumnar,
     pub(super) detection_settings: ScheduleConfig,

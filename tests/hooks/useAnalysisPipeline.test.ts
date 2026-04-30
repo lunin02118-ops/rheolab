@@ -6,16 +6,26 @@ import type { ParseResult } from '@/lib/store/experiment-data-store';
 
 // ── Mock analysis client (native Tauri IPC) ─────────────────────────────────
 
-const { mockAnalyzeData, mockDetectSteps, mockRegroupByPattern } = vi.hoisted(() => ({
+const { mockAnalyzeData, mockAnalyzeExperimentById, mockDetectSteps, mockRegroupByPattern } = vi.hoisted(() => ({
   mockAnalyzeData: vi.fn(),
+  mockAnalyzeExperimentById: vi.fn(),
   mockDetectSteps: vi.fn(),
   mockRegroupByPattern: vi.fn(),
 }));
 
+const { mockIsTauri } = vi.hoisted(() => ({
+  mockIsTauri: vi.fn(() => false),
+}));
+
 vi.mock('@/lib/analysis/client', () => ({
   analyzeData: mockAnalyzeData,
+  analyzeExperimentById: mockAnalyzeExperimentById,
   detectSteps: mockDetectSteps,
   regroupByPattern: mockRegroupByPattern,
+}));
+
+vi.mock('@/lib/tauri/core', () => ({
+  isTauri: mockIsTauri,
 }));
 
 // ── Mock analysis-settings-store ────────────────────────────────────────────
@@ -85,6 +95,7 @@ describe('useAnalysisPipeline – null/empty parseResult', () => {
   beforeEach(() => {
     __resetAnalysisCache();
     vi.clearAllMocks();
+    mockIsTauri.mockReturnValue(false);
     vi.useFakeTimers();
     mockAnalyzeData.mockResolvedValue(successResult);
   });
@@ -117,8 +128,10 @@ describe('useAnalysisPipeline – analysis execution', () => {
   beforeEach(() => {
     __resetAnalysisCache();
     vi.clearAllMocks();
+    mockIsTauri.mockReturnValue(false);
     vi.useFakeTimers();
     mockAnalyzeData.mockResolvedValue(successResult);
+    mockAnalyzeExperimentById.mockResolvedValue(successResult);
   });
 
   afterEach(() => {
@@ -160,6 +173,25 @@ describe('useAnalysisPipeline – analysis execution', () => {
     expect(result.current.allSteps).toHaveLength(1);
   });
 
+  it('calls analyzeExperimentById for metadata-only saved experiments in Tauri', async () => {
+    mockIsTauri.mockReturnValue(true);
+    const parseResult = makeParseResult({
+      data: [],
+      summary: { pointCount: 120 },
+      metadata: {
+        filename: 'saved.xlsx',
+        experimentId: 'exp_aaaaaaaaaaaaaaaaaaaa',
+        instrumentType: 'HAAKE',
+        geometry: 'R1B1',
+      },
+    });
+    renderHook(() => useAnalysisPipeline({ ...defaultProps, parseResult }));
+    await runDebounceAndFlush();
+    expect(mockAnalyzeExperimentById).toHaveBeenCalledOnce();
+    expect(mockAnalyzeExperimentById.mock.calls[0][0]).toBe('exp_aaaaaaaaaaaaaaaaaaaa');
+    expect(mockAnalyzeData).not.toHaveBeenCalled();
+  });
+
   it('isAnalyzing is false after analysis completes', async () => {
     const { result } = renderHook(() =>
       useAnalysisPipeline({ ...defaultProps, parseResult: makeParseResult() }),
@@ -184,6 +216,7 @@ describe('useAnalysisPipeline – beginner vs expert mode', () => {
   beforeEach(() => {
     __resetAnalysisCache();
     vi.clearAllMocks();
+    mockIsTauri.mockReturnValue(false);
     vi.useFakeTimers();
   });
 
@@ -258,6 +291,7 @@ describe('useAnalysisPipeline – error handling', () => {
   beforeEach(() => {
     __resetAnalysisCache();
     vi.clearAllMocks();
+    mockIsTauri.mockReturnValue(false);
     vi.useFakeTimers();
   });
 
@@ -302,6 +336,7 @@ describe('useAnalysisPipeline – cancellation (AbortController)', () => {
   beforeEach(() => {
     __resetAnalysisCache();
     vi.clearAllMocks();
+    mockIsTauri.mockReturnValue(false);
     vi.useFakeTimers();
   });
 

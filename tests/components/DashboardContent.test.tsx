@@ -163,6 +163,18 @@ describe('DashboardContent', () => {
         expect(await screen.findByTestId('MockRawDataTable')).toBeDefined();
     });
 
+    it('requests full data before rendering table for metadata-only saved experiments', async () => {
+        const onRequireFullData = vi.fn().mockResolvedValue(true);
+        render(<DashboardContent {...makeProps({
+            isMetadataOnly: true,
+            onRequireFullData,
+        })} />);
+        const tableTab = screen.getByRole('tab', { name: /Таблица/i });
+        fireEvent.click(tableTab);
+        expect(onRequireFullData).toHaveBeenCalledOnce();
+        expect(await screen.findByText(/Загружаем полный набор данных/i)).toBeDefined();
+    });
+
     it('switches to recipe tab on click', async () => {
         render(<DashboardContent {...makeProps()} />);
         const recipeTab = screen.getByRole('tab', { name: /Рецептура/i });
