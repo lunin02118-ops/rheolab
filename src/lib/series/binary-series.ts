@@ -57,7 +57,16 @@ export type RheoSeriesBinaryInput = ArrayBuffer | ArrayBufferView | number[];
 function asArrayBuffer(input: RheoSeriesBinaryInput): ArrayBuffer {
   if (input instanceof ArrayBuffer) return input;
   if (Array.isArray(input)) return Uint8Array.from(input).buffer;
-  return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+  if (input.buffer instanceof ArrayBuffer) {
+    if (input.byteOffset === 0 && input.byteLength === input.buffer.byteLength) {
+      return input.buffer;
+    }
+    return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+  }
+
+  const copy = new Uint8Array(input.byteLength);
+  copy.set(new Uint8Array(input.buffer, input.byteOffset, input.byteLength));
+  return copy.buffer;
 }
 
 function readMagic(view: DataView): string {
