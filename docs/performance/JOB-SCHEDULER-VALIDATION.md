@@ -32,7 +32,12 @@ Every scheduler job records:
 
 CPU/RSS process sampling was not enabled inside the app binary in this slice. A direct Windows process API attempt made the local Rust test executable fail before the test harness started with `STATUS_ENTRYPOINT_NOT_FOUND`, so Sprint 4 keeps the fields optional and relies on the existing release-gate native memory sampler for process RSS until the sampler can be made loader-safe.
 
-The test-binary loader issue was resolved for the scheduler slice by keeping Tauri event emission out of `cfg(test)` builds and by waiting for scheduler gates inside the blocking job task instead of using `tokio::time`. The full Rust lib suite now starts normally and passes.
+The test-binary loader issue was resolved for the scheduler slice by keeping
+Tauri event emission out of `cfg(test)` builds. The current scheduler waits for
+gates asynchronously before entering `spawn_blocking`, so queued gated jobs do
+not consume blocking worker threads while waiting. A regression test with a
+two-thread blocking pool verifies that a queued comparison job leaves a spare
+blocking thread available for unrelated blocking work.
 
 ## Validation Commands
 

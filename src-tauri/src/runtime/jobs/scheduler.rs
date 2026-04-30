@@ -16,6 +16,7 @@ use std::time::Instant;
 use tauri::AppHandle;
 #[cfg(not(test))]
 use tauri::Emitter;
+use tokio::sync::Notify;
 
 #[cfg(not(test))]
 type JobEventTarget = AppHandle;
@@ -86,12 +87,33 @@ impl<T> Drop for SpinMutexGuard<'_, T> {
 #[derive(Debug)]
 struct JobGate {
     active: AtomicBool,
+    released: Notify,
 }
 
 impl JobGate {
     fn new() -> Self {
         Self {
             active: AtomicBool::new(false),
+            released: Notify::new(),
+        }
+    }
+
+    async fn acquire(self: &Arc<Self>, token: &JobCancellationToken) -> Option<JobGatePermit> {
+        loop {
+            if token.is_cancelled() {
+                return None;
+            }
+            let notified = self.released.notified();
+            if let Some(permit) = self.try_acquire() {
+                return Some(permit);
+            }
+            tokio::select! {
+                _ = notified => {},
+                _ = token.cancelled() => {
+                    self.released.notify_one();
+                    return None;
+                },
+            }
         }
     }
 
@@ -112,12 +134,14 @@ struct JobGatePermit {
 impl Drop for JobGatePermit {
     fn drop(&mut self) {
         self.gate.active.store(false, Ordering::Release);
+        self.gate.released.notify_one();
     }
 }
 
 #[derive(Debug)]
 struct CancellationState {
     cancelled: AtomicBool,
+    notify: Notify,
 }
 
 #[derive(Debug, Clone)]
@@ -130,16 +154,28 @@ impl JobCancellationToken {
         Self {
             state: Arc::new(CancellationState {
                 cancelled: AtomicBool::new(false),
+                notify: Notify::new(),
             }),
         }
     }
 
     fn cancel(&self) {
         self.state.cancelled.store(true, Ordering::SeqCst);
+        self.state.notify.notify_waiters();
     }
 
     fn is_cancelled(&self) -> bool {
         self.state.cancelled.load(Ordering::SeqCst)
+    }
+
+    async fn cancelled(&self) {
+        loop {
+            let notified = self.state.notify.notified();
+            if self.is_cancelled() {
+                return;
+            }
+            notified.await;
+        }
     }
 }
 
@@ -280,29 +316,35 @@ impl JobScheduler {
         let scheduler = Arc::clone(self);
         let outer_app_handle = app_handle.clone();
         let outer_job_id = job_id.clone();
-        let join_result = tokio::task::spawn_blocking(move || {
-            let queue_started = Instant::now();
-            let limit = scheduler.limit_for(kind);
-            let permit = loop {
-                if token.is_cancelled() {
-                    scheduler.finish_cancelled(
-                        &app_handle,
-                        &job_id,
-                        0,
-                        0,
-                        metrics_state.snapshot(),
-                    );
-                    return Err(AppError::Other("Job cancelled".into()));
-                }
-                if let Some(permit) = limit.try_acquire() {
-                    break permit;
-                }
-                // Avoid tokio::time here: it links Windows waitable-timer APIs
-                // that are unavailable in some supported test environments.
-                std::thread::sleep(std::time::Duration::from_millis(25));
-            };
+        let queue_started = Instant::now();
+        let limit = scheduler.limit_for(kind);
+        let Some(permit) = limit.acquire(&token).await else {
             let queued_ms = queue_started.elapsed().as_millis() as u64;
+            scheduler.finish_cancelled(
+                &app_handle,
+                &job_id,
+                queued_ms,
+                0,
+                metrics_state.snapshot(),
+            );
+            return Err(AppError::Other("Job cancelled".into()));
+        };
+        let queued_ms = queue_started.elapsed().as_millis() as u64;
 
+        if token.is_cancelled() {
+            drop(permit);
+            scheduler.finish_cancelled(
+                &app_handle,
+                &job_id,
+                queued_ms,
+                0,
+                metrics_state.snapshot(),
+            );
+            return Err(AppError::Other("Job cancelled".into()));
+        }
+
+        scheduler.mark_running(&app_handle, &job_id);
+        let join_result = tokio::task::spawn_blocking(move || {
             if token.is_cancelled() {
                 drop(permit);
                 scheduler.finish_cancelled(
@@ -385,7 +427,7 @@ impl JobScheduler {
             Err(error) => {
                 let message = format!("Job task join error: {error}");
                 let metrics = build_metrics(
-                    0,
+                    queued_ms,
                     0,
                     None,
                     None,
@@ -904,6 +946,93 @@ mod tests {
             scheduler.get(&queued_id).unwrap().status,
             JobStatus::Cancelled
         );
+    }
+
+    #[test]
+    fn queued_job_waits_before_entering_blocking_pool() {
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(2)
+            .max_blocking_threads(2)
+            .enable_all()
+            .build()
+            .unwrap();
+
+        runtime.block_on(async {
+            let scheduler = Arc::new(JobScheduler::new());
+            let first_started = Arc::new(AtomicBool::new(false));
+            let release_first = Arc::new(AtomicBool::new(false));
+
+            let first = {
+                let scheduler = Arc::clone(&scheduler);
+                let first_started = Arc::clone(&first_started);
+                let release_first = Arc::clone(&release_first);
+                tokio::spawn(async move {
+                    scheduler
+                        .run_blocking(None, JobKind::ComparisonPdf, move |_ctx| {
+                            first_started.store(true, Ordering::SeqCst);
+                            while !release_first.load(Ordering::SeqCst) {
+                                std::thread::sleep(Duration::from_millis(10));
+                            }
+                            Ok::<_, AppError>(())
+                        })
+                        .await
+                })
+            };
+
+            while !first_started.load(Ordering::SeqCst) {
+                tokio::task::yield_now().await;
+            }
+
+            let second_started = Arc::new(AtomicBool::new(false));
+            let second = {
+                let scheduler = Arc::clone(&scheduler);
+                let second_started = Arc::clone(&second_started);
+                tokio::spawn(async move {
+                    scheduler
+                        .run_blocking(None, JobKind::ComparisonExcel, move |_ctx| {
+                            second_started.store(true, Ordering::SeqCst);
+                            Ok::<_, AppError>(())
+                        })
+                        .await
+                })
+            };
+
+            let queued_id = loop {
+                if let Some(record) = scheduler
+                    .list()
+                    .into_iter()
+                    .find(|record| record.status == JobStatus::Queued)
+                {
+                    break record.id;
+                }
+                tokio::task::yield_now().await;
+            };
+            let queued_record = scheduler.get(&queued_id).unwrap();
+            assert_eq!(queued_record.started_at, None);
+            assert!(!second_started.load(Ordering::SeqCst));
+
+            let independent_started = Arc::new(AtomicBool::new(false));
+            let independent = {
+                let independent_started = Arc::clone(&independent_started);
+                tokio::task::spawn_blocking(move || {
+                    independent_started.store(true, Ordering::SeqCst);
+                })
+            };
+
+            tokio::time::timeout(Duration::from_millis(500), async {
+                while !independent_started.load(Ordering::SeqCst) {
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .expect("queued comparison job must not occupy the spare blocking thread");
+            independent.await.unwrap();
+
+            release_first.store(true, Ordering::SeqCst);
+            first.await.unwrap().unwrap();
+            second.await.unwrap().unwrap();
+            assert!(second_started.load(Ordering::SeqCst));
+        });
     }
 
     #[tokio::test]

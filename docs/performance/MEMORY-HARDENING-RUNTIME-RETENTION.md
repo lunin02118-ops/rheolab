@@ -47,6 +47,16 @@ true interval sampler can replace that later if needed.
 `PRAGMA shrink_memory` on unmount in Tauri runtime. This is best-effort and
 does not block navigation.
 
+### Async Gate Before Blocking Pool
+
+Queued gated jobs now wait for their scheduler gate asynchronously before
+entering `tokio::task::spawn_blocking`. Only the active job occupies a blocking
+worker thread; queued comparison/report/import/maintenance jobs remain scheduler
+records until their gate is released.
+
+Cancellation wakes queued jobs through the cancellation token notification, so a
+queued job can still be cancelled without waiting for the active job to finish.
+
 ## Validation
 
 Targeted coverage:
@@ -54,11 +64,10 @@ Targeted coverage:
 - completed scheduler jobs are pruned to the retention limit;
 - expired terminal jobs are pruned while active jobs remain visible;
 - Windows process snapshots return non-null RSS and CPU values;
+- queued gated jobs do not occupy spare blocking-pool threads while waiting;
 - existing dashboard tests still pass with the unmount cache-release hook.
 
 ## Remaining Work
 
-- async gating before `spawn_blocking`, so queued gated jobs do not occupy a
-  blocking thread while waiting;
 - repeated MEM-7 scorecard with 3-5 comparable memory runs;
 - optional report-to-file path for very large PDF/XLSX exports.
