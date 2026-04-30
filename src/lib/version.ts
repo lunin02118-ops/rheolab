@@ -7,5 +7,5 @@
  */
 
 export const APP_VERSION = '0.2.2-alpha.3';
-export const BUILD_DATE = '2026-04-29';
-export const COMMIT_HASH = '9c30c0b';
+export const BUILD_DATE = '2026-04-30';
+export const COMMIT_HASH = 'e69bb4d';

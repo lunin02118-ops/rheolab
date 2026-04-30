@@ -283,12 +283,12 @@ async function mockTauriIPC(page: import('@playwright/test').Page) {
             return Promise.resolve({ valid: false });
 
           // ── Reports — return fake PDF/Excel bytes so the app can complete download ──
-          if (cmd === 'reports_generate_pdf') {
+          if (cmd === 'reports_generate_pdf' || cmd === 'reports_generate_pdf_by_id') {
             const fakePdf = new Uint8Array(6000);
             fakePdf[0] = 0x25; fakePdf[1] = 0x50; fakePdf[2] = 0x44; fakePdf[3] = 0x46; // %PDF
             return Promise.resolve(fakePdf);
           }
-          if (cmd === 'reports_generate_excel') {
+          if (cmd === 'reports_generate_excel' || cmd === 'reports_generate_excel_by_id') {
             const fakeXlsx = new Uint8Array(6000);
             fakeXlsx[0] = 0x50; fakeXlsx[1] = 0x4B; fakeXlsx[2] = 0x03; fakeXlsx[3] = 0x04; // PK (ZIP)
             return Promise.resolve(fakeXlsx);

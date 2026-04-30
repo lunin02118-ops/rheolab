@@ -8,6 +8,7 @@ import { useUIMode } from '@/contexts/ui-mode-context';
 import { useLicense } from '@/hooks/useLicense';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { useReportExport } from '@/components/reports/hooks/useReportExport';
+import { useReportExportById } from '@/components/reports/hooks/useReportExportById';
 import type { ParseResult } from '@/lib/store/experiment-data-store';
 import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
 import type { RecipeComponent } from '@/lib/parsing/types';
@@ -15,6 +16,7 @@ import type { WaterParams } from '@/types';
 
 interface ReportTabProps {
     parseResult: ParseResult;
+    savedExperimentId?: string;
     editedRecipe: RecipeComponent[];
     editedWaterParams: Partial<WaterParams> | null;
     editedWaterSource: string;
@@ -24,6 +26,7 @@ interface ReportTabProps {
 
 export function ReportTab({
     parseResult,
+    savedExperimentId,
     editedRecipe,
     editedWaterParams,
     editedWaterSource,
@@ -85,11 +88,7 @@ export function ReportTab({
     const [includeWaterAnalysis, setIncludeWaterAnalysis] = useState(showWaterAnalysis);
 
     // Export hook — hardcode touchPoints/targetTime/threshold per TZ
-    const {
-        isExporting, isExcelExporting,
-        exportError, clearError,
-        handleDownloadAll: downloadAll,
-    } = useReportExport({
+    const legacyExport = useReportExport({
         parseResult, editedRecipe, editedWaterParams, editedWaterSource,
         cycleResults, cycles,
         language: reportLanguage, unitSystem,
@@ -104,6 +103,36 @@ export function ReportTab({
         reportViscosityRates, isExpert,
         companyName, companyLogo, chartSettings,
     });
+
+    const byIdExport = useReportExportById({
+        experimentId: savedExperimentId || parseResult.metadata.experimentId || '',
+        filename: parseResult.metadata.filename || 'report',
+        editedRecipe,
+        editedWaterParams,
+        editedWaterSource,
+        language: reportLanguage,
+        unitSystem,
+        showTouchPoints: false,
+        viscosityThreshold: 0,
+        showTargetTime: false,
+        targetTime: 0,
+        showCalibration: includeCalibration && canUseCalibration,
+        showRawData: includeRawData,
+        showRecipe: includeRecipe,
+        showWaterAnalysis: includeWaterAnalysis,
+        reportViscosityRates,
+        isExpert,
+        companyName,
+        companyLogo,
+        chartSettings,
+        expertSettings,
+    });
+
+    const {
+        isExporting, isExcelExporting,
+        exportError, clearError,
+        handleDownloadAll: downloadAll,
+    } = savedExperimentId ? byIdExport : legacyExport;
 
     const isGenerating = isExporting || isExcelExporting;
     const canDownload = formatPdf || formatExcel;

@@ -49,6 +49,7 @@ export type {
   AnalysisCachePruneResponse,
   ExperimentProjectionStatus,
   ExperimentProjectionRebuildResponse,
+  ExperimentReportByIdRequest,
   PlatformType,
   PlatformBridge,
 } from '@/types/tauri';

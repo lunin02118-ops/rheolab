@@ -179,14 +179,26 @@ describe('tauri api wrapper', () => {
     setWindow({ __TAURI_INTERNALS__: {} });
     vi.mocked(invokeCore)
       .mockResolvedValueOnce([37, 80, 68, 70]) // %PDF
-      .mockResolvedValueOnce(new Uint8Array([80, 75, 3, 4])); // PK..
+      .mockResolvedValueOnce(new Uint8Array([80, 75, 3, 4])) // PK..
+      .mockResolvedValueOnce([37, 80, 68, 70])
+      .mockResolvedValueOnce(new Uint8Array([80, 75, 3, 4]));
 
     const pdfBytes = await reports.generatePdf('{"mock":"pdf"}');
     const excelBytes = await reports.generateExcel('{"mock":"excel"}');
+    const pdfByIdBytes = await reports.generatePdfById({ experimentId: 'exp_1', settings: {} } as any);
+    const excelByIdBytes = await reports.generateExcelById({ experimentId: 'exp_1', settings: {} } as any);
 
     expect(Array.from(pdfBytes)).toEqual([37, 80, 68, 70]);
     expect(Array.from(excelBytes)).toEqual([80, 75, 3, 4]);
+    expect(Array.from(pdfByIdBytes)).toEqual([37, 80, 68, 70]);
+    expect(Array.from(excelByIdBytes)).toEqual([80, 75, 3, 4]);
     expect(invokeCore).toHaveBeenNthCalledWith(1, 'reports_generate_pdf', { input: '{"mock":"pdf"}' });
     expect(invokeCore).toHaveBeenNthCalledWith(2, 'reports_generate_excel', { input: '{"mock":"excel"}' });
+    expect(invokeCore).toHaveBeenNthCalledWith(3, 'reports_generate_pdf_by_id', {
+      request: { experimentId: 'exp_1', settings: {} },
+    });
+    expect(invokeCore).toHaveBeenNthCalledWith(4, 'reports_generate_excel_by_id', {
+      request: { experimentId: 'exp_1', settings: {} },
+    });
   });
 });

@@ -81,6 +81,8 @@ macro_rules! register_tauri_commands {
             // Native reports commands — RISK: LOW (license-gated, returns bytes)
             $crate::commands::reports::reports_generate_pdf,
             $crate::commands::reports::reports_generate_excel,
+            $crate::commands::reports::reports_generate_pdf_by_id,
+            $crate::commands::reports::reports_generate_excel_by_id,
             // Native comparison reports by IDs (ADR-0010/ADR-0013) — RISK: LOW (license-gated)
             $crate::commands::reports::reports_generate_comparison_pdf_by_ids,
             $crate::commands::reports::reports_generate_comparison_excel_by_ids,

@@ -189,6 +189,86 @@ pub async fn reports_generate_excel(
 }
 
 #[tauri::command]
+pub async fn reports_generate_pdf_by_id(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    request: ExperimentReportByIdRequest,
+) -> Result<tauri::ipc::Response> {
+    if !can_write_via_engine(&state).await {
+        return Err(AppError::License("required".into()));
+    }
+    let features = current_features(&state).await;
+    validate_report_by_id_request(&request, &features, ReportFormat::Pdf)?;
+
+    let pool = state.db_pool.clone();
+    let scheduler = state.job_scheduler.clone();
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+    let bytes = scheduler
+        .run_blocking(app_handle, JobKind::SinglePdf, move |ctx| {
+            #[cfg(debug_assertions)]
+            {
+                if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+                    tracing::debug!("[E2E] reports_generate_pdf_by_id: returning mock PDF bytes");
+                    let bytes = vec![0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34];
+                    ctx.record_output_bytes(bytes.len() as u64);
+                    return Ok(bytes);
+                }
+            }
+
+            generate_pdf_by_id_bytes_cached_with_job(&pool, &request, &ctx)
+        })
+        .await?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
+#[tauri::command]
+pub async fn reports_generate_excel_by_id(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    request: ExperimentReportByIdRequest,
+) -> Result<tauri::ipc::Response> {
+    if !can_write_via_engine(&state).await {
+        return Err(AppError::License("required".into()));
+    }
+    let features = current_features(&state).await;
+    validate_report_by_id_request(&request, &features, ReportFormat::Excel)?;
+
+    let pool = state.db_pool.clone();
+    let scheduler = state.job_scheduler.clone();
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+    let bytes = scheduler
+        .run_blocking(app_handle, JobKind::SingleExcel, move |ctx| {
+            #[cfg(debug_assertions)]
+            {
+                if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+                    tracing::debug!(
+                        "[E2E] reports_generate_excel_by_id: returning mock XLSX bytes"
+                    );
+                    let bytes = vec![0x50, 0x4b, 0x03, 0x04];
+                    ctx.record_output_bytes(bytes.len() as u64);
+                    return Ok(bytes);
+                }
+            }
+
+            generate_excel_by_id_bytes_cached_with_job(&pool, &request, &ctx)
+        })
+        .await?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
+#[tauri::command]
 pub async fn reports_generate_comparison_pdf_by_ids(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -420,6 +500,110 @@ fn generate_comparison_excel_by_ids_bytes_from_experiments(
             error
         ))
     })
+}
+
+fn generate_pdf_by_id_bytes_cached_with_job(
+    pool: &DbPool,
+    request: &ExperimentReportByIdRequest,
+    ctx: &JobContext,
+) -> Result<Vec<u8>> {
+    let input = build_report_input_by_id_cached_with_job(pool, request, Some(ctx))?;
+    ctx.ensure_not_cancelled()?;
+    ctx.progress(
+        "render_pdf",
+        1,
+        Some(1),
+        Some("Rendering PDF report".into()),
+    );
+    let bytes =
+        rheolab_core::report_generator::generate_pdf_from_input(&input).map_err(|error| {
+            tracing::error!("PDF by ID generation failed: {}", error);
+            AppError::Other(format!("PDF by ID generation failed: {}", error))
+        })?;
+    ctx.record_output_bytes(bytes.len() as u64);
+    Ok(bytes)
+}
+
+fn generate_excel_by_id_bytes_cached_with_job(
+    pool: &DbPool,
+    request: &ExperimentReportByIdRequest,
+    ctx: &JobContext,
+) -> Result<Vec<u8>> {
+    let input = build_report_input_by_id_cached_with_job(pool, request, Some(ctx))?;
+    ctx.ensure_not_cancelled()?;
+    ctx.progress(
+        "render_xlsx",
+        1,
+        Some(1),
+        Some("Rendering XLSX report".into()),
+    );
+    let bytes =
+        rheolab_core::report_generator::generate_excel_from_input(&input).map_err(|error| {
+            tracing::error!("Excel by ID generation failed: {:?}", error);
+            AppError::Other(format!("Excel by ID generation failed: {:?}", error))
+        })?;
+    ctx.record_output_bytes(bytes.len() as u64);
+    Ok(bytes)
+}
+
+fn build_report_input_by_id_cached_with_job(
+    pool: &DbPool,
+    request: &ExperimentReportByIdRequest,
+    ctx: Option<&JobContext>,
+) -> Result<ReportInput> {
+    let comparison_request = single_report_as_comparison_request(request);
+    let mut comparison_input =
+        build_comparison_report_input_by_ids_cached_with_job(pool, &comparison_request, ctx)?;
+    let entry = comparison_input
+        .experiments
+        .pop()
+        .ok_or_else(|| AppError::Other("Report by ID produced no experiment entry".into()))?;
+    let mut report_input = entry.report_input;
+    apply_single_report_overrides(&mut report_input, request);
+    Ok(report_input)
+}
+
+fn single_report_as_comparison_request(
+    request: &ExperimentReportByIdRequest,
+) -> ComparisonReportByIdsRequest {
+    ComparisonReportByIdsRequest {
+        experiment_ids: vec![request.experiment_id.clone()],
+        settings: request.settings.clone(),
+    }
+}
+
+fn apply_single_report_overrides(input: &mut ReportInput, request: &ExperimentReportByIdRequest) {
+    if request.settings.section_toggles.show_recipe {
+        if let Some(recipe) = &request.recipe_override {
+            input.recipe = recipe
+                .iter()
+                .map(|item| Reagent {
+                    name: item.name.clone(),
+                    concentration: item.concentration,
+                    unit: item.unit.clone(),
+                    category: item.category.clone(),
+                    batch_number: item.batch_number.clone(),
+                })
+                .collect();
+        }
+    }
+
+    if request.settings.section_toggles.show_water_analysis {
+        if let Some(water) = &request.water_override {
+            input.water_params = Some(WaterParams {
+                source: water.source.clone(),
+                salinity: water.salinity,
+                ph: water.ph,
+                hardness: water.hardness,
+                fe: water.fe,
+                ca: water.ca,
+                mg: water.mg,
+                cl: water.cl,
+                so4: water.so4,
+                hco3: water.hco3,
+            });
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1291,6 +1475,54 @@ fn json_f64_any(value: &Value, keys: &[&str]) -> Option<f64> {
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub struct ExperimentReportByIdRequest {
+    pub experiment_id: String,
+    pub settings: ComparisonReportByIdsSettings,
+    #[serde(default)]
+    pub recipe_override: Option<Vec<ExperimentReportRecipeOverride>>,
+    #[serde(default)]
+    pub water_override: Option<ExperimentReportWaterOverride>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ExperimentReportRecipeOverride {
+    pub name: String,
+    pub concentration: f64,
+    pub unit: String,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub batch_number: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ExperimentReportWaterOverride {
+    #[serde(default)]
+    pub source: Option<String>,
+    #[serde(default)]
+    pub salinity: Option<f64>,
+    #[serde(default)]
+    pub ph: Option<f64>,
+    #[serde(default)]
+    pub hardness: Option<f64>,
+    #[serde(default)]
+    pub fe: Option<f64>,
+    #[serde(default)]
+    pub ca: Option<f64>,
+    #[serde(default)]
+    pub mg: Option<f64>,
+    #[serde(default)]
+    pub cl: Option<f64>,
+    #[serde(default)]
+    pub so4: Option<f64>,
+    #[serde(default)]
+    pub hco3: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ComparisonReportByIdsRequest {
     pub experiment_ids: Vec<String>,
     pub settings: ComparisonReportByIdsSettings,
@@ -1513,6 +1745,9 @@ struct CachedComparisonExperiment {
 const MAX_COMPANY_NAME_BYTES: usize = 255;
 const MAX_COMPANY_LOGO_BASE64_BYTES: usize = 5_000_000;
 const MAX_GENERATED_AT_BYTES: usize = 64;
+const MAX_REPORT_RECIPE_ROWS: usize = 256;
+const MAX_REPORT_RECIPE_TEXT_BYTES: usize = 255;
+const MAX_REPORT_WATER_SOURCE_BYTES: usize = 255;
 const MAX_METRIC_KEY_BYTES: usize = 64;
 const MAX_COLOR_BYTES: usize = 64;
 const MAX_LINE_WIDTH: u8 = 16;
@@ -1624,6 +1859,104 @@ fn validate_comparison_by_ids_request(
     }
 
     request.settings.validate()
+}
+
+fn validate_report_by_id_request(
+    request: &ExperimentReportByIdRequest,
+    features: &LicenseFeatures,
+    format: ReportFormat,
+) -> Result<()> {
+    validate_hash_id(&request.experiment_id, "experimentId")?;
+    match format {
+        ReportFormat::Pdf => enforce_single_pdf_features(features)?,
+        ReportFormat::Excel => enforce_single_excel_features(features)?,
+    }
+    request.settings.validate()?;
+    validate_recipe_override(request.recipe_override.as_deref())?;
+    validate_water_override(request.water_override.as_ref())
+}
+
+fn validate_recipe_override(recipe: Option<&[ExperimentReportRecipeOverride]>) -> Result<()> {
+    let Some(recipe) = recipe else {
+        return Ok(());
+    };
+    if recipe.len() > MAX_REPORT_RECIPE_ROWS {
+        return Err(AppError::BadRequest(format!(
+            "recipeOverride exceeds {MAX_REPORT_RECIPE_ROWS} rows"
+        )));
+    }
+    for (idx, item) in recipe.iter().enumerate() {
+        let prefix = format!("recipeOverride[{idx}]");
+        validate_bounded_str(
+            &item.name,
+            MAX_REPORT_RECIPE_TEXT_BYTES,
+            &format!("{prefix}.name"),
+        )?;
+        if item.name.trim().is_empty() {
+            return Err(AppError::BadRequest(format!(
+                "{prefix}.name must not be empty"
+            )));
+        }
+        if !item.concentration.is_finite() || item.concentration < 0.0 {
+            return Err(AppError::BadRequest(format!(
+                "{prefix}.concentration must be finite and non-negative"
+            )));
+        }
+        validate_bounded_str(
+            &item.unit,
+            MAX_REPORT_RECIPE_TEXT_BYTES,
+            &format!("{prefix}.unit"),
+        )?;
+        if item.unit.trim().is_empty() {
+            return Err(AppError::BadRequest(format!(
+                "{prefix}.unit must not be empty"
+            )));
+        }
+        if let Some(category) = &item.category {
+            validate_bounded_str(
+                category,
+                MAX_REPORT_RECIPE_TEXT_BYTES,
+                &format!("{prefix}.category"),
+            )?;
+        }
+        if let Some(batch_number) = &item.batch_number {
+            validate_bounded_str(
+                batch_number,
+                MAX_REPORT_RECIPE_TEXT_BYTES,
+                &format!("{prefix}.batchNumber"),
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_water_override(water: Option<&ExperimentReportWaterOverride>) -> Result<()> {
+    let Some(water) = water else {
+        return Ok(());
+    };
+    if let Some(source) = &water.source {
+        validate_bounded_str(
+            source,
+            MAX_REPORT_WATER_SOURCE_BYTES,
+            "waterOverride.source",
+        )?;
+    }
+    validate_optional_finite(water.salinity, "waterOverride.salinity")?;
+    validate_optional_finite(water.ph, "waterOverride.ph")?;
+    validate_optional_finite(water.hardness, "waterOverride.hardness")?;
+    validate_optional_finite(water.fe, "waterOverride.fe")?;
+    validate_optional_finite(water.ca, "waterOverride.ca")?;
+    validate_optional_finite(water.mg, "waterOverride.mg")?;
+    validate_optional_finite(water.cl, "waterOverride.cl")?;
+    validate_optional_finite(water.so4, "waterOverride.so4")?;
+    validate_optional_finite(water.hco3, "waterOverride.hco3")
+}
+
+fn validate_optional_finite(value: Option<f64>, field: &str) -> Result<()> {
+    if matches!(value, Some(value) if !value.is_finite()) {
+        return Err(AppError::BadRequest(format!("{field} must be finite")));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -2014,6 +2347,28 @@ fn validate_non_negative_finite(value: f64, field: &str) -> Result<()> {
 
 // ── Audit-v2 REP-001 helpers ───────────────────────────────────────────
 
+fn enforce_single_pdf_features(
+    features: &crate::commands::licensing::types::LicenseFeatures,
+) -> Result<()> {
+    if !features.export_pdf {
+        return Err(AppError::License(
+            "PDF export is not included in your current licence (REP-001)".into(),
+        ));
+    }
+    Ok(())
+}
+
+fn enforce_single_excel_features(
+    features: &crate::commands::licensing::types::LicenseFeatures,
+) -> Result<()> {
+    if !features.export_excel {
+        return Err(AppError::License(
+            "Excel export is not included in your current licence (REP-001)".into(),
+        ));
+    }
+    Ok(())
+}
+
 /// REP-001 gate for by-IDs comparison PDF exports.
 ///
 /// Pure helper so the licence-feature contract can be unit-tested
@@ -2226,16 +2581,18 @@ mod tests {
 
     use super::{
         build_analysis_key_for_experiment, build_comparison_report_input_by_ids,
-        build_comparison_report_input_by_ids_cached, enforce_comparison_excel_features,
-        enforce_comparison_pdf_features, enforce_max_comparison_experiments,
-        generate_comparison_excel_by_ids_bytes, generate_comparison_excel_by_ids_bytes_cached,
-        generate_comparison_pdf_by_ids_bytes, generate_comparison_pdf_by_ids_bytes_cached,
-        validate_comparison_by_ids_request,
-        validate_comparison_experiment_ids_exist, ComparisonByIdsChartConfig,
-        ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings, ComparisonByIdsMetrics,
-        ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
+        build_comparison_report_input_by_ids_cached, build_report_input_by_id_cached_with_job,
+        enforce_comparison_excel_features, enforce_comparison_pdf_features,
+        enforce_max_comparison_experiments, enforce_single_excel_features,
+        enforce_single_pdf_features, generate_comparison_excel_by_ids_bytes,
+        generate_comparison_excel_by_ids_bytes_cached, generate_comparison_pdf_by_ids_bytes,
+        generate_comparison_pdf_by_ids_bytes_cached, validate_comparison_by_ids_request,
+        validate_comparison_experiment_ids_exist, validate_report_by_id_request,
+        ComparisonByIdsChartConfig, ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings,
+        ComparisonByIdsMetrics, ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
         ComparisonByIdsTouchPointConfig, ComparisonReportByIdsRequest,
-        ComparisonReportByIdsSettings, ReportFormat,
+        ComparisonReportByIdsSettings, ExperimentReportByIdRequest, ExperimentReportRecipeOverride,
+        ExperimentReportWaterOverride, ReportFormat,
     };
     use crate::analysis_cache::{
         build_analysis_cache_key, decode_analysis_artifact, hash_experiment_data_bytes,
@@ -2364,6 +2721,15 @@ mod tests {
                 analysis_settings: super::default_comparison_analysis_settings(),
                 detection_settings: Default::default(),
             },
+        }
+    }
+
+    fn valid_by_id_request(experiment_id: &str) -> ExperimentReportByIdRequest {
+        ExperimentReportByIdRequest {
+            experiment_id: experiment_id.into(),
+            settings: valid_by_ids_request().settings,
+            recipe_override: None,
+            water_override: None,
         }
     }
 
@@ -2703,6 +3069,69 @@ mod tests {
         assert!(report.recipe.is_empty());
         assert!(report.water_params.is_none());
         assert!(!report.cycle_results.is_empty());
+    }
+
+    #[test]
+    fn build_by_id_report_input_loads_single_saved_experiment_without_frontend_payload() {
+        let (pool, _dir) = by_ids_fixture_pool();
+        let request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
+
+        let report = build_report_input_by_id_cached_with_job(&pool, &request, None)
+            .expect("build by-id single report input");
+
+        assert_eq!(report.metadata.filename, "Alpha");
+        assert_eq!(report.raw_data.len(), 20);
+        assert!(!report.cycle_results.is_empty());
+        assert!(!report.cycles.is_empty());
+        assert!(report.axis_values.is_some());
+        assert_eq!(report.recipe.len(), 1);
+        assert_eq!(
+            report.water_params.as_ref().and_then(|water| water.ph),
+            Some(7.1)
+        );
+    }
+
+    #[test]
+    fn build_by_id_report_input_applies_recipe_and_water_overrides() {
+        let (pool, _dir) = by_ids_fixture_pool();
+        let mut request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
+        request.recipe_override = Some(vec![ExperimentReportRecipeOverride {
+            name: "Edited Polymer".into(),
+            concentration: 4.2,
+            unit: "kg/m3".into(),
+            category: Some("Polymer".into()),
+            batch_number: Some("B-99".into()),
+        }]);
+        request.water_override = Some(ExperimentReportWaterOverride {
+            source: Some("Edited water".into()),
+            salinity: Some(1234.0),
+            ph: Some(8.2),
+            hardness: Some(44.0),
+            fe: Some(0.12),
+            ca: Some(12.3),
+            mg: Some(4.5),
+            cl: Some(89.0),
+            so4: Some(7.8),
+            hco3: Some(145.0),
+        });
+
+        let report = build_report_input_by_id_cached_with_job(&pool, &request, None)
+            .expect("build by-id single report input with overrides");
+
+        assert_eq!(report.recipe.len(), 1);
+        assert_eq!(report.recipe[0].name, "Edited Polymer");
+        assert_eq!(report.recipe[0].batch_number.as_deref(), Some("B-99"));
+        let water = report.water_params.expect("water override");
+        assert_eq!(water.source.as_deref(), Some("Edited water"));
+        assert_eq!(water.salinity, Some(1234.0));
+        assert_eq!(water.ph, Some(8.2));
+        assert_eq!(water.hardness, Some(44.0));
+        assert_eq!(water.fe, Some(0.12));
+        assert_eq!(water.ca, Some(12.3));
+        assert_eq!(water.mg, Some(4.5));
+        assert_eq!(water.cl, Some(89.0));
+        assert_eq!(water.so4, Some(7.8));
+        assert_eq!(water.hco3, Some(145.0));
     }
 
     #[test]
@@ -3247,6 +3676,29 @@ mod tests {
     }
 
     #[test]
+    fn validate_by_id_accepts_single_export_without_comparison_feature() {
+        let request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
+        let mut features = empty_features();
+        features.export_pdf = true;
+
+        assert!(validate_report_by_id_request(&request, &features, ReportFormat::Pdf).is_ok());
+    }
+
+    #[test]
+    fn validate_by_id_rejects_invalid_experiment_id_shape() {
+        let mut request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
+        request.experiment_id = "abc' OR 1=1--".into();
+        let mut features = empty_features();
+        features.export_pdf = true;
+
+        let err = validate_report_by_id_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("alphanumeric"));
+    }
+
+    #[test]
     fn analysis_cache_key_material_is_deterministic_and_versioned() {
         let request = valid_by_ids_request();
         let settings = request.settings;
@@ -3396,6 +3848,21 @@ mod tests {
     }
 
     #[test]
+    fn enforce_single_pdf_does_not_require_comparison_feature() {
+        let mut f = empty_features();
+        f.export_pdf = true;
+        assert!(enforce_single_pdf_features(&f).is_ok());
+    }
+
+    #[test]
+    fn enforce_single_excel_rejects_when_export_excel_disabled() {
+        let f = empty_features();
+        let err = enforce_single_excel_features(&f).unwrap_err().to_string();
+        assert!(err.contains("Excel"));
+        assert!(err.contains("REP-001"));
+    }
+
+    #[test]
     fn enforce_max_comparison_experiments_treats_negative_as_unlimited() {
         // Per the LicenseFeatures contract: -1 means unlimited.
         assert!(enforce_max_comparison_experiments(-1, 0).is_ok());
@@ -3410,9 +3877,7 @@ mod tests {
     #[test]
     fn validate_by_ids_rejects_oversized_request_before_cache_work() {
         let mut request = valid_by_ids_request();
-        request.experiment_ids = (0..100_000)
-            .map(|i| format!("exp_{i:020x}"))
-            .collect();
+        request.experiment_ids = (0..100_000).map(|i| format!("exp_{i:020x}")).collect();
         let mut features = comparison_features(3);
         features.export_pdf = true;
 
