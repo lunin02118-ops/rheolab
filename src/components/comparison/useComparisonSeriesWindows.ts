@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChartColumnarData, Experiment } from '@/types';
 import type { ComparisonViewport } from '@/lib/store/comparison-store';
 import { isTauri } from '@/lib/tauri/core';
@@ -151,7 +151,7 @@ export function useComparisonSeriesWindows({
     const metricsKey = useMemo(() => metrics.join(','), [metrics]);
     const activeViewport = useMemo(
         () => normalizeViewport(viewport),
-        [viewport?.xMinSec, viewport?.xMaxSec],
+        [viewport],
     );
     const activeViewportKey = activeViewport
         ? `${activeViewport.xMinSec}:${activeViewport.xMaxSec}`
@@ -164,6 +164,15 @@ export function useComparisonSeriesWindows({
     const timeOriginsRef = useRef<Record<string, number>>({});
     const binaryEnabled = enabled && isComparisonBinarySeriesEnabled();
     const experimentIds = experiments.map(exp => exp.id).join('|');
+
+    const updateLineStatesAsync = useCallback((
+        updater: (prev: Record<string, ComparisonLineSeriesState>) => Record<string, ComparisonLineSeriesState>,
+    ) => {
+        void Promise.resolve().then(() => {
+            if (!mountedRef.current) return;
+            setLineStates(updater);
+        });
+    }, []);
 
     useEffect(() => () => {
         mountedRef.current = false;
@@ -181,7 +190,7 @@ export function useComparisonSeriesWindows({
                 delete timeOriginsRef.current[id];
             }
         }
-        setLineStates(prev => {
+        updateLineStatesAsync(prev => {
             let changed = false;
             const next: Record<string, ComparisonLineSeriesState> = {};
             for (const [id, state] of Object.entries(prev)) {
@@ -193,7 +202,7 @@ export function useComparisonSeriesWindows({
             }
             return changed ? next : prev;
         });
-    }, [experimentIds, experiments]);
+    }, [experimentIds, experiments, updateLineStatesAsync]);
 
     useEffect(() => {
         if (!binaryEnabled || experiments.length === 0) return;
@@ -217,7 +226,7 @@ export function useComparisonSeriesWindows({
                     timeOriginsRef.current[exp.id] = Number(cached.timeOriginSec);
                 }
                 const fallbackViewportKey = requestViewport === null && fallbackKey ? fallbackKey : undefined;
-                setLineStates(prev => {
+                updateLineStatesAsync(prev => {
                     const existing = prev[exp.id];
                     if (
                         existing?.status === 'ready' &&
@@ -250,7 +259,7 @@ export function useComparisonSeriesWindows({
                 continue;
             }
 
-            setLineStates(prev => ({
+            updateLineStatesAsync(prev => ({
                 ...prev,
                 [exp.id]: {
                     experimentId: exp.id,
@@ -459,7 +468,7 @@ export function useComparisonSeriesWindows({
                 window.clearTimeout(timer);
             }
         };
-    }, [activeViewport, activeViewportKey, binaryEnabled, experimentIds, experiments, maxPoints, metrics, metricsKey, sessionId]);
+    }, [activeViewport, activeViewportKey, binaryEnabled, experimentIds, experiments, maxPoints, metrics, metricsKey, sessionId, updateLineStatesAsync]);
 
     const augmentedExperiments = useMemo(() => {
         if (!binaryEnabled) return experiments;

@@ -302,12 +302,12 @@ export default function Dashboard() {
                             setError(data.error || 'Failed to load experiment');
                         }
                     })
-                : loadFullExperimentById(loadExperimentId, {
+                : Promise.resolve().then(() => loadFullExperimentById(loadExperimentId, {
                     replaceUrl: true,
                     scroll: true,
                     reason: 'legacy-detail-fallback',
                     shouldApply: () => !cancelled,
-                });
+                }));
 
             Promise.resolve(loadPromise)
                 .then(data => {

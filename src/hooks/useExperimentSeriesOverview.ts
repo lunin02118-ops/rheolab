@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChartColumnarData } from '@/types';
 import { isTauri } from '@/lib/tauri/core';
 import { series } from '@/lib/tauri/series';
-import { seriesWindowToColumnarData } from '@/lib/series/binary-series';
+import { seriesWindowToColumnarData, type SeriesWindow } from '@/lib/series/binary-series';
 import {
   seriesWindowCache,
   type SeriesWindowCacheKey,
@@ -72,6 +72,17 @@ function minFiniteTimeSec(data: ChartColumnarData | null): number {
   return Number.isFinite(min) ? min : 0;
 }
 
+function minFiniteSeriesTimeSec(data: SeriesWindow): number {
+  let min = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < data.columns.timeSec.length; i++) {
+    const value = data.columns.timeSec[i];
+    if (Number.isFinite(value) && value < min) {
+      min = value;
+    }
+  }
+  return Number.isFinite(min) ? min : 0;
+}
+
 export interface ExperimentSeriesOverviewState {
   columnarData: ChartColumnarData | null;
   overviewColumnarData: ChartColumnarData | null;
@@ -92,6 +103,8 @@ export function useExperimentSeriesOverview(
   const metrics = useMemo(() => DEFAULT_SERIES_METRICS, []);
   const canUseBinary = enabled && !!experimentId && isTauri() && !isLegacyAosForced();
   const windowRequestSeqRef = useRef(0);
+  const timeOriginSecRef = useRef<number | null>(null);
+  const lastExperimentIdRef = useRef<string | undefined>(undefined);
   const [overviewState, setOverviewState] = useState<{
     columnarData: ChartColumnarData | null;
     isLoading: boolean;
@@ -114,36 +127,67 @@ export function useExperimentSeriesOverview(
   });
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!canUseBinary || !experimentId) {
-      setOverviewState(prev => prev.columnarData || prev.isLoading || prev.error
-        ? { columnarData: null, isLoading: false, error: null }
-        : prev);
-      setWindowState(prev => prev.range || prev.columnarData || prev.isLoading || prev.error
-        ? { range: null, columnarData: null, isLoading: false, error: null }
-        : prev);
-      return;
+      timeOriginSecRef.current = null;
+      lastExperimentIdRef.current = undefined;
+      void Promise.resolve().then(() => {
+        if (cancelled) return;
+        setOverviewState(prev => prev.columnarData || prev.isLoading || prev.error
+          ? { columnarData: null, isLoading: false, error: null }
+          : prev);
+        setWindowState(prev => prev.range || prev.columnarData || prev.isLoading || prev.error
+          ? { range: null, columnarData: null, isLoading: false, error: null }
+          : prev);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
-    setWindowState({ range: null, columnarData: null, isLoading: false, error: null });
+    const previousExperimentId = lastExperimentIdRef.current;
+    const experimentChanged = previousExperimentId !== undefined && previousExperimentId !== experimentId;
+    lastExperimentIdRef.current = experimentId;
+
+    void Promise.resolve().then(() => {
+      if (!cancelled) {
+        setWindowState(prev => {
+          if (!experimentChanged && prev.range) return prev;
+          return { range: null, columnarData: null, isLoading: false, error: null };
+        });
+      }
+    });
 
     const overviewCacheKey = makeSeriesCacheKey(experimentId, metrics, maxPoints, 'overview');
     const cachedOverview = seriesWindowCache.get(overviewCacheKey);
     if (cachedOverview) {
-      setOverviewState({
-        columnarData: cachedOverview,
-        isLoading: false,
-        error: null,
+      timeOriginSecRef.current = minFiniteTimeSec(cachedOverview);
+      void Promise.resolve().then(() => {
+        if (!cancelled) {
+          setOverviewState({
+            columnarData: cachedOverview,
+            isLoading: false,
+            error: null,
+          });
+        }
       });
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
-    setOverviewState(prev => ({ ...prev, isLoading: true, error: null }));
+    void Promise.resolve().then(() => {
+      if (!cancelled) {
+        setOverviewState(prev => ({ ...prev, isLoading: true, error: null }));
+      }
+    });
 
     series.overview(experimentId, metrics, maxPoints)
       .then(window => {
         if (cancelled) return;
         const columnarData = seriesWindowToColumnarData(window);
+        timeOriginSecRef.current = minFiniteTimeSec(columnarData);
         seriesWindowCache.set(overviewCacheKey, columnarData);
         setOverviewState({
           columnarData,
@@ -170,23 +214,55 @@ export function useExperimentSeriesOverview(
       return;
     }
 
+    let active = true;
     const range = windowState.range;
     const cacheKey = makeSeriesCacheKey(experimentId, metrics, maxPoints, 'window', range);
     const cached = seriesWindowCache.get(cacheKey);
     if (cached) {
-      setWindowState(prev => ({
-        ...prev,
-        columnarData: cached,
-        isLoading: false,
-        error: null,
-      }));
-      return;
+      timeOriginSecRef.current = minFiniteTimeSec(cached);
+      void Promise.resolve().then(() => {
+        if (active) {
+          setWindowState(prev => ({
+            ...prev,
+            columnarData: cached,
+            isLoading: false,
+            error: null,
+          }));
+        }
+      });
+      return () => {
+        active = false;
+      };
     }
 
-    let active = true;
     const seq = windowRequestSeqRef.current + 1;
     windowRequestSeqRef.current = seq;
-    setWindowState(prev => ({ ...prev, isLoading: true, error: null }));
+    void Promise.resolve().then(() => {
+      if (active) {
+        setWindowState(prev => ({ ...prev, isLoading: true, error: null }));
+      }
+    });
+
+    const resolveWindowTimeOriginSec = async (seriesWindow: SeriesWindow): Promise<number> => {
+      const known = timeOriginSecRef.current;
+      if (Number.isFinite(known)) return Number(known);
+
+      try {
+        const meta = await series.meta(experimentId);
+        const origin = Number(meta.timeMinSec);
+        if (Number.isFinite(origin)) {
+          timeOriginSecRef.current = origin;
+          return origin;
+        }
+      } catch {
+        // A failed metadata read should not blank the chart. Fall back to
+        // the series-local minimum, which matches the legacy behavior.
+      }
+
+      const fallback = minFiniteSeriesTimeSec(seriesWindow);
+      timeOriginSecRef.current = fallback;
+      return fallback;
+    };
 
     const timer = window.setTimeout(() => {
       series.window(
@@ -199,14 +275,17 @@ export function useExperimentSeriesOverview(
       )
         .then(seriesWindow => {
           if (!active || windowRequestSeqRef.current !== seq) return;
-          const columnarData = seriesWindowToColumnarData(seriesWindow);
-          seriesWindowCache.set(cacheKey, columnarData);
-          setWindowState(prev => ({
-            ...prev,
-            columnarData,
-            isLoading: false,
-            error: null,
-          }));
+          return resolveWindowTimeOriginSec(seriesWindow).then(timeOriginSec => {
+            if (!active || windowRequestSeqRef.current !== seq) return;
+            const columnarData = seriesWindowToColumnarData(seriesWindow, { timeOriginSec });
+            seriesWindowCache.set(cacheKey, columnarData);
+            setWindowState(prev => ({
+              ...prev,
+              columnarData,
+              isLoading: false,
+              error: null,
+            }));
+          });
         })
         .catch(error => {
           if (!active || windowRequestSeqRef.current !== seq) return;

@@ -31,7 +31,7 @@ function makeKey(id: string, kind: 'overview' | 'window' = 'overview') {
 
 describe('SeriesWindowCache', () => {
   it('returns cache hits and reports bounded byte stats', () => {
-    let now = 0;
+    const now = 0;
     const cache = new SeriesWindowCache({ now: () => now });
     const data = makeData(3);
 

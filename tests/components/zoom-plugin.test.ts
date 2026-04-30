@@ -9,7 +9,7 @@ type UPlotLike = uPlot & {
     scales: { x: { min?: number; max?: number } };
     setScale: ReturnType<typeof vi.fn>;
     setSelect: ReturnType<typeof vi.fn>;
-    select: { left: number; width: number };
+    select: { left: number; top: number; width: number; height: number };
     posToVal: (pos: number, scale: string) => number;
 };
 
@@ -18,7 +18,7 @@ function makeUPlotLike(): UPlotLike {
         root: document.createElement('div'),
         data: [[0, 1, 2]],
         scales: { x: { min: 0.5, max: 1.5 } },
-        select: { left: 0, width: 0 },
+        select: { left: 0, top: 0, width: 0, height: 0 },
         setSelect: vi.fn(),
         setScale: vi.fn((_scale: string, range: { min: number; max: number }) => {
             u.scales.x.min = range.min;
@@ -30,7 +30,7 @@ function makeUPlotLike(): UPlotLike {
 }
 
 function callHook(plugin: uPlot.Plugin, name: 'init' | 'setSelect' | 'destroy', u: uPlot): void {
-    const hook = plugin.hooks?.[name];
+    const hook = plugin.hooks?.[name] as ((plot: uPlot) => void) | Array<(plot: uPlot) => void> | undefined;
     if (Array.isArray(hook)) {
         hook.forEach(fn => fn(u));
     } else {
@@ -62,7 +62,7 @@ describe('zoomPlugin', () => {
         const u = makeUPlotLike();
 
         callHook(plugin, 'init', u);
-        u.select = { left: 60, width: 60 };
+        u.select = { left: 60, top: 0, width: 60, height: 0 };
         callHook(plugin, 'setSelect', u);
         u.root.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 

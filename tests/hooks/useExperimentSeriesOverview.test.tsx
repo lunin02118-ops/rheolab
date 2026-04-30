@@ -12,6 +12,7 @@ vi.mock('@/lib/tauri/core', () => ({
 
 vi.mock('@/lib/tauri/series', () => ({
   series: {
+    meta: vi.fn(),
     overview: vi.fn(),
     window: vi.fn(),
   },
@@ -34,10 +35,28 @@ function makeSeriesWindow(times: number[], viscosities: number[]): SeriesWindow 
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('useExperimentSeriesOverview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     seriesWindowCache.clear();
+    vi.mocked(series.meta).mockResolvedValue({
+      experimentId: 'exp_1',
+      pointCount: 3,
+      timeMinSec: 0,
+      timeMaxSec: 120,
+      availableMetrics: [],
+      dataHash: 'hash-1',
+    });
     vi.mocked(series.overview).mockResolvedValue(makeSeriesWindow([0, 60, 120], [100, 110, 120]));
     vi.mocked(series.window).mockResolvedValue(makeSeriesWindow([60, 90], [110, 115]));
   });
@@ -71,7 +90,7 @@ describe('useExperimentSeriesOverview', () => {
       expect(result.current.hasWindow).toBe(true);
     });
     expect(result.current.columnarData?.timeSec[0]).toBe(60);
-    expect(result.current.timeOriginSec).toBe(60);
+    expect(result.current.timeOriginSec).toBe(0);
 
     act(() => {
       result.current.resetWindow();
@@ -157,5 +176,37 @@ describe('useExperimentSeriesOverview', () => {
     await new Promise(resolve => window.setTimeout(resolve, 130));
 
     expect(series.window).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a window request on the full experiment time origin before overview resolves', async () => {
+    const overview = deferred<SeriesWindow>();
+    vi.mocked(series.overview).mockReturnValue(overview.promise);
+    vi.mocked(series.window).mockResolvedValue(makeSeriesWindow([4800, 4860, 4920], [110, 115, 120]));
+    vi.mocked(series.meta).mockResolvedValue({
+      experimentId: 'exp_1',
+      pointCount: 3,
+      timeMinSec: 0,
+      timeMaxSec: 4920,
+      availableMetrics: [],
+      dataHash: 'hash-1',
+    });
+
+    const { result } = renderHook(() =>
+      useExperimentSeriesOverview('exp_1', true, 1500),
+    );
+
+    act(() => {
+      result.current.requestWindow(4800, 4920);
+    });
+
+    await waitFor(() => {
+      expect(result.current.hasWindow).toBe(true);
+    });
+
+    expect(series.meta).toHaveBeenCalledWith('exp_1');
+    expect(result.current.timeOriginSec).toBe(0);
+    expect(Array.from(result.current.columnarData?.timeSec ?? [])).toEqual([4800, 4860, 4920]);
+
+    overview.resolve(makeSeriesWindow([0, 60, 120], [100, 110, 120]));
   });
 });

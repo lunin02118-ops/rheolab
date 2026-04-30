@@ -45,10 +45,26 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
 
     const tMin = times.length > 0 ? times[0] : 0;
     const tMax = times.length > 0 ? times[times.length - 1] : 1;
-    const tSpan = tMax - tMin || 1;
+    const tDataSpan = tMax - tMin;
+    // Degenerate when the series has a single point or every sample shares the
+    // same x value. Using `|| 1` here historically meant a stale `range` from
+    // a previous experiment (warm navigation) was projected onto a fake 1
+    // minute span, producing handles outside the real data extent (e.g.
+    // tMin = tMax = 93.1, range = [93.4, 93.5]). The guards below treat that
+    // case as "no zoom available" and avoid emitting out-of-range onChange.
+    const isDegenerate = tDataSpan <= 0;
+    const tSpan = isDegenerate ? 1 : tDataSpan;
 
-    const selLeft  = range ? Math.max(0, (range[0] - tMin) / tSpan) : 0;
-    const selRight = range ? Math.min(1, (range[1] - tMin) / tSpan) : 1;
+    // Two-sided clamp keeps the visual handles inside the rendered bar even if
+    // `range` is stale (came from another experiment whose time span did not
+    // overlap with the current data). With degenerate data we collapse to the
+    // full bar so the user sees no zoom indicator and the brush is inert.
+    const selLeft  = range && !isDegenerate
+        ? Math.min(1, Math.max(0, (range[0] - tMin) / tSpan))
+        : 0;
+    const selRight = range && !isDegenerate
+        ? Math.max(0, Math.min(1, (range[1] - tMin) / tSpan))
+        : 1;
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -110,9 +126,9 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
         };
     }, []);
 
-    const stateRef = useRef({ selLeft, selRight, width, tMin, tSpan, onChange, onReset });
+    const stateRef = useRef({ selLeft, selRight, width, tMin, tSpan, isDegenerate, onChange, onReset });
     useEffect(() => {
-        stateRef.current = { selLeft, selRight, width, tMin, tSpan, onChange, onReset };
+        stateRef.current = { selLeft, selRight, width, tMin, tSpan, isDegenerate, onChange, onReset };
     });
 
     useEffect(() => {
@@ -124,6 +140,10 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
         };
         const onDown = (e: PointerEvent) => {
             if (e.button !== 0) return;
+            // Refuse to start a drag on degenerate data — there is no real range
+            // to brush over, so accepting a pointerdown would only let the user
+            // emit out-of-range viewports based on the fake 1-unit span.
+            if (stateRef.current.isDegenerate) return;
             e.preventDefault();
             // Some embedded browser shells can throw here despite a valid pointerdown.
             // Drag still works via bubbling pointermove, so keep going on failure.

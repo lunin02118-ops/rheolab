@@ -144,13 +144,13 @@ async function assertDownloadBytes(
   download: Download,
   ext: '.pdf' | '.xlsx',
   minSizeBytes: number,
-  inspectBytes?: (bytes: Buffer) => Promise<void> | void,
+  inspectBytes?: (bytes: Buffer<ArrayBufferLike>) => Promise<void> | void,
 ): Promise<{ filename: string; size: number }> {
   const filename = download.suggestedFilename();
   expect(filename.toLowerCase()).toContain(ext);
   const filePath = await download.path();
   expect(filePath).toBeTruthy();
-  const bytes = fs.readFileSync(filePath!);
+  const bytes = Buffer.from(fs.readFileSync(filePath!));
   expect(bytes.length).toBeGreaterThanOrEqual(minSizeBytes);
   if (ext === '.pdf') {
     expect(bytes.subarray(0, 4).toString('ascii')).toBe('%PDF');
@@ -192,9 +192,14 @@ function worksheetText(sheet: Worksheet): string {
   return parts.join('\n');
 }
 
-async function assertSavedReportWorkbookStructure(bytes: Buffer): Promise<void> {
+async function assertSavedReportWorkbookStructure(bytes: Buffer<ArrayBufferLike>): Promise<void> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(bytes);
+  type XlsxLoadBuffer = Parameters<typeof workbook.xlsx.load>[0];
+  const stableBytes = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as unknown as XlsxLoadBuffer;
+  await workbook.xlsx.load(stableBytes);
 
   expect(workbook.worksheets.map(sheet => sheet.name)).toEqual(
     expect.arrayContaining(['Report', 'DebugInfo']),

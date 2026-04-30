@@ -103,7 +103,13 @@ export class ComparisonPage {
   async addExperimentByName(name: string) {
     await this.openSelector();
     await this.searchExperiment(name);
-    await this.addExperimentByIndex(0);
+    const btn = this.page
+      .getByTestId('ComparisonSelectorExperimentButton')
+      .filter({ hasText: name })
+      .first();
+    await expect(btn).toBeVisible({ timeout: 10_000 });
+    await btn.click();
+    await this.page.waitForTimeout(300);
     await this.closeSelector();
   }
 

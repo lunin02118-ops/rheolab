@@ -265,14 +265,15 @@ describe('useComparisonSeriesWindows', () => {
     });
 
     it('falls back to overview when a persisted viewport returns an empty window', async () => {
-        const viewport = { xMinSec: 3000, xMaxSec: 3600 };
+        const viewport: ComparisonViewport | null = { xMinSec: 3000, xMaxSec: 3600 };
         const experiments = [makeExperiment('exp-1')];
+        const initialProps: HookProps = { experiments, viewport };
         vi.mocked(series.window).mockResolvedValue(makeEmptySeriesWindow());
         vi.mocked(series.overview).mockResolvedValue(makeSeriesWindow('exp-1'));
 
         const { result, rerender } = renderHook(({ experiments, viewport }: HookProps) =>
             useComparisonSeriesWindows({ experiments, viewport, sessionId: 'session-1' }), {
-            initialProps: { experiments, viewport },
+            initialProps,
         });
 
         await waitFor(() => {

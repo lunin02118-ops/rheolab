@@ -105,18 +105,29 @@ interface WarmNavigationReport {
     away_ms: number;
     return_ready_ms: number;
     old_lines_visible_ms: number;
+    initial_drag_zoom_ms: number;
+    double_click_reset_ms: number;
+    route_drag_zoom_ms: number;
+    return_rezoom_ms: number;
     sixth_line_ready_ms: number;
     calls_before_return: number;
     calls_after_return: number;
     calls_after_add: number;
     return_series_requests: SeriesIpcCall[];
     add_series_requests: SeriesIpcCall[];
+    rezoom_series_requests: SeriesIpcCall[];
     refetched_existing_lines_on_return: number;
+    refetched_existing_lines_on_rezoom: number;
     refetched_existing_lines_after_add: number;
     sixth_line_series_requests: number;
+    initial_drag_zoom_viewport: { xMinSec: number; xMaxSec: number } | null;
+    reset_viewport: { xMinSec: number; xMaxSec: number } | null;
+    route_drag_zoom_viewport: { xMinSec: number; xMaxSec: number } | null;
+    return_rezoom_viewport: { xMinSec: number; xMaxSec: number } | null;
     before_leave_snapshot: ComparisonStoreSnapshot;
     after_leave_snapshot: ComparisonStoreSnapshot;
     after_return_snapshot: ComparisonStoreSnapshot;
+    after_add_snapshot: ComparisonStoreSnapshot;
     final_perf_state: WarmNavPerfState;
   };
 }
@@ -277,21 +288,46 @@ async function resetComparisonState(page: Page): Promise<void> {
   });
 }
 
-async function setComparisonViewport(page: Page, viewport: { xMinSec: number; xMaxSec: number }): Promise<void> {
-  await page.evaluate((nextViewport) => {
-    const store = (window as unknown as {
-      __rheolab_comparison_store?: {
-        getState?: () => { setViewport?: (viewport: typeof nextViewport) => void };
-        setState?: (patch: { viewport: typeof nextViewport }) => void;
-      };
-    }).__rheolab_comparison_store;
-    const setViewport = store?.getState?.().setViewport;
-    if (typeof setViewport === 'function') {
-      setViewport(nextViewport);
-    } else {
-      store?.setState?.({ viewport: nextViewport });
-    }
-  }, viewport);
+async function waitForComparisonViewport(
+  page: Page,
+  expected: 'set' | 'clear',
+): Promise<{ xMinSec: number; xMaxSec: number } | null> {
+  await expect.poll(async () => {
+    const snapshot = await readComparisonStoreSnapshot(page);
+    if (expected === 'clear') return snapshot.viewport === null ? 'clear' : 'set';
+    const viewport = snapshot.viewport;
+    return viewport && viewport.xMaxSec > viewport.xMinSec ? 'set' : 'clear';
+  }, { timeout: 15_000 }).toBe(expected);
+  return (await readComparisonStoreSnapshot(page)).viewport;
+}
+
+async function dragZoomComparisonChart(
+  page: Page,
+  startRatio: number,
+  endRatio: number,
+): Promise<{ xMinSec: number; xMaxSec: number } | null> {
+  const canvas = page.getByTestId('ComparisonChart').locator('.uplot canvas').first();
+  await expect(canvas).toBeVisible({ timeout: 15_000 });
+  const box = await canvas.boundingBox();
+  if (!box || box.width < 20 || box.height < 20) {
+    throw new Error('Comparison chart canvas is not ready for drag zoom');
+  }
+
+  const startX = box.x + box.width * startRatio;
+  const endX = box.x + box.width * endRatio;
+  const y = box.y + box.height * 0.45;
+  await page.mouse.move(startX, y);
+  await page.mouse.down();
+  await page.mouse.move(endX, y, { steps: 12 });
+  await page.mouse.up();
+  return waitForComparisonViewport(page, 'set');
+}
+
+async function doubleClickResetComparisonChart(page: Page): Promise<{ xMinSec: number; xMaxSec: number } | null> {
+  const canvas = page.getByTestId('ComparisonChart').locator('.uplot canvas').first();
+  await expect(canvas).toBeVisible({ timeout: 15_000 });
+  await canvas.dblclick({ position: { x: 24, y: 24 } });
+  return waitForComparisonViewport(page, 'clear');
 }
 
 async function findExperimentIdByName(page: Page, name: string): Promise<string> {
@@ -360,6 +396,23 @@ async function waitForSeriesCalls(
   }, { timeout: 45_000 }).toBeGreaterThanOrEqual(minCount);
 }
 
+async function waitForSeriesCallsSince(
+  page: Page,
+  command: string,
+  experimentIds: string[],
+  startIndex: number,
+  expectedCount: number,
+): Promise<void> {
+  await expect.poll(async () => {
+    const state = await readWarmNavPerfState(page);
+    return callsSince(state, startIndex).filter(call => (
+      call.command === command &&
+      call.experiment_id !== null &&
+      experimentIds.includes(call.experiment_id)
+    )).length;
+  }, { timeout: 45_000 }).toBe(expectedCount);
+}
+
 function callsSince(state: WarmNavPerfState, startIndex: number): SeriesIpcCall[] {
   return state.series_calls.slice(startIndex);
 }
@@ -410,6 +463,12 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
       await resetComparisonState(page);
 
       const initialIds = initialExperiments.map(exp => exp.id);
+      let initialDragZoomMs = 0;
+      let initialDragZoomViewport: { xMinSec: number; xMaxSec: number } | null = null;
+      let doubleClickResetMs = 0;
+      let resetViewport: { xMinSec: number; xMaxSec: number } | null = null;
+      let routeDragZoomMs = 0;
+      let routeDragZoomViewport: { xMinSec: number; xMaxSec: number } | null = null;
       const { ms: initialReadyMs } = await timeStep(async () => {
         await comparison.goto();
         await comparison.expectLoaded();
@@ -421,8 +480,31 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         await waitForSeriesCalls(page, 'experiments_series_overview', initialIds, initialN);
         await comparison.expectCanvasPainted();
 
-        await setComparisonViewport(page, VIEWPORT);
+        const dragZoomStep = await timeStep(() => dragZoomComparisonChart(page, 0.08, 0.28));
+        initialDragZoomMs = dragZoomStep.ms;
+        initialDragZoomViewport = dragZoomStep.result;
+        expect(initialDragZoomViewport).toBeTruthy();
         await waitForSeriesCalls(page, 'experiments_series_window', initialIds, initialN);
+        await comparison.expectCanvasPainted();
+
+        const resetStep = await timeStep(() => doubleClickResetComparisonChart(page));
+        doubleClickResetMs = resetStep.ms;
+        resetViewport = resetStep.result;
+        expect(resetViewport).toBeNull();
+        await comparison.expectCanvasPainted();
+
+        const callsBeforePersistedViewport = (await readWarmNavPerfState(page)).series_calls.length;
+        const routeZoomStep = await timeStep(() => dragZoomComparisonChart(page, 0.08, 0.24));
+        routeDragZoomMs = routeZoomStep.ms;
+        routeDragZoomViewport = routeZoomStep.result;
+        expect(routeDragZoomViewport).toBeTruthy();
+        await waitForSeriesCallsSince(
+          page,
+          'experiments_series_window',
+          initialIds,
+          callsBeforePersistedViewport,
+          initialN,
+        );
         await comparison.expectCanvasPainted();
       });
       const beforeLeaveSnapshot = await readComparisonStoreSnapshot(page);
@@ -467,9 +549,24 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
       expect(refetchedExistingLinesOnReturn).toBe(0);
 
       const afterReturnSnapshot = await readComparisonStoreSnapshot(page);
-      expect(afterReturnSnapshot.viewport).toEqual(VIEWPORT);
+      expect(afterReturnSnapshot.viewport).toEqual(routeDragZoomViewport);
 
-      const callsBeforeAdd = afterReturnPerf.series_calls.length;
+      const callsBeforeRezoom = afterReturnPerf.series_calls.length;
+      const { result: returnRezoomViewport, ms: returnRezoomMs } = await timeStep(async () => {
+        const viewportAfterRezoom = await dragZoomComparisonChart(page, 0.12, 0.42);
+        await expect.poll(async () => {
+          const state = await readWarmNavPerfState(page);
+          return countCallsFor(callsSince(state, callsBeforeRezoom), initialIds);
+        }, { timeout: 45_000 }).toBe(initialN);
+        await comparison.expectCanvasPainted();
+        return viewportAfterRezoom;
+      });
+      const afterRezoomPerf = await readWarmNavPerfState(page);
+      const rezoomSeriesRequests = callsSince(afterRezoomPerf, callsBeforeRezoom);
+      const refetchedExistingLinesOnRezoom = countCallsFor(rezoomSeriesRequests, initialIds);
+      expect(refetchedExistingLinesOnRezoom).toBe(initialN);
+
+      const callsBeforeAdd = afterRezoomPerf.series_calls.length;
       const { ms: sixthLineReadyMs } = await timeStep(async () => {
         await comparison.addExperimentByName(addedExperiment.name);
         await comparison.expectChipCount(initialN + 1);
@@ -479,10 +576,12 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
       await page.waitForTimeout(SERIES_SETTLE_MS);
 
       const finalPerf = await readWarmNavPerfState(page);
+      const afterAddSnapshot = await readComparisonStoreSnapshot(page);
       const addSeriesRequests = callsSince(finalPerf, callsBeforeAdd);
       const refetchedExistingLinesAfterAdd = countCallsFor(addSeriesRequests, initialIds);
       const sixthLineSeriesRequests = countCallsFor(addSeriesRequests, [addedExperiment.id]);
 
+      expect(afterAddSnapshot.viewport).toEqual(returnRezoomViewport);
       expect(refetchedExistingLinesAfterAdd).toBe(0);
       expect(sixthLineSeriesRequests).toBe(1);
       expect(addSeriesRequests.find(call => call.experiment_id === addedExperiment.id)?.command)
@@ -500,18 +599,29 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         away_ms: Date.now() - awayStartedAt,
         return_ready_ms: returnReadyMs,
         old_lines_visible_ms: returnReadyMs,
+        initial_drag_zoom_ms: initialDragZoomMs,
+        double_click_reset_ms: doubleClickResetMs,
+        route_drag_zoom_ms: routeDragZoomMs,
+        return_rezoom_ms: returnRezoomMs,
         sixth_line_ready_ms: sixthLineReadyMs,
         calls_before_return: callsBeforeReturn,
         calls_after_return: afterReturnPerf.series_calls.length,
         calls_after_add: finalPerf.series_calls.length,
         return_series_requests: returnSeriesRequests,
         add_series_requests: addSeriesRequests,
+        rezoom_series_requests: rezoomSeriesRequests,
         refetched_existing_lines_on_return: refetchedExistingLinesOnReturn,
+        refetched_existing_lines_on_rezoom: refetchedExistingLinesOnRezoom,
         refetched_existing_lines_after_add: refetchedExistingLinesAfterAdd,
         sixth_line_series_requests: sixthLineSeriesRequests,
+        initial_drag_zoom_viewport: initialDragZoomViewport,
+        reset_viewport: resetViewport,
+        route_drag_zoom_viewport: routeDragZoomViewport,
+        return_rezoom_viewport: returnRezoomViewport,
         before_leave_snapshot: beforeLeaveSnapshot,
         after_leave_snapshot: afterLeaveSnapshot,
         after_return_snapshot: afterReturnSnapshot,
+        after_add_snapshot: afterAddSnapshot,
         final_perf_state: finalPerf,
       };
     } catch (error) {

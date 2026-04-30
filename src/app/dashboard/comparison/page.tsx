@@ -120,15 +120,6 @@ export default function ComparisonPage() {
      
     }, [_hasHydrated]);
 
-    // Release heavy in-memory arrays when the comparison page unmounts.
-    // Keep only lightweight metadata/IDs in the store so the next mount can
-    // rehydrate from SQLite without retaining hidden experiments indefinitely.
-    useEffect(() => () => {
-        clearTimeout(warningTimerRef.current);
-        clearComparisonSelectorCache();
-        releaseHeavyData();
-    }, [releaseHeavyData]);
-
     // Persisted display settings from store
     const {
         primaryMetric,
@@ -149,23 +140,31 @@ export default function ComparisonPage() {
     const [limitWarning, setLimitWarning] = useState(false);
     const [duplicateWarning, setDuplicateWarning] = useState(false);
     const warningTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-    // Clean up warning timer on unmount
-    useEffect(() => () => clearTimeout(warningTimerRef.current), []);
+    const showTimedWarning = useCallback((setWarning: (value: boolean) => void) => {
+        setWarning(true);
+        clearTimeout(warningTimerRef.current);
+        warningTimerRef.current = setTimeout(() => setWarning(false), 3000);
+    }, []);
+
+    // Release heavy in-memory arrays when the comparison page unmounts.
+    // Keep only lightweight metadata/IDs in the store so the next mount can
+    // rehydrate from SQLite without retaining hidden experiments indefinitely.
+    useEffect(() => () => {
+        clearTimeout(warningTimerRef.current);
+        clearComparisonSelectorCache();
+        releaseHeavyData();
+    }, [releaseHeavyData]);
 
     const handleAddExperiment = (experiment: Experiment) => {
         if (isInComparison(experiment.id)) {
-            setDuplicateWarning(true);
-            clearTimeout(warningTimerRef.current);
-            warningTimerRef.current = setTimeout(() => setDuplicateWarning(false), 3000);
+            showTimedWarning(setDuplicateWarning);
             return;
         }
 
         const added = addExperiment(experiment);
         if (!added) {
             // Show limit warning
-            setLimitWarning(true);
-            clearTimeout(warningTimerRef.current);
-            warningTimerRef.current = setTimeout(() => setLimitWarning(false), 3000);
+            showTimedWarning(setLimitWarning);
         } else {
             setIsSelectorOpen(false);
         }

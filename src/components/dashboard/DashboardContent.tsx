@@ -119,13 +119,14 @@ function DashboardContentInner({
         parseResult?.metadata?.experimentId,
         activeTab === 'chart',
     );
+    const { requestWindow, resetWindow } = binarySeries;
     const handleChartViewportRangeChange = useCallback((range: { xMinSec: number; xMaxSec: number }) => {
-        binarySeries.requestWindow(range.xMinSec, range.xMaxSec);
-    }, [binarySeries.requestWindow]);
+        requestWindow(range.xMinSec, range.xMaxSec);
+    }, [requestWindow]);
 
     const handleChartViewportReset = useCallback(() => {
-        binarySeries.resetWindow();
-    }, [binarySeries.resetWindow]);
+        resetWindow();
+    }, [resetWindow]);
 
     const chartData = useMemo(() => {
         if (!parseResult) return [];

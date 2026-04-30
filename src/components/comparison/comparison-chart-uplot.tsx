@@ -78,7 +78,7 @@ function ComparisonChartUPlotInner({
     // simultaneously.  150 ms covers typical click-through speed; the list
     // re-renders instantly, only chart GPU recreation is deferred.
     const binarySeries = useComparisonSeriesWindows({ experiments, sessionId, viewport });
-    const chartViewport = binarySeries.usedViewportFallback ? null : viewport;
+    const chartViewport = viewport;
     const chartExperiments = binarySeries.experiments;
     const debouncedExperiments = useDebouncedValue(chartExperiments, 150);
 
@@ -101,12 +101,6 @@ function ComparisonChartUPlotInner({
     const [plotBbox, setPlotBbox] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
     const isChartContainerReady = chartSize.width > 8 && chartSize.height > 8;
-
-    useEffect(() => {
-        if (binarySeries.usedViewportFallback && viewport) {
-            onViewportChange?.(null);
-        }
-    }, [binarySeries.usedViewportFallback, onViewportChange, viewport]);
 
     /** Restore the full data range on the x-axis and clear the brush. */
     const resetZoom = useCallback((u: uPlot) => {
@@ -200,15 +194,29 @@ function ComparisonChartUPlotInner({
         }
     }, [onViewportChange, resetZoom]);
 
-    // Reset hidden series when experiments change (add/remove). The viewport
-    // intentionally stays intact so route return and add-one-more flows do not
-    // snap the user's comparison window back to the full range.
+    // Reset hidden series when experiments change. Keep the viewport for
+    // ordinary add/remove flows so adding the 6th line does not snap the user
+    // back to full range. If the whole selection was replaced, clear the
+    // viewport proactively; the disjoint-data guard below handles later stale
+    // ranges that can only be detected after data arrives.
+    const prevExpIdsRef = useRef<string | null>(null);
     const expIds = experiments.map(e => e.id).join(',');
     useEffect(() => {
+        const previous = prevExpIdsRef.current;
+        prevExpIdsRef.current = expIds;
         void Promise.resolve().then(() => {
             setHiddenSeries(new Set());
         });
-    }, [expIds]);
+        if (previous !== null && previous !== expIds) {
+            const previousIds = previous.split(',').filter(Boolean);
+            const nextIds = expIds.split(',').filter(Boolean);
+            const nextIdSet = new Set(nextIds);
+            const hasSharedSelection = previousIds.some(id => nextIdSet.has(id));
+            if (!hasSharedSelection) {
+                onViewportChange?.(null);
+            }
+        }
+    }, [expIds, onViewportChange]);
 
     const toggleSeries = useCallback((legendIndex: number) => {
         const uPlotSeriesIndex = legendIndex + 1; // uPlot index 0 = time axis
@@ -291,6 +299,28 @@ function ComparisonChartUPlotInner({
         targetTime,
         comparisonAxisMode,
     });
+
+    // Stale viewport guard — clears `viewport` when it falls entirely outside
+    // the loaded data extent (e.g. warm navigation restored a viewport from
+    // another experiment whose time range no longer overlaps).  Without this,
+    // brush handles would render at misleading positions and any subsequent
+    // drag could re-emit out-of-range viewports based on the fake 1 unit span
+    // that `ChartBrush` falls back to when `tMin === tMax`.  Pairs with the
+    // degenerate-data guard in `chart-brush.tsx`.
+    const uPlotTimes = uPlotData[0] as number[] | undefined;
+    const dataMinMin = uPlotTimes && uPlotTimes.length > 0 ? uPlotTimes[0] : null;
+    const dataMaxMin = uPlotTimes && uPlotTimes.length > 0 ? uPlotTimes[uPlotTimes.length - 1] : null;
+    useEffect(() => {
+        if (!viewport) return;
+        if (dataMinMin == null || dataMaxMin == null) return;
+        if (dataMaxMin <= dataMinMin) return;
+        const dataMinSec = dataMinMin * 60;
+        const dataMaxSec = dataMaxMin * 60;
+        const disjoint = viewport.xMaxSec < dataMinSec || viewport.xMinSec > dataMaxSec;
+        if (disjoint) {
+            onViewportChange?.(null);
+        }
+    }, [dataMinMin, dataMaxMin, viewport, onViewportChange]);
 
     // Brush width = plot-area width as reported by uPlot bbox.
     // Fall back to (container - leftAxis - 20px default right padding) only when
