@@ -109,6 +109,14 @@ function DashboardContentInner({
         parseResult?.metadata?.experimentId,
         activeTab === 'chart',
     );
+    const handleChartViewportRangeChange = useCallback((range: { xMinSec: number; xMaxSec: number }) => {
+        binarySeries.requestWindow(range.xMinSec, range.xMaxSec);
+    }, [binarySeries.requestWindow]);
+
+    const handleChartViewportReset = useCallback(() => {
+        binarySeries.resetWindow();
+    }, [binarySeries.resetWindow]);
+
     const chartData = useMemo(() => {
         if (!parseResult) return [];
         if (activeTab === 'chart' && (binarySeries.columnarData || parseResult.columnarData)) {
@@ -291,6 +299,9 @@ function DashboardContentInner({
                             <RheologyChart
                                 data={chartData}
                                 columnarData={chartColumnarData}
+                                viewportTimeOriginSec={binarySeries.timeOriginSec}
+                                onViewportRangeChange={handleChartViewportRangeChange}
+                                onViewportReset={handleChartViewportReset}
                                 title="График реологических данных"
                                 height={600}
                                 instrumentInfo={{

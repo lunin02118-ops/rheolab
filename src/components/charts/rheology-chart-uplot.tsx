@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, memo, forwardRef } from 'react';
+import React, { useRef, useMemo, useCallback, memo, forwardRef } from 'react';
 import { UPlotChart } from './uplot-chart';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -35,6 +35,9 @@ interface RheologyChartProps {
     showTargetTime?: boolean;
     targetTime?: number;
     language?: 'ru' | 'en';
+    viewportTimeOriginSec?: number;
+    onViewportRangeChange?: (range: { xMinSec: number; xMaxSec: number }) => void;
+    onViewportReset?: () => void;
 }
 
 export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>(function RheologyChart({
@@ -59,6 +62,9 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
     showTargetTime = true,
     targetTime = 10,
     language = 'ru',
+    viewportTimeOriginSec,
+    onViewportRangeChange,
+    onViewportReset,
 }: RheologyChartProps, ref) {
     // ── Derived visibility flags & active settings ───────────────────────────
     const {
@@ -79,6 +85,31 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
         bathTemperatureUnit: (activeSettings.lines.bathTemperature?.unit ?? activeSettings.lines.temperature.unit ?? '°C') as import('@/lib/store/chart-settings-types').TemperatureUnit,
         pressureUnit: (activeSettings.lines.pressure.unit ?? 'bar') as import('@/lib/store/chart-settings-types').PressureUnit,
     }), [activeSettings]);
+
+    const fallbackTimeOriginSec = useMemo(() => {
+        if (!timeShiftEnabled || !columnarData || columnarData.timeSec.length === 0) {
+            return 0;
+        }
+        let min = Number.POSITIVE_INFINITY;
+        for (let i = 0; i < columnarData.timeSec.length; i++) {
+            const value = columnarData.timeSec[i];
+            if (Number.isFinite(value) && value < min) {
+                min = value;
+            }
+        }
+        return Number.isFinite(min) ? min : 0;
+    }, [columnarData, timeShiftEnabled]);
+
+    const handleZoomRange = useCallback((xMinMinutes: number, xMaxMinutes: number) => {
+        if (!onViewportRangeChange) return;
+        const originSec = timeShiftEnabled ? (viewportTimeOriginSec ?? fallbackTimeOriginSec) : 0;
+        const xMinSec = xMinMinutes * 60 + originSec;
+        const xMaxSec = xMaxMinutes * 60 + originSec;
+        if (!Number.isFinite(xMinSec) || !Number.isFinite(xMaxSec) || xMaxSec <= xMinSec) {
+            return;
+        }
+        onViewportRangeChange({ xMinSec, xMaxSec });
+    }, [fallbackTimeOriginSec, onViewportRangeChange, timeShiftEnabled, viewportTimeOriginSec]);
 
     // ── Data processing (downsample, stats, touch points) ──────────────────
     const { uPlotData, stats, touchPoints } = useRheologyData({
@@ -106,6 +137,8 @@ export const RheologyChart = memo(forwardRef<HTMLDivElement, RheologyChartProps>
         touchPoints, effectiveShearRateAxis, effectivePressureAxis, axisMode,
         viscosityThreshold, viscosityDisplayUnit: chartUnits.viscosityUnit,
         showTouchPoints, targetTime,
+        onZoomRange: handleZoomRange,
+        onResetRange: onViewportReset,
         language,
     });
 

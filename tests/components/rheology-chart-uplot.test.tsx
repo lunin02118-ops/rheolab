@@ -61,7 +61,10 @@ vi.mock('@/hooks/useRheologyChartOptions', () => ({
 
 // ── Default mock return values ─────────────────────────────────────────────
 
-function setupDefaults(hasData = true) {
+function setupDefaults(
+    hasData = true,
+    visibilityOverrides: Partial<ReturnType<typeof mockVisibility>> = {},
+) {
     mockVisibility.mockReturnValue({
         activeSettings: DEFAULT_CHART_SETTINGS,
         chartSettings: DEFAULT_CHART_SETTINGS,
@@ -75,6 +78,7 @@ function setupDefaults(hasData = true) {
         effectiveShearRateAxis: 'left',
         effectivePressureAxis: 'right',
         axisMode: 'dual',
+        ...visibilityOverrides,
     });
 
     const timeArr = hasData ? [0, 10, 20] : [];
@@ -164,5 +168,31 @@ describe('RheologyChart', () => {
     it('does not render stat cards in captureMode', () => {
         render(<RheologyChart data={baseData} captureMode={true} />);
         expect(screen.queryByTestId('StatCard')).toBeNull();
+    });
+
+    it('passes zoom/reset viewport callbacks with source-second conversion', () => {
+        setupDefaults(true, { timeShiftEnabled: true });
+        const onViewportRangeChange = vi.fn();
+        const onViewportReset = vi.fn();
+
+        render(
+            <RheologyChart
+                data={baseData}
+                viewportTimeOriginSec={30}
+                onViewportRangeChange={onViewportRangeChange}
+                onViewportReset={onViewportReset}
+            />,
+        );
+
+        const optionsParams = mockChartOptions.mock.calls.at(-1)?.[0] as {
+            onZoomRange?: (min: number, max: number) => void;
+            onResetRange?: () => void;
+        };
+
+        optionsParams.onZoomRange?.(1, 2);
+        expect(onViewportRangeChange).toHaveBeenCalledWith({ xMinSec: 90, xMaxSec: 150 });
+
+        optionsParams.onResetRange?.();
+        expect(onViewportReset).toHaveBeenCalledOnce();
     });
 });
