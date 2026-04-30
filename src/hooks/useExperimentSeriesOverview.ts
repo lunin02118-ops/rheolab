@@ -61,6 +61,7 @@ function makeSeriesCacheKey(
 
 function minFiniteTimeSec(data: ChartColumnarData | null): number {
   if (!data || data.timeSec.length === 0) return 0;
+  if (Number.isFinite(data.timeOriginSec)) return Number(data.timeOriginSec);
   let min = Number.POSITIVE_INFINITY;
   for (let i = 0; i < data.timeSec.length; i++) {
     const value = data.timeSec[i];

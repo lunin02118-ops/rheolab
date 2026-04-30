@@ -6,6 +6,20 @@
 
 ---
 
+## [0.2.2-alpha.8] — 2026-05-01
+
+> Hotfix alpha после ручной проверки `0.2.2-alpha.7`. Закрывает regression масштабирования Comparison, где график “схлопывался” или уходил в пустой диапазон после zoom/brush/window-подгрузки.
+
+### Исправлено
+- **Comparison zoom/window time origin**: binary window-серия теперь сохраняет общий `timeOriginSec` эксперимента. Раньше window-кусок повторно нормализовался от своего первого сэмпла (`72–178 мин` превращались в `0–106 мин`), а viewport оставался на старой шкале — из-за этого график визуально схлопывался или рисовал данные только в части области.
+- **Columnar chart pipeline**: `sanitiseAndNormaliseColumnarDirect` и touch-point input path учитывают `timeOriginSec`, поэтому overview и window данные остаются в одной системе координат.
+
+### Проверки
+- Targeted Vitest: `useComparisonSeriesWindows`, `comparison-data`, `zoom-plugin` — 57 passed.
+- `npm run build:ci`, `npm run perf:warm-nav:tauri`, `npm run version:validate`, `npm run audit:large-ipc`, `git diff --check` — passed.
+
+---
+
 ## [0.2.2-alpha.7] — 2026-04-30
 
 > Hotfix alpha после ручной проверки `0.2.2-alpha.6`. Закрывает оставшийся user-visible regression в Comparison, когда saved test из базы добавлялся в список, но график оставался на `Загрузка данных...`, а double-click reset мог не сбрасывать внешний viewport.

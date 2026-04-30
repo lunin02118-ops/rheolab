@@ -122,6 +122,15 @@ function isEmptySeriesWindow(seriesWindow: SeriesWindow): boolean {
     return seriesWindow.pointCount === 0 || seriesWindow.columns.timeSec.length === 0;
 }
 
+function minFiniteSeriesTimeSec(seriesWindow: SeriesWindow): number {
+    let min = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < seriesWindow.columns.timeSec.length; i++) {
+        const value = seriesWindow.columns.timeSec[i];
+        if (Number.isFinite(value) && value < min) min = value;
+    }
+    return Number.isFinite(min) ? min : 0;
+}
+
 function viewportFallbackKey(
     experimentId: string,
     viewportKey: string,
@@ -152,6 +161,7 @@ export function useComparisonSeriesWindows({
     const activeIdsRef = useRef<Set<string>>(new Set());
     const mountedRef = useRef(true);
     const emptyViewportFallbacksRef = useRef<Set<string>>(new Set());
+    const timeOriginsRef = useRef<Record<string, number>>({});
     const binaryEnabled = enabled && isComparisonBinarySeriesEnabled();
     const experimentIds = experiments.map(exp => exp.id).join('|');
 
@@ -166,6 +176,11 @@ export function useComparisonSeriesWindows({
     useEffect(() => {
         const activeIds = new Set(experiments.map(exp => exp.id));
         activeIdsRef.current = activeIds;
+        for (const id of Object.keys(timeOriginsRef.current)) {
+            if (!activeIds.has(id)) {
+                delete timeOriginsRef.current[id];
+            }
+        }
         setLineStates(prev => {
             let changed = false;
             const next: Record<string, ComparisonLineSeriesState> = {};
@@ -198,6 +213,9 @@ export function useComparisonSeriesWindows({
             const serializedKey = serializeSeriesWindowCacheKey(cacheKey);
             const cached = seriesWindowCache.get(cacheKey);
             if (cached) {
+                if (Number.isFinite(cached.timeOriginSec)) {
+                    timeOriginsRef.current[exp.id] = Number(cached.timeOriginSec);
+                }
                 const fallbackViewportKey = requestViewport === null && fallbackKey ? fallbackKey : undefined;
                 setLineStates(prev => {
                     const existing = prev[exp.id];
@@ -248,6 +266,7 @@ export function useComparisonSeriesWindows({
                 readySerializedKey: string,
                 expectedSerializedKey = readySerializedKey,
                 fallbackViewportKey?: string,
+                timeOriginSec?: number,
             ) => {
                 if (isEmptySeriesWindow(seriesWindow)) {
                     setLineStates(prev => {
@@ -269,7 +288,13 @@ export function useComparisonSeriesWindows({
                     return;
                 }
 
-                const columnarData = seriesWindowToColumnarData(seriesWindow);
+                const resolvedTimeOriginSec = Number.isFinite(timeOriginSec)
+                    ? Number(timeOriginSec)
+                    : minFiniteSeriesTimeSec(seriesWindow);
+                timeOriginsRef.current[exp.id] = resolvedTimeOriginSec;
+                const columnarData = seriesWindowToColumnarData(seriesWindow, {
+                    timeOriginSec: resolvedTimeOriginSec,
+                });
                 seriesWindowCache.set(readyCacheKey, columnarData);
                 setLineStates(prev => {
                     if (prev[exp.id]?.cacheKey !== expectedSerializedKey && prev[exp.id]?.cacheKey !== readySerializedKey) {
@@ -287,6 +312,26 @@ export function useComparisonSeriesWindows({
                         },
                     };
                 });
+            };
+
+            const resolveWindowTimeOriginSec = async (): Promise<number> => {
+                const known = timeOriginsRef.current[exp.id];
+                if (Number.isFinite(known)) return known;
+
+                try {
+                    const meta = await series.meta(exp.id);
+                    const origin = Number(meta.timeMinSec);
+                    if (Number.isFinite(origin)) {
+                        timeOriginsRef.current[exp.id] = origin;
+                        return origin;
+                    }
+                } catch {
+                    // A missing meta response should not blank the chart; raw
+                    // series are normally stored from zero, so fall back there.
+                }
+
+                timeOriginsRef.current[exp.id] = 0;
+                return 0;
             };
 
             const setLineError = (
@@ -350,12 +395,14 @@ export function useComparisonSeriesWindows({
                             series.overview(exp.id, metrics, maxPoints)
                                 .then(overviewWindow => {
                                     if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
+                                    const overviewTimeOriginSec = minFiniteSeriesTimeSec(overviewWindow);
                                     setReadyFromSeriesWindow(
                                         overviewWindow,
                                         overviewCacheKey,
                                         overviewSerializedKey,
                                         serializedKey,
                                         fallbackKey,
+                                        overviewTimeOriginSec,
                                     );
                                 })
                                 .catch(error => {
@@ -365,7 +412,34 @@ export function useComparisonSeriesWindows({
                             return;
                         }
 
-                        setReadyFromSeriesWindow(seriesWindow, cacheKey, serializedKey);
+                        if (requestViewport) {
+                            resolveWindowTimeOriginSec()
+                                .then(timeOriginSec => {
+                                    if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
+                                    setReadyFromSeriesWindow(
+                                        seriesWindow,
+                                        cacheKey,
+                                        serializedKey,
+                                        serializedKey,
+                                        undefined,
+                                        timeOriginSec,
+                                    );
+                                })
+                                .catch(error => {
+                                    if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
+                                    setLineError(error, serializedKey);
+                                });
+                            return;
+                        }
+
+                        setReadyFromSeriesWindow(
+                            seriesWindow,
+                            cacheKey,
+                            serializedKey,
+                            serializedKey,
+                            undefined,
+                            minFiniteSeriesTimeSec(seriesWindow),
+                        );
                     })
                     .catch(error => {
                         if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;

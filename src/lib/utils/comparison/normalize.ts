@@ -7,6 +7,10 @@ import type { DownsampleMode, ProcessedExperiment, ProcessedColumnar } from './t
 
 // ─── Step 1: sanitise + downsample + time-normalise ─────────────────────────
 
+function columnarTimeOriginSec(col: ColumnarData, fallback: number): number {
+    return Number.isFinite(col.timeOriginSec) ? Number(col.timeOriginSec) : fallback;
+}
+
 /**
  * Takes raw `rawPoints` from an `Experiment` record (may be a JSON string or
  * an array, may contain NaN / string time_sec values) and returns a clean,
@@ -76,7 +80,7 @@ export function sanitiseAndNormaliseColumnar(
     validIndices.sort((a, b) => col.timeSec[a] - col.timeSec[b]);
 
     // 2. Materialise only valid, sorted entries for the downsample pipeline
-    const t0 = col.timeSec[validIndices[0]];
+    const t0 = columnarTimeOriginSec(col, col.timeSec[validIndices[0]]);
     let points: Array<RheoPoint & { time_min: number }> = validIndices.map(i => {
         const point: Record<string, unknown> = {
             time_sec: col.timeSec[i],
@@ -254,7 +258,7 @@ export function sanitiseAndNormaliseColumnarDirect(
 
     // 3. Materialise ONLY selected indices into typed arrays
     const m = validIndices.length;
-    const t0 = col.timeSec[validIndices[0]];
+    const t0 = columnarTimeOriginSec(col, col.timeSec[validIndices[0]]);
     const timeMins     = new Float64Array(m);
     const viscosityCp  = new Float64Array(m);
     const temperatureC = new Float64Array(m);

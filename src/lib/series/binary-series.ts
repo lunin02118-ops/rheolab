@@ -54,6 +54,10 @@ export interface SeriesMetaResponse {
 
 export type RheoSeriesBinaryInput = ArrayBuffer | ArrayBufferView | number[];
 
+export interface SeriesWindowToColumnarOptions {
+  timeOriginSec?: number;
+}
+
 function asArrayBuffer(input: RheoSeriesBinaryInput): ArrayBuffer {
   if (input instanceof ArrayBuffer) return input;
   if (Array.isArray(input)) return Uint8Array.from(input).buffer;
@@ -154,11 +158,26 @@ function nanColumn(values: Float64Array | undefined, length: number): Float64Arr
   return out;
 }
 
-export function seriesWindowToColumnarData(series: SeriesWindow): ChartColumnarData {
+function minFiniteTimeSec(series: SeriesWindow): number {
+  let min = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < series.columns.timeSec.length; i++) {
+    const value = series.columns.timeSec[i];
+    if (Number.isFinite(value) && value < min) min = value;
+  }
+  return Number.isFinite(min) ? min : 0;
+}
+
+export function seriesWindowToColumnarData(
+  series: SeriesWindow,
+  options: SeriesWindowToColumnarOptions = {},
+): ChartColumnarData {
   const n = series.pointCount;
   const { columns } = series;
   return {
     timeSec: columns.timeSec,
+    timeOriginSec: Number.isFinite(options.timeOriginSec)
+      ? options.timeOriginSec
+      : minFiniteTimeSec(series),
     viscosityCp: zeroColumn(columns.viscosityCp, n),
     temperatureC: zeroColumn(columns.temperatureC, n),
     shearRate: nanColumn(columns.shearRate, n),

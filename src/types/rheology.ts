@@ -37,6 +37,8 @@ export type NullableNumericColumn = (number | null)[] | Float64Array;
  */
 export interface ChartColumnarData {
     timeSec: NumericColumn;
+    /** Raw time origin used to map `timeSec` onto comparison/chart minutes. */
+    timeOriginSec?: number;
     viscosityCp: NumericColumn;
     temperatureC: NumericColumn;
     shearRate: NullableNumericColumn;

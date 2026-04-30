@@ -80,6 +80,12 @@ function getAxisLabel(
     return metricsOnScale.map(m => METRIC_LABELS[m] || m).join(' / ');
 }
 
+function columnarTimeOriginSec(columnarData: ColumnarData, fallback: number): number {
+    return Number.isFinite(columnarData.timeOriginSec)
+        ? Number(columnarData.timeOriginSec)
+        : fallback;
+}
+
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export interface UseComparisonChartDataResult {
@@ -170,7 +176,9 @@ export function useComparisonChartData(params: UseComparisonChartDataParams): Us
                         if (t != null && !isNaN(t)) validIdx.push(i);
                     }
                     validIdx.sort((a, b) => col.timeSec[a] - col.timeSec[b]);
-                    const t0 = validIdx.length > 0 ? col.timeSec[validIdx[0]] : 0;
+                    const t0 = validIdx.length > 0
+                        ? columnarTimeOriginSec(col, col.timeSec[validIdx[0]])
+                        : 0;
                     tpInputs = validIdx.map(i => ({
                         time_min: Math.round(((col.timeSec[i] - t0) / 60) * 100) / 100,
                         viscosity_cp: col.viscosityCp[i] ?? 0,

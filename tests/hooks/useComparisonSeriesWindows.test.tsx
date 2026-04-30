@@ -19,6 +19,7 @@ vi.mock('@/lib/tauri/core', () => ({
 
 vi.mock('@/lib/tauri/series', () => ({
     series: {
+        meta: vi.fn(),
         overview: vi.fn(),
         window: vi.fn(),
     },
@@ -44,9 +45,8 @@ function makeExperiment(id: string, name = id): Experiment {
     } as unknown as Experiment;
 }
 
-function makeSeriesWindow(id: string): SeriesWindow {
+function makeSeriesWindow(id: string, times = [0, 60, 120]): SeriesWindow {
     const offset = Number(id.replace(/\D/g, '')) || 0;
-    const times = [0, 60, 120];
     const values = times.map((_, index) => offset * 100 + index);
     return {
         version: 1,
@@ -89,6 +89,14 @@ describe('useComparisonSeriesWindows', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         seriesWindowCache.clear();
+        vi.mocked(series.meta).mockResolvedValue({
+            experimentId: 'exp-1',
+            pointCount: 3,
+            timeMinSec: 0,
+            timeMaxSec: 120,
+            availableMetrics: [],
+            dataHash: 'hash-1',
+        });
         vi.mocked(series.overview).mockImplementation((experimentId: string) =>
             Promise.resolve(makeSeriesWindow(experimentId)),
         );
@@ -226,6 +234,34 @@ describe('useComparisonSeriesWindows', () => {
             ['exp-1', 30, 90],
             ['exp-2', 30, 90],
         ]);
+    });
+
+    it('keeps window series on the same time origin as the full experiment', async () => {
+        const viewport = { xMinSec: 4800, xMaxSec: 4920 };
+        const experiments = [makeExperiment('exp-1')];
+        vi.mocked(series.window).mockResolvedValue(makeSeriesWindow('exp-1', [4800, 4860, 4920]));
+        vi.mocked(series.meta).mockResolvedValue({
+            experimentId: 'exp-1',
+            pointCount: 3,
+            timeMinSec: 0,
+            timeMaxSec: 4920,
+            availableMetrics: [],
+            dataHash: 'hash-1',
+        });
+
+        const { result } = renderHook(({ experiments, viewport }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, viewport, sessionId: 'session-1' }), {
+            initialProps: { experiments, viewport },
+        });
+
+        await waitFor(() => {
+            expect(result.current.readyCount).toBe(1);
+        });
+
+        const columnarData = (result.current.experiments[0] as Record<string, any>).columnarData;
+        expect(columnarData.timeOriginSec).toBe(0);
+        expect(Array.from(columnarData.timeSec)).toEqual([4800, 4860, 4920]);
+        expect(series.meta).toHaveBeenCalledWith('exp-1');
     });
 
     it('falls back to overview when a persisted viewport returns an empty window', async () => {

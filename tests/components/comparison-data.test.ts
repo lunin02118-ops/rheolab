@@ -639,6 +639,18 @@ describe('comparison columnar path — bath-temperature null handling', () => {
         expect(pc.bathTemperatureC[2]).toBe(112);
     });
 
+    it('sanitiseAndNormaliseColumnarDirect preserves a supplied time origin for windowed data', () => {
+        const col: ColumnarData = {
+            ...makeCol([110, 111, 112]),
+            timeSec: [4800, 4860, 4920],
+            timeOriginSec: 0,
+        };
+
+        const pc = sanitiseAndNormaliseColumnarDirect(col, 'off', 1000);
+
+        expect(Array.from(pc.timeMins)).toEqual([80, 81, 82]);
+    });
+
     it('alignSeriesFromColumnarLinear emits null for NaN bath points on the shared axis', () => {
         const col = makeCol([110, null, 112]);
         const pc = sanitiseAndNormaliseColumnarDirect(col, 'off', 1000);
