@@ -16,6 +16,10 @@ import type { ExperimentCardItem } from '@/types/experiment-list-item';
 import { useExperimentFilterMetadata } from '@/hooks/useExperimentFilterMetadata';
 import { touchPointEmptyStateMessage } from '@/lib/library/touch-point-hints';
 import { emitLibraryFilterPerfEvent } from '@/lib/perf/library-filter-spans';
+import {
+    changedExperimentFilterKeys,
+    getLibraryFilterDebounceDecision,
+} from '@/lib/library/filter-debounce';
 
 /**
  * Touch-point RANGE filter keys (not `hasCrossing` — that's a tri-state
@@ -33,13 +37,6 @@ const TOUCH_POINT_RANGE_KEYS = [
     'viscosityAtTargetMin',
     'viscosityAtTargetMax',
 ] as const satisfies readonly (keyof ExperimentFilters)[];
-
-function activeFilterKeys(filters: ExperimentFilters): string[] {
-    return Object.entries(filters)
-        .filter(([, value]) => Array.isArray(value) ? value.length > 0 : value !== '' && value !== undefined)
-        .map(([key]) => key)
-        .sort();
-}
 
 interface ExperimentListProps {
     filters: ExperimentFilters;
@@ -147,6 +144,7 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
     // Which card has the reagent list expanded (only one at a time)
     const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
     const requestSeqRef = useRef(0);
+    const previousFiltersRef = useRef<ExperimentFilters>(filters);
     const completedRequestRef = useRef<{
         requestId: number;
         resultCount: number;
@@ -218,11 +216,17 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
     useEffect(() => {
         let aborted = false;
         const requestId = ++requestSeqRef.current;
-        const filterKeys = activeFilterKeys(filters);
+        const changedFilterKeys = changedExperimentFilterKeys(previousFiltersRef.current, filters);
+        previousFiltersRef.current = filters;
+        const debounce = getLibraryFilterDebounceDecision(filters, changedFilterKeys);
+        const filterKeys = debounce.activeKeys;
         emitLibraryFilterPerfEvent({
             name: 'debounce_scheduled',
             request_id: requestId,
             filter_keys: filterKeys,
+            changed_filter_keys: debounce.changedKeys,
+            debounce_ms: debounce.delayMs,
+            debounce_reason: debounce.reason,
             page: 1,
             limit: pageLimit,
             view_mode: viewMode,
@@ -233,6 +237,9 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
                 name: 'debounce_fired',
                 request_id: requestId,
                 filter_keys: filterKeys,
+                changed_filter_keys: debounce.changedKeys,
+                debounce_ms: debounce.delayMs,
+                debounce_reason: debounce.reason,
                 page: 1,
                 limit: pageLimit,
                 view_mode: viewMode,
@@ -243,6 +250,9 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
                 name: 'ipc_start',
                 request_id: requestId,
                 filter_keys: filterKeys,
+                changed_filter_keys: debounce.changedKeys,
+                debounce_ms: debounce.delayMs,
+                debounce_reason: debounce.reason,
                 page: 1,
                 limit: pageLimit,
                 view_mode: viewMode,
@@ -256,6 +266,9 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
                         name: 'ipc_end',
                         request_id: requestId,
                         filter_keys: filterKeys,
+                        changed_filter_keys: debounce.changedKeys,
+                        debounce_ms: debounce.delayMs,
+                        debounce_reason: debounce.reason,
                         page: 1,
                         limit: pageLimit,
                         view_mode: viewMode,
@@ -283,7 +296,7 @@ export function ExperimentList({ filters, viewMode, onFiltersChange }: Experimen
                 .finally(() => {
                     if (!aborted) setIsLoading(false);
                 });
-        }, 200);
+        }, debounce.delayMs);
         return () => { aborted = true; clearTimeout(timer); };
     }, [filters, sortBy, sortDir, pageLimit, viewMode]);
 

@@ -37,12 +37,15 @@ The report contains the existing `steps` object plus:
       "total_ms": 342.7,
       "input_to_filter_change_ms": 12.1,
       "filter_change_to_debounce_fire_ms": 201.4,
+      "debounce_ms": 175,
+      "debounce_reason": "text",
       "debounce_fire_to_ipc_start_ms": 0.2,
       "ipc_ms": 18.6,
       "ipc_to_render_commit_ms": 21.9,
       "render_commit_to_settled_ms": 88.5,
       "request_id": 4,
-      "filter_keys": ["search"],
+      "filter_keys": ["searchQuery"],
+      "changed_filter_keys": ["searchQuery"],
       "result_count": 12,
       "total_count": 588,
       "event_count": 6,
@@ -78,6 +81,10 @@ used.
   change signal.
 - `filter_change_to_debounce_fire_ms`: UI debounce wait plus scheduling
   overhead.
+- `debounce_ms`: the debounce policy selected by the UI for the observed
+  request.
+- `debounce_reason`: policy bucket: `initial`, `text`, `range`, `quick`, or
+  `reset`.
 - `debounce_fire_to_ipc_start_ms`: gap between debounce callback and IPC call.
 - `ipc_ms`: backend IPC duration as observed by the frontend list fetch.
 - `ipc_to_render_commit_ms`: time from IPC completion to React commit signal.
@@ -100,3 +107,26 @@ Expected Sprint 5/Sprint 6 pattern:
 This report should be used to decide the next targeted optimization. It should
 not be used to tighten hard UI budgets until several comparable small/large
 runs are collected.
+
+## Adaptive Debounce Policy
+
+The beta-readiness tuning keeps text search conservative while reducing waits
+for controls that do not benefit from a long typing debounce:
+
+- initial library fetch: 200 ms
+- text inputs: 175 ms
+- date/range/numeric inputs: 125 ms
+- select/dropdown/toggle filters: 50 ms
+- reset/clear-to-empty: 50 ms
+
+The short reset delay is intentional rather than zero: it still removes about
+150 ms from the old fixed wait, while giving React one small coalescing window
+when a user quickly clears one filter and selects another.
+
+## Runner Notes
+
+The DB-scale `filter_fluid_type` scenario now clears the previous search before
+starting the timed measurement and selects the first real fluid value instead of
+the "All types" sentinel. Older sidecars that show `filter_fluid_type` with
+`filter_keys: []` measured a reset/no-op and should not be used as a direct
+product-latency comparison for the dropdown path.

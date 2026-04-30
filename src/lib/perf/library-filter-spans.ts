@@ -11,12 +11,15 @@ export interface LibraryFilterPerfEvent {
   at_ms: number;
   request_id?: number;
   filter_keys?: string[];
+  changed_filter_keys?: string[];
   page?: number;
   limit?: number;
   view_mode?: 'grid' | 'list';
   result_count?: number;
   total_count?: number | null;
   duration_ms?: number;
+  debounce_ms?: number;
+  debounce_reason?: string;
 }
 
 export const LIBRARY_FILTER_PERF_EVENT = 'rheolab:library-filter-perf';

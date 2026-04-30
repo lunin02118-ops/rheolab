@@ -144,11 +144,50 @@ $env:RHEOLAB_SKIP_RELEASE_GATE = "1"; npm run release:prepare
 3. Соотнесите с последними изменениями в `src/components/comparison/reports/*` или `src-tauri/src/commands/reports/*`.
 4. **Не** публикуйте релиз. Сначала фикс + повторный gate.
 
-## 7. Почему не в CI
+## 7. GitHub Actions / CI policy
 
-Пока gate требует Windows + WebView2 + собранный release-бинарник с `ALPHA_CHANNEL_SECRET`. GitHub Actions windows-latest runner это всё может, но пайплайн не настроен. Текущая политика: **дёргать локально** перед каждым релизом. Будущая работа — ADR-0011 (не написан).
+GitHub Actions не используются как authoritative release gate для этого репозитория.
+Статус Actions нельзя считать блокером merge/release readiness, если пользователь
+явно не попросил обратное.
 
-## 8. Связанные документы
+Authoritative gate сейчас локальный:
+
+```pwsh
+npm run build:ci
+npm test
+cargo test --manifest-path src-tauri/Cargo.toml --lib
+npm run version:validate
+npm run audit:large-ipc
+git diff --check
+```
+
+Для beta/RC веток поверх memory-hardening дополнительно локально прогоняйте
+релевантные Tauri smoke/perf runners:
+
+```pwsh
+npm run test:release-gate
+npm run perf:db:small
+npm run perf:db:large
+npm run perf:comparison:tauri
+npm run perf:comparison:tauri:real
+npm run perf:chart:tauri
+npm run perf:chart:tauri:memory
+npx cross-env RHEOLAB_E2E_REAL_REPORTS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/saved-report-by-id-smoke.tauri.spec.ts
+```
+
+Почему локально: gate требует Windows + WebView2 + собранный Tauri-бинарник +
+секреты alpha/beta канала. Текущая политика: **прогонять локально** перед
+релизом и фиксировать команды/результаты в PR body или scorecard.
+
+## 8. Version provenance
+
+`/version.json` остаётся единственным ручным источником версии. `src/lib/version.ts`
+генерируется `npm run version:sync` и содержит `BUILD_DATE` / `COMMIT_HASH` как
+build-time metadata. Для release artifact hash должен быть получен из чистого
+checkout тем же sync/build hook перед сборкой; не правьте `COMMIT_HASH` руками в
+PR, чтобы “догнать” head commit.
+
+## 9. Связанные документы
 
 - `docs/RELEASE_AND_DEPLOY.md` — основной release flow.
 - `docs/adr/ADR-0010-comparison-report.md` — архитектура фичи.

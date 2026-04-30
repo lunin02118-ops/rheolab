@@ -1,6 +1,6 @@
 # Library Filter Regression Tracking
 
-**Generated:** 2026-04-29T22:08:30.289Z.
+**Generated:** 2026-04-30T10:07:35.983Z.
 
 This report compares DB-scale sidecars before and after the current
 library filter span instrumentation. It is meant to track progress and
@@ -9,89 +9,76 @@ regression without overclaiming product wins from runner changes.
 ## SMALL DB
 
 Baseline files:
-- `outputs/e2e/perf/db-scale-1777493745802-small-tauri.json`
-- `outputs/e2e/perf/db-scale-1777493807404-small-tauri.json`
-- `outputs/e2e/perf/db-scale-1777493869154-small-tauri.json`
+- `outputs/e2e/perf/db-scale-1777538610228-small-tauri.json`
 
 Current files:
-- `outputs/e2e/perf/db-scale-1777499733496-small-tauri.json`
-- `outputs/e2e/perf/db-scale-1777499855960-small-tauri.json`
-
-> Note: current sidecars are span-aware while baseline sidecars are coarse
-> step wall measurements. Wall-time deltas are useful regression signals,
-> but should not be claimed as pure product latency wins.
+- `outputs/e2e/perf/db-scale-1777543606748-small-tauri.json`
 
 ### Summary
 
 | Metric | Baseline p50 | Current p50 | Delta | Status |
 | --- | ---: | ---: | ---: | --- |
-| Scenario wall | 13589 ms | 10764.50 ms | -20.8% | progress |
-| Peak JS heap | 8.54 MB | 8.55 MB | +0.1% | flat |
+| Scenario wall | 10601 ms | 10683 ms | +0.8% | flat |
+| Peak JS heap | 8.52 MB | 8.54 MB | +0.2% | flat |
 | Peak DOM nodes | 6557 nodes | 6557 nodes | 0.0% | flat |
 
 ### Step Wall/Heap
 
 | Metric | Baseline p50 | Current p50 | Delta | Status |
 | --- | ---: | ---: | ---: | --- |
-| Library open | 1558 ms | 1617 ms | +3.8% | flat |
-| Search wall | 1856 ms | 915.50 ms | -50.7% | progress |
-| Fluid filter wall | 1909 ms | 989 ms | -48.2% | progress |
-| Date range wall | 1455 ms | 924 ms | -36.5% | progress |
-| Filter reset wall | 1442 ms | 887 ms | -38.5% | progress |
-| Detail card open | 1321 ms | 1320 ms | -0.1% | flat |
-| Library open heap | 7.13 MB | 7.12 MB | -0.1% | flat |
+| Library open | 1558 ms | 1580 ms | +1.4% | flat |
+| Search wall | 885 ms | 873 ms | -1.4% | flat |
+| Fluid filter wall | 956 ms | 1041 ms | +8.9% | regress |
+| Date range wall | 897 ms | 871 ms | -2.9% | flat |
+| Filter reset wall | 872 ms | 767 ms | -12.0% | progress |
+| Detail card open | 1338 ms | 1319 ms | -1.4% | flat |
+| Library open heap | 7.09 MB | 7.10 MB | +0.1% | flat |
 
 ### Current Filter Spans
 
 | Action | total p50 | debounce p50 | IPC p50 | render p50 | settle p50 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| search_by_name | 409.65 ms | 204.75 ms | 5.45 ms | 18.50 ms | 133.90 ms |
-| filter_fluid_type | 479.55 ms | 210.45 ms | 7.15 ms | 32.85 ms | 207.10 ms |
-| filter_date_range | 420.60 ms | 205.85 ms | 7.45 ms | 29.25 ms | 139.45 ms |
-| filter_reset | 390.40 ms | 207.60 ms | 5.90 ms | 24 ms | 128.55 ms |
+| search_by_name | 377.60 ms | 178.20 ms | 6.50 ms | 19.40 ms | 133.30 ms |
+| filter_fluid_type | 544.30 ms | 58.90 ms | 7.40 ms | 25.60 ms | 138 ms |
+| filter_date_range | 354.80 ms | 134.10 ms | 8 ms | 26.60 ms | 147.80 ms |
+| filter_reset | 260.90 ms | 59.60 ms | 7.40 ms | 28.30 ms | 145.40 ms |
 
 ## LARGE DB
 
 Baseline files:
-- `outputs/e2e/perf/db-scale-1777493892303-large-tauri.json`
-- `outputs/e2e/perf/db-scale-1777493914976-large-tauri.json`
-- `outputs/e2e/perf/db-scale-1777493937660-large-tauri.json`
+- `outputs/e2e/perf/db-scale-1777538633879-large-tauri.json`
 
 Current files:
-- `outputs/e2e/perf/db-scale-1777500191036-large-tauri.json`
-
-> Note: current sidecars are span-aware while baseline sidecars are coarse
-> step wall measurements. Wall-time deltas are useful regression signals,
-> but should not be claimed as pure product latency wins.
+- `outputs/e2e/perf/db-scale-1777543631570-large-tauri.json`
 
 ### Summary
 
 | Metric | Baseline p50 | Current p50 | Delta | Status |
 | --- | ---: | ---: | ---: | --- |
-| Scenario wall | 13668 ms | 10730 ms | -21.5% | progress |
-| Peak JS heap | 8.60 MB | 8.58 MB | -0.2% | flat |
+| Scenario wall | 10515 ms | 10830 ms | +3.0% | flat |
+| Peak JS heap | 8.64 MB | 8.66 MB | +0.2% | flat |
 | Peak DOM nodes | 6533 nodes | 6533 nodes | 0.0% | flat |
 
 ### Step Wall/Heap
 
 | Metric | Baseline p50 | Current p50 | Delta | Status |
 | --- | ---: | ---: | ---: | --- |
-| Library open | 1551 ms | 1566 ms | +1.0% | flat |
-| Search wall | 1875 ms | 945 ms | -49.6% | progress |
-| Fluid filter wall | 1945 ms | 990 ms | -49.1% | progress |
-| Date range wall | 1445 ms | 915 ms | -36.7% | progress |
-| Filter reset wall | 1462 ms | 894 ms | -38.9% | progress |
-| Detail card open | 1323 ms | 1328 ms | +0.4% | flat |
-| Library open heap | 7.13 MB | 7.08 MB | -0.7% | flat |
+| Library open | 1557 ms | 1584 ms | +1.7% | flat |
+| Search wall | 895 ms | 911 ms | +1.8% | flat |
+| Fluid filter wall | 922 ms | 1028 ms | +11.5% | regress |
+| Date range wall | 869 ms | 900 ms | +3.6% | flat |
+| Filter reset wall | 884 ms | 817 ms | -7.6% | progress |
+| Detail card open | 1322 ms | 1314 ms | -0.6% | flat |
+| Library open heap | 7.13 MB | 7.14 MB | +0.1% | flat |
 
 ### Current Filter Spans
 
 | Action | total p50 | debounce p50 | IPC p50 | render p50 | settle p50 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| search_by_name | 448.60 ms | 208.70 ms | 15.70 ms | 26.50 ms | 150.90 ms |
-| filter_fluid_type | 482.10 ms | 205.80 ms | 8.60 ms | 33.90 ms | 214.60 ms |
-| filter_date_range | 414.40 ms | 208.80 ms | 8.90 ms | 30.30 ms | 138.90 ms |
-| filter_reset | 399.70 ms | 207.20 ms | 9.70 ms | 23.20 ms | 125.20 ms |
+| search_by_name | 407.70 ms | 178.10 ms | 17.60 ms | 29.60 ms | 139.50 ms |
+| filter_fluid_type | 522.30 ms | 58.20 ms | 8.80 ms | 26.80 ms | 147.40 ms |
+| filter_date_range | 388.40 ms | 131.20 ms | 10.60 ms | 33.30 ms | 158.40 ms |
+| filter_reset | 318.80 ms | 56.50 ms | 14.20 ms | 44.70 ms | 173 ms |
 
 ## Readout
 
@@ -101,3 +88,15 @@ Current files:
   proxy for DB/IPC cost.
 - If `ipc_ms` is small but wall time is high, optimize debounce/render/settle
   before touching SQL.
+- Adaptive debounce is working as intended in the current sidecars:
+  text search is ~178 ms, range filters are ~131-134 ms, and quick/reset
+  filters are ~56-60 ms instead of the old fixed ~204-211 ms wait.
+- The `filter_fluid_type` wall-time delta is not apples-to-apples: the baseline
+  runner accidentally measured a search reset/no-op (`filter_keys: []`), while
+  the current runner selects a real fluid dropdown value (`filter_keys:
+  ["fluidType"]`). Use its current span decomposition, not the old step delta,
+  as the beta-readiness signal.
+- Current `filter_fluid_type` total is dominated by browser interaction before
+  React receives the filter change (`input_to_filter_change_ms`: 314.4 ms small,
+  281.1 ms large). Once the value changes, debounce/IPC/render/settle are
+  bounded and IPC remains under 10 ms.

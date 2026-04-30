@@ -7,25 +7,7 @@ import type { ExperimentFilters as FilterState} from '@/types/experiment-filters
 import { EMPTY_FILTERS } from '@/types/experiment-filters';
 import { useSearchParams } from 'react-router-dom';
 import { emitLibraryFilterPerfEvent } from '@/lib/perf/library-filter-spans';
-
-function changedFilterKeys(prev: FilterState, next: FilterState): string[] {
-    const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
-    const changed: string[] = [];
-    for (const key of keys) {
-        const prevValue = prev[key as keyof FilterState];
-        const nextValue = next[key as keyof FilterState];
-        if (Array.isArray(prevValue) || Array.isArray(nextValue)) {
-            if (JSON.stringify(prevValue ?? []) !== JSON.stringify(nextValue ?? [])) {
-                changed.push(key);
-            }
-            continue;
-        }
-        if ((prevValue ?? '') !== (nextValue ?? '')) {
-            changed.push(key);
-        }
-    }
-    return changed.sort();
-}
+import { changedExperimentFilterKeys } from '@/lib/library/filter-debounce';
 
 // Inner component that uses useSearchParams
 function LibraryContent() {
@@ -42,11 +24,12 @@ function LibraryContent() {
     const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
 
     const handleFiltersChange = (next: FilterState) => {
-        const filterKeys = changedFilterKeys(filters, next);
+        const filterKeys = changedExperimentFilterKeys(filters, next);
         if (filterKeys.length > 0) {
             emitLibraryFilterPerfEvent({
                 name: 'filters_changed',
                 filter_keys: filterKeys,
+                changed_filter_keys: filterKeys,
                 view_mode: viewMode,
             });
         }

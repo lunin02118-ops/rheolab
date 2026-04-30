@@ -60,12 +60,15 @@ interface LibraryFilterPerfEvent {
     at_ms: number;
     request_id?: number;
     filter_keys?: string[];
+    changed_filter_keys?: string[];
     page?: number;
     limit?: number;
     view_mode?: 'grid' | 'list';
     result_count?: number;
     total_count?: number | null;
     duration_ms?: number;
+    debounce_ms?: number;
+    debounce_reason?: string;
 }
 
 interface LibraryFilterSpan {
@@ -79,6 +82,9 @@ interface LibraryFilterSpan {
     render_commit_to_settled_ms: number | null;
     request_id?: number;
     filter_keys: string[];
+    changed_filter_keys: string[];
+    debounce_ms: number | null;
+    debounce_reason: string | null;
     result_count?: number;
     total_count?: number | null;
     event_count: number;
@@ -212,6 +218,13 @@ function buildLibraryFilterSpan(
         render_commit_to_settled_ms: eventDelta(renderCommit, { at_ms: actionSettledMs }),
         ...(requestId !== undefined ? { request_id: requestId } : {}),
         filter_keys: ipcEnd?.filter_keys ?? debounceScheduled?.filter_keys ?? filtersChanged?.filter_keys ?? [],
+        changed_filter_keys: ipcEnd?.changed_filter_keys
+            ?? debounceScheduled?.changed_filter_keys
+            ?? filtersChanged?.changed_filter_keys
+            ?? filtersChanged?.filter_keys
+            ?? [],
+        debounce_ms: ipcEnd?.debounce_ms ?? debounceScheduled?.debounce_ms ?? null,
+        debounce_reason: ipcEnd?.debounce_reason ?? debounceScheduled?.debounce_reason ?? null,
         ...(ipcEnd?.result_count !== undefined ? { result_count: ipcEnd.result_count } : {}),
         ...(ipcEnd?.total_count !== undefined ? { total_count: ipcEnd.total_count } : {}),
         event_count: events.length,
@@ -366,17 +379,26 @@ test.describe(`[DBScale/${scale.toUpperCase()}] Library performance with ${scale
         // ── Step 4: filter_fluid_type ────────────────────────────────────────
         {
             console.log(`\n── Step 4: filter_fluid_type ──`);
+            // Search was applied in the previous step. Clear it before the
+            // timed select-filter measurement so this scenario records the
+            // dropdown path itself instead of a search reset.
+            await library.ensureFilterGroupOpen('Поиск', library.searchInput);
+            await resetLibraryFilterEvents(page);
+            await library.searchInput.fill('');
+            await waitForLibraryFilterEvent(page, 'ipc_end');
+            await library.waitForListSettled(20_000);
+            await waitForLibraryFilterEvent(page, 'render_commit');
+
             await library.ensureFilterGroupOpen('Параметры теста', library.fluidTypeFilter);
             const wallStart = Date.now();
             await measureLibraryFilterAction('filter_fluid_type', 'Filter by fluid type (first option)', async () => {
-                // Очищаем поиск, устанавливаем фильтр по типу жидкости
-                await library.ensureFilterGroupOpen('Поиск', library.searchInput);
-                await library.searchInput.fill('');
                 const isFilterVisible = await library.fluidTypeFilter.isVisible({ timeout: 2_000 }).catch(() => false);
                 if (isFilterVisible) {
                     await library.fluidTypeFilter.click();
-                    // Выбираем первое доступное значение из списка
-                    const option = page.locator('[role="option"]').first();
+                    // Select the first real fluid value. The first item is the
+                    // "All types" sentinel and would be a no-op when the filter
+                    // is already empty.
+                    const option = page.locator('[role="option"]').nth(1);
                     const hasOption = await option.isVisible({ timeout: 2_000 }).catch(() => false);
                     if (hasOption) {
                         await option.click();
