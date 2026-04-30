@@ -6,6 +6,7 @@
 
 import { safeInvoke as invoke } from './core';
 import type { BackupInfo, BackupResult } from '@/types/tauri';
+import { seriesWindowCache } from '@/lib/series/series-window-cache';
 
 export const backup = {
   /**
@@ -26,7 +27,11 @@ export const backup = {
    * Restore from a backup (will restart the app)
    */
   async restore(filename: string): Promise<BackupResult> {
-    return invoke<BackupResult>('backup_restore', { filename });
+    const result = await invoke<BackupResult>('backup_restore', { filename });
+    if (result.success) {
+      seriesWindowCache.clear();
+    }
+    return result;
   },
 
   /**

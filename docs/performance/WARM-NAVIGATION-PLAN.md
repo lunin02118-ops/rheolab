@@ -55,6 +55,9 @@ recovered from Rust or SQLite.
 
 9. `WN-8 docs(memory): close rollout`
    - Update scorecard and remove or explicitly defer fallback flags.
+   - Invalidate frontend warm series windows on experiment mutation:
+     save/delete removes the affected id, broad import/restore/sync clears
+     recoverable windows.
 
 ## Guardrails
 

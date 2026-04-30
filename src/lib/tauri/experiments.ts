@@ -30,6 +30,7 @@ import type {
   ParserArtifactItem,
   ReportArtifactItem,
 } from '@/types/generated';
+import { seriesWindowCache } from '@/lib/series/series-window-cache';
 
 // ── Experiments CRUD & export/import ────────────────────────────────────────
 
@@ -104,14 +105,22 @@ export const experiments = {
    * `toWirePayload()` from @/lib/experiments/payload to convert the app type.
    */
   async save(payload: WireExperimentSavePayload): Promise<ExperimentSaveResponse> {
-    return invoke<ExperimentSaveResponse>('experiments_save', { payload });
+    const result = await invoke<ExperimentSaveResponse>('experiments_save', { payload });
+    if (result.success && result.experimentId) {
+      seriesWindowCache.deleteByExperiment(result.experimentId);
+    }
+    return result;
   },
 
   /**
    * Delete experiment by id.
    */
   async delete(id: string): Promise<ExperimentDeleteResponse> {
-    return invoke<ExperimentDeleteResponse>('experiments_delete', { id });
+    const result = await invoke<ExperimentDeleteResponse>('experiments_delete', { id });
+    if (result.success) {
+      seriesWindowCache.deleteByExperiment(id);
+    }
+    return result;
   },
 
   /**
@@ -142,9 +151,13 @@ export const experiments = {
    * Import experiments from transferable JSON payload.
    */
   async importData(experiments: unknown[]): Promise<ExperimentsImportResponse> {
-    return invoke<ExperimentsImportResponse>('experiments_import', {
+    const result = await invoke<ExperimentsImportResponse>('experiments_import', {
       experiments,
     });
+    if (result.success) {
+      seriesWindowCache.clear();
+    }
+    return result;
   },
 };
 

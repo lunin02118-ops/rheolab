@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getExperimentsCount } from '@/lib/experiments/client';
 import { exportReagents, importReagents } from '@/lib/reagents/client';
+import { seriesWindowCache } from '@/lib/series/series-window-cache';
 
 interface ExportStats {
     total: number;
@@ -154,6 +155,7 @@ export function ExperimentExportImport() {
                 if (!result.success) {
                     setError(result.error || 'Ошибка импорта базы данных');
                 } else {
+                    seriesWindowCache.clear();
                     setImportResult({
                         imported: result.imported,
                         skipped: result.skipped,

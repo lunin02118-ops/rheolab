@@ -18,6 +18,7 @@ import type {
   SyncInboxItem,
   ConflictItem,
 } from '@/types/generated';
+import { seriesWindowCache } from '@/lib/series/series-window-cache';
 
 export const sync = {
   async status(): Promise<SyncStatusResponse> {
@@ -71,7 +72,11 @@ export const syncEngine = {
    * for each conflict before the import is considered complete.
    */
   async importDelta(filePath: string): Promise<SyncImportDeltaResult> {
-    return invoke<SyncImportDeltaResult>('sync_import_delta', { filePath });
+    const result = await invoke<SyncImportDeltaResult>('sync_import_delta', { filePath });
+    if (result.success) {
+      seriesWindowCache.clear();
+    }
+    return result;
   },
 
   /**
@@ -84,7 +89,11 @@ export const syncEngine = {
     conflictId: string,
     resolution: 'keep_local' | 'keep_remote' | 'keep_both',
   ): Promise<SyncResolveConflictResult> {
-    return invoke<SyncResolveConflictResult>('sync_resolve_conflict', { conflictId, resolution });
+    const result = await invoke<SyncResolveConflictResult>('sync_resolve_conflict', { conflictId, resolution });
+    if (result.success) {
+      seriesWindowCache.clear();
+    }
+    return result;
   },
 
   /**
