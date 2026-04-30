@@ -20,6 +20,14 @@ export interface SaveBlobOptions {
     filters: { name: string; extensions: string[] }[];
 }
 
+export interface SaveBytesOptions {
+    bytes: Uint8Array;
+    filename: string;
+    mimeType: string;
+    /** Tauri save dialog file filters, e.g. [{ name: 'PDF', extensions: ['pdf'] }] */
+    filters: { name: string; extensions: string[] }[];
+}
+
 /**
  * Save a Blob to disk via Tauri native dialog or browser download fallback.
  */
@@ -55,10 +63,40 @@ export async function saveBlob({ blob, filename, filters }: SaveBlobOptions): Pr
     }
 }
 
+/**
+ * Save binary report bytes without first wrapping them in a Blob in the normal
+ * Tauri path. Browser/e2e download mode still creates a short-lived Blob so
+ * Playwright can observe the download event.
+ */
+export async function saveBytes({ bytes, filename, mimeType, filters }: SaveBytesOptions): Promise<void> {
+    const e2eSkipDialogs = sessionStorage.getItem('__e2e_skip_dialogs') === '1';
+
+    if (isTauri() && !e2eSkipDialogs) {
+        const filePath = await save({ defaultPath: filename, filters });
+        if (!filePath) return;
+        try {
+            await writeFile(filePath, bytes);
+            logger.info(`[saveBytes] Saved to ${filePath}`);
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            logger.error(`[saveBytes] writeFile failed for ${filePath}: ${msg}`);
+            throw new Error(`Не удалось сохранить файл: ${msg}`);
+        }
+    } else {
+        downloadBytesViaBrowser(bytes, filename, mimeType);
+    }
+}
+
 /** Item to save in a batch (multiple files to one directory). */
 export interface SaveBlobItem {
     blob: Blob;
     filename: string;
+}
+
+export interface SaveBytesItem {
+    bytes: Uint8Array;
+    filename: string;
+    mimeType: string;
 }
 
 /**
@@ -105,6 +143,48 @@ export async function saveBlobsToDir(items: SaveBlobItem[]): Promise<void> {
     }
 }
 
+/**
+ * Save multiple binary files to a directory without Blob materialisation in the
+ * normal Tauri path. Browser/e2e mode falls back to individual downloads.
+ */
+export async function saveBytesToDir(items: SaveBytesItem[]): Promise<void> {
+    if (items.length === 0) return;
+
+    if (items.length === 1) {
+        const ext = items[0].filename.split('.').pop() ?? '';
+        await saveBytes({
+            bytes: items[0].bytes,
+            filename: items[0].filename,
+            mimeType: items[0].mimeType,
+            filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
+        });
+        return;
+    }
+
+    const e2eSkipDialogs = sessionStorage.getItem('__e2e_skip_dialogs') === '1';
+
+    if (isTauri() && !e2eSkipDialogs) {
+        const dir = await open({ directory: true, title: 'Выберите папку для сохранения отчётов' });
+        if (!dir || typeof dir !== 'string') return;
+
+        for (const item of items) {
+            try {
+                const filePath = await join(dir, item.filename);
+                await writeFile(filePath, item.bytes);
+                logger.info(`[saveBytesToDir] Saved to ${filePath}`);
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                logger.error(`[saveBytesToDir] writeFile failed for ${item.filename}: ${msg}`);
+                throw new Error(`Не удалось сохранить ${item.filename}: ${msg}`);
+            }
+        }
+    } else {
+        for (const item of items) {
+            downloadBytesViaBrowser(item.bytes, item.filename, item.mimeType);
+        }
+    }
+}
+
 function downloadViaBrowser(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -114,4 +194,10 @@ function downloadViaBrowser(blob: Blob, filename: string): void {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+}
+
+function downloadBytesViaBrowser(bytes: Uint8Array, filename: string, mimeType: string): void {
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+    const blob = new Blob([buffer], { type: mimeType });
+    downloadViaBrowser(blob, filename);
 }

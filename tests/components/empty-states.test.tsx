@@ -48,6 +48,7 @@ vi.mock('@/lib/store/comparison-store', () => {
 
 vi.mock('@/components/comparison/comparison-selector', () => ({
     ComparisonSelector: () => <div data-testid="MockComparisonSelector" />,
+    clearComparisonSelectorCache: vi.fn(),
 }));
 
 vi.mock('@/components/comparison/comparison-chart-uplot', () => ({

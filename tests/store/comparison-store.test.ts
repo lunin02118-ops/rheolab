@@ -232,6 +232,37 @@ describe('ComparisonStore — releaseHeavyData', () => {
         expect(exp.name).toBe('Test Exp');
     });
 
+    test('releaseHeavyData strips transient DB payload fields', () => {
+        useComparisonStore.setState({
+            experiments: [{
+                ...makeDBExp('db-3'),
+                data: 'raw text',
+                rawData: 'raw text',
+                metrics: { maxViscosity: 123 },
+                calibration: { status: 'PASS' },
+                reagents: [{ reagentName: 'Gel', concentration: 1 }],
+                waterParams: { ph: 7 },
+                extraFields: { source: 'fixture' },
+            } as never],
+            _hasHydrated: true,
+        });
+
+        useComparisonStore.getState().releaseHeavyData();
+
+        const exp = useComparisonStore.getState().experiments[0] as Record<string, unknown>;
+        expect(exp.id).toBe('db-3');
+        expect(exp.name).toBe('Test Exp');
+        expect(exp.rawPoints).toEqual([]);
+        expect(exp.columnarData).toBeUndefined();
+        expect(exp.data).toBeUndefined();
+        expect(exp.rawData).toBeUndefined();
+        expect(exp.metrics).toBeUndefined();
+        expect(exp.calibration).toBeUndefined();
+        expect(exp.reagents).toBeUndefined();
+        expect(exp.waterParams).toBeUndefined();
+        expect(exp.extraFields).toBeUndefined();
+    });
+
     test('releaseHeavyData processes mixed list (file + DB)', () => {
         const mixed = [makeDBExp('db-1'), makeFileExp('2')] as never[];
         useComparisonStore.setState({ experiments: mixed, _hasHydrated: true });

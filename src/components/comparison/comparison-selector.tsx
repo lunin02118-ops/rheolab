@@ -25,6 +25,10 @@ let _listCache: { search: string; ts: number; experiments: Experiment[]; total: 
 };
 const CACHE_TTL_MS = 5_000;
 
+export function clearComparisonSelectorCache(): void {
+    _listCache = { search: '', ts: 0, experiments: [], total: 0 };
+}
+
 export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSelectorProps) {
     const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
     const [activeTab, setActiveTab] = useState<'library' | 'file'>('library');
@@ -371,4 +375,3 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
         </div>
     );
 }
-

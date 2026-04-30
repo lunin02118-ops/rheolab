@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
-import { ComparisonSelector } from '@/components/comparison/comparison-selector';
+import { ComparisonSelector, clearComparisonSelectorCache } from '@/components/comparison/comparison-selector';
 import { ComparisonChartUPlot as ComparisonChart } from '@/components/comparison/comparison-chart-uplot';
 import { ChartErrorBoundary } from '@/components/shared/ChartErrorBoundary';
 import { AxisSelector, LegendToggle, ExperimentChip, ViscosityThresholdControl } from '@/components/comparison/comparison-controls';
@@ -114,6 +114,8 @@ export default function ComparisonPage() {
     // Keep only lightweight metadata/IDs in the store so the next mount can
     // rehydrate from SQLite without retaining hidden experiments indefinitely.
     useEffect(() => () => {
+        clearTimeout(warningTimerRef.current);
+        clearComparisonSelectorCache();
         releaseHeavyData();
     }, [releaseHeavyData]);
 

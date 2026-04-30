@@ -90,30 +90,27 @@ export async function generateExcelReportBlob(input: ExcelReportInput): Promise<
 
 async function tryGenerateComparisonPdfByIdsNative(
   request: ComparisonReportByIdsRequest,
-): Promise<Blob> {
+): Promise<Uint8Array> {
   const bridge = getBridge();
   if (!bridge.reports?.generateComparisonPdfByIds) {
     throw new Error('Unknown IPC command reports_generate_comparison_pdf_by_ids');
   }
-  const bytes = await bridge.reports.generateComparisonPdfByIds(request);
-  return new Blob([toArrayBuffer(bytes)], { type: 'application/pdf' });
+  return await bridge.reports.generateComparisonPdfByIds(request);
 }
 
 async function tryGenerateComparisonExcelByIdsNative(
   request: ComparisonReportByIdsRequest,
-): Promise<Blob> {
+): Promise<Uint8Array> {
   const bridge = getBridge();
   if (!bridge.reports?.generateComparisonExcelByIds) {
     throw new Error('Unknown IPC command reports_generate_comparison_excel_by_ids');
   }
-  const bytes = await bridge.reports.generateComparisonExcelByIds(request);
-  return new Blob([toArrayBuffer(bytes)], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
+  return await bridge.reports.generateComparisonExcelByIds(request);
 }
-export async function generateComparisonPdfReportByIdsBlob(
+
+export async function generateComparisonPdfReportByIdsBytes(
   request: ComparisonReportByIdsRequest,
-): Promise<Blob> {
+): Promise<Uint8Array> {
   try {
     return await tryGenerateComparisonPdfByIdsNative(request);
   } catch (error) {
@@ -125,9 +122,9 @@ export async function generateComparisonPdfReportByIdsBlob(
   }
 }
 
-export async function generateComparisonExcelReportByIdsBlob(
+export async function generateComparisonExcelReportByIdsBytes(
   request: ComparisonReportByIdsRequest,
-): Promise<Blob> {
+): Promise<Uint8Array> {
   try {
     return await tryGenerateComparisonExcelByIdsNative(request);
   } catch (error) {
@@ -137,4 +134,20 @@ export async function generateComparisonExcelReportByIdsBlob(
     }
     throw error;
   }
+}
+
+export async function generateComparisonPdfReportByIdsBlob(
+  request: ComparisonReportByIdsRequest,
+): Promise<Blob> {
+  const bytes = await generateComparisonPdfReportByIdsBytes(request);
+  return new Blob([toArrayBuffer(bytes)], { type: 'application/pdf' });
+}
+
+export async function generateComparisonExcelReportByIdsBlob(
+  request: ComparisonReportByIdsRequest,
+): Promise<Blob> {
+  const bytes = await generateComparisonExcelReportByIdsBytes(request);
+  return new Blob([toArrayBuffer(bytes)], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
 }

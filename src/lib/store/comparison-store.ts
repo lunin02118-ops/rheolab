@@ -20,6 +20,31 @@ function toColumnarExperiment(exp: Experiment): Experiment {
     return { ...rest, columnarData, rawPoints: [] } as Experiment;
 }
 
+/**
+ * Keep only fields needed to preserve the user's comparison selection between
+ * route changes. Full chart/report data is reloaded by id when the comparison
+ * page mounts again.
+ */
+function toLightweightComparisonExperiment(exp: Experiment): Experiment {
+    return {
+        id: exp.id,
+        name: exp.name,
+        testDate: exp.testDate,
+        fluidType: exp.fluidType,
+        fieldName: exp.fieldName ?? null,
+        operatorName: exp.operatorName ?? null,
+        instrumentType: exp.instrumentType ?? null,
+        waterSource: exp.waterSource ?? null,
+        userId: exp.userId ?? null,
+        laboratoryId: exp.laboratoryId ?? null,
+        createdAt: exp.createdAt,
+        updatedAt: exp.updatedAt,
+        originalFilename: (exp as { originalFilename?: unknown }).originalFilename,
+        rawPoints: [],
+        columnarData: undefined,
+    } as Experiment;
+}
+
 function isValidHashId(id: string): boolean {
     if (!id) return false;
     if (id.length < 3 || id.length > 64) return false;
@@ -205,10 +230,9 @@ export const useComparisonStore = create<ComparisonState>()(
                     experiments: state.experiments.map(exp => {
                         // File experiments have no DB — keep their data intact
                         if (exp.id.startsWith('file-')) return exp;
-                        // Strip heavy fields from DB-backed experiments; rehydrateIfNeeded()
-                        // will reload columnarData from DB on next page mount.
-                        const { columnarData: _c, rawPoints: _r, ...lightweight } = exp as Experiment & { columnarData?: unknown; rawPoints?: unknown };
-                        return { ...lightweight, rawPoints: [], columnarData: undefined } as Experiment;
+                        // Strip DB-backed experiments down to selection metadata;
+                        // rehydrateIfNeeded() reloads chart data by id on the next mount.
+                        return toLightweightComparisonExperiment(exp);
                     }),
                 })),
         }),
