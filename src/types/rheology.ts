@@ -19,9 +19,38 @@ export interface RheoPoint {
 }
 
 /**
+ * Numeric column accepted by chart-only hot paths. Binary IPC can hand uPlot
+ * `Float64Array` views directly; parser/save/report flows keep plain arrays.
+ */
+export type NumericColumn = number[] | Float64Array;
+
+/**
+ * Nullable chart column. Plain arrays use `null` for gaps; typed binary
+ * columns use `NaN` for the same missing-value contract.
+ */
+export type NullableNumericColumn = (number | null)[] | Float64Array;
+
+/**
+ * Columnar shape accepted by chart rendering. This is intentionally broader
+ * than persisted/parser `ColumnarData` so the binary series path can avoid a
+ * `Float64Array -> number[] -> Float64Array` roundtrip.
+ */
+export interface ChartColumnarData {
+    timeSec: NumericColumn;
+    viscosityCp: NumericColumn;
+    temperatureC: NumericColumn;
+    shearRate: NullableNumericColumn;
+    shearStress: NullableNumericColumn;
+    pressureBar: NullableNumericColumn;
+    speedRpm: NullableNumericColumn;
+    /** Bath/heater temperature in °C — absent when file has no such sensor */
+    bathTemperatureC?: NullableNumericColumn;
+}
+
+/**
  * Columnar data structure (SoA) for high-performance rendering.
  */
-export interface ColumnarData {
+export interface ColumnarData extends ChartColumnarData {
     timeSec: number[];
     viscosityCp: number[];
     temperatureC: number[];

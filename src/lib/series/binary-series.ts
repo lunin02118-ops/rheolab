@@ -1,4 +1,4 @@
-import type { ColumnarData } from '@/types';
+import type { ChartColumnarData } from '@/types';
 
 const MAGIC = 'RHEOSR1\0';
 const HEADER_BYTES = 20;
@@ -131,28 +131,30 @@ export function decodeRheoSeriesV1(input: ArrayBuffer | ArrayBufferView): Series
   };
 }
 
-function nullableArray(values: Float64Array | undefined, length: number): (number | null)[] {
-  const out = new Array<number | null>(length);
-  for (let i = 0; i < length; i++) {
-    const value = values?.[i] ?? Number.NaN;
-    out[i] = Number.isFinite(value) ? value : null;
-  }
+function zeroColumn(values: Float64Array | undefined, length: number): Float64Array {
+  return values ?? new Float64Array(length);
+}
+
+function nanColumn(values: Float64Array | undefined, length: number): Float64Array {
+  if (values) return values;
+  const out = new Float64Array(length);
+  out.fill(Number.NaN);
   return out;
 }
 
-export function seriesWindowToColumnarData(series: SeriesWindow): ColumnarData {
+export function seriesWindowToColumnarData(series: SeriesWindow): ChartColumnarData {
   const n = series.pointCount;
   const { columns } = series;
   return {
-    timeSec: Array.from(columns.timeSec),
-    viscosityCp: Array.from(columns.viscosityCp ?? new Float64Array(n)),
-    temperatureC: Array.from(columns.temperatureC ?? new Float64Array(n)),
-    shearRate: nullableArray(columns.shearRate, n),
-    shearStress: nullableArray(columns.shearStress, n),
-    pressureBar: nullableArray(columns.pressureBar, n),
-    speedRpm: nullableArray(columns.speedRpm, n),
+    timeSec: columns.timeSec,
+    viscosityCp: zeroColumn(columns.viscosityCp, n),
+    temperatureC: zeroColumn(columns.temperatureC, n),
+    shearRate: nanColumn(columns.shearRate, n),
+    shearStress: nanColumn(columns.shearStress, n),
+    pressureBar: nanColumn(columns.pressureBar, n),
+    speedRpm: nanColumn(columns.speedRpm, n),
     ...(columns.bathTemperatureC
-      ? { bathTemperatureC: nullableArray(columns.bathTemperatureC, n) }
+      ? { bathTemperatureC: columns.bathTemperatureC }
       : {}),
   };
 }

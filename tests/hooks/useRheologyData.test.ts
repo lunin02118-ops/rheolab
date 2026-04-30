@@ -15,7 +15,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useRheologyData, type RheoPoint } from '@/hooks/useRheologyData';
-import type { ColumnarData } from '@/types';
+import type { ChartColumnarData, ColumnarData } from '@/types';
 
 const baseUnits = {
     viscosityUnit: 'cP' as const,
@@ -26,7 +26,7 @@ const baseUnits = {
 
 function runHook(params: {
     data?: RheoPoint[];
-    columnarData?: ColumnarData | null;
+    columnarData?: ChartColumnarData | null;
 }) {
     return renderHook(() =>
         useRheologyData({
@@ -141,5 +141,25 @@ describe('useRheologyData — bath temperature null handling', () => {
         );
         const bathSeries = result.current.uPlotData[6] as Array<number | null>;
         expect(bathSeries[0]).toBe(212);   // 100 °C → 212 °F
+    });
+
+    it('typed columnar: treats NaN optional values as gaps without converting to number arrays', () => {
+        const columnarData: ChartColumnarData = {
+            timeSec: new Float64Array([0, 60, 120]),
+            viscosityCp: new Float64Array([500, 480, 470]),
+            temperatureC: new Float64Array([100, 101, 102]),
+            shearRate: new Float64Array([10, Number.NaN, 10]),
+            shearStress: new Float64Array([1, 1, 1]),
+            pressureBar: new Float64Array([Number.NaN, 3, Number.NaN]),
+            speedRpm: new Float64Array([300, 300, 300]),
+            bathTemperatureC: new Float64Array([110, Number.NaN, 112]),
+        };
+
+        const { result } = runHook({ columnarData });
+
+        const bathSeries = result.current.uPlotData[6] as Array<number | null>;
+        expect(bathSeries).toEqual([110, null, 112]);
+        expect(result.current.stats?.maxPressure).toBe(3);
+        expect(result.current.stats?.avgShearRate).toBe(10);
     });
 });

@@ -67,7 +67,7 @@ describe('decodeRheoSeriesV1', () => {
     expect(() => decodeRheoSeriesV1(payload.slice(0, 24))).toThrow(/truncated|exceeds/);
   });
 
-  it('preserves NaN values and maps nullable columns to null for ColumnarData', () => {
+  it('preserves typed array views and NaN nullable columns for chart ColumnarData', () => {
     const payload = makePayload([
       { id: 1, values: [0, 1] },
       { id: 2, values: [50, 60] },
@@ -79,6 +79,10 @@ describe('decodeRheoSeriesV1', () => {
     expect(Number.isNaN(decoded.columns.pressureBar?.[0])).toBe(true);
 
     const columnar = seriesWindowToColumnarData(decoded);
-    expect(columnar.pressureBar).toEqual([null, 3]);
+    expect(columnar.timeSec).toBe(decoded.columns.timeSec);
+    expect(columnar.viscosityCp).toBe(decoded.columns.viscosityCp);
+    expect(columnar.pressureBar).toBeInstanceOf(Float64Array);
+    expect(Number.isNaN(columnar.pressureBar[0])).toBe(true);
+    expect(columnar.pressureBar[1]).toBe(3);
   });
 });

@@ -7,7 +7,7 @@
  * from AoS for loaded (DB-sourced) experiments.
  */
 
-import type { ColumnarData } from '@/types';
+import type { ChartColumnarData, ColumnarData } from '@/types';
 import type { RheoDataPoint } from '@/lib/parsing/types';
 
 /**
@@ -16,19 +16,29 @@ import type { RheoDataPoint } from '@/lib/parsing/types';
  * Fields that can be `null` in `ColumnarData` (shearRate, shearStress, pressureBar, speedRpm)
  * are coerced to `0` since `RheoDataPoint` uses plain `number`.
  */
-export function columnarToRawPoints(col: ColumnarData): RheoDataPoint[] {
+function finiteOrDefault(value: number | null | undefined, fallback: number): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function finiteOrUndefined(value: number | null | undefined): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+export function columnarToRawPoints(col: ChartColumnarData): RheoDataPoint[] {
     const n = col.timeSec.length;
     const result: RheoDataPoint[] = new Array(n);
     for (let i = 0; i < n; i++) {
-        const bathTemp = col.bathTemperatureC ? (col.bathTemperatureC[i] ?? undefined) : undefined;
+        const bathTemp = col.bathTemperatureC
+            ? finiteOrUndefined(col.bathTemperatureC[i])
+            : undefined;
         result[i] = {
-            time_sec:       col.timeSec[i] ?? 0,
-            viscosity_cp:   col.viscosityCp[i] ?? 0,
-            temperature_c:  col.temperatureC[i] ?? 0,
-            speed_rpm:      col.speedRpm[i] ?? 0,
-            shear_rate_s1:  col.shearRate[i] ?? 0,
-            shear_stress_pa: col.shearStress[i] ?? 0,
-            pressure_bar:   col.pressureBar[i] ?? 0,
+            time_sec:       finiteOrDefault(col.timeSec[i], 0),
+            viscosity_cp:   finiteOrDefault(col.viscosityCp[i], 0),
+            temperature_c:  finiteOrDefault(col.temperatureC[i], 0),
+            speed_rpm:      finiteOrDefault(col.speedRpm[i], 0),
+            shear_rate_s1:  finiteOrDefault(col.shearRate[i], 0),
+            shear_stress_pa: finiteOrDefault(col.shearStress[i], 0),
+            pressure_bar:   finiteOrDefault(col.pressureBar[i], 0),
             ...(bathTemp != null ? { bath_temperature_c: bathTemp } : {}),
         };
     }
