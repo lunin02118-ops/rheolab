@@ -6,6 +6,33 @@
 
 ---
 
+## [0.2.2-alpha.5] — 2026-04-30
+
+> Alpha-релиз после merge warm-navigation стека в `main`. Главная цель — сохранить бесшовный UX Comparison при переходах между экранами, но сделать тяжёлые renderer-owned данные управляемыми по lifecycle.
+
+### Добавлено
+- **Warm Navigation lifecycle для Comparison**: выбранные эксперименты, metadata chips, настройки отображения, активная вкладка и viewport теперь живут как лёгкое logical session state. При уходе со страницы DB-backed raw/columnar payload очищается из renderer store, а недавно видимые binary chart windows остаются в bounded warm cache.
+- **Shared frontend series window cache**: общий TTL/LRU/byte-bounded cache для binary overview/window данных. Возврат в Comparison в пределах warm window не refetch'ит уже выбранные линии.
+- **Per-line binary Comparison loading**: DB-backed линии Comparison грузятся независимо по id через binary series pipeline. Добавление 6-го эксперимента грузит только новую линию, старые остаются видимыми.
+- **Persisted Comparison viewport/session**: active tab и chart viewport восстанавливаются при route return; persisted viewport догружается как bounded window, а не как полный raw payload.
+- **Rust decoded series cache**: backend повторно использует декодированные series для overview/window запросов, bounded по TTL, entries и bytes.
+- **Warm navigation Tauri smoke**: `npm run perf:warm-nav:tauri` проверяет сценарий 5 saved experiments → уход на Dashboard ~30s → возврат без old-line refetch → добавление 6-го одной window-загрузкой.
+
+### Исправлено
+- **Frontend warm cache invalidation**: successful save/delete инвалидирует cache только изменённого experiment id; broad import/restore/sync paths очищают recoverable warm windows полностью. Это закрывает stale-cache риск до внедрения dataHash в frontend cache key.
+
+### Документация и релизная политика
+- Добавлен WN closeout: `docs/performance/WARM-NAVIGATION-CLOSEOUT.md`.
+- В `AGENTS.md` и performance docs зафиксировано: GitHub Actions не являются authoritative gate для этого репозитория; readiness/merge/release основаны на локальном top-of-stack gate и Tauri smoke/perf sidecars.
+- Release claim намеренно ограничен: bounded renderer-owned state и warm recoverable views, без обещания hard Total RSS win и без утверждения, что 5x100k stress уже доказан.
+
+### Проверки
+- Warm-nav smoke после invalidation: return to old 5 lines 455 ms, series requests on return 0, add 6th line 903 ms, old-line refetch after add 0, raw/columnar in store after route leave 0/0.
+- Перед merge в `main`: `build:ci`, targeted warm-cache tests, full `npm test`, `cargo test --lib`, `perf:warm-nav:tauri`, `version:validate`, `audit:large-ipc`, `git diff --check`.
+- Alpha release gate на `0.2.2-alpha.5`: passed, 7 exports / 4 fixtures / 4 settings phases, heap growth about +5.4 MB при budget 20 MB.
+
+---
+
 ## [0.2.2-alpha.3] — 2026-04-29
 
 > Alpha-релиз после Sprint 2 merge и release-gate на merge commit. Главная цель — отдать Superuser alpha-каналу новый default path сравнительных отчётов и оставить legacy payload lane только как аварийный rollback на одно alpha/beta окно.
