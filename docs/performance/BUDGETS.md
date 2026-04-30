@@ -71,9 +71,9 @@ AnalysisArtifact cache will grow `tauriWsMb` materially.
 | **L-LIB-OPEN-10K** | Library page render, 10k seed (ms) | `perf:db:large` | **1,555** (7k-exp proxy†) | **≤ 2,000** | **≤ 3,500** | soft |
 | **L-FILTER** | Filter change → list re-render (ms, perceived) | `perf:db:large` | **1,034** (proxy†) | **≤ 1,500** | **≤ 2,500** | soft |
 | **L-EXP-DETAIL** | Experiment detail open (ms) | `perf:db:large` | **1,319** (proxy†) | **≤ 1,800** | **≤ 3,000** | soft |
-| **L-CMP-3** | Comparison setup, 3 experiments (ms to UI ready) | `perf:comparison:tauri` | TBD (runner shipped, pending first run) | **≤ 600** | **≤ 1,000** | soft |
-| **L-CMP-5** | Comparison setup, 5 experiments | `perf:comparison:tauri` | TBD (needs license-override) | **≤ 1,000** | **≤ 1,800** | soft |
-| **L-CMP-10** | Comparison setup, 10 experiments | `perf:comparison:tauri` | TBD (needs license-override) | **≤ 2,500** | **≤ 4,000** | soft |
+| **L-CMP-3** | Comparison setup, 3 experiments (ms to UI ready) | `perf:comparison:tauri` | RC: 3,041-3,159 ms | **≤ 600** | **≤ 1,000** | soft |
+| **L-CMP-5** | Comparison setup, 5 experiments | `perf:comparison:tauri` | RC: 4,722-4,792 ms | **≤ 1,000** | **≤ 1,800** | soft |
+| **L-CMP-10** | Comparison setup, 10 experiments | `perf:comparison:tauri` | N/A under beta runtime cap 8 | N/A | N/A | policy |
 | **L-PDF** | Single PDF report generation (ms) | `perf:workflow` | **1,571** (p95 1,844, n=6) | **≤ 5,000** | **≤ 8,000** | soft |
 | **L-XLSX** | Single XLSX report generation (ms) | `perf:workflow` | TBD (pending workflow runner extension) | **≤ 2,000** | **≤ 4,000** | soft |
 | **L-CMP-PDF-5** | Comparison PDF, 5 experiments | `perf:microbench:pdf --fixture-db` | **231** (p95 246, fixture-backed native render) | **≤ 12,000** | **≤ 20,000** | soft |
@@ -166,7 +166,7 @@ long tasks is worse than 5 paths producing 6 each.
 | `scripts/test/extract-library-budgets.mjs` — budget extraction from db-scale sidecars | **done** — Sprint 2 / S2-L3, commit #5 |
 | Fill 8 of 13 TBD budget entries (L-LIB-OPEN-1K/-10K, L-FILTER, L-EXP-DETAIL, M-HEAP-LIB-10K, DB-LIST/-LARGE, DB-DETAIL) | **done** — Sprint 2 / S2-L3, commit #5 |
 | Budget p50/p95 recalibrated from pure-DB guesses to UI-wall-ms reality | **done** — Sprint 2 / S2-L3, commit #5 |
-| Remaining non-S2-L3 TBDs (L-CMP-3/-5/-10, L-XLSX, C-LONG-TASK*, DB-FACET, etc.) | **partially reduced** — S2 closeout filled fixture-backed native `L-CMP-PDF-5` / `L-CMP-XLSX-5`; UI setup N=5/N=10 still needs license-override helper, workflow runner extension, and later query-isolation work |
+| Remaining non-S2-L3 TBDs (L-CMP-3/-5, L-XLSX, C-LONG-TASK*, DB-FACET, etc.) | **partially reduced** — S2 closeout filled fixture-backed native `L-CMP-PDF-5` / `L-CMP-XLSX-5`; UI setup N=5 is covered by the native smoke runner, while N=10 is no longer a beta UI budget under the runtime cap of 8; workflow runner extension and later query-isolation work remain |
 | `npm run perf:library:budgets` extraction script | **done** — Sprint 2 / S2-L3, commit #5 |
 | `REPORTS-NATIVE-BY-IDS-VALIDATION.md` native comparison report validation | **done** — Sprint 2 closeout; PDF/XLSX fixture-backed N=5/N=10 captured |
 

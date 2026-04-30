@@ -175,6 +175,11 @@ npm run perf:chart:tauri:memory
 npx cross-env RHEOLAB_E2E_REAL_REPORTS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/saved-report-by-id-smoke.tauri.spec.ts
 ```
 
+N=10 comparison UI smoke is not a beta release gate while the native
+`maxComparisonExperiments` cap is 8. The comparison runner may include an N=10
+entry, but the expected result is `skipped: "license-cap"`. See
+`docs/performance/COMPARISON-N10-POLICY.md`.
+
 Почему локально: gate требует Windows + WebView2 + собранный Tauri-бинарник +
 секреты alpha/beta канала. Текущая политика: **прогонять локально** перед
 релизом и фиксировать команды/результаты в PR body или scorecard.

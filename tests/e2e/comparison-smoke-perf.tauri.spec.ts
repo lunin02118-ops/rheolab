@@ -64,8 +64,9 @@ const MEMORY_STEPS_ENABLED = process.env.COMPARISON_SMOKE_MEMORY_STEPS === '1';
 
 /**
  * Sizes the spec measures. Each is gated by the runtime license cap. Set
- * COMPARISON_SMOKE_N=3,5 to keep a local run focused while preserving the
- * default broad smoke matrix for scorecards.
+ * COMPARISON_SMOKE_N=3,5 to keep a local run focused. The default matrix still
+ * includes N=10 as a policy sentinel: under the beta runtime cap of 8, it
+ * should be recorded as skipped rather than treated as a failed smoke.
  */
 const DEFAULT_TARGET_FIXTURE_COUNTS = [3, 5, 10] as const;
 
@@ -393,8 +394,8 @@ async function setupComparisonExperiments(
 // ─── Test ───────────────────────────────────────────────────────────────────
 
 test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
-    // 3 fixture sizes × (load + save + comparison + PDF + XLSX) = up to ~10 min
-    // at N=10 once license-override lands. For now N=3 only takes ~3-4 min.
+    // 3 fixture sizes × (load + save + comparison + PDF + XLSX). N=10 is kept
+    // as a cap-policy sentinel and is skipped by the current beta runtime cap.
     test.setTimeout(15 * 60_000);
 
     test('comparison_smoke_baseline', async ({ page, dashboard, comparison }) => {
@@ -592,7 +593,14 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
         }
 
         // 8. Sanity assertion: the first requested in-cap N must produce a cmp_ready_ms number.
+        // Skip-only runs such as COMPARISON_SMOKE_N=10 are valid cap-policy
+        // sentinel smokes when every requested N is above the runtime cap.
         const firstMeasuredN = TARGET_FIXTURE_COUNTS.find((n) => n <= comparisonCap);
+        if (firstMeasuredN === undefined) {
+            expect(measurements).toHaveLength(TARGET_FIXTURE_COUNTS.length);
+            expect(measurements.every((m) => m.skipped === 'license-cap')).toBe(true);
+            return;
+        }
         const baseline = measurements.find((m) => m.n === firstMeasuredN);
         expect(baseline).toBeTruthy();
         expect(baseline?.cmp_ready_ms).toBeGreaterThan(0);

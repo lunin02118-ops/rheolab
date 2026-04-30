@@ -31,7 +31,7 @@ export type LicenseSource =
 
 export interface LicenseFeatures {
     maxExperiments: number;     // -1 = unlimited
-    maxComparisonExperiments: number; // Максимум графиков в режиме сравнения (3 для standard, 8 для developer)
+    maxComparisonExperiments: number; // Максимум графиков в сравнении (3 для demo/trial, 8 для paid/developer)
     exportPdf: boolean;
     exportExcel: boolean;
     aiParsing: boolean;

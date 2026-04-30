@@ -192,7 +192,7 @@ These rows remain not release-grade:
 | Chart | first paint, pan/zoom latency, heap delta not measured | Add chart Playwright runner around binary overview/window |
 | Detail open | default detail still loads `rawPoints` | Add by-id detail meta, by-id analysis, paged raw table |
 | Scheduler | job CPU/RSS fields remain nullable | Add loader-safe process sampler |
-| Comparison UI N=5/N=10 | e2e smoke did not capture stable setup timings | Fix runner state/reset and unlock cap >= 10 |
+| Comparison UI N=5/N=10 | Superseded by `RC-MEMORY-HARDENING-FINAL-SCORECARD.md`: N=5 is measured; N=10 is not a beta UI gate under runtime cap 8 | Track N=5 setup latency; reopen N=10 only if product licensing cap changes |
 
 ## Bottom Line
 

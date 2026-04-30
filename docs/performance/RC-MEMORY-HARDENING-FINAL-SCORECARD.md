@@ -156,8 +156,9 @@ Artifacts:
 | Real | 3 | 3,041 ms | 147 ms | 68,108 | 638 ms | 365,494 |
 | Real | 5 | 4,792 ms | 202 ms | 76,200 | 1,164 ms | 694,124 |
 
-N=10 is skipped by the runtime comparison cap of 8. If product policy requires
-N=10 UI smoke, the test license/runtime cap must be raised for that runner.
+N=10 is skipped by the runtime comparison cap of 8. This is the beta policy:
+N=10 UI smoke is not applicable unless product licensing changes to allow at
+least 10 comparison experiments. See `COMPARISON-N10-POLICY.md`.
 
 ### Comparison Memory Phases
 
@@ -301,6 +302,7 @@ Keep these as beta/stable watch items:
 - comparison renderer RSS is still the main memory watch item;
 - library filter latency should be tuned in UI scheduling/render/settle, not
   SQL first;
-- N=10 comparison UI smoke requires an explicit runtime-cap decision;
+- N=10 comparison UI smoke is documented as not applicable for beta while the
+  runtime cap is 8;
 - raw table Rust-side page decode can be optimized later if table paging on
   very large datasets becomes hot.
