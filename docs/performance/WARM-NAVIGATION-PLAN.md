@@ -1,6 +1,7 @@
 # Warm Navigation Plan
 
-Status: draft rollout plan.
+Status: rollout closed through WN-7 plus the cache invalidation follow-up.
+Closeout: `docs/performance/WARM-NAVIGATION-CLOSEOUT.md`.
 
 ## Mission
 
@@ -40,9 +41,11 @@ recovered from Rust or SQLite.
      requests.
    - Keep cache bounded by TTL and bytes.
 
-7. `WN-6 feat(memory): add view lifecycle manager`
+7. `WN-6 feat(memory): add view lifecycle manager` (deferred)
    - Centralize route enter/leave release policy.
    - Keep logical state separate from heavy buffers.
+   - Deferred because the current route-level policy already satisfies the beta
+     lifecycle contract. Revisit if cleanup policy becomes scattered again.
 
 8. `WN-7 perf(comparison): add warm navigation runner`
    - Prove the 5-line, leave 30 seconds, return, add 6th route lifecycle.
@@ -58,6 +61,7 @@ recovered from Rust or SQLite.
    - Invalidate frontend warm series windows on experiment mutation:
      save/delete removes the affected id, broad import/restore/sync clears
      recoverable windows.
+   - Record release claims, known limitations, and the local authoritative gate.
 
 ## Guardrails
 

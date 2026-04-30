@@ -87,11 +87,33 @@ Result on 2026-04-30:
 - refetched existing lines after add: 0
 - after route leave: DB-backed raw/columnar data in comparison store = 0/0
 
+### Smoke after mutation invalidation
+
+Command:
+
+```bash
+npm run perf:warm-nav:tauri
+```
+
+Result after PR #36 on 2026-04-30:
+
+- status: passed
+- initial 5-line comparison ready: 4,980 ms
+- route away duration: 32,899 ms
+- return to old 5 lines: 455 ms
+- series requests on return: 0
+- add 6th line ready: 903 ms
+- series requests after add: 1 `experiments_series_window` for the new id
+- refetched existing lines after add: 0
+- after route leave: DB-backed raw/columnar data in comparison store = 0/0
+- sidecar: `outputs/e2e/perf/warm-navigation-comparison-1777566938221-tauri.json`
+
 ## Current Known Gap
 
-`ComparisonPage` releases DB-backed chart payloads on unmount. This is correct
-for RC memory hardening, but WN needs a warmer lifecycle policy:
+This baseline is kept as historical context. The closeout state is documented in
+`docs/performance/WARM-NAVIGATION-CLOSEOUT.md`.
 
-- logical state remains persistent
-- chart instances and export bytes are released
-- recent series windows remain warm by TTL and byte budget
+The remaining scale gap is not lifecycle correctness; it is data-scale proof.
+The current runner uses the saved fixture pool. A 5 experiments x 100k points
+stress variant remains a follow-up once a large saved-experiment seed path is
+available.
