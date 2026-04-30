@@ -6,6 +6,22 @@
 
 ---
 
+## [0.2.2-alpha.6] — 2026-04-30
+
+> Hotfix alpha после ручной проверки `0.2.2-alpha.5`. Закрывает два user-visible regression'а в Comparison: добавление saved tests из базы и double-click reset графика.
+
+### Исправлено
+- **Comparison selector saved DB path**: при включённом binary Comparison выборе experiment из библиотеки больше не вызывается legacy `experiments_get` / full-data load. Selector добавляет лёгкую metadata-only запись, а график загружает bounded binary series по id. Legacy full-data path сохранён только за fallback flag `RHEOLAB_COMPARISON_LEGACY_EXPERIMENT_STORE=1`.
+- **Double-click chart reset**: `zoomPlugin` теперь сбрасывает x-range по double-click даже когда текущий zoom пришёл из persisted viewport / brush state, а не из самого selection-zoom plugin. Это возвращает привычное поведение “двойной клик по графику — назад к нормальному виду”.
+
+### Проверки
+- Targeted Vitest: `comparison-selector`, `zoom-plugin`, `useComparisonSeriesWindows`, `comparison-store` — 35 passed.
+- Full `npm test` — passed.
+- `npm run build:ci`, `npm run version:validate`, `npm run audit:large-ipc`, `git diff --check` — passed.
+- `npm run perf:warm-nav:tauri` — passed: return old 5 lines 438 ms, series requests on return 0, add 6th line 901 ms, refetched existing lines after add 0.
+
+---
+
 ## [0.2.2-alpha.5] — 2026-04-30
 
 > Alpha-релиз после merge warm-navigation стека в `main`. Главная цель — сохранить бесшовный UX Comparison при переходах между экранами, но сделать тяжёлые renderer-owned данные управляемыми по lifecycle.

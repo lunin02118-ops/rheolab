@@ -29,20 +29,55 @@ export function zoomPlugin(options: {
     /** Flag to prevent re-entrant zoom application from the store subscription. */
     let applyingFromStore = false;
 
+    const getFullXBounds = (u: uPlot): { min: number; max: number } | null => {
+        const xs = u.data?.[0] as ArrayLike<number> | undefined;
+        if (!xs || xs.length === 0) return null;
+
+        let min: number | null = null;
+        let max: number | null = null;
+        for (let i = 0; i < xs.length; i++) {
+            const value = xs[i];
+            if (!Number.isFinite(value)) continue;
+            if (min === null) min = value;
+            max = value;
+        }
+
+        if (min === null || max === null || max <= min) return null;
+        return { min, max };
+    };
+
+    const getResetXBounds = (u: uPlot): { min: number; max: number } | null => {
+        if (
+            originalXMin != null &&
+            originalXMax != null &&
+            Number.isFinite(originalXMin) &&
+            Number.isFinite(originalXMax) &&
+            originalXMax > originalXMin
+        ) {
+            return { min: originalXMin, max: originalXMax };
+        }
+
+        return getFullXBounds(u);
+    };
+
     return {
         hooks: {
             init: (u: uPlot) => {
                 // Add double-click listener to reset zoom (saved for cleanup in destroy)
                 dblClickHandler = () => {
-                    if (isZoomed && originalXMin != null && originalXMax != null) {
+                    const resetBounds = getResetXBounds(u);
+                    if (resetBounds) {
                         zoomPluginLogger.info('dblclick reset', {
                             fromMin: u.scales?.x?.min,
                             fromMax: u.scales?.x?.max,
-                            toMin: originalXMin,
-                            toMax: originalXMax,
+                            toMin: resetBounds.min,
+                            toMax: resetBounds.max,
+                            wasZoomed: isZoomed,
                         });
-                        u.setScale('x', { min: originalXMin, max: originalXMax });
+                        u.setScale('x', { min: resetBounds.min, max: resetBounds.max });
                         isZoomed = false;
+                        originalXMin = null;
+                        originalXMax = null;
                         if (options.onReset) options.onReset();
                         // Publish reset to sync group
                         if (options.syncKey) {

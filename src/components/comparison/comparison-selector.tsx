@@ -8,6 +8,7 @@ import { ru } from 'date-fns/locale';
 import type { Experiment } from '@/types';
 import { listExperiments, getExperimentById } from '@/lib/experiments/client';
 import { parseRheologyFile } from '@/lib/parsing/client';
+import { isComparisonBinarySeriesEnabled } from './useComparisonSeriesWindows';
 
 interface ComparisonSelectorProps {
     isOpen: boolean;
@@ -27,6 +28,26 @@ const CACHE_TTL_MS = 5_000;
 
 export function clearComparisonSelectorCache(): void {
     _listCache = { search: '', ts: 0, experiments: [], total: 0 };
+}
+
+function toLightweightLibraryExperiment(exp: Experiment): Experiment {
+    return {
+        id: exp.id,
+        name: exp.name,
+        testDate: exp.testDate,
+        fluidType: exp.fluidType,
+        instrumentType: exp.instrumentType ?? null,
+        fieldName: exp.fieldName ?? null,
+        operatorName: exp.operatorName ?? null,
+        waterSource: exp.waterSource ?? null,
+        userId: exp.userId ?? null,
+        laboratoryId: exp.laboratoryId ?? null,
+        createdAt: exp.createdAt,
+        updatedAt: exp.updatedAt,
+        originalFilename: (exp as { originalFilename?: unknown }).originalFilename,
+        rawPoints: [],
+        columnarData: undefined,
+    } as Experiment;
 }
 
 export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSelectorProps) {
@@ -137,8 +158,14 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
         return () => { cancelled.current = true; };
     }, [isOpen, fetchExperiments, debouncedSearch]);
 
-    // Load full experiment (with rawPoints) before adding to comparison
+    // In binary comparison mode the chart loads DB-backed series by id, so a
+    // library click should not call the legacy full-data `experiments_get` path.
     const handleSelect = useCallback(async (exp: Experiment) => {
+        if (!exp.id.startsWith('file-') && isComparisonBinarySeriesEnabled()) {
+            onSelect(toLightweightLibraryExperiment(exp));
+            return;
+        }
+
         setLoadingId(exp.id);
         try {
             const response = await getExperimentById(exp.id);
