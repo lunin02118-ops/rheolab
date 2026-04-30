@@ -6,6 +6,22 @@
 
 ---
 
+## [0.2.2-alpha.11] — 2026-05-01
+
+> Hotfix alpha после ручной проверки `0.2.2-alpha.10`. Возвращает бесшовное масштабирование Comparison: узкую brush-полосу снова можно вести влево/вправо без постоянных window-подгрузок, прыжков и “схлопывания” графика.
+
+### Исправлено
+- **Comparison brush pan live preview**: `ChartBrush` теперь разделяет live-preview (`onChange`) и финальный commit (`onCommit`). Во время drag/pan viewport не пишется в store, поэтому `experiments_series_window` не вызывается на каждый pointermove.
+- **Overview-backed road ahead**: пока пользователь тащит brush-полосу, основной график временно рисуется из overview-данных, чтобы движение было визуально непрерывным. Точная window-серия догружается один раз после отпускания мыши.
+- **Brush extent stability**: при активном viewport нижняя полоса использует overview extent, а не текущий window-кусок. Это убирает скачки шкалы и случай, где сама полоса масштабирования “схлопывалась”.
+
+### Проверки
+- Targeted Vitest: `chart-brush`, `useComparisonSeriesWindows`, warm-navigation hook coverage — 28 passed.
+- Full `npm test`, `npm run build:ci`, `npm run release:prepare -- --channel alpha`, `npm run version:validate`, `npm run audit:large-ipc`, `git diff --check` — passed.
+- Tauri warm-nav smoke: during brush drag `0` series requests; after commit `5` window requests for selected experiments; return old lines `0` refetch; add 6th line `1` request.
+
+---
+
 ## [0.2.2-alpha.8] — 2026-05-01
 
 > Hotfix alpha после ручной проверки `0.2.2-alpha.7`. Закрывает regression масштабирования Comparison, где график “схлопывался” или уходил в пустой диапазон после zoom/brush/window-подгрузки.
