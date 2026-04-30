@@ -6,6 +6,23 @@
 
 ---
 
+## [0.2.2-alpha.13] — 2026-05-01
+
+> Hotfix alpha после ручной проверки `0.2.2-alpha.12`. Закрывает неправильное смешивание overview/window-слоёв в Comparison, из-за которого часть линий могла растягиваться на полный диапазон, часть оставаться в узком viewport, а график визуально “схлопывался”.
+
+### Исправлено
+- **Viewport/window layer isolation**: пустой `experiments_series_window` теперь считается валидной пустой линией текущего viewport, а не поводом подставить overview в основной график. Overview остаётся только для нижней полосы и live-preview.
+- **Brush preview readiness**: основной график переключается в `brush-overview` во время drag только когда overview готов для всех DB-backed линий. Иначе он остаётся на текущем chart/window layer без гибридной отрисовки.
+- **Scale preservation**: после смены uPlot data слой повторно применяет текущий brush x-range, чтобы точное window-обновление не сбрасывало масштаб.
+- **Runtime proof**: warm-navigation smoke теперь проверяет `data-chart-layer="window"` после zoom/commit/return/add, чтобы гибридный слой не прошёл в release незаметно.
+
+### Проверки
+- Targeted Vitest: `useComparisonSeriesWindows` + `chart-brush` — 20 passed.
+- Full `npm test`, `npm run lint`, `npm run typecheck`, `npm run build:ci`, `cargo test --manifest-path src-tauri/Cargo.toml --lib`, `npm run version:validate`, `npm run audit:large-ipc`, `git diff --check` — passed.
+- Tauri warm-nav smoke: during brush drag `0` window requests; return old lines `0` refetch; add 6th old-line refetch `0`; 6th line window requests `1`; chart layer asserted as `window` after commit/return/add.
+
+---
+
 ## [0.2.2-alpha.12] — 2026-05-01
 
 > Follow-up hotfix для `0.2.2-alpha.11`. Закрывает edge-case нижней полосы масштабирования Comparison: простой клик без движения или `pointercancel` больше не оставляет график в overview-preview режиме.
