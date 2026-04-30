@@ -8,6 +8,7 @@ import {
 
 type SeriesPerfCall = {
   command: string;
+  experiment_id: string | null;
   duration_ms: number;
   byte_length: number | null;
   max_points: number | null;
@@ -33,6 +34,7 @@ function recordSeriesPerf(command: string, args: Record<string, unknown>, payloa
   try {
     hook.record({
       command,
+      experiment_id: typeof args.experimentId === 'string' ? args.experimentId : null,
       duration_ms: Math.round(durationMs * 10) / 10,
       byte_length: byteLengthOf(payload),
       max_points: Number.isFinite(Number(args.maxPoints)) ? Number(args.maxPoints) : null,

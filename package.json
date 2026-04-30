@@ -35,6 +35,7 @@
     "perf:comparison:memory:summary": "node scripts/test/summarize-comparison-memory-phases.mjs",
     "perf:chart:tauri": "npx playwright test --config playwright.tauri.config.ts tests/e2e/chart-series-perf.tauri.spec.ts",
     "perf:chart:tauri:memory": "npx cross-env CHART_SERIES_MEMORY_STEPS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/chart-series-perf.tauri.spec.ts",
+    "perf:warm-nav:tauri": "npx playwright test --config playwright.tauri.config.ts tests/e2e/warm-navigation-comparison.tauri.spec.ts",
     "perf:stress": "npx playwright test --config playwright.benchmark.config.ts tests/e2e/memory-stress.spec.ts",
     "perf:compare": "node scripts/test/compare-perf-baselines.js",
     "db:seed:large": "cargo run --manifest-path tools/fixture_seed/Cargo.toml --release",

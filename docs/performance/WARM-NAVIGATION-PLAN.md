@@ -45,8 +45,13 @@ recovered from Rust or SQLite.
    - Keep logical state separate from heavy buffers.
 
 8. `WN-7 perf(comparison): add warm navigation runner`
-   - Prove the 5x100k, leave 30 seconds, return, add 6th scenario.
+   - Prove the 5-line, leave 30 seconds, return, add 6th route lifecycle.
+   - Keep a 5x100k stress variant as the next data-scale extension once a
+     large saved-experiment seed path is available.
    - Write sidecar with cache hits/misses, refetch count, timing, JS heap, and RSS.
+   - Local command: `npm run perf:warm-nav:tauri`.
+   - GitHub Actions are not authoritative for this track; PR bodies should treat
+     local gate output and the generated sidecar as the authoritative evidence.
 
 9. `WN-8 docs(memory): close rollout`
    - Update scorecard and remove or explicitly defer fallback flags.
@@ -59,4 +64,3 @@ recovered from Rust or SQLite.
 - File-based unsaved experiments are a special case: they have no DB id to
   recover from, so they may keep enough data to remain usable until saved.
 - License deactivation and manual comparison clear still clear logical state.
-
