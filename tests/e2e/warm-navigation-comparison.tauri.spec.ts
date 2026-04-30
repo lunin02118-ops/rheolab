@@ -118,6 +118,7 @@ interface WarmNavigationReport {
     double_click_reset_ms: number;
     route_drag_zoom_ms: number;
     brush_pan_ms: number;
+    brush_noop_click_ms: number;
     return_rezoom_ms: number;
     sixth_line_ready_ms: number;
     calls_before_return: number;
@@ -140,6 +141,7 @@ interface WarmNavigationReport {
     brush_extent_after_pan: BrushState | null;
     brush_pan_series_requests_during_drag: SeriesIpcCall[];
     brush_pan_series_requests_after_commit: SeriesIpcCall[];
+    brush_noop_series_requests: SeriesIpcCall[];
     before_leave_snapshot: ComparisonStoreSnapshot;
     after_leave_snapshot: ComparisonStoreSnapshot;
     after_return_snapshot: ComparisonStoreSnapshot;
@@ -413,6 +415,32 @@ async function dragComparisonBrushCenter(
   return { viewport, during, after, seriesRequestsDuringDrag };
 }
 
+async function clickComparisonBrushWithoutMove(
+  page: Page,
+  callsStartIndex: number,
+): Promise<SeriesIpcCall[]> {
+  const brush = page.getByTestId('ChartBrush');
+  await expect(brush).toBeVisible({ timeout: 15_000 });
+  const box = await brush.boundingBox();
+  const state = await readComparisonBrushState(page);
+  if (!box || !state || box.width < 20 || box.height < 10) {
+    throw new Error('Comparison chart brush is not ready for no-move click');
+  }
+
+  const selectionCenterPx = (state.selection_left_px + state.selection_right_px) / 2;
+  const x = box.x + Math.max(8, Math.min(box.width - 8, selectionCenterPx));
+  const y = box.y + box.height * 0.5;
+
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect(page.getByTestId('ComparisonChart')).toHaveAttribute('data-brush-previewing', 'false');
+  await page.waitForTimeout(150);
+
+  const after = await readWarmNavPerfState(page);
+  return callsSince(after, callsStartIndex).filter(call => call.command === 'experiments_series_window');
+}
+
 async function findExperimentIdByName(page: Page, name: string): Promise<string> {
   const id = await page.evaluate(async (experimentName) => {
     const invoke = (window as unknown as {
@@ -553,12 +581,14 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
       let routeDragZoomMs = 0;
       let routeDragZoomViewport: { xMinSec: number; xMaxSec: number } | null = null;
       let brushPanMs = 0;
+      let brushNoopClickMs = 0;
       let brushPanViewport: { xMinSec: number; xMaxSec: number } | null = null;
       let brushExtentBeforePan: BrushState | null = null;
       let brushExtentDuringPan: BrushState | null = null;
       let brushExtentAfterPan: BrushState | null = null;
       let brushPanSeriesRequestsDuringDrag: SeriesIpcCall[] = [];
       let brushPanSeriesRequestsAfterCommit: SeriesIpcCall[] = [];
+      let brushNoopSeriesRequests: SeriesIpcCall[] = [];
       const { ms: initialReadyMs } = await timeStep(async () => {
         await comparison.goto();
         await comparison.expectLoaded();
@@ -625,6 +655,14 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
           .filter(call => call.command === 'experiments_series_window');
         expect(countCallsFor(brushPanSeriesRequestsAfterCommit, initialIds)).toBe(initialN);
         await comparison.expectCanvasPainted();
+
+        const callsBeforeNoopClick = afterBrushCommitPerf.series_calls.length;
+        const noopClickStep = await timeStep(() =>
+          clickComparisonBrushWithoutMove(page, callsBeforeNoopClick),
+        );
+        brushNoopClickMs = noopClickStep.ms;
+        brushNoopSeriesRequests = noopClickStep.result;
+        expect(brushNoopSeriesRequests).toHaveLength(0);
       });
       const beforeLeaveSnapshot = await readComparisonStoreSnapshot(page);
 
@@ -729,6 +767,7 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         double_click_reset_ms: doubleClickResetMs,
         route_drag_zoom_ms: routeDragZoomMs,
         brush_pan_ms: brushPanMs,
+        brush_noop_click_ms: brushNoopClickMs,
         return_rezoom_ms: returnRezoomMs,
         sixth_line_ready_ms: sixthLineReadyMs,
         calls_before_return: callsBeforeReturn,
@@ -751,6 +790,7 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         brush_extent_after_pan: brushExtentAfterPan,
         brush_pan_series_requests_during_drag: brushPanSeriesRequestsDuringDrag,
         brush_pan_series_requests_after_commit: brushPanSeriesRequestsAfterCommit,
+        brush_noop_series_requests: brushNoopSeriesRequests,
         before_leave_snapshot: beforeLeaveSnapshot,
         after_leave_snapshot: afterLeaveSnapshot,
         after_return_snapshot: afterReturnSnapshot,

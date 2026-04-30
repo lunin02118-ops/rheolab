@@ -249,6 +249,29 @@ function ComparisonChartUPlotInner({
         onViewportChange?.(nextViewport);
     }, [onViewportChange]);
 
+    const handleBrushDragEnd = useCallback((reason: 'commit' | 'noop' | 'cancel') => {
+        if (reason === 'commit') return;
+
+        committedBrushViewportRef.current = null;
+        setIsBrushPreviewing(false);
+
+        const nextRange = viewportToBrushRange(chartViewport);
+        brushRangeRef.current = nextRange;
+        setBrushRange(nextRange);
+
+        const u = uPlotRef.current;
+        if (!u) return;
+        if (nextRange) {
+            u.setScale('x', { min: nextRange[0], max: nextRange[1] });
+            return;
+        }
+
+        const times = u.data[0] as number[] | undefined;
+        if (times && times.length > 0) {
+            u.setScale('x', { min: times[0], max: times[times.length - 1] });
+        }
+    }, [chartViewport]);
+
     const handleBrushReset = useCallback(() => {
         const u = uPlotRef.current;
         if (u) resetZoom(u);
@@ -545,7 +568,14 @@ function ComparisonChartUPlotInner({
 
     return (
         <div className="flex flex-col h-full w-full">
-            <div ref={chartContainerRef} className="flex-1 min-h-0 relative overflow-hidden" data-testid="ComparisonChart" role="img" aria-label="График сравнения экспериментов">
+            <div
+                ref={chartContainerRef}
+                className="flex-1 min-h-0 relative overflow-hidden"
+                data-testid="ComparisonChart"
+                data-brush-previewing={isBrushPreviewing ? 'true' : 'false'}
+                role="img"
+                aria-label="График сравнения экспериментов"
+            >
                 {isChartContainerReady && uPlotData[0].length > 0 ? (
                     <div className="absolute inset-0">
                         <UPlotChart 
@@ -578,6 +608,7 @@ function ComparisonChartUPlotInner({
                         onDragStart={handleBrushDragStart}
                         onChange={handleBrushChange}
                         onCommit={handleBrushCommit}
+                        onDragEnd={handleBrushDragEnd}
                         onReset={handleBrushReset}
                         width={brushWidth}
                         height={36}

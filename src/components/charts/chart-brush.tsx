@@ -16,6 +16,7 @@ export interface ChartBrushProps {
     onDragStart?: () => void;
     onChange: (min: number, max: number) => void;
     onCommit?: (min: number, max: number) => void;
+    onDragEnd?: (reason: 'commit' | 'noop' | 'cancel') => void;
     onReset: () => void;
     height?: number;
     width: number;
@@ -32,6 +33,7 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
     onDragStart,
     onChange,
     onCommit,
+    onDragEnd,
     onReset,
     height = 40,
     width,
@@ -133,9 +135,9 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
         };
     }, []);
 
-    const stateRef = useRef({ selLeft, selRight, width, tMin, tSpan, isDegenerate, onDragStart, onChange, onCommit, onReset });
+    const stateRef = useRef({ selLeft, selRight, width, tMin, tSpan, isDegenerate, onDragStart, onChange, onCommit, onDragEnd, onReset });
     useEffect(() => {
-        stateRef.current = { selLeft, selRight, width, tMin, tSpan, isDegenerate, onDragStart, onChange, onCommit, onReset };
+        stateRef.current = { selLeft, selRight, width, tMin, tSpan, isDegenerate, onDragStart, onChange, onCommit, onDragEnd, onReset };
     });
 
     useEffect(() => {
@@ -238,6 +240,9 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
                 drag.current = null;
                 if (commit && completedDrag.hasChanged) {
                     stateRef.current.onCommit?.(completedDrag.lastMin, completedDrag.lastMax);
+                    stateRef.current.onDragEnd?.('commit');
+                } else {
+                    stateRef.current.onDragEnd?.(commit ? 'noop' : 'cancel');
                 }
             }
         };

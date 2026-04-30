@@ -108,6 +108,7 @@ describe('ChartBrush — stale range clamping', () => {
     it('previews every drag move but commits the range only once on pointerup', () => {
         const onChange = vi.fn();
         const onCommit = vi.fn();
+        const onDragEnd = vi.fn();
         const { container } = render(
             <ChartBrush
                 times={[0, 10, 20, 30, 40]}
@@ -115,6 +116,7 @@ describe('ChartBrush — stale range clamping', () => {
                 range={[5, 15]}
                 onChange={onChange}
                 onCommit={onCommit}
+                onDragEnd={onDragEnd}
                 onReset={() => {}}
                 width={400}
             />,
@@ -146,11 +148,14 @@ describe('ChartBrush — stale range clamping', () => {
 
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(onCommit).toHaveBeenLastCalledWith(...onChange.mock.calls.at(-1)!);
+        expect(onDragEnd).toHaveBeenCalledTimes(1);
+        expect(onDragEnd).toHaveBeenLastCalledWith('commit');
     });
 
-    it('does not commit a cancelled drag', () => {
+    it('ends a no-move pointerup as noop without committing', () => {
         const onChange = vi.fn();
         const onCommit = vi.fn();
+        const onDragEnd = vi.fn();
         const { container } = render(
             <ChartBrush
                 times={[0, 10, 20, 30, 40]}
@@ -158,6 +163,48 @@ describe('ChartBrush — stale range clamping', () => {
                 range={[5, 15]}
                 onChange={onChange}
                 onCommit={onCommit}
+                onDragEnd={onDragEnd}
+                onReset={() => {}}
+                width={400}
+            />,
+        );
+
+        const root = findBrushRoot(container);
+        Object.defineProperty(root, 'getBoundingClientRect', {
+            value: () => ({
+                left: 0,
+                top: 0,
+                right: 400,
+                bottom: 36,
+                width: 400,
+                height: 36,
+                x: 0,
+                y: 0,
+                toJSON: () => ({}),
+            }),
+        });
+
+        fireEvent.pointerDown(root, { clientX: 100, clientY: 18, button: 0, pointerId: 9 });
+        fireEvent.pointerUp(root, { clientX: 100, clientY: 18, pointerId: 9 });
+
+        expect(onChange).not.toHaveBeenCalled();
+        expect(onCommit).not.toHaveBeenCalled();
+        expect(onDragEnd).toHaveBeenCalledTimes(1);
+        expect(onDragEnd).toHaveBeenLastCalledWith('noop');
+    });
+
+    it('does not commit a cancelled drag', () => {
+        const onChange = vi.fn();
+        const onCommit = vi.fn();
+        const onDragEnd = vi.fn();
+        const { container } = render(
+            <ChartBrush
+                times={[0, 10, 20, 30, 40]}
+                values={[1, 2, 3, 4, 5]}
+                range={[5, 15]}
+                onChange={onChange}
+                onCommit={onCommit}
+                onDragEnd={onDragEnd}
                 onReset={() => {}}
                 width={400}
             />,
@@ -184,6 +231,8 @@ describe('ChartBrush — stale range clamping', () => {
 
         expect(onChange).toHaveBeenCalledTimes(1);
         expect(onCommit).not.toHaveBeenCalled();
+        expect(onDragEnd).toHaveBeenCalledTimes(1);
+        expect(onDragEnd).toHaveBeenLastCalledWith('cancel');
     });
 
     it('keeps drag-emitted onChange values inside the actual data extent for a partially-overlapping stale range', () => {
