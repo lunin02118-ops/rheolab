@@ -52,8 +52,11 @@ export interface SeriesMetaResponse {
   dataHash: string;
 }
 
-function asArrayBuffer(input: ArrayBuffer | ArrayBufferView): ArrayBuffer {
+export type RheoSeriesBinaryInput = ArrayBuffer | ArrayBufferView | number[];
+
+function asArrayBuffer(input: RheoSeriesBinaryInput): ArrayBuffer {
   if (input instanceof ArrayBuffer) return input;
+  if (Array.isArray(input)) return Uint8Array.from(input).buffer;
   return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
 }
 
@@ -65,7 +68,7 @@ function readMagic(view: DataView): string {
   return out;
 }
 
-export function decodeRheoSeriesV1(input: ArrayBuffer | ArrayBufferView): SeriesWindow {
+export function decodeRheoSeriesV1(input: RheoSeriesBinaryInput): SeriesWindow {
   const buffer = asArrayBuffer(input);
   if (buffer.byteLength < HEADER_BYTES) {
     throw new Error('RHEO_SERIES_V1 payload is too short');

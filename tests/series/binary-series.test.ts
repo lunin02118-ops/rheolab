@@ -56,6 +56,20 @@ describe('decodeRheoSeriesV1', () => {
     expect(Array.from(decoded.columns.temperatureC ?? [])).toEqual([20, 21, 22]);
   });
 
+  it('accepts byte arrays returned by some Tauri binary IPC paths', () => {
+    const payload = makePayload([
+      { id: 1, values: [0, 60] },
+      { id: 2, values: [100, 120] },
+    ]);
+    const bytes = Array.from(new Uint8Array(payload));
+
+    const decoded = decodeRheoSeriesV1(bytes);
+
+    expect(decoded.pointCount).toBe(2);
+    expect(Array.from(decoded.columns.timeSec)).toEqual([0, 60]);
+    expect(Array.from(decoded.columns.viscosityCp ?? [])).toEqual([100, 120]);
+  });
+
   it('rejects bad magic', () => {
     const payload = makePayload([{ id: 1, values: [0] }]);
     new Uint8Array(payload)[0] = 0;
