@@ -29,7 +29,8 @@ Merge or rebase linearly:
 | 1 | #23 | `codex/beta-readiness-ui-latency` | Tune library filter debounce by filter kind | open, mergeable |
 | 2 | #24 | `codex/beta-readiness-comparison-rss` | Summarize N=5 comparison memory phase readout | open, mergeable |
 | 3 | #25 | `codex/beta-readiness-n10-policy` | Document N=10 beta policy and sentinel smoke | open, mergeable |
-| 4 | #26 | `codex/beta-readiness-scorecard` | This aggregate beta readiness scorecard | current |
+| 4 | #26 | `codex/beta-readiness-scorecard` | Aggregate beta readiness scorecard | open, mergeable |
+| 5 | #27 | `codex/beta-readiness-report-xlsx-smoke` | Saved ReportTab by-id XLSX structural smoke | current |
 
 Do not merge these out of order unless the stack is rebased first.
 
@@ -106,6 +107,32 @@ Observed sentinel sidecar:
 }
 ```
 
+### Saved ReportTab XLSX Structure
+
+PR #27 upgrades the saved ReportTab by-id smoke from byte/magic-byte checks to
+artifact structure checks. The real Tauri smoke now parses the downloaded XLSX
+with ExcelJS and asserts:
+
+- workbook contains `Report` and hidden `DebugInfo` sheets;
+- `Report` contains the summary, recipe, and water-analysis sections;
+- edited water source and full ion fields (`pH`, `Fe`, `Ca`, `Mg`, `Cl`,
+  `SO4`, `HCO3`) are present in the workbook;
+- debug sheet carries export settings fields.
+
+Fresh local run:
+
+```powershell
+RHEOLAB_E2E_REAL_REPORTS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/saved-report-by-id-smoke.tauri.spec.ts
+```
+
+Result: 1 passed. Observed artifact sizes:
+
+| Artifact | Bytes |
+| --- | ---: |
+| beginner PDF | 53,675 |
+| saved by-id XLSX | 52,047 |
+| expert PDF | 53,986 |
+
 ## Local Validation
 
 The local gate is authoritative. GitHub Actions status must not be used as the
@@ -138,6 +165,7 @@ npm run perf:db:small
 npm run perf:db:large
 COMPARISON_SMOKE_MEMORY_STEPS=1 COMPARISON_SMOKE_N=5 npm run perf:comparison:tauri
 COMPARISON_SMOKE_N=10 npm run perf:comparison:tauri
+RHEOLAB_E2E_REAL_REPORTS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/saved-report-by-id-smoke.tauri.spec.ts
 ```
 
 For a final beta candidate, repeat the full local gate on the merged/rebased
@@ -153,6 +181,7 @@ top-of-stack commit and include the release smoke matrix from
 | Library filter latency | GO with watch | Non-text debounce is reduced; remaining cost is UI render/settle. |
 | Comparison memory | GO with watch | Export cleanup reclaim is measured; post-route renderer RSS is near-flat. |
 | N=10 UI smoke | GO | Not applicable under beta cap 8; sentinel skip is validated. |
+| Saved ReportTab by-id artifacts | GO | Real XLSX is parsed structurally and contains expected sheets/sections/water fields. |
 | Total RSS claim | NO-GO as hard win | Keep Total RSS soft because WebView2/GPU/runtime still dominate variance. |
 | GitHub Actions gate | NO-GO | Actions are not authoritative for this repo. |
 

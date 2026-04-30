@@ -9,7 +9,9 @@
 
 import { test, expect, setupBeforeEach } from './base-test.tauri';
 import type { Download, Page } from '@playwright/test';
+import type { Worksheet } from 'exceljs';
 import fs from 'node:fs';
+import ExcelJS from 'exceljs';
 import { CHANDLER_SST_63 } from './fixtures';
 
 setupBeforeEach(test);
@@ -142,6 +144,7 @@ async function assertDownloadBytes(
   download: Download,
   ext: '.pdf' | '.xlsx',
   minSizeBytes: number,
+  inspectBytes?: (bytes: Buffer) => Promise<void> | void,
 ): Promise<{ filename: string; size: number }> {
   const filename = download.suggestedFilename();
   expect(filename.toLowerCase()).toContain(ext);
@@ -154,8 +157,77 @@ async function assertDownloadBytes(
   } else {
     expect(bytes.subarray(0, 2).toString('ascii')).toBe('PK');
   }
+  await inspectBytes?.(bytes);
   await download.delete().catch(() => undefined);
   return { filename, size: bytes.length };
+}
+
+function stringifyCellValue(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object') {
+    const maybeRichText = value as { richText?: Array<{ text?: string }> };
+    if (Array.isArray(maybeRichText.richText)) {
+      return maybeRichText.richText.map(part => part.text ?? '').join('');
+    }
+    const maybeFormula = value as { result?: unknown; text?: string; hyperlink?: string };
+    if (maybeFormula.result != null) return stringifyCellValue(maybeFormula.result);
+    if (maybeFormula.text != null) return maybeFormula.text;
+    if (maybeFormula.hyperlink != null) return maybeFormula.hyperlink;
+  }
+  return String(value);
+}
+
+function worksheetText(sheet: Worksheet): string {
+  const parts: string[] = [];
+  sheet.eachRow({ includeEmpty: false }, (row) => {
+    row.eachCell({ includeEmpty: false }, (cell) => {
+      const text = stringifyCellValue(cell.value);
+      if (text) parts.push(text);
+    });
+  });
+  return parts.join('\n');
+}
+
+async function assertSavedReportWorkbookStructure(bytes: Buffer): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(bytes);
+
+  expect(workbook.worksheets.map(sheet => sheet.name)).toEqual(
+    expect.arrayContaining(['Report', 'DebugInfo']),
+  );
+
+  const reportSheet = workbook.getWorksheet('Report');
+  const debugSheet = workbook.getWorksheet('DebugInfo');
+  expect(reportSheet).toBeTruthy();
+  expect(debugSheet).toBeTruthy();
+  expect(debugSheet?.state).toBe('hidden');
+
+  const reportText = worksheetText(reportSheet!);
+  expect(reportText).toContain('Сводка');
+  expect(reportText).toContain('Рецептура');
+  expect(reportText).toContain('Анализ воды');
+  expect(reportText).toContain('E2E Report Water');
+  expect(reportText).toContain('pH');
+  expect(reportText).toContain('Fe');
+  expect(reportText).toContain('Ca');
+  expect(reportText).toContain('Mg');
+  expect(reportText).toContain('Cl');
+  expect(reportText).toContain('SO4');
+  expect(reportText).toContain('HCO3');
+  expect(reportText).toContain('8.2');
+  expect(reportText).toContain('12.3');
+  expect(reportText).toContain('4.5');
+  expect(reportText).toContain('89.0');
+  expect(reportText).toContain('7.8');
+  expect(reportText).toContain('145.0');
+
+  const debugText = worksheetText(debugSheet!);
+  expect(debugText).toContain('Show Shear Rate');
+  expect(debugText).toContain('Show Pressure');
 }
 
 async function findExperimentIdByName(page: Page, name: string): Promise<string> {
@@ -283,7 +355,12 @@ test.describe('[RC Manual Smoke/Tauri] saved Report tab by-id', () => {
 
     const beforeExcel = (await readSmokeState(page)).reportRequests.length;
     const xlsx = await reports.downloadExcel(180_000);
-    const xlsxStats = await assertDownloadBytes(xlsx, '.xlsx', 4_096);
+    const xlsxStats = await assertDownloadBytes(
+      xlsx,
+      '.xlsx',
+      4_096,
+      assertSavedReportWorkbookStructure,
+    );
     state = await readSmokeState(page);
     expect(eventsSince(state.reportRequests, beforeExcel).some(event => event.kind === 'excel')).toBe(true);
 
