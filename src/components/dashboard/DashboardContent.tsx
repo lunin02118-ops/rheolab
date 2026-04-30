@@ -10,6 +10,7 @@ import { ChartErrorBoundary } from '@/components/shared/ChartErrorBoundary';
 // load reduces initial JS parse cost and keeps the first-paint path lean.
 const CalibrationPanel = lazy(() => import('@/components/calibration/CalibrationPanel').then(m => ({ default: m.CalibrationPanel })));
 const RawDataTable = lazy(() => import('@/components/dashboard/raw-data-table').then(m => ({ default: m.RawDataTable })));
+const RawDataTableById = lazy(() => import('@/components/dashboard/raw-data-table-by-id').then(m => ({ default: m.RawDataTableById })));
 const RecipePanel = lazy(() => import('@/components/analysis/recipe-panel').then(m => ({ default: m.RecipePanel })));
 const WaterAnalysisPanel = lazy(() => import('@/components/analysis/water-analysis-panel').then(m => ({ default: m.WaterAnalysisPanel })));
 const ReportTab = lazy(() => import('@/components/analysis/ReportTab').then(m => ({ default: m.ReportTab })));
@@ -85,7 +86,7 @@ function DashboardContentInner({
 
     const switchTab = useCallback((tab: typeof activeTab) => {
         setActiveTab(tab);
-        if ((tab === 'table' || tab === 'report') && isMetadataOnly) {
+        if (tab === 'report' && isMetadataOnly) {
             void onRequireFullData?.();
         }
         requestAnimationFrame(() => {
@@ -123,6 +124,7 @@ function DashboardContentInner({
     const currentGeometry = geometryOverride?.geometry || parseResult.metadata?.geometry || 'Unknown';
     const chartColumnarData = binarySeries.columnarData ?? parseResult.columnarData ?? null;
     const currentGeometrySource = geometryOverride ? 'manual' : parseResult.metadata?.geometrySource || 'unknown';
+    const experimentId = parseResult.metadata?.experimentId;
 
     return (
         <div className="space-y-6">
@@ -305,10 +307,20 @@ function DashboardContentInner({
 
                 {activeTab !== 'chart' && (
                     <Suspense fallback={<div className="flex h-48 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /></div>}>
-                        {isMetadataOnly && (activeTab === 'table' || activeTab === 'report') && (
+                        {isMetadataOnly && activeTab === 'report' && (
                             <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
                                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent mr-3" />
                                 Загружаем полный набор данных
+                            </div>
+                        )}
+
+                        {activeTab === 'table' && isMetadataOnly && experimentId && (
+                            <RawDataTableById experimentId={experimentId} pageSize={25} />
+                        )}
+
+                        {activeTab === 'table' && isMetadataOnly && !experimentId && (
+                            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                                Не удалось открыть таблицу: отсутствует id эксперимента
                             </div>
                         )}
 

@@ -1,6 +1,7 @@
 use crate::commands::experiments::types::{
-    ExperimentDetailMeta, ExperimentDetailSummary, StoredExperiment, StoredExperimentLaboratory,
-    StoredExperimentReagent, StoredExperimentUser, StoredReagentDescriptor,
+    ExperimentDetailMeta, ExperimentDetailSummary, RawTablePage, RawTableRow, StoredExperiment,
+    StoredExperimentLaboratory, StoredExperimentReagent, StoredExperimentUser,
+    StoredReagentDescriptor,
 };
 use crate::error::Result;
 use rusqlite::{params, OptionalExtension};
@@ -332,6 +333,109 @@ pub(crate) fn load_experiment_detail_meta_by_id(
     Ok(Some(meta))
 }
 
+pub(crate) fn load_raw_table_page_by_id(
+    conn: &rusqlite::Connection,
+    experiment_id: &str,
+    page: usize,
+    page_size: usize,
+) -> Result<Option<RawTablePage>> {
+    let blob: Option<Vec<u8>> = conn
+        .query_row(
+            "SELECT dataBlob FROM ExperimentData WHERE experimentId = ?1",
+            params![experiment_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+
+    let columns = if let Some(blob) = blob {
+        Some(crate::db::columnar::decode_typed(&blob)?)
+    } else {
+        let raw_points: Option<String> = conn
+            .query_row(
+                "SELECT rawPoints FROM Experiment WHERE id = ?1",
+                params![experiment_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        match raw_points {
+            Some(raw_points) if !raw_points.trim().is_empty() && raw_points.trim() != "[]" => {
+                Some(raw_points_json_to_columns(&raw_points)?)
+            }
+            Some(_) => Some(HashMap::new()),
+            None => None,
+        }
+    };
+
+    let Some(columns) = columns else {
+        return Ok(None);
+    };
+
+    let total_rows = columns.values().map(Vec::len).max().unwrap_or(0);
+    let total_pages = total_rows.div_ceil(page_size).max(1);
+    let start = page.saturating_sub(1).saturating_mul(page_size);
+    let end = (start + page_size).min(total_rows);
+    let has_bath_temperature = first_present_column(
+        &columns,
+        &["bath_temperature_c", "bathTemperatureC"],
+    )
+    .map(|values| values.iter().any(|value| value.is_some_and(f64::is_finite)))
+    .unwrap_or(false);
+
+    let mut rows = Vec::with_capacity(end.saturating_sub(start));
+    for idx in start..end {
+        rows.push(RawTableRow {
+            index: idx + 1,
+            time_sec: finite_column_value(&columns, &["time_sec", "timeSec", "time"], idx),
+            viscosity_cp: finite_column_value(
+                &columns,
+                &["viscosity_cp", "viscosityCp", "viscosity"],
+                idx,
+            ),
+            temperature_c: finite_column_value(
+                &columns,
+                &["temperature_c", "temperatureC", "temperature"],
+                idx,
+            ),
+            speed_rpm: finite_column_value(&columns, &["speed_rpm", "speedRpm", "rpm"], idx),
+            shear_rate_s1: finite_column_value(
+                &columns,
+                &["shear_rate_s1", "shearRateS1", "shear_rate", "shearRate"],
+                idx,
+            ),
+            shear_stress_pa: finite_column_value(
+                &columns,
+                &[
+                    "shear_stress_pa",
+                    "shearStressPa",
+                    "shear_stress",
+                    "shearStress",
+                ],
+                idx,
+            ),
+            pressure_bar: finite_column_value(
+                &columns,
+                &["pressure_bar", "pressureBar", "pressure"],
+                idx,
+            ),
+            bath_temperature_c: finite_column_value(
+                &columns,
+                &["bath_temperature_c", "bathTemperatureC"],
+                idx,
+            ),
+        });
+    }
+
+    Ok(Some(RawTablePage {
+        experiment_id: experiment_id.to_string(),
+        total_rows,
+        page,
+        page_size,
+        total_pages,
+        has_bath_temperature,
+        rows,
+    }))
+}
+
 /// Batch-load multiple experiments in 3 queries rather than 3 × N.
 ///
 /// Preferred over calling [`load_experiment_by_id`] in a loop whenever `ids`
@@ -596,6 +700,48 @@ fn load_reagents_for_experiment(
         .map_err(|e| format!("SQL error (reagent row): {}", e))?;
 
     Ok(reagents)
+}
+
+fn raw_points_json_to_columns(raw_points: &str) -> Result<HashMap<String, Vec<Option<f64>>>> {
+    let values: Vec<Value> = serde_json::from_str(raw_points)?;
+    let mut columns: HashMap<String, Vec<Option<f64>>> = HashMap::new();
+    for (idx, value) in values.iter().enumerate() {
+        if let Value::Object(map) = value {
+            for key in map.keys() {
+                columns.entry(key.clone()).or_insert_with(|| vec![None; idx]);
+            }
+            for column in columns.values_mut() {
+                column.push(None);
+            }
+            for (key, value) in map {
+                if let Some(column) = columns.get_mut(key) {
+                    column[idx] = value.as_f64();
+                }
+            }
+        } else {
+            for column in columns.values_mut() {
+                column.push(None);
+            }
+        }
+    }
+    Ok(columns)
+}
+
+fn first_present_column<'a>(
+    columns: &'a HashMap<String, Vec<Option<f64>>>,
+    aliases: &[&str],
+) -> Option<&'a Vec<Option<f64>>> {
+    aliases.iter().find_map(|alias| columns.get(*alias))
+}
+
+fn finite_column_value(
+    columns: &HashMap<String, Vec<Option<f64>>>,
+    aliases: &[&str],
+    idx: usize,
+) -> Option<f64> {
+    first_present_column(columns, aliases)
+        .and_then(|column| column.get(idx).copied().flatten())
+        .filter(|value| value.is_finite())
 }
 
 /// Return sha256 hashes of the compressed ExperimentData blobs for the

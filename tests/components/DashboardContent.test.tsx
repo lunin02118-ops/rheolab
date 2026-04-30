@@ -34,6 +34,10 @@ vi.mock('@/components/dashboard/raw-data-table', () => ({
     RawDataTable: () => <div data-testid="MockRawDataTable" />,
 }));
 
+vi.mock('@/components/dashboard/raw-data-table-by-id', () => ({
+    RawDataTableById: () => <div data-testid="MockRawDataTableById" />,
+}));
+
 vi.mock('@/components/analysis/cycle-results-table', () => ({
     CycleResultsTable: () => <div data-testid="MockCycleResultsTable" />,
 }));
@@ -91,6 +95,7 @@ import React from 'react';
 const mockParseResult = {
     metadata: {
         filename: 'test.xlsx',
+        experimentId: 'exp_1',
         instrumentType: 'Grace' as const,
         testDate: new Date('2026-01-01'),
         fluidType: 'mud' as const,
@@ -163,7 +168,7 @@ describe('DashboardContent', () => {
         expect(await screen.findByTestId('MockRawDataTable')).toBeDefined();
     });
 
-    it('requests full data before rendering table for metadata-only saved experiments', async () => {
+    it('renders paged raw table without full-data load for metadata-only saved experiments', async () => {
         const onRequireFullData = vi.fn().mockResolvedValue(true);
         render(<DashboardContent {...makeProps({
             isMetadataOnly: true,
@@ -171,8 +176,9 @@ describe('DashboardContent', () => {
         })} />);
         const tableTab = screen.getByRole('tab', { name: /Таблица/i });
         fireEvent.click(tableTab);
-        expect(onRequireFullData).toHaveBeenCalledOnce();
-        expect(await screen.findByText(/Загружаем полный набор данных/i)).toBeDefined();
+        expect(onRequireFullData).not.toHaveBeenCalled();
+        expect(await screen.findByTestId('MockRawDataTableById')).toBeDefined();
+        expect(screen.queryByText(/Загружаем полный набор данных/i)).toBeNull();
     });
 
     it('switches to recipe tab on click', async () => {

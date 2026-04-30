@@ -412,6 +412,87 @@ fn detail_meta_excludes_raw_points_and_keeps_summary() {
     assert!(json.get("raw_points").is_none(), "raw_points must not serialize");
 }
 
+/// MEM-3: saved-experiment raw table reads should page rows by id instead of
+/// serializing the full rawPoints array to the WebView.
+#[test]
+fn raw_table_page_by_id_reads_columnar_page() {
+    let conn = open_db();
+    let mut exp = make_experiment("raw_page_001");
+    exp.raw_points = vec![
+        json!({
+            "time_sec": 0.0,
+            "viscosity_cp": 100.0,
+            "temperature_c": 25.0,
+            "speed_rpm": 300.0,
+            "shear_rate_s1": 511.0,
+            "shear_stress_pa": 51.0,
+            "pressure_bar": 0.0,
+            "bath_temperature_c": 25.0
+        }),
+        json!({
+            "time_sec": 60.0,
+            "viscosity_cp": 110.0,
+            "temperature_c": 26.0,
+            "speed_rpm": 300.0,
+            "shear_rate_s1": 511.0,
+            "shear_stress_pa": 52.0,
+            "pressure_bar": 1.0,
+            "bath_temperature_c": 26.0
+        }),
+        json!({
+            "time_sec": 120.0,
+            "viscosity_cp": 120.0,
+            "temperature_c": 27.0,
+            "speed_rpm": 300.0,
+            "shear_rate_s1": 511.0,
+            "shear_stress_pa": 53.0,
+            "pressure_bar": 2.0,
+            "bath_temperature_c": 27.0
+        }),
+        json!({
+            "time_sec": 180.0,
+            "viscosity_cp": 130.0,
+            "temperature_c": 28.0,
+            "speed_rpm": 300.0,
+            "shear_rate_s1": 511.0,
+            "shear_stress_pa": 54.0,
+            "pressure_bar": 3.0,
+            "bath_temperature_c": 28.0
+        }),
+    ];
+    persist_experiment(&conn, &exp).unwrap();
+
+    let page = load_raw_table_page_by_id(&conn, "raw_page_001", 2, 2)
+        .unwrap()
+        .expect("raw table page should exist");
+
+    assert_eq!(page.experiment_id, "raw_page_001");
+    assert_eq!(page.total_rows, 4);
+    assert_eq!(page.page, 2);
+    assert_eq!(page.page_size, 2);
+    assert_eq!(page.total_pages, 2);
+    assert!(page.has_bath_temperature);
+    assert_eq!(page.rows.len(), 2);
+
+    let first = &page.rows[0];
+    assert_eq!(first.index, 3);
+    assert_eq!(first.time_sec, Some(120.0));
+    assert_eq!(first.viscosity_cp, Some(120.0));
+    assert_eq!(first.temperature_c, Some(27.0));
+    assert_eq!(first.speed_rpm, Some(300.0));
+    assert_eq!(first.shear_rate_s1, Some(511.0));
+    assert_eq!(first.shear_stress_pa, Some(53.0));
+    assert_eq!(first.pressure_bar, Some(2.0));
+    assert_eq!(first.bath_temperature_c, Some(27.0));
+}
+
+#[test]
+fn raw_table_page_by_id_returns_none_for_missing_experiment() {
+    let conn = open_db();
+    let page = load_raw_table_page_by_id(&conn, "missing_raw_page", 1, 25).unwrap();
+    assert!(page.is_none());
+}
+
 // ── Touch-point precompute (PR2 Phase B) ─────────────────────────────────
 
 /// Build a StoredExperiment whose raw_points form a declining curve that

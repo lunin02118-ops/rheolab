@@ -386,6 +386,12 @@ export type ParserArtifactItem = { id: string; experimentId: string; importBatch
 
 export type ProjectionRebuildBatchResult = { processed: number; lastExperimentId: string | null; hasMore: boolean }
 
+export type RawTablePage = { experimentId: string; totalRows: number; page: number; pageSize: number; totalPages: number; hasBathTemperature: boolean; rows: RawTableRow[] }
+
+export type RawTablePageResponse = { success: boolean; page?: RawTablePage | null; error?: string | null }
+
+export type RawTableRow = { index: number; timeSec: number | null; viscosityCp: number | null; temperatureC: number | null; speedRpm: number | null; shearRateS1: number | null; shearStressPa: number | null; pressureBar: number | null; bathTemperatureC: number | null }
+
 export type ReagentDeleteResponse = { success: boolean; error?: string | null }
 
 export type ReagentMutationResponse = { success: boolean; reagent?: StoredReagent | null; error?: string | null }

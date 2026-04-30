@@ -255,6 +255,11 @@ export interface PlatformBridge {
     filterMetadata: () => Promise<ExperimentsFilterMetadataResponse>;
     get: (id: string) => Promise<ExperimentGetResponse>;
     detailMeta: (id: string) => Promise<ExperimentDetailMetaResponse>;
+    rawTablePage: (
+      experimentId: string,
+      page: number,
+      pageSize: number,
+    ) => Promise<RawTablePageResponse>;
     getBatch: (ids: string[]) => Promise<ExperimentGetBatchResponse>;
     checkExistence: (ids: string[]) => Promise<ExperimentExistenceResponse>;
 

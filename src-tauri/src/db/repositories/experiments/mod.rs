@@ -21,7 +21,7 @@ mod write;
 pub(crate) use delete::delete_experiment;
 pub(crate) use read::{
     find_duplicate, load_experiment_by_id, load_experiment_data_hashes,
-    load_experiment_detail_meta_by_id, load_experiments_batch,
+    load_experiment_detail_meta_by_id, load_experiments_batch, load_raw_table_page_by_id,
 };
 pub(crate) use write::persist_experiment;
 

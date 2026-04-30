@@ -38,6 +38,7 @@ macro_rules! register_tauri_commands {
             $crate::commands::experiments::experiments_count,
             $crate::commands::experiments::experiments_get,
             $crate::commands::experiments::experiments_detail_meta_by_id,
+            $crate::commands::experiments::experiments_raw_table_page_by_id,
             $crate::commands::experiments::experiments_get_batch,
             $crate::commands::experiments::experiments_check_existence,
             $crate::commands::experiments::experiments_save,
