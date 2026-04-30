@@ -64,6 +64,17 @@ function makeSeriesWindow(id: string): SeriesWindow {
     };
 }
 
+function makeEmptySeriesWindow(): SeriesWindow {
+    return {
+        version: 1,
+        pointCount: 0,
+        descriptors: [],
+        columns: {
+            timeSec: new Float64Array([]),
+        },
+    };
+}
+
 function deferred<T>() {
     let resolve!: (value: T) => void;
     let reject!: (reason?: unknown) => void;
@@ -215,6 +226,38 @@ describe('useComparisonSeriesWindows', () => {
             ['exp-1', 30, 90],
             ['exp-2', 30, 90],
         ]);
+    });
+
+    it('falls back to overview when a persisted viewport returns an empty window', async () => {
+        const viewport = { xMinSec: 3000, xMaxSec: 3600 };
+        const experiments = [makeExperiment('exp-1')];
+        vi.mocked(series.window).mockResolvedValue(makeEmptySeriesWindow());
+        vi.mocked(series.overview).mockResolvedValue(makeSeriesWindow('exp-1'));
+
+        const { result, rerender } = renderHook(({ experiments, viewport }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, viewport, sessionId: 'session-1' }), {
+            initialProps: { experiments, viewport },
+        });
+
+        await waitFor(() => {
+            expect(result.current.readyCount).toBe(1);
+        });
+
+        expect(series.window).toHaveBeenCalledTimes(1);
+        expect(series.overview).toHaveBeenCalledTimes(1);
+        expect(result.current.usedViewportFallback).toBe(true);
+        expect((result.current.experiments[0] as Record<string, any>).columnarData.timeSec.length).toBe(3);
+
+        rerender({ experiments, viewport });
+        await new Promise(resolve => window.setTimeout(resolve, 150));
+
+        expect(series.window).toHaveBeenCalledTimes(1);
+        expect(series.overview).toHaveBeenCalledTimes(1);
+
+        rerender({ experiments, viewport: null });
+        await waitFor(() => {
+            expect(result.current.usedViewportFallback).toBe(false);
+        });
     });
 
     it('keeps existing lines ready and loads only the added experiment for the same viewport', async () => {

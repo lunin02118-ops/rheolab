@@ -6,6 +6,20 @@
 
 ---
 
+## [0.2.2-alpha.7] — 2026-04-30
+
+> Hotfix alpha после ручной проверки `0.2.2-alpha.6`. Закрывает оставшийся user-visible regression в Comparison, когда saved test из базы добавлялся в список, но график оставался на `Загрузка данных...`, а double-click reset мог не сбрасывать внешний viewport.
+
+### Исправлено
+- **Comparison saved DB chart load**: если persisted viewport/brush от предыдущего сравнения не пересекается с выбранным saved experiment, binary `experiments_series_window` может вернуть валидное, но пустое окно. Frontend больше не считает такой ответ успешной линией: для этого experiment выполняется fallback на overview, viewport помечается как stale и сбрасывается, чтобы график сразу показал полный диапазон вместо вечной загрузки или пустой x-scale.
+- **Comparison double-click reset**: reset-handler теперь использует тот же `resetZoom`, что и brush reset: сначала очищает brush/viewport ref, затем выставляет полный x-range. Это закрывает случай, где внешний persisted viewport мог удерживать старую шкалу после double-click.
+
+### Проверки
+- Targeted Vitest: `useComparisonSeriesWindows`, `zoom-plugin`, `comparison-selector` — 12 passed.
+- Full `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml --lib`, `npm run build:ci`, `npm run perf:warm-nav:tauri`, `npm run version:validate`, `npm run audit:large-ipc`, `git diff --check` — passed.
+
+---
+
 ## [0.2.2-alpha.6] — 2026-04-30
 
 > Hotfix alpha после ручной проверки `0.2.2-alpha.5`. Закрывает два user-visible regression'а в Comparison: добавление saved tests из базы и double-click reset графика.

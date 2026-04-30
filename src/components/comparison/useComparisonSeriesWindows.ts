@@ -3,7 +3,7 @@ import type { ChartColumnarData, Experiment } from '@/types';
 import type { ComparisonViewport } from '@/lib/store/comparison-store';
 import { isTauri } from '@/lib/tauri/core';
 import { series } from '@/lib/tauri/series';
-import { seriesWindowToColumnarData } from '@/lib/series/binary-series';
+import { seriesWindowToColumnarData, type SeriesWindow } from '@/lib/series/binary-series';
 import {
     serializeSeriesWindowCacheKey,
     seriesWindowCache,
@@ -31,6 +31,7 @@ export interface ComparisonLineSeriesState {
     error?: string;
     columnarData?: ChartColumnarData;
     cacheKey?: string;
+    fallbackViewportKey?: string;
     lastLoadedAt?: number;
 }
 
@@ -48,6 +49,7 @@ export interface UseComparisonSeriesWindowsResult {
     isLoading: boolean;
     readyCount: number;
     errorCount: number;
+    usedViewportFallback: boolean;
 }
 
 function localStorageFlag(name: string): string | null {
@@ -116,6 +118,19 @@ function hasColumnarData(exp: Experiment): boolean {
     return !!columnarData?.timeSec && columnarData.timeSec.length > 0;
 }
 
+function isEmptySeriesWindow(seriesWindow: SeriesWindow): boolean {
+    return seriesWindow.pointCount === 0 || seriesWindow.columns.timeSec.length === 0;
+}
+
+function viewportFallbackKey(
+    experimentId: string,
+    viewportKey: string,
+    metricsKey: string,
+    maxPoints: number,
+): string {
+    return `${experimentId}|${viewportKey}|${metricsKey}|${maxPoints}`;
+}
+
 export function useComparisonSeriesWindows({
     experiments,
     enabled = true,
@@ -136,6 +151,7 @@ export function useComparisonSeriesWindows({
     const lineStatesRef = useRef(lineStates);
     const activeIdsRef = useRef<Set<string>>(new Set());
     const mountedRef = useRef(true);
+    const emptyViewportFallbacksRef = useRef<Set<string>>(new Set());
     const binaryEnabled = enabled && isComparisonBinarySeriesEnabled();
     const experimentIds = experiments.map(exp => exp.id).join('|');
 
@@ -172,13 +188,25 @@ export function useComparisonSeriesWindows({
         for (const exp of experiments) {
             if (isFileExperiment(exp)) continue;
 
-            const cacheKey = makeSeriesCacheKey(exp.id, metricsKey, maxPoints, activeViewport, sessionId);
+            const fallbackKey = activeViewport
+                ? viewportFallbackKey(exp.id, activeViewportKey, metricsKey, maxPoints)
+                : null;
+            const requestViewport = fallbackKey && emptyViewportFallbacksRef.current.has(fallbackKey)
+                ? null
+                : activeViewport;
+            const cacheKey = makeSeriesCacheKey(exp.id, metricsKey, maxPoints, requestViewport, sessionId);
             const serializedKey = serializeSeriesWindowCacheKey(cacheKey);
             const cached = seriesWindowCache.get(cacheKey);
             if (cached) {
+                const fallbackViewportKey = requestViewport === null && fallbackKey ? fallbackKey : undefined;
                 setLineStates(prev => {
                     const existing = prev[exp.id];
-                    if (existing?.status === 'ready' && existing.cacheKey === serializedKey && existing.columnarData === cached) {
+                    if (
+                        existing?.status === 'ready' &&
+                        existing.cacheKey === serializedKey &&
+                        existing.columnarData === cached &&
+                        existing.fallbackViewportKey === fallbackViewportKey
+                    ) {
                         return prev;
                     }
                     return {
@@ -188,6 +216,7 @@ export function useComparisonSeriesWindows({
                             status: 'ready',
                             columnarData: cached,
                             cacheKey: serializedKey,
+                            fallbackViewportKey,
                             lastLoadedAt: Date.now(),
                         },
                     };
@@ -213,49 +242,138 @@ export function useComparisonSeriesWindows({
                 },
             }));
 
+            const setReadyFromSeriesWindow = (
+                seriesWindow: SeriesWindow,
+                readyCacheKey: SeriesWindowCacheKey,
+                readySerializedKey: string,
+                expectedSerializedKey = readySerializedKey,
+                fallbackViewportKey?: string,
+            ) => {
+                if (isEmptySeriesWindow(seriesWindow)) {
+                    setLineStates(prev => {
+                        if (prev[exp.id]?.cacheKey !== expectedSerializedKey && prev[exp.id]?.cacheKey !== readySerializedKey) {
+                            return prev;
+                        }
+                        return {
+                            ...prev,
+                            [exp.id]: {
+                                experimentId: exp.id,
+                                status: 'error',
+                                error: 'Series contains no chart points',
+                                columnarData: prev[exp.id]?.columnarData,
+                                cacheKey: readySerializedKey,
+                                fallbackViewportKey,
+                            },
+                        };
+                    });
+                    return;
+                }
+
+                const columnarData = seriesWindowToColumnarData(seriesWindow);
+                seriesWindowCache.set(readyCacheKey, columnarData);
+                setLineStates(prev => {
+                    if (prev[exp.id]?.cacheKey !== expectedSerializedKey && prev[exp.id]?.cacheKey !== readySerializedKey) {
+                        return prev;
+                    }
+                    return {
+                        ...prev,
+                        [exp.id]: {
+                            experimentId: exp.id,
+                            status: 'ready',
+                            columnarData,
+                            cacheKey: readySerializedKey,
+                            fallbackViewportKey,
+                            lastLoadedAt: Date.now(),
+                        },
+                    };
+                });
+            };
+
+            const setLineError = (
+                error: unknown,
+                errorCacheKey: string,
+                expectedSerializedKey = errorCacheKey,
+                fallbackViewportKey?: string,
+            ) => {
+                setLineStates(prev => {
+                    if (prev[exp.id]?.cacheKey !== expectedSerializedKey && prev[exp.id]?.cacheKey !== errorCacheKey) {
+                        return prev;
+                    }
+                    return {
+                        ...prev,
+                        [exp.id]: {
+                            experimentId: exp.id,
+                            status: 'error',
+                            error: error instanceof Error ? error.message : String(error),
+                            columnarData: prev[exp.id]?.columnarData,
+                            cacheKey: errorCacheKey,
+                            fallbackViewportKey,
+                        },
+                    };
+                });
+            };
+
             const loadSeries = () => {
-                const request = activeViewport
-                    ? series.window(exp.id, activeViewport.xMinSec, activeViewport.xMaxSec, metrics, maxPoints, 'minmax')
+                const request = requestViewport
+                    ? series.window(exp.id, requestViewport.xMinSec, requestViewport.xMaxSec, metrics, maxPoints, 'minmax')
                     : series.overview(exp.id, metrics, maxPoints);
 
                 request
                     .then(seriesWindow => {
                         if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
-                        const columnarData = seriesWindowToColumnarData(seriesWindow);
-                        seriesWindowCache.set(cacheKey, columnarData);
-                        setLineStates(prev => {
-                            if (prev[exp.id]?.cacheKey !== serializedKey) return prev;
-                            return {
-                                ...prev,
-                                [exp.id]: {
-                                    experimentId: exp.id,
-                                    status: 'ready',
-                                    columnarData,
-                                    cacheKey: serializedKey,
-                                    lastLoadedAt: Date.now(),
-                                },
-                            };
-                        });
+
+                        if (requestViewport && fallbackKey && isEmptySeriesWindow(seriesWindow)) {
+                            emptyViewportFallbacksRef.current.add(fallbackKey);
+                            const overviewCacheKey = makeSeriesCacheKey(exp.id, metricsKey, maxPoints, null, sessionId);
+                            const overviewSerializedKey = serializeSeriesWindowCacheKey(overviewCacheKey);
+                            const cachedOverview = seriesWindowCache.get(overviewCacheKey);
+                            if (cachedOverview) {
+                                setLineStates(prev => {
+                                    if (prev[exp.id]?.cacheKey !== serializedKey && prev[exp.id]?.cacheKey !== overviewSerializedKey) {
+                                        return prev;
+                                    }
+                                    return {
+                                        ...prev,
+                                        [exp.id]: {
+                                            experimentId: exp.id,
+                                            status: 'ready',
+                                            columnarData: cachedOverview,
+                                            cacheKey: overviewSerializedKey,
+                                            fallbackViewportKey: fallbackKey,
+                                            lastLoadedAt: Date.now(),
+                                        },
+                                    };
+                                });
+                                return;
+                            }
+
+                            series.overview(exp.id, metrics, maxPoints)
+                                .then(overviewWindow => {
+                                    if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
+                                    setReadyFromSeriesWindow(
+                                        overviewWindow,
+                                        overviewCacheKey,
+                                        overviewSerializedKey,
+                                        serializedKey,
+                                        fallbackKey,
+                                    );
+                                })
+                                .catch(error => {
+                                    if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
+                                    setLineError(error, overviewSerializedKey, serializedKey, fallbackKey);
+                                });
+                            return;
+                        }
+
+                        setReadyFromSeriesWindow(seriesWindow, cacheKey, serializedKey);
                     })
                     .catch(error => {
                         if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
-                        setLineStates(prev => {
-                            if (prev[exp.id]?.cacheKey !== serializedKey) return prev;
-                            return {
-                                ...prev,
-                                [exp.id]: {
-                                    experimentId: exp.id,
-                                    status: 'error',
-                                    error: error instanceof Error ? error.message : String(error),
-                                    columnarData: prev[exp.id]?.columnarData,
-                                    cacheKey: serializedKey,
-                                },
-                            };
-                        });
+                        setLineError(error, serializedKey);
                     });
             };
 
-            if (activeViewport) {
+            if (requestViewport) {
                 timers.push(window.setTimeout(loadSeries, WINDOW_DEBOUNCE_MS));
             } else {
                 loadSeries();
@@ -293,6 +411,14 @@ export function useComparisonSeriesWindows({
         (!binaryEnabled && hasColumnarData(exp))
     )).length;
     const errorCount = Object.values(lineStates).filter(state => state.status === 'error').length;
+    const usedViewportFallback = !!activeViewport && Object.values(lineStates).some(state => (
+        state.fallbackViewportKey === viewportFallbackKey(
+            state.experimentId,
+            activeViewportKey,
+            metricsKey,
+            maxPoints,
+        )
+    ));
     const isLoading = binaryEnabled && experiments.some(exp => (
         !isFileExperiment(exp) &&
         lineStates[exp.id]?.status === 'loading' &&
@@ -306,5 +432,6 @@ export function useComparisonSeriesWindows({
         isLoading,
         readyCount,
         errorCount,
+        usedViewportFallback,
     };
 }

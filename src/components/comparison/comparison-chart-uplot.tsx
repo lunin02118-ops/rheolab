@@ -78,6 +78,7 @@ function ComparisonChartUPlotInner({
     // simultaneously.  150 ms covers typical click-through speed; the list
     // re-renders instantly, only chart GPU recreation is deferred.
     const binarySeries = useComparisonSeriesWindows({ experiments, sessionId, viewport });
+    const chartViewport = binarySeries.usedViewportFallback ? null : viewport;
     const chartExperiments = binarySeries.experiments;
     const debouncedExperiments = useDebouncedValue(chartExperiments, 150);
 
@@ -90,7 +91,7 @@ function ComparisonChartUPlotInner({
      *   (handle positions, range labels). It NEVER feeds back into setScale
      *   via a useEffect, avoiding the async batching / effect-chain races.
      */
-    const initialBrushRange = viewportToBrushRange(viewport);
+    const initialBrushRange = viewportToBrushRange(chartViewport);
     const brushRangeRef = useRef<[number, number] | null>(initialBrushRange);
     const [brushRange, setBrushRange] = useState<[number, number] | null>(initialBrushRange);
     const [hiddenSeries, setHiddenSeries] = useState<Set<number>>(new Set());
@@ -100,6 +101,12 @@ function ComparisonChartUPlotInner({
     const [plotBbox, setPlotBbox] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
     const isChartContainerReady = chartSize.width > 8 && chartSize.height > 8;
+
+    useEffect(() => {
+        if (binarySeries.usedViewportFallback && viewport) {
+            onViewportChange?.(null);
+        }
+    }, [binarySeries.usedViewportFallback, onViewportChange, viewport]);
 
     /** Restore the full data range on the x-axis and clear the brush. */
     const resetZoom = useCallback((u: uPlot) => {
@@ -235,13 +242,19 @@ function ComparisonChartUPlotInner({
         onViewportChange?.(brushRangeToViewport(min, max));
     }, [onViewportChange]);
     const handleZoomReset = useCallback(() => {
+        const u = uPlotRef.current;
+        if (u) {
+            resetZoom(u);
+            return;
+        }
+
         brushRangeRef.current = null;
         setBrushRange(null);
         onViewportChange?.(null);
-    }, [onViewportChange]);
+    }, [onViewportChange, resetZoom]);
 
-    const viewportXMinSec = viewport?.xMinSec;
-    const viewportXMaxSec = viewport?.xMaxSec;
+    const viewportXMinSec = chartViewport?.xMinSec;
+    const viewportXMaxSec = chartViewport?.xMaxSec;
     useEffect(() => {
         const nextRange = viewportToBrushRange(
             viewportXMinSec == null || viewportXMaxSec == null
