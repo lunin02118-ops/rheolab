@@ -197,3 +197,5 @@ PR, чтобы “догнать” head commit.
 - `docs/RELEASE_AND_DEPLOY.md` — основной release flow.
 - `docs/adr/ADR-0010-comparison-report.md` — архитектура фичи.
 - `docs/performance/BASELINES.md` — perf-базлайны общие.
+- `docs/performance/BETA-READINESS-SCORECARD.md` — beta go/no-go readout for
+  memory hardening, UI latency, comparison RSS, and N=10 policy.
