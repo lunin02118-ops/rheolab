@@ -5,6 +5,7 @@ use super::types::{
 };
 use crate::error::{AppError, Result};
 use crate::utils::time::now_rfc3339;
+use chrono::{DateTime, Utc};
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
@@ -26,6 +27,8 @@ const JOB_EVENT_CREATED: &str = "job://created";
 const JOB_EVENT_PROGRESS: &str = "job://progress";
 const JOB_EVENT_FINISHED: &str = "job://finished";
 const OUTPUT_BYTES_UNSET: u64 = u64::MAX;
+const MAX_FINISHED_JOBS: usize = 100;
+const FINISHED_JOB_TTL_SECONDS: i64 = 60 * 60;
 
 #[derive(Debug)]
 struct SpinMutex<T> {
@@ -189,6 +192,7 @@ impl JobScheduler {
     }
 
     pub fn list(&self) -> Vec<JobRecord> {
+        self.prune_finished_jobs();
         let mut records = self.registry.lock().values().cloned().collect::<Vec<_>>();
         records.sort_by(|a, b| b.created_at.cmp(&a.created_at).then(a.id.cmp(&b.id)));
         records
@@ -202,8 +206,12 @@ impl JobScheduler {
             .ok_or_else(|| AppError::BadRequest(format!("Unknown job id: {job_id}")))
     }
 
-    pub fn cancel(&self, job_id: &str) -> Result<JobCancelResponse> {
-        let status = {
+    pub fn cancel(
+        &self,
+        app_handle: Option<JobEventTarget>,
+        job_id: &str,
+    ) -> Result<JobCancelResponse> {
+        let (status, progress_record) = {
             let mut registry = self.registry.lock();
             let record = registry
                 .get_mut(job_id)
@@ -220,8 +228,9 @@ impl JobScheduler {
             record.status = JobStatus::Cancelling;
             record.progress.phase = "cancelling".into();
             record.progress.message = Some("Cancellation requested".into());
-            record.status
+            (record.status, record.clone())
         };
+        emit_progress(&app_handle, &progress_record);
 
         if let Some(token) = self.cancellation.lock().get(job_id).cloned() {
             token.cancel();
@@ -324,6 +333,7 @@ impl JobScheduler {
 
             let wall_ms = wall_started.elapsed().as_millis() as u64;
             let end_snapshot = process_snapshot();
+            let rss_mb_peak = max_optional_f64(start_snapshot.rss_mb, end_snapshot.rss_mb);
 
             match work_result {
                 Ok(output) => {
@@ -331,7 +341,7 @@ impl JobScheduler {
                         queued_ms,
                         wall_ms,
                         start_snapshot.rss_mb,
-                        start_snapshot.rss_mb.or(end_snapshot.rss_mb),
+                        rss_mb_peak,
                         end_snapshot.rss_mb,
                         start_snapshot.cpu_ms_total,
                         end_snapshot.cpu_ms_total,
@@ -356,7 +366,7 @@ impl JobScheduler {
                             queued_ms,
                             wall_ms,
                             start_snapshot.rss_mb,
-                            start_snapshot.rss_mb.or(end_snapshot.rss_mb),
+                            rss_mb_peak,
                             end_snapshot.rss_mb,
                             start_snapshot.cpu_ms_total,
                             end_snapshot.cpu_ms_total,
@@ -457,6 +467,7 @@ impl JobScheduler {
         };
         self.remove_cancellation(job_id);
         emit_finished(app_handle, &record);
+        self.prune_finished_jobs();
     }
 
     fn finish_cancelled(
@@ -482,6 +493,7 @@ impl JobScheduler {
         };
         self.remove_cancellation(job_id);
         emit_finished(app_handle, &record);
+        self.prune_finished_jobs();
     }
 
     fn finish_failed(
@@ -504,10 +516,27 @@ impl JobScheduler {
         };
         self.remove_cancellation(job_id);
         emit_finished(app_handle, &record);
+        self.prune_finished_jobs();
     }
 
     fn remove_cancellation(&self, job_id: &str) {
         self.cancellation.lock().remove(job_id);
+    }
+
+    fn prune_finished_jobs(&self) {
+        let pruned_ids = {
+            let mut registry = self.registry.lock();
+            prune_finished_records(&mut registry)
+        };
+
+        if pruned_ids.is_empty() {
+            return;
+        }
+
+        let mut cancellation = self.cancellation.lock();
+        for job_id in pruned_ids {
+            cancellation.remove(&job_id);
+        }
     }
 }
 
@@ -618,6 +647,77 @@ fn some_nonzero(value: u64) -> Option<u64> {
     } else {
         Some(value)
     }
+}
+
+fn max_optional_f64(left: Option<f64>, right: Option<f64>) -> Option<f64> {
+    match (left, right) {
+        (Some(left), Some(right)) => Some(left.max(right)),
+        (Some(value), None) | (None, Some(value)) => Some(value),
+        (None, None) => None,
+    }
+}
+
+fn prune_finished_records(registry: &mut HashMap<String, JobRecord>) -> Vec<String> {
+    let mut pruned_ids = Vec::new();
+    let now = Utc::now();
+
+    let expired_ids = registry
+        .iter()
+        .filter_map(|(job_id, record)| {
+            is_finished_record_expired(record, now).then(|| job_id.clone())
+        })
+        .collect::<Vec<_>>();
+
+    for job_id in expired_ids {
+        if registry.remove(&job_id).is_some() {
+            pruned_ids.push(job_id);
+        }
+    }
+
+    let mut terminal_records = registry
+        .iter()
+        .filter(|(_, record)| record.status.is_terminal())
+        .map(|(job_id, record)| (job_id.clone(), terminal_sort_key(record)))
+        .collect::<Vec<_>>();
+
+    if terminal_records.len() <= MAX_FINISHED_JOBS {
+        return pruned_ids;
+    }
+
+    terminal_records.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    for (job_id, _) in terminal_records.into_iter().skip(MAX_FINISHED_JOBS) {
+        if registry.remove(&job_id).is_some() {
+            pruned_ids.push(job_id);
+        }
+    }
+
+    pruned_ids
+}
+
+fn terminal_sort_key(record: &JobRecord) -> String {
+    record
+        .finished_at
+        .as_deref()
+        .unwrap_or(&record.created_at)
+        .to_owned()
+}
+
+fn is_finished_record_expired(record: &JobRecord, now: DateTime<Utc>) -> bool {
+    if !record.status.is_terminal() {
+        return false;
+    }
+
+    let Some(finished_at) = record.finished_at.as_deref() else {
+        return false;
+    };
+
+    let Ok(finished_at) = DateTime::parse_from_rfc3339(finished_at) else {
+        return false;
+    };
+
+    now.signed_duration_since(finished_at.with_timezone(&Utc))
+        .num_seconds()
+        > FINISHED_JOB_TTL_SECONDS
 }
 
 fn emit_created(app_handle: &Option<JobEventTarget>, record: &JobRecord) {
@@ -793,7 +893,7 @@ mod tests {
             tokio::task::yield_now().await;
         };
 
-        let response = scheduler.cancel(&queued_id).unwrap();
+        let response = scheduler.cancel(None, &queued_id).unwrap();
         assert!(response.cancelled);
 
         first.await.unwrap().unwrap();
@@ -804,5 +904,66 @@ mod tests {
             scheduler.get(&queued_id).unwrap().status,
             JobStatus::Cancelled
         );
+    }
+
+    #[tokio::test]
+    async fn completed_jobs_are_pruned_by_retention_limit() {
+        let scheduler = Arc::new(JobScheduler::new());
+
+        for _ in 0..(MAX_FINISHED_JOBS + 5) {
+            scheduler
+                .run_blocking(None, JobKind::Maintenance, |_ctx| Ok::<_, AppError>(()))
+                .await
+                .unwrap();
+        }
+
+        let records = scheduler.list();
+        assert_eq!(records.len(), MAX_FINISHED_JOBS);
+        assert!(records
+            .iter()
+            .all(|record| record.status == JobStatus::Succeeded));
+    }
+
+    #[test]
+    fn retention_keeps_active_jobs_and_prunes_expired_terminal_jobs() {
+        let scheduler = JobScheduler::new();
+        let fresh_finished_at = Utc::now().to_rfc3339();
+        let old_finished_at =
+            (Utc::now() - chrono::Duration::seconds(FINISHED_JOB_TTL_SECONDS + 5)).to_rfc3339();
+
+        {
+            let mut registry = scheduler.registry.lock();
+            registry.insert(
+                "fresh".into(),
+                test_record("fresh", JobStatus::Succeeded, Some(fresh_finished_at)),
+            );
+            registry.insert(
+                "old".into(),
+                test_record("old", JobStatus::Succeeded, Some(old_finished_at.clone())),
+            );
+            registry.insert(
+                "running".into(),
+                test_record("running", JobStatus::Running, Some(old_finished_at)),
+            );
+        }
+
+        let records = scheduler.list();
+        assert!(records.iter().any(|record| record.id == "fresh"));
+        assert!(records.iter().any(|record| record.id == "running"));
+        assert!(!records.iter().any(|record| record.id == "old"));
+    }
+
+    fn test_record(id: &str, status: JobStatus, finished_at: Option<String>) -> JobRecord {
+        JobRecord {
+            id: id.into(),
+            kind: JobKind::Maintenance,
+            status,
+            created_at: Utc::now().to_rfc3339(),
+            started_at: None,
+            finished_at,
+            progress: JobProgress::default(),
+            error: None,
+            metrics: None,
+        }
     }
 }

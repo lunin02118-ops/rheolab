@@ -55,8 +55,19 @@ pub async fn jobs_get(state: State<'_, AppState>, job_id: String) -> Result<JobR
 }
 
 #[tauri::command]
-pub async fn jobs_cancel(state: State<'_, AppState>, job_id: String) -> Result<JobCancelResponse> {
-    state.job_scheduler.cancel(&job_id)
+pub async fn jobs_cancel(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    job_id: String,
+) -> Result<JobCancelResponse> {
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+    state.job_scheduler.cancel(app_handle, &job_id)
 }
 
 #[tauri::command]

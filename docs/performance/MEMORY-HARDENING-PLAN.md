@@ -1,7 +1,7 @@
 # Memory Hardening Track
 
-**Status:** planned.
-**Date:** 2026-04-29.
+**Status:** MEM-0 through MEM-6 implemented in stacked PRs; MEM-7 validation pending.
+**Date:** 2026-04-30.
 **Scope:** RC hardening after Sprints 1-6.
 **Base:** after the legacy comparison payload IPC removal lane.
 
