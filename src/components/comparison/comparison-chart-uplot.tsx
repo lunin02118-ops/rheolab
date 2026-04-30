@@ -42,6 +42,12 @@ function brushRangesEqual(a: [number, number] | null, b: [number, number] | null
     return Math.abs(a[0] - b[0]) < 0.001 && Math.abs(a[1] - b[1]) < 0.001;
 }
 
+function viewportsEqual(a: ComparisonViewport | null | undefined, b: ComparisonViewport | null | undefined): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    return Math.abs(a.xMinSec - b.xMinSec) < 0.001 && Math.abs(a.xMaxSec - b.xMaxSec) < 0.001;
+}
+
 /**
  * Decide whether a transition from `previous` to `next` experiment ids should
  * proactively reset the persisted viewport.
@@ -113,8 +119,11 @@ function ComparisonChartUPlotInner({
     const chartViewport = viewport;
     const chartExperiments = binarySeries.experiments;
     const brushExperiments = binarySeries.brushExperiments;
-    const debouncedExperiments = useDebouncedValue(chartExperiments, 150);
+    const [isBrushPreviewing, setIsBrushPreviewing] = useState(false);
+    const committedBrushViewportRef = useRef<ComparisonViewport | null>(null);
+    const debouncedChartExperiments = useDebouncedValue(chartExperiments, 150);
     const debouncedBrushExperiments = useDebouncedValue(brushExperiments, 150);
+    const debouncedExperiments = isBrushPreviewing ? brushExperiments : debouncedChartExperiments;
 
     /**
      * Brush range is stored in BOTH a mutable ref and React state:
@@ -138,6 +147,8 @@ function ComparisonChartUPlotInner({
 
     /** Restore the full data range on the x-axis and clear the brush. */
     const resetZoom = useCallback((u: uPlot) => {
+        committedBrushViewportRef.current = null;
+        setIsBrushPreviewing(false);
         brushRangeRef.current = null;
         const times = u.data[0] as number[] | undefined;
         if (times && times.length > 0) {
@@ -201,12 +212,24 @@ function ComparisonChartUPlotInner({
     }, [chartSize.width, chartSize.height, readPlotBbox]);
 
     /**
-     * Called by ChartBrush on every pointer-move during drag.
-     * Directly calls setScale — no React state update in the hot path,
-     * so uPlot's microtask commit fires without any React re-render racing.
-     * `brushRange` state is updated separately only to drive the brush UI.
+     * Called by ChartBrush on pointerdown. While the user drags/pans the
+     * narrow brush window, render the main chart from overview data so the
+     * "road" is available immediately across the full extent. The precise
+     * binary window is committed and refined after pointerup.
+     */
+    const handleBrushDragStart = useCallback(() => {
+        committedBrushViewportRef.current = null;
+        setIsBrushPreviewing(true);
+    }, []);
+
+    /**
+     * Called by ChartBrush on every pointer-move during drag. This is a local
+     * preview only: it must not write the persisted viewport, because that
+     * triggers binary window refetches. The final viewport is committed once on
+     * pointerup via `handleBrushCommit`.
      */
     const handleBrushChange = useCallback((min: number, max: number) => {
+        setIsBrushPreviewing(true);
         brushRangeRef.current = [min, max];
         const u = uPlotRef.current;
         if (u) {
@@ -215,7 +238,15 @@ function ComparisonChartUPlotInner({
             });
         }
         setBrushRange([min, max]);
-        onViewportChange?.(brushRangeToViewport(min, max));
+    }, []);
+
+    const handleBrushCommit = useCallback((min: number, max: number) => {
+        const nextViewport = brushRangeToViewport(min, max);
+        committedBrushViewportRef.current = nextViewport;
+        if (!nextViewport) {
+            setIsBrushPreviewing(false);
+        }
+        onViewportChange?.(nextViewport);
     }, [onViewportChange]);
 
     const handleBrushReset = useCallback(() => {
@@ -279,6 +310,8 @@ function ComparisonChartUPlotInner({
         [],
     );
     const handleZoom = useCallback((min: number, max: number) => {
+        committedBrushViewportRef.current = null;
+        setIsBrushPreviewing(false);
         brushRangeRef.current = [min, max];
         setBrushRange([min, max]);
         onViewportChange?.(brushRangeToViewport(min, max));
@@ -297,6 +330,16 @@ function ComparisonChartUPlotInner({
 
     const viewportXMinSec = chartViewport?.xMinSec;
     const viewportXMaxSec = chartViewport?.xMaxSec;
+    useEffect(() => {
+        const committedViewport = committedBrushViewportRef.current;
+        if (!isBrushPreviewing || !committedViewport) return;
+        if (!viewportsEqual(chartViewport, committedViewport)) return;
+        if (!binarySeries.isViewportWindowReady) return;
+
+        committedBrushViewportRef.current = null;
+        void Promise.resolve().then(() => setIsBrushPreviewing(false));
+    }, [binarySeries.isViewportWindowReady, chartViewport, isBrushPreviewing]);
+
     useEffect(() => {
         const nextRange = viewportToBrushRange(
             viewportXMinSec == null || viewportXMaxSec == null
@@ -532,7 +575,9 @@ function ComparisonChartUPlotInner({
                         times={brushUPlotData[0] as number[]}
                         values={brushUPlotData[1] as (number | null)[]}
                         range={brushRange}
+                        onDragStart={handleBrushDragStart}
                         onChange={handleBrushChange}
+                        onCommit={handleBrushCommit}
                         onReset={handleBrushReset}
                         width={brushWidth}
                         height={36}

@@ -81,6 +81,15 @@ interface ComparisonStoreSnapshot {
   db_experiments_with_columnar_data: number;
 }
 
+interface BrushState {
+  brush_min: number;
+  brush_max: number;
+  selection_min: number | null;
+  selection_max: number | null;
+  selection_left_px: number;
+  selection_right_px: number;
+}
+
 interface WarmNavigationReport {
   schema: 'rheolab.e2e.perf.warm_navigation_comparison.v1';
   runId: string;
@@ -108,6 +117,7 @@ interface WarmNavigationReport {
     initial_drag_zoom_ms: number;
     double_click_reset_ms: number;
     route_drag_zoom_ms: number;
+    brush_pan_ms: number;
     return_rezoom_ms: number;
     sixth_line_ready_ms: number;
     calls_before_return: number;
@@ -123,7 +133,13 @@ interface WarmNavigationReport {
     initial_drag_zoom_viewport: { xMinSec: number; xMaxSec: number } | null;
     reset_viewport: { xMinSec: number; xMaxSec: number } | null;
     route_drag_zoom_viewport: { xMinSec: number; xMaxSec: number } | null;
+    brush_pan_viewport: { xMinSec: number; xMaxSec: number } | null;
     return_rezoom_viewport: { xMinSec: number; xMaxSec: number } | null;
+    brush_extent_before_pan: BrushState | null;
+    brush_extent_during_pan: BrushState | null;
+    brush_extent_after_pan: BrushState | null;
+    brush_pan_series_requests_during_drag: SeriesIpcCall[];
+    brush_pan_series_requests_after_commit: SeriesIpcCall[];
     before_leave_snapshot: ComparisonStoreSnapshot;
     after_leave_snapshot: ComparisonStoreSnapshot;
     after_return_snapshot: ComparisonStoreSnapshot;
@@ -330,6 +346,73 @@ async function doubleClickResetComparisonChart(page: Page): Promise<{ xMinSec: n
   return waitForComparisonViewport(page, 'clear');
 }
 
+async function readComparisonBrushState(page: Page): Promise<BrushState | null> {
+  const brush = page.getByTestId('ChartBrush');
+  if (!(await brush.isVisible({ timeout: 5_000 }).catch(() => false))) return null;
+  return brush.evaluate((element) => {
+    const attrNumber = (name: string): number | null => {
+      const raw = element.getAttribute(name);
+      if (raw == null || raw === '') return null;
+      const value = Number(raw);
+      return Number.isFinite(value) ? value : null;
+    };
+    const brushMin = attrNumber('data-brush-min');
+    const brushMax = attrNumber('data-brush-max');
+    if (brushMin == null || brushMax == null) return null;
+    return {
+      brush_min: brushMin,
+      brush_max: brushMax,
+      selection_min: attrNumber('data-selection-min'),
+      selection_max: attrNumber('data-selection-max'),
+      selection_left_px: attrNumber('data-selection-left-px') ?? 0,
+      selection_right_px: attrNumber('data-selection-right-px') ?? 0,
+    };
+  });
+}
+
+function expectBrushExtentStable(before: BrushState | null, after: BrushState | null): void {
+  expect(before, 'brush state before pan').not.toBeNull();
+  expect(after, 'brush state after pan').not.toBeNull();
+  expect(after!.brush_min).toBeCloseTo(before!.brush_min, 4);
+  expect(after!.brush_max).toBeCloseTo(before!.brush_max, 4);
+}
+
+async function dragComparisonBrushCenter(
+  page: Page,
+  deltaRatio: number,
+  callsStartIndex: number,
+): Promise<{
+  viewport: { xMinSec: number; xMaxSec: number } | null;
+  during: BrushState | null;
+  after: BrushState | null;
+  seriesRequestsDuringDrag: SeriesIpcCall[];
+}> {
+  const brush = page.getByTestId('ChartBrush');
+  await expect(brush).toBeVisible({ timeout: 15_000 });
+  const box = await brush.boundingBox();
+  const before = await readComparisonBrushState(page);
+  if (!box || !before || box.width < 20 || box.height < 10) {
+    throw new Error('Comparison chart brush is not ready for center drag');
+  }
+
+  const selectionCenterPx = (before.selection_left_px + before.selection_right_px) / 2;
+  const startX = box.x + Math.max(8, Math.min(box.width - 8, selectionCenterPx));
+  const endX = Math.max(box.x + 8, Math.min(box.x + box.width - 8, startX + box.width * deltaRatio));
+  const y = box.y + box.height * 0.5;
+
+  await page.mouse.move(startX, y);
+  await page.mouse.down();
+  await page.mouse.move(endX, y, { steps: 14 });
+  const during = await readComparisonBrushState(page);
+  const duringPerf = await readWarmNavPerfState(page);
+  const seriesRequestsDuringDrag = callsSince(duringPerf, callsStartIndex)
+    .filter(call => call.command === 'experiments_series_window');
+  await page.mouse.up();
+  const viewport = await waitForComparisonViewport(page, 'set');
+  const after = await readComparisonBrushState(page);
+  return { viewport, during, after, seriesRequestsDuringDrag };
+}
+
 async function findExperimentIdByName(page: Page, name: string): Promise<string> {
   const id = await page.evaluate(async (experimentName) => {
     const invoke = (window as unknown as {
@@ -469,6 +552,13 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
       let resetViewport: { xMinSec: number; xMaxSec: number } | null = null;
       let routeDragZoomMs = 0;
       let routeDragZoomViewport: { xMinSec: number; xMaxSec: number } | null = null;
+      let brushPanMs = 0;
+      let brushPanViewport: { xMinSec: number; xMaxSec: number } | null = null;
+      let brushExtentBeforePan: BrushState | null = null;
+      let brushExtentDuringPan: BrushState | null = null;
+      let brushExtentAfterPan: BrushState | null = null;
+      let brushPanSeriesRequestsDuringDrag: SeriesIpcCall[] = [];
+      let brushPanSeriesRequestsAfterCommit: SeriesIpcCall[] = [];
       const { ms: initialReadyMs } = await timeStep(async () => {
         await comparison.goto();
         await comparison.expectLoaded();
@@ -505,6 +595,35 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
           callsBeforePersistedViewport,
           initialN,
         );
+        await comparison.expectCanvasPainted();
+
+        brushExtentBeforePan = await readComparisonBrushState(page);
+        const callsBeforeBrushPan = (await readWarmNavPerfState(page)).series_calls.length;
+        const brushPanStep = await timeStep(async () => {
+          const panResult = await dragComparisonBrushCenter(page, 0.04, callsBeforeBrushPan);
+          brushExtentDuringPan = panResult.during;
+          brushExtentAfterPan = panResult.after;
+          brushPanSeriesRequestsDuringDrag = panResult.seriesRequestsDuringDrag;
+          return panResult.viewport;
+        });
+        brushPanMs = brushPanStep.ms;
+        brushPanViewport = brushPanStep.result;
+        expect(brushPanViewport).toBeTruthy();
+        expectBrushExtentStable(brushExtentBeforePan, brushExtentDuringPan);
+        expectBrushExtentStable(brushExtentBeforePan, brushExtentAfterPan);
+        expect(brushPanSeriesRequestsDuringDrag).toHaveLength(0);
+
+        await waitForSeriesCallsSince(
+          page,
+          'experiments_series_window',
+          initialIds,
+          callsBeforeBrushPan,
+          initialN,
+        );
+        const afterBrushCommitPerf = await readWarmNavPerfState(page);
+        brushPanSeriesRequestsAfterCommit = callsSince(afterBrushCommitPerf, callsBeforeBrushPan)
+          .filter(call => call.command === 'experiments_series_window');
+        expect(countCallsFor(brushPanSeriesRequestsAfterCommit, initialIds)).toBe(initialN);
         await comparison.expectCanvasPainted();
       });
       const beforeLeaveSnapshot = await readComparisonStoreSnapshot(page);
@@ -549,7 +668,8 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
       expect(refetchedExistingLinesOnReturn).toBe(0);
 
       const afterReturnSnapshot = await readComparisonStoreSnapshot(page);
-      expect(afterReturnSnapshot.viewport).toEqual(routeDragZoomViewport);
+      const expectedReturnViewport = brushPanViewport ?? routeDragZoomViewport;
+      expect(afterReturnSnapshot.viewport).toEqual(expectedReturnViewport);
 
       const callsBeforeRezoom = afterReturnPerf.series_calls.length;
       const { result: returnRezoomViewport, ms: returnRezoomMs } = await timeStep(async () => {
@@ -579,12 +699,18 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
       const afterAddSnapshot = await readComparisonStoreSnapshot(page);
       const addSeriesRequests = callsSince(finalPerf, callsBeforeAdd);
       const refetchedExistingLinesAfterAdd = countCallsFor(addSeriesRequests, initialIds);
-      const sixthLineSeriesRequests = countCallsFor(addSeriesRequests, [addedExperiment.id]);
+      const sixthLineSeriesRequests = addSeriesRequests.filter(call => (
+        call.command === 'experiments_series_window' &&
+        call.experiment_id === addedExperiment.id
+      )).length;
 
       expect(afterAddSnapshot.viewport).toEqual(returnRezoomViewport);
       expect(refetchedExistingLinesAfterAdd).toBe(0);
       expect(sixthLineSeriesRequests).toBe(1);
-      expect(addSeriesRequests.find(call => call.experiment_id === addedExperiment.id)?.command)
+      expect(addSeriesRequests.find(call => (
+        call.experiment_id === addedExperiment.id &&
+        call.command === 'experiments_series_window'
+      ))?.command)
         .toBe('experiments_series_window');
 
       report.status = 'passed';
@@ -602,6 +728,7 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         initial_drag_zoom_ms: initialDragZoomMs,
         double_click_reset_ms: doubleClickResetMs,
         route_drag_zoom_ms: routeDragZoomMs,
+        brush_pan_ms: brushPanMs,
         return_rezoom_ms: returnRezoomMs,
         sixth_line_ready_ms: sixthLineReadyMs,
         calls_before_return: callsBeforeReturn,
@@ -617,7 +744,13 @@ test.describe('[WarmNav/Tauri] Comparison route-return lifecycle', () => {
         initial_drag_zoom_viewport: initialDragZoomViewport,
         reset_viewport: resetViewport,
         route_drag_zoom_viewport: routeDragZoomViewport,
+        brush_pan_viewport: brushPanViewport,
         return_rezoom_viewport: returnRezoomViewport,
+        brush_extent_before_pan: brushExtentBeforePan,
+        brush_extent_during_pan: brushExtentDuringPan,
+        brush_extent_after_pan: brushExtentAfterPan,
+        brush_pan_series_requests_during_drag: brushPanSeriesRequestsDuringDrag,
+        brush_pan_series_requests_after_commit: brushPanSeriesRequestsAfterCommit,
         before_leave_snapshot: beforeLeaveSnapshot,
         after_leave_snapshot: afterLeaveSnapshot,
         after_return_snapshot: afterReturnSnapshot,

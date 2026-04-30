@@ -13,7 +13,9 @@ export interface ChartBrushProps {
     times: number[];
     values: (number | null)[];
     range: [number, number] | null;
+    onDragStart?: () => void;
     onChange: (min: number, max: number) => void;
+    onCommit?: (min: number, max: number) => void;
     onReset: () => void;
     height?: number;
     width: number;
@@ -27,7 +29,9 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
     times,
     values,
     range,
+    onDragStart,
     onChange,
+    onCommit,
     onReset,
     height = 40,
     width,
@@ -40,6 +44,9 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
         startX: number;
         startSelLeft: number;
         startSelRight: number;
+        lastMin: number;
+        lastMax: number;
+        hasChanged: boolean;
     } | null>(null);
     const lastMoveLogAtRef = useRef<number>(0);
 
@@ -126,9 +133,9 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
         };
     }, []);
 
-    const stateRef = useRef({ selLeft, selRight, width, tMin, tSpan, isDegenerate, onChange, onReset });
+    const stateRef = useRef({ selLeft, selRight, width, tMin, tSpan, isDegenerate, onDragStart, onChange, onCommit, onReset });
     useEffect(() => {
-        stateRef.current = { selLeft, selRight, width, tMin, tSpan, isDegenerate, onChange, onReset };
+        stateRef.current = { selLeft, selRight, width, tMin, tSpan, isDegenerate, onDragStart, onChange, onCommit, onReset };
     });
 
     useEffect(() => {
@@ -171,7 +178,16 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
                 selLeft,
                 selRight,
             });
-            drag.current = { mode, startX: e.clientX, startSelLeft: selLeft, startSelRight: selRight };
+            stateRef.current.onDragStart?.();
+            drag.current = {
+                mode,
+                startX: e.clientX,
+                startSelLeft: selLeft,
+                startSelRight: selRight,
+                lastMin: stateRef.current.tMin + selLeft * stateRef.current.tSpan,
+                lastMax: stateRef.current.tMin + selRight * stateRef.current.tSpan,
+                hasChanged: false,
+            };
         };
         const onMove = (e: PointerEvent) => {
             if (!drag.current) return;
@@ -193,6 +209,9 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
             }
             const min = tMin + sL * tSpan;
             const max = tMin + sR * tSpan;
+            drag.current.lastMin = min;
+            drag.current.lastMax = max;
+            drag.current.hasChanged = true;
             onChange(min, max);
 
             const now = Date.now();
@@ -205,18 +224,25 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
                 });
             }
         };
-        const onUp = (e: PointerEvent) => { 
+        const onEnd = (e: PointerEvent, commit: boolean) => {
             if (drag.current) {
+                const completedDrag = drag.current;
                 brushLogger.info('pointerup', {
-                    mode: drag.current.mode,
+                    mode: completedDrag.mode,
                     pointerId: e.pointerId,
+                    commit,
                 });
                 if (root.hasPointerCapture?.(e.pointerId)) {
                     root.releasePointerCapture(e.pointerId);
                 }
-                drag.current = null; 
+                drag.current = null;
+                if (commit && completedDrag.hasChanged) {
+                    stateRef.current.onCommit?.(completedDrag.lastMin, completedDrag.lastMax);
+                }
             }
         };
+        const onUp = (e: PointerEvent) => onEnd(e, true);
+        const onCancel = (e: PointerEvent) => onEnd(e, false);
         const onDbl = () => {
             brushLogger.info('dblclick reset');
             stateRef.current.onReset();
@@ -224,13 +250,13 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
         root.addEventListener('pointerdown', onDown);
         root.addEventListener('pointermove', onMove);
         root.addEventListener('pointerup', onUp);
-        root.addEventListener('pointercancel', onUp);
+        root.addEventListener('pointercancel', onCancel);
         root.addEventListener('dblclick', onDbl);
         return () => {
             root.removeEventListener('pointerdown', onDown);
             root.removeEventListener('pointermove', onMove);
             root.removeEventListener('pointerup', onUp);
-            root.removeEventListener('pointercancel', onUp);
+            root.removeEventListener('pointercancel', onCancel);
             root.removeEventListener('dblclick', onDbl);
         };
     }, [width]); // Only re-bind if width changes (rare)
@@ -244,6 +270,13 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
     return (
         <div
             ref={rootRef}
+            data-testid="ChartBrush"
+            data-brush-min={Number.isFinite(tMin) ? tMin.toFixed(6) : ''}
+            data-brush-max={Number.isFinite(tMax) ? tMax.toFixed(6) : ''}
+            data-selection-min={range && Number.isFinite(range[0]) ? range[0].toFixed(6) : ''}
+            data-selection-max={range && Number.isFinite(range[1]) ? range[1].toFixed(6) : ''}
+            data-selection-left-px={String(lPx)}
+            data-selection-right-px={String(rPx)}
             className="relative select-none overflow-hidden rounded touch-none"
             style={{ width, height }}
         >

@@ -105,6 +105,87 @@ describe('ChartBrush — degenerate data guard', () => {
 });
 
 describe('ChartBrush — stale range clamping', () => {
+    it('previews every drag move but commits the range only once on pointerup', () => {
+        const onChange = vi.fn();
+        const onCommit = vi.fn();
+        const { container } = render(
+            <ChartBrush
+                times={[0, 10, 20, 30, 40]}
+                values={[1, 2, 3, 4, 5]}
+                range={[5, 15]}
+                onChange={onChange}
+                onCommit={onCommit}
+                onReset={() => {}}
+                width={400}
+            />,
+        );
+
+        const root = findBrushRoot(container);
+        Object.defineProperty(root, 'getBoundingClientRect', {
+            value: () => ({
+                left: 0,
+                top: 0,
+                right: 400,
+                bottom: 36,
+                width: 400,
+                height: 36,
+                x: 0,
+                y: 0,
+                toJSON: () => ({}),
+            }),
+        });
+
+        fireEvent.pointerDown(root, { clientX: 100, clientY: 18, button: 0, pointerId: 7 });
+        fireEvent.pointerMove(root, { clientX: 140, clientY: 18, pointerId: 7 });
+        fireEvent.pointerMove(root, { clientX: 180, clientY: 18, pointerId: 7 });
+
+        expect(onChange).toHaveBeenCalledTimes(2);
+        expect(onCommit).not.toHaveBeenCalled();
+
+        fireEvent.pointerUp(root, { clientX: 180, clientY: 18, pointerId: 7 });
+
+        expect(onCommit).toHaveBeenCalledTimes(1);
+        expect(onCommit).toHaveBeenLastCalledWith(...onChange.mock.calls.at(-1)!);
+    });
+
+    it('does not commit a cancelled drag', () => {
+        const onChange = vi.fn();
+        const onCommit = vi.fn();
+        const { container } = render(
+            <ChartBrush
+                times={[0, 10, 20, 30, 40]}
+                values={[1, 2, 3, 4, 5]}
+                range={[5, 15]}
+                onChange={onChange}
+                onCommit={onCommit}
+                onReset={() => {}}
+                width={400}
+            />,
+        );
+
+        const root = findBrushRoot(container);
+        Object.defineProperty(root, 'getBoundingClientRect', {
+            value: () => ({
+                left: 0,
+                top: 0,
+                right: 400,
+                bottom: 36,
+                width: 400,
+                height: 36,
+                x: 0,
+                y: 0,
+                toJSON: () => ({}),
+            }),
+        });
+
+        fireEvent.pointerDown(root, { clientX: 100, clientY: 18, button: 0, pointerId: 8 });
+        fireEvent.pointerMove(root, { clientX: 140, clientY: 18, pointerId: 8 });
+        fireEvent.pointerCancel(root, { clientX: 140, clientY: 18, pointerId: 8 });
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(onCommit).not.toHaveBeenCalled();
+    });
+
     it('keeps drag-emitted onChange values inside the actual data extent for a partially-overlapping stale range', () => {
         const onChange = vi.fn();
         // Range overlaps the right edge of the data — typical of the warm

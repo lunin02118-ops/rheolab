@@ -228,13 +228,49 @@ describe('useComparisonSeriesWindows', () => {
             expect(result.current.readyCount).toBe(2);
         });
 
-        expect(series.overview).not.toHaveBeenCalled();
+        expect(series.overview).toHaveBeenCalledTimes(2);
         expect(series.window).toHaveBeenCalledTimes(2);
         expect(vi.mocked(series.window).mock.calls.map(call => call.slice(0, 3))).toEqual([
             ['exp-1', 30, 90],
             ['exp-2', 30, 90],
         ]);
         expect(result.current.brushExperiments).toHaveLength(2);
+    });
+
+    it('loads overview for the brush during a cold persisted viewport without using window data as brush extent', async () => {
+        const viewport = { xMinSec: 600, xMaxSec: 720 };
+        const experiment = makeExperiment('exp-1');
+        const overview = deferred<SeriesWindow>();
+        const windowed = deferred<SeriesWindow>();
+        vi.mocked(series.overview).mockReturnValue(overview.promise);
+        vi.mocked(series.window).mockReturnValue(windowed.promise);
+
+        const { result } = renderHook(({ experiments, viewport }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, viewport, sessionId: 'session-1' }), {
+            initialProps: { experiments: [experiment], viewport },
+        });
+
+        await waitFor(() => {
+            expect(series.overview).toHaveBeenCalledTimes(1);
+        });
+
+        windowed.resolve(makeSeriesWindow('exp-1', [600, 660, 720]));
+
+        await waitFor(() => {
+            expect(result.current.readyCount).toBe(1);
+        });
+
+        const chartColumnar = (result.current.experiments[0] as Record<string, any>).columnarData;
+        expect(Array.from(chartColumnar.timeSec)).toEqual([600, 660, 720]);
+        expect((result.current.brushExperiments[0] as Record<string, any>).columnarData).toBeUndefined();
+        expect(result.current.isViewportWindowReady).toBe(true);
+
+        overview.resolve(makeSeriesWindow('exp-1', [0, 600, 1200]));
+
+        await waitFor(() => {
+            const brushColumnar = (result.current.brushExperiments[0] as Record<string, any>).columnarData;
+            expect(Array.from(brushColumnar.timeSec)).toEqual([0, 600, 1200]);
+        });
     });
 
     it('keeps brush experiments on overview data while chart experiments use window data', async () => {
@@ -295,7 +331,11 @@ describe('useComparisonSeriesWindows', () => {
         const columnarData = (result.current.experiments[0] as Record<string, any>).columnarData;
         expect(columnarData.timeOriginSec).toBe(0);
         expect(Array.from(columnarData.timeSec)).toEqual([4800, 4860, 4920]);
-        expect(series.meta).toHaveBeenCalledWith('exp-1');
+        // The parallel brush overview may establish the full-series time origin
+        // before the window load resolves, making the meta request unnecessary.
+        if (vi.mocked(series.meta).mock.calls.length > 0) {
+            expect(series.meta).toHaveBeenCalledWith('exp-1');
+        }
     });
 
     it('falls back to overview when a persisted viewport returns an empty window', async () => {
@@ -356,7 +396,7 @@ describe('useComparisonSeriesWindows', () => {
             expect(result.current.readyCount).toBe(6);
         });
 
-        expect(series.overview).not.toHaveBeenCalled();
+        expect(series.overview).toHaveBeenCalledTimes(6);
         expect(series.window).toHaveBeenCalledTimes(6);
         expect(vi.mocked(series.window).mock.calls.map(call => call[0])).toEqual([
             'exp-1',

@@ -56,6 +56,7 @@ export interface UseComparisonSeriesWindowsResult {
     readyCount: number;
     errorCount: number;
     usedViewportFallback: boolean;
+    isViewportWindowReady: boolean;
 }
 
 function localStorageFlag(name: string): string | null {
@@ -168,6 +169,7 @@ export function useComparisonSeriesWindows({
     const mountedRef = useRef(true);
     const emptyViewportFallbacksRef = useRef<Set<string>>(new Set());
     const timeOriginsRef = useRef<Record<string, number>>({});
+    const pendingOverviewLoadsRef = useRef<Set<string>>(new Set());
     const binaryEnabled = enabled && isComparisonBinarySeriesEnabled();
     const experimentIds = experiments.map(exp => exp.id).join('|');
 
@@ -225,10 +227,57 @@ export function useComparisonSeriesWindows({
                 ? null
                 : activeViewport;
             const overviewCacheKey = makeSeriesCacheKey(exp.id, metricsKey, maxPoints, null, sessionId);
+            const overviewSerializedKey = serializeSeriesWindowCacheKey(overviewCacheKey);
             const cachedOverview = seriesWindowCache.get(overviewCacheKey);
             const cacheKey = makeSeriesCacheKey(exp.id, metricsKey, maxPoints, requestViewport, sessionId);
             const serializedKey = serializeSeriesWindowCacheKey(cacheKey);
             const cached = seriesWindowCache.get(cacheKey);
+            const current = lineStatesRef.current[exp.id];
+
+            const ensureOverviewForBrush = () => {
+                if (!requestViewport) return;
+                if (cachedOverview || current?.overviewColumnarData) return;
+                if (pendingOverviewLoadsRef.current.has(overviewSerializedKey)) return;
+
+                pendingOverviewLoadsRef.current.add(overviewSerializedKey);
+                void series.overview(exp.id, metrics, maxPoints)
+                    .then(overviewWindow => {
+                        if (!mountedRef.current || !activeIdsRef.current.has(exp.id)) return;
+                        if (isEmptySeriesWindow(overviewWindow)) return;
+
+                        const overviewTimeOriginSec = minFiniteSeriesTimeSec(overviewWindow);
+                        timeOriginsRef.current[exp.id] = overviewTimeOriginSec;
+                        const overviewColumnarData = seriesWindowToColumnarData(overviewWindow, {
+                            timeOriginSec: overviewTimeOriginSec,
+                        });
+                        seriesWindowCache.set(overviewCacheKey, overviewColumnarData);
+                        setLineStates(prev => {
+                            const previous = prev[exp.id];
+                            return {
+                                ...prev,
+                                [exp.id]: {
+                                    experimentId: exp.id,
+                                    status: previous?.status ?? 'loading',
+                                    error: previous?.error,
+                                    columnarData: previous?.columnarData,
+                                    overviewColumnarData,
+                                    cacheKey: previous?.cacheKey ?? serializedKey,
+                                    fallbackViewportKey: previous?.fallbackViewportKey,
+                                    lastLoadedAt: previous?.lastLoadedAt,
+                                },
+                            };
+                        });
+                    })
+                    .catch(() => {
+                        // Non-blocking: the main window request still renders the chart.
+                    })
+                    .finally(() => {
+                        pendingOverviewLoadsRef.current.delete(overviewSerializedKey);
+                    });
+            };
+
+            ensureOverviewForBrush();
+
             if (cached) {
                 if (Number.isFinite(cached.timeOriginSec)) {
                     timeOriginsRef.current[exp.id] = Number(cached.timeOriginSec);
@@ -264,7 +313,6 @@ export function useComparisonSeriesWindows({
                 continue;
             }
 
-            const current = lineStatesRef.current[exp.id];
             if (current?.status === 'loading' && current.cacheKey === serializedKey) {
                 continue;
             }
@@ -408,8 +456,6 @@ export function useComparisonSeriesWindows({
 
                         if (requestViewport && fallbackKey && isEmptySeriesWindow(seriesWindow)) {
                             emptyViewportFallbacksRef.current.add(fallbackKey);
-                            const overviewCacheKey = makeSeriesCacheKey(exp.id, metricsKey, maxPoints, null, sessionId);
-                            const overviewSerializedKey = serializeSeriesWindowCacheKey(overviewCacheKey);
                             const cachedOverview = seriesWindowCache.get(overviewCacheKey);
                             if (cachedOverview) {
                                 setLineStates(prev => {
@@ -528,7 +574,9 @@ export function useComparisonSeriesWindows({
             if (isFileExperiment(exp)) return exp;
 
             const state = lineStates[exp.id];
-            const columnarData = state?.overviewColumnarData ?? state?.columnarData;
+            const columnarData = activeViewport
+                ? state?.overviewColumnarData
+                : state?.overviewColumnarData ?? state?.columnarData;
             if (columnarData) {
                 return {
                     ...exp,
@@ -539,7 +587,7 @@ export function useComparisonSeriesWindows({
 
             return exp;
         });
-    }, [binaryEnabled, experiments, lineStates]);
+    }, [activeViewport, binaryEnabled, experiments, lineStates]);
 
     const readyCount = experiments.filter(exp => (
         isFileExperiment(exp) ||
@@ -555,6 +603,15 @@ export function useComparisonSeriesWindows({
             maxPoints,
         )
     ));
+    const isViewportWindowReady = !binaryEnabled || !activeViewport || experiments.every(exp => {
+        if (isFileExperiment(exp)) return true;
+        const state = lineStates[exp.id];
+        if (state?.status !== 'ready') return false;
+        const expectedKey = serializeSeriesWindowCacheKey(
+            makeSeriesCacheKey(exp.id, metricsKey, maxPoints, activeViewport, sessionId),
+        );
+        return state.cacheKey === expectedKey;
+    });
     const isLoading = binaryEnabled && experiments.some(exp => (
         !isFileExperiment(exp) &&
         lineStates[exp.id]?.status === 'loading' &&
@@ -570,5 +627,6 @@ export function useComparisonSeriesWindows({
         readyCount,
         errorCount,
         usedViewportFallback,
+        isViewportWindowReady,
     };
 }
