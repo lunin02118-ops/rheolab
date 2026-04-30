@@ -6,6 +6,26 @@ import { Database, Beaker, Loader2 } from 'lucide-react';
 import type { ExperimentFilters as FilterState} from '@/types/experiment-filters';
 import { EMPTY_FILTERS } from '@/types/experiment-filters';
 import { useSearchParams } from 'react-router-dom';
+import { emitLibraryFilterPerfEvent } from '@/lib/perf/library-filter-spans';
+
+function changedFilterKeys(prev: FilterState, next: FilterState): string[] {
+    const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+    const changed: string[] = [];
+    for (const key of keys) {
+        const prevValue = prev[key as keyof FilterState];
+        const nextValue = next[key as keyof FilterState];
+        if (Array.isArray(prevValue) || Array.isArray(nextValue)) {
+            if (JSON.stringify(prevValue ?? []) !== JSON.stringify(nextValue ?? [])) {
+                changed.push(key);
+            }
+            continue;
+        }
+        if ((prevValue ?? '') !== (nextValue ?? '')) {
+            changed.push(key);
+        }
+    }
+    return changed.sort();
+}
 
 // Inner component that uses useSearchParams
 function LibraryContent() {
@@ -20,6 +40,18 @@ function LibraryContent() {
         localStorage.setItem('rheolab-library-viewMode', viewMode);
     }, [viewMode]);
     const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+
+    const handleFiltersChange = (next: FilterState) => {
+        const filterKeys = changedFilterKeys(filters, next);
+        if (filterKeys.length > 0) {
+            emitLibraryFilterPerfEvent({
+                name: 'filters_changed',
+                filter_keys: filterKeys,
+                view_mode: viewMode,
+            });
+        }
+        setFilters(next);
+    };
 
     return (
         <>
@@ -89,7 +121,7 @@ function LibraryContent() {
                     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
                         {/* Filters Sidebar */}
                         <div>
-                            <ExperimentFilters filters={filters} onChange={setFilters} />
+                            <ExperimentFilters filters={filters} onChange={handleFiltersChange} />
                         </div>
 
                         {/* Results List */}
@@ -97,7 +129,7 @@ function LibraryContent() {
                             <ExperimentList
                                 filters={filters}
                                 viewMode={viewMode}
-                                onFiltersChange={setFilters}
+                                onFiltersChange={handleFiltersChange}
                             />
                         </div>
                     </div>
