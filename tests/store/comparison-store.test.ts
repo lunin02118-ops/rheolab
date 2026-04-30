@@ -44,7 +44,11 @@ vi.mock('@/lib/utils/columnar', () => ({
 }));
 
 // ─── Import store after mocks ─────────────────────────────────────────────────
-import { useComparisonStore } from '@/lib/store/comparison-store';
+import {
+    deriveComparisonSessionFromExperiments,
+    toComparisonSessionExperiment,
+    useComparisonStore,
+} from '@/lib/store/comparison-store';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -68,15 +72,26 @@ function makeExp(id = 'exp-1', name = 'Test Exp') {
     } as any;  
 }
 
+function resetComparisonStore(overrides: Record<string, unknown> = {}) {
+    useComparisonStore.setState({
+        experiments: [],
+        sessionId: 'comparison-session-default',
+        experimentIds: [],
+        experimentsById: {},
+        viewport: null,
+        activeTab: 'chart',
+        _hasHydrated: true,
+        _isRehydrating: false,
+        ...overrides,
+    } as never);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('ComparisonStore — _hasHydrated flag', () => {
     beforeEach(() => {
         // Reset to initial state before each test
-        useComparisonStore.setState({
-            experiments: [],
-            _hasHydrated: false,
-        });
+        resetComparisonStore({ _hasHydrated: false });
     });
 
     test('_hasHydrated starts as false', () => {
@@ -107,13 +122,19 @@ describe('ComparisonStore — _hasHydrated flag', () => {
 
 describe('ComparisonStore — add / remove / clear', () => {
     beforeEach(() => {
-        useComparisonStore.setState({ experiments: [], _hasHydrated: true });
+        resetComparisonStore();
     });
 
     test('addExperiment adds to list', () => {
         const added = useComparisonStore.getState().addExperiment(makeExp('e1'));
         expect(added).toBe(true);
         expect(useComparisonStore.getState().experiments).toHaveLength(1);
+        expect(useComparisonStore.getState().experimentIds).toEqual(['e1']);
+        expect(useComparisonStore.getState().experimentsById.e1).toMatchObject({
+            id: 'e1',
+            name: 'Test Exp',
+            source: 'db',
+        });
     });
 
     test('addExperiment rejects duplicate ids', () => {
@@ -121,6 +142,25 @@ describe('ComparisonStore — add / remove / clear', () => {
         const added = useComparisonStore.getState().addExperiment(makeExp('e1'));
         expect(added).toBe(false);
         expect(useComparisonStore.getState().experiments).toHaveLength(1);
+    });
+
+    test('addExperiment rejects ids already present in normalized session state', () => {
+        resetComparisonStore({
+            experimentIds: ['e1'],
+            experimentsById: {
+                e1: {
+                    id: 'e1',
+                    name: 'Existing',
+                    source: 'db',
+                },
+            },
+        });
+
+        const added = useComparisonStore.getState().addExperiment(makeExp('e1'));
+
+        expect(added).toBe(false);
+        expect(useComparisonStore.getState().experiments).toHaveLength(0);
+        expect(useComparisonStore.getState().experimentIds).toEqual(['e1']);
     });
 
     test('addExperiment enforces max limit (4 from mock license)', () => {
@@ -132,19 +172,46 @@ describe('ComparisonStore — add / remove / clear', () => {
         expect(useComparisonStore.getState().experiments).toHaveLength(4);
     });
 
+    test('addExperiment enforces max limit from normalized session state', () => {
+        resetComparisonStore({
+            experimentIds: ['e1', 'e2', 'e3', 'e4'],
+            experimentsById: {
+                e1: { id: 'e1', name: 'One', source: 'db' },
+                e2: { id: 'e2', name: 'Two', source: 'db' },
+                e3: { id: 'e3', name: 'Three', source: 'db' },
+                e4: { id: 'e4', name: 'Four', source: 'db' },
+            },
+        });
+
+        const added = useComparisonStore.getState().addExperiment(makeExp('e5'));
+
+        expect(added).toBe(false);
+        expect(useComparisonStore.getState().experiments).toHaveLength(0);
+        expect(useComparisonStore.getState().experimentIds).toEqual(['e1', 'e2', 'e3', 'e4']);
+    });
+
     test('removeExperiment removes correct experiment', () => {
         useComparisonStore.getState().addExperiment(makeExp('e1', 'Alpha'));
         useComparisonStore.getState().addExperiment(makeExp('e2', 'Beta'));
         useComparisonStore.getState().removeExperiment('e1');
         const ids = useComparisonStore.getState().experiments.map(e => e.id);
         expect(ids).toEqual(['e2']);
+        expect(useComparisonStore.getState().experimentIds).toEqual(['e2']);
+        expect(useComparisonStore.getState().experimentsById.e1).toBeUndefined();
+        expect(useComparisonStore.getState().experimentsById.e2?.name).toBe('Beta');
     });
 
     test('clear removes all experiments', () => {
         useComparisonStore.getState().addExperiment(makeExp('e1'));
         useComparisonStore.getState().addExperiment(makeExp('e2'));
+        useComparisonStore.getState().setViewport({ xMinSec: 10, xMaxSec: 20 });
+        useComparisonStore.getState().setActiveTab('report');
         useComparisonStore.getState().clear();
         expect(useComparisonStore.getState().experiments).toHaveLength(0);
+        expect(useComparisonStore.getState().experimentIds).toEqual([]);
+        expect(useComparisonStore.getState().experimentsById).toEqual({});
+        expect(useComparisonStore.getState().viewport).toBeNull();
+        expect(useComparisonStore.getState().activeTab).toBe('chart');
     });
 
     test('isInComparison returns true for added experiment', () => {
@@ -156,7 +223,7 @@ describe('ComparisonStore — add / remove / clear', () => {
 
 describe('ComparisonStore — displaySettings', () => {
     beforeEach(() => {
-        useComparisonStore.setState({
+        resetComparisonStore({
             displaySettings: {
                 primaryMetric: 'viscosity_cp',
                 leftSecondaryMetric: 'none',
@@ -204,28 +271,37 @@ describe('ComparisonStore — releaseHeavyData', () => {
     }
 
     beforeEach(() => {
-        useComparisonStore.setState({ experiments: [], _hasHydrated: true });
+        resetComparisonStore();
     });
 
     test('releaseHeavyData clears rawPoints and columnarData from DB experiments', () => {
-        useComparisonStore.setState({ experiments: [makeDBExp('db-1') as never], _hasHydrated: true });
+        resetComparisonStore({ experiments: [makeDBExp('db-1') as never] });
         useComparisonStore.getState().releaseHeavyData();
         const exp = useComparisonStore.getState().experiments[0];
         expect(exp.rawPoints).toEqual([]);
         expect((exp as never as { columnarData: unknown }).columnarData).toBeUndefined();
+        expect(useComparisonStore.getState().experimentIds).toEqual(['db-1']);
+        expect(useComparisonStore.getState().experimentsById['db-1']).toMatchObject({
+            id: 'db-1',
+            source: 'db',
+        });
     });
 
     test('releaseHeavyData keeps file-sourced experiments intact', () => {
         const fileExp = makeFileExp('1');
-        useComparisonStore.setState({ experiments: [fileExp as never], _hasHydrated: true });
+        resetComparisonStore({ experiments: [fileExp as never] });
         useComparisonStore.getState().releaseHeavyData();
         const exp = useComparisonStore.getState().experiments[0];
         // File experiments should be untouched
         expect((exp.rawPoints as unknown[]).length).toBeGreaterThan(0);
+        expect(useComparisonStore.getState().experimentsById[exp.id]).toMatchObject({
+            id: exp.id,
+            source: 'file',
+        });
     });
 
     test('releaseHeavyData preserves other non-heavy fields', () => {
-        useComparisonStore.setState({ experiments: [makeDBExp('db-2') as never], _hasHydrated: true });
+        resetComparisonStore({ experiments: [makeDBExp('db-2') as never] });
         useComparisonStore.getState().releaseHeavyData();
         const exp = useComparisonStore.getState().experiments[0];
         expect(exp.id).toBe('db-2');
@@ -233,7 +309,7 @@ describe('ComparisonStore — releaseHeavyData', () => {
     });
 
     test('releaseHeavyData strips transient DB payload fields', () => {
-        useComparisonStore.setState({
+        resetComparisonStore({
             experiments: [{
                 ...makeDBExp('db-3'),
                 data: 'raw text',
@@ -244,7 +320,6 @@ describe('ComparisonStore — releaseHeavyData', () => {
                 waterParams: { ph: 7 },
                 extraFields: { source: 'fixture' },
             } as never],
-            _hasHydrated: true,
         });
 
         useComparisonStore.getState().releaseHeavyData();
@@ -261,16 +336,77 @@ describe('ComparisonStore — releaseHeavyData', () => {
         expect(exp.reagents).toBeUndefined();
         expect(exp.waterParams).toBeUndefined();
         expect(exp.extraFields).toBeUndefined();
+        expect(useComparisonStore.getState().experimentIds).toEqual(['db-3']);
+        expect(useComparisonStore.getState().experimentsById['db-3'].name).toBe('Test Exp');
     });
 
     test('releaseHeavyData processes mixed list (file + DB)', () => {
         const mixed = [makeDBExp('db-1'), makeFileExp('2')] as never[];
-        useComparisonStore.setState({ experiments: mixed, _hasHydrated: true });
+        resetComparisonStore({ experiments: mixed });
         useComparisonStore.getState().releaseHeavyData();
         const exps = useComparisonStore.getState().experiments;
         // DB experiment: rawPoints cleared
         expect(exps[0].rawPoints).toEqual([]);
         // File experiment: rawPoints kept
         expect((exps[1].rawPoints as unknown[]).length).toBeGreaterThan(0);
+        expect(useComparisonStore.getState().experimentIds).toEqual(['db-1', 'file-2']);
+    });
+});
+
+describe('ComparisonStore — normalized session helpers', () => {
+    test('toComparisonSessionExperiment stores DB metadata only', () => {
+        const exp = {
+            ...makeExp('db-meta', 'Meta Only'),
+            rawPoints: [{ time_sec: 0 }],
+            columnarData: { timeSec: [0] },
+        };
+
+        const sessionExp = toComparisonSessionExperiment(exp as never);
+
+        expect(sessionExp).toMatchObject({
+            id: 'db-meta',
+            name: 'Meta Only',
+            source: 'db',
+            instrumentType: 'Grace',
+            waterSource: 'tap',
+        });
+        expect(sessionExp).not.toHaveProperty('rawPoints');
+        expect(sessionExp).not.toHaveProperty('columnarData');
+    });
+
+    test('old persisted experiments migrate into normalized ids and metadata', () => {
+        const legacyExperiments = [
+            makeExp('legacy-1', 'Legacy One'),
+            makeExp('legacy-2', 'Legacy Two'),
+        ] as never[];
+
+        const session = deriveComparisonSessionFromExperiments(legacyExperiments);
+
+        expect(session.experimentIds).toEqual(['legacy-1', 'legacy-2']);
+        expect(session.experimentsById['legacy-1']).toMatchObject({
+            id: 'legacy-1',
+            name: 'Legacy One',
+            source: 'db',
+        });
+        expect(session.experimentsById['legacy-2'].name).toBe('Legacy Two');
+    });
+
+    test('existing session metadata keeps color while refreshing names', () => {
+        const session = deriveComparisonSessionFromExperiments(
+            [makeExp('e1', 'Fresh Name') as never],
+            {
+                e1: {
+                    id: 'e1',
+                    name: 'Old Name',
+                    color: '#123456',
+                    source: 'db',
+                },
+            },
+        );
+
+        expect(session.experimentsById.e1).toMatchObject({
+            name: 'Fresh Name',
+            color: '#123456',
+        });
     });
 });

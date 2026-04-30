@@ -96,12 +96,9 @@ export default function ComparisonPage() {
                 const res = await checkExperimentsExist(dbIds);
                 const existing = new Set(res.existingIds);
                 const before = useComparisonStore.getState().experiments;
-                const after = before.filter(
-                    e => e.id.startsWith('file-') || existing.has(e.id),
-                );
-                if (after.length < before.length) {
-                    useComparisonStore.setState({ experiments: after });
-                }
+                before
+                    .filter(e => !e.id.startsWith('file-') && !existing.has(e.id))
+                    .forEach(e => useComparisonStore.getState().removeExperiment(e.id));
             } catch {
                 // Non-critical — existence check is best-effort
             }

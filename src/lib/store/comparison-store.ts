@@ -64,6 +64,29 @@ export interface ComparisonDisplaySettings {
     targetTime: number;
 }
 
+export type ComparisonActiveTab = 'chart' | 'report';
+
+export interface ComparisonViewport {
+    xMinSec: number;
+    xMaxSec: number;
+}
+
+export interface ComparisonSessionExperiment {
+    id: string;
+    name: string;
+    testDate?: string;
+    fluidType?: string | null;
+    instrumentType?: string | null;
+    fieldName?: string | null;
+    operatorName?: string | null;
+    waterSource?: string | null;
+    originalFilename?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    color?: string;
+    source: 'db' | 'file';
+}
+
 const DEFAULT_DISPLAY_SETTINGS: ComparisonDisplaySettings = {
     primaryMetric: 'viscosity_cp',
     leftSecondaryMetric: 'none',
@@ -77,8 +100,65 @@ const DEFAULT_DISPLAY_SETTINGS: ComparisonDisplaySettings = {
     targetTime: 10,
 };
 
+const DEFAULT_SESSION_ID = 'comparison-session-default';
+
+function stringValue(value: unknown): string | undefined {
+    if (value instanceof Date) return value.toISOString();
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function nullableStringValue(value: unknown): string | null {
+    return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function comparisonSourceForId(id: string): ComparisonSessionExperiment['source'] {
+    return id.startsWith('file-') ? 'file' : 'db';
+}
+
+export function toComparisonSessionExperiment(
+    exp: Experiment,
+    existing?: ComparisonSessionExperiment,
+): ComparisonSessionExperiment {
+    return {
+        id: exp.id,
+        name: stringValue(exp.name) ?? existing?.name ?? exp.id,
+        testDate: stringValue(exp.testDate) ?? existing?.testDate,
+        fluidType: nullableStringValue(exp.fluidType ?? existing?.fluidType),
+        instrumentType: nullableStringValue(exp.instrumentType ?? existing?.instrumentType),
+        fieldName: nullableStringValue(exp.fieldName ?? existing?.fieldName),
+        operatorName: nullableStringValue(exp.operatorName ?? existing?.operatorName),
+        waterSource: nullableStringValue(exp.waterSource ?? existing?.waterSource),
+        originalFilename: stringValue((exp as Record<string, unknown>).originalFilename) ?? existing?.originalFilename,
+        createdAt: stringValue(exp.createdAt) ?? existing?.createdAt,
+        updatedAt: stringValue(exp.updatedAt) ?? existing?.updatedAt,
+        color: existing?.color,
+        source: existing?.source ?? comparisonSourceForId(exp.id),
+    };
+}
+
+export function deriveComparisonSessionFromExperiments(
+    experiments: Experiment[],
+    existingById: Record<string, ComparisonSessionExperiment> = {},
+): Pick<ComparisonState, 'experimentIds' | 'experimentsById'> {
+    const experimentIds: string[] = [];
+    const experimentsById: Record<string, ComparisonSessionExperiment> = {};
+
+    for (const exp of experiments) {
+        if (!exp?.id || experimentIds.includes(exp.id)) continue;
+        experimentIds.push(exp.id);
+        experimentsById[exp.id] = toComparisonSessionExperiment(exp, existingById[exp.id]);
+    }
+
+    return { experimentIds, experimentsById };
+}
+
 interface ComparisonState {
     experiments: Experiment[];
+    sessionId: string;
+    experimentIds: string[];
+    experimentsById: Record<string, ComparisonSessionExperiment>;
+    viewport: ComparisonViewport | null;
+    activeTab: ComparisonActiveTab;
     displaySettings: ComparisonDisplaySettings;
     /** True once zustand/persist has finished loading from localStorage */
     _hasHydrated: boolean;
@@ -90,6 +170,8 @@ interface ComparisonState {
     isInComparison: (id: string) => boolean;
     getMaxExperiments: () => number;
     updateDisplaySettings: (patch: Partial<ComparisonDisplaySettings>) => void;
+    setViewport: (viewport: ComparisonViewport | null) => void;
+    setActiveTab: (tab: ComparisonActiveTab) => void;
     /** Re-hydrate experiments that are missing rawPoints (stale localStorage) */
     rehydrateIfNeeded: () => Promise<void>;
     /**
@@ -105,6 +187,11 @@ export const useComparisonStore = create<ComparisonState>()(
     persist(
         (set, get) => ({
             experiments: [],
+            sessionId: DEFAULT_SESSION_ID,
+            experimentIds: [],
+            experimentsById: {},
+            viewport: null,
+            activeTab: 'chart',
             displaySettings: { ...DEFAULT_DISPLAY_SETTINGS },
             _hasHydrated: false,
             _isRehydrating: false,
@@ -115,24 +202,46 @@ export const useComparisonStore = create<ComparisonState>()(
                 const { result } = useLicenseStore.getState();
                 const maxExperiments = result?.license?.features?.maxComparisonExperiments ?? 3;
 
+                const selectedIds = new Set([
+                    ...state.experimentIds,
+                    ...state.experiments.map(e => e.id),
+                ]);
+
                 // Check limit
-                if (state.experiments.length >= maxExperiments) {
+                if (selectedIds.size >= maxExperiments) {
                     return false; // Limit reached
                 }
                 // Avoid duplicates
-                if (state.experiments.find(e => e.id === experiment.id)) {
+                if (selectedIds.has(experiment.id)) {
                     return false;
                 }
                 // Convert AoS → SoA on ingest to reduce heap footprint.
                 const compacted = toColumnarExperiment(experiment);
-                set({ experiments: [...state.experiments, compacted] });
+                const experiments = [...state.experiments, compacted];
+                set({
+                    experiments,
+                    ...deriveComparisonSessionFromExperiments(experiments, state.experimentsById),
+                });
                 return true;
             },
-            removeExperiment: (id) => set((state) => ({
-                experiments: state.experiments.filter(e => e.id !== id)
-            })),
-            clear: () => set({ experiments: [] }),
-            isInComparison: (id) => !!get().experiments.find(e => e.id === id),
+            removeExperiment: (id) => set((state) => {
+                const experiments = state.experiments.filter(e => e.id !== id);
+                return {
+                    experiments,
+                    ...deriveComparisonSessionFromExperiments(experiments, state.experimentsById),
+                };
+            }),
+            clear: () => set({
+                experiments: [],
+                experimentIds: [],
+                experimentsById: {},
+                viewport: null,
+                activeTab: 'chart',
+            }),
+            isInComparison: (id) => {
+                const state = get();
+                return state.experimentIds.includes(id) || state.experiments.some(e => e.id === id);
+            },
             getMaxExperiments: () => {
                 const { result } = useLicenseStore.getState();
                 return result?.license?.features?.maxComparisonExperiments ?? 3;
@@ -213,10 +322,16 @@ export const useComparisonStore = create<ComparisonState>()(
                             .map((e) => e.id),
                     );
 
-                    return {
-                        experiments: currentState.experiments
+                    const experiments = currentState.experiments
                             .filter((experiment) => !invalidIds.has(experiment.id))
-                            .map((experiment) => resolvedById.get(experiment.id) ?? experiment),
+                            .map((experiment) => resolvedById.get(experiment.id) ?? experiment);
+
+                    return {
+                        experiments,
+                        ...deriveComparisonSessionFromExperiments(
+                            experiments,
+                            currentState.experimentsById,
+                        ),
                         _isRehydrating: false,
                     };
                 });
@@ -225,16 +340,25 @@ export const useComparisonStore = create<ComparisonState>()(
                 set((state) => ({
                     displaySettings: { ...state.displaySettings, ...patch },
                 })),
+            setViewport: (viewport) => set({ viewport }),
+            setActiveTab: (activeTab) => set({ activeTab }),
             releaseHeavyData: () =>
-                set((state) => ({
-                    experiments: state.experiments.map(exp => {
+                set((state) => {
+                    const experiments = state.experiments.map(exp => {
                         // File experiments have no DB — keep their data intact
                         if (exp.id.startsWith('file-')) return exp;
                         // Strip DB-backed experiments down to selection metadata;
                         // rehydrateIfNeeded() reloads chart data by id on the next mount.
                         return toLightweightComparisonExperiment(exp);
-                    }),
-                })),
+                    });
+                    return {
+                        experiments,
+                        ...deriveComparisonSessionFromExperiments(
+                            experiments,
+                            state.experimentsById,
+                        ),
+                    };
+                }),
         }),
         {
             name: 'comparison-storage', // unique name for localStorage
@@ -254,16 +378,41 @@ export const useComparisonStore = create<ComparisonState>()(
                     const { rawPoints, data, rawData, columnarData, ...lightweight } = exp as Experiment & { rawPoints?: unknown; data?: unknown; rawData?: unknown; columnarData?: unknown };
                     return lightweight;
                 }),
+                sessionId: state.sessionId,
+                ...deriveComparisonSessionFromExperiments(
+                    state.experiments,
+                    state.experimentsById,
+                ),
+                viewport: state.viewport,
+                activeTab: state.activeTab,
                 displaySettings: state.displaySettings,
                 // _hasHydrated is runtime-only — never persist it
             }),
             merge: (persistedState, currentState) => {
                 const persisted = (persistedState ?? {}) as Partial<ComparisonState>;
+                const experiments = Array.isArray(persisted.experiments)
+                    ? persisted.experiments
+                    : currentState.experiments;
+                const derivedSession = deriveComparisonSessionFromExperiments(
+                    experiments,
+                    persisted.experimentsById ?? currentState.experimentsById,
+                );
+                const persistedIds = Array.isArray(persisted.experimentIds)
+                    ? persisted.experimentIds.filter(id => !!derivedSession.experimentsById[id])
+                    : [];
+
                 return {
                     ...currentState,
                     ...persisted,
                     // Persisted experiments lack rawPoints — they'll be rehydrated on first use
-                    experiments: Array.isArray(persisted.experiments) ? persisted.experiments : currentState.experiments,
+                    experiments,
+                    sessionId: stringValue(persisted.sessionId) ?? currentState.sessionId,
+                    experimentIds: persistedIds.length > 0
+                        ? persistedIds
+                        : derivedSession.experimentIds,
+                    experimentsById: derivedSession.experimentsById,
+                    viewport: persisted.viewport ?? null,
+                    activeTab: persisted.activeTab === 'report' ? 'report' : 'chart',
                     displaySettings: {
                         ...DEFAULT_DISPLAY_SETTINGS,
                         ...(persisted.displaySettings ?? {}),
