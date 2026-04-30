@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useExperimentSeriesOverview } from '@/hooks/useExperimentSeriesOverview';
 import { series } from '@/lib/tauri/series';
+import { seriesWindowCache } from '@/lib/series/series-window-cache';
 import type { SeriesWindow } from '@/lib/series/binary-series';
 
 vi.mock('@/lib/tauri/core', () => ({
@@ -36,6 +37,7 @@ function makeSeriesWindow(times: number[], viscosities: number[]): SeriesWindow 
 describe('useExperimentSeriesOverview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    seriesWindowCache.clear();
     vi.mocked(series.overview).mockResolvedValue(makeSeriesWindow([0, 60, 120], [100, 110, 120]));
     vi.mocked(series.window).mockResolvedValue(makeSeriesWindow([60, 90], [110, 115]));
   });
@@ -95,5 +97,65 @@ describe('useExperimentSeriesOverview', () => {
 
     await new Promise(resolve => window.setTimeout(resolve, 130));
     expect(series.window).not.toHaveBeenCalled();
+  });
+
+  it('reuses overview data from shared cache after unmount', async () => {
+    const first = renderHook(() =>
+      useExperimentSeriesOverview('exp_1', true, 1500),
+    );
+
+    await waitFor(() => {
+      expect(first.result.current.overviewColumnarData?.timeSec.length).toBe(3);
+    });
+    first.unmount();
+
+    const second = renderHook(() =>
+      useExperimentSeriesOverview('exp_1', true, 1500),
+    );
+
+    await waitFor(() => {
+      expect(second.result.current.overviewColumnarData?.timeSec.length).toBe(3);
+    });
+
+    expect(series.overview).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses window data from shared cache after unmount', async () => {
+    const first = renderHook(() =>
+      useExperimentSeriesOverview('exp_1', true, 1500),
+    );
+
+    await waitFor(() => {
+      expect(first.result.current.overviewColumnarData).not.toBeNull();
+    });
+
+    act(() => {
+      first.result.current.requestWindow(60, 120);
+    });
+
+    await waitFor(() => {
+      expect(first.result.current.hasWindow).toBe(true);
+    });
+    expect(series.window).toHaveBeenCalledTimes(1);
+    first.unmount();
+
+    const second = renderHook(() =>
+      useExperimentSeriesOverview('exp_1', true, 1500),
+    );
+
+    await waitFor(() => {
+      expect(second.result.current.overviewColumnarData).not.toBeNull();
+    });
+
+    act(() => {
+      second.result.current.requestWindow(60, 120);
+    });
+
+    await waitFor(() => {
+      expect(second.result.current.hasWindow).toBe(true);
+    });
+    await new Promise(resolve => window.setTimeout(resolve, 130));
+
+    expect(series.window).toHaveBeenCalledTimes(1);
   });
 });

@@ -3,6 +3,10 @@ import type { ChartColumnarData } from '@/types';
 import { isTauri } from '@/lib/tauri/core';
 import { series } from '@/lib/tauri/series';
 import { seriesWindowToColumnarData } from '@/lib/series/binary-series';
+import {
+  seriesWindowCache,
+  type SeriesWindowCacheKey,
+} from '@/lib/series/series-window-cache';
 
 const DEFAULT_SERIES_METRICS = [
   'viscosityCp',
@@ -14,7 +18,6 @@ const DEFAULT_SERIES_METRICS = [
   'bathTemperatureC',
 ];
 
-const WINDOW_CACHE_LIMIT = 5;
 const WINDOW_DEBOUNCE_MS = 100;
 
 interface SeriesWindowRequest {
@@ -35,35 +38,25 @@ function roundedSeconds(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
-function makeWindowCacheKey(
+function makeSeriesCacheKey(
   experimentId: string,
   metrics: string[],
   maxPoints: number,
-  range: SeriesWindowRequest,
-): string {
-  return [
+  kind: SeriesWindowCacheKey['kind'],
+  range?: SeriesWindowRequest,
+): SeriesWindowCacheKey {
+  return {
     experimentId,
-    metrics.join(','),
+    metricsKey: metrics.join(','),
     maxPoints,
-    roundedSeconds(range.xMinSec),
-    roundedSeconds(range.xMaxSec),
-  ].join('|');
-}
-
-function rememberWindow(
-  cache: Map<string, ChartColumnarData>,
-  key: string,
-  value: ChartColumnarData,
-): void {
-  if (cache.has(key)) {
-    cache.delete(key);
-  }
-  cache.set(key, value);
-  while (cache.size > WINDOW_CACHE_LIMIT) {
-    const oldest = cache.keys().next().value;
-    if (!oldest) break;
-    cache.delete(oldest);
-  }
+    kind,
+    ...(range
+      ? {
+        xMinSec: roundedSeconds(range.xMinSec),
+        xMaxSec: roundedSeconds(range.xMaxSec),
+      }
+      : {}),
+  };
 }
 
 function minFiniteTimeSec(data: ChartColumnarData | null): number {
@@ -97,7 +90,6 @@ export function useExperimentSeriesOverview(
 ): ExperimentSeriesOverviewState {
   const metrics = useMemo(() => DEFAULT_SERIES_METRICS, []);
   const canUseBinary = enabled && !!experimentId && isTauri() && !isLegacyAosForced();
-  const cacheRef = useRef<Map<string, ChartColumnarData>>(new Map());
   const windowRequestSeqRef = useRef(0);
   const [overviewState, setOverviewState] = useState<{
     columnarData: ChartColumnarData | null;
@@ -128,20 +120,32 @@ export function useExperimentSeriesOverview(
       setWindowState(prev => prev.range || prev.columnarData || prev.isLoading || prev.error
         ? { range: null, columnarData: null, isLoading: false, error: null }
         : prev);
-      cacheRef.current.clear();
       return;
     }
 
     let cancelled = false;
-    cacheRef.current.clear();
     setWindowState({ range: null, columnarData: null, isLoading: false, error: null });
+
+    const overviewCacheKey = makeSeriesCacheKey(experimentId, metrics, maxPoints, 'overview');
+    const cachedOverview = seriesWindowCache.get(overviewCacheKey);
+    if (cachedOverview) {
+      setOverviewState({
+        columnarData: cachedOverview,
+        isLoading: false,
+        error: null,
+      });
+      return;
+    }
+
     setOverviewState(prev => ({ ...prev, isLoading: true, error: null }));
 
     series.overview(experimentId, metrics, maxPoints)
       .then(window => {
         if (cancelled) return;
+        const columnarData = seriesWindowToColumnarData(window);
+        seriesWindowCache.set(overviewCacheKey, columnarData);
         setOverviewState({
-          columnarData: seriesWindowToColumnarData(window),
+          columnarData,
           isLoading: false,
           error: null,
         });
@@ -166,8 +170,8 @@ export function useExperimentSeriesOverview(
     }
 
     const range = windowState.range;
-    const cacheKey = makeWindowCacheKey(experimentId, metrics, maxPoints, range);
-    const cached = cacheRef.current.get(cacheKey);
+    const cacheKey = makeSeriesCacheKey(experimentId, metrics, maxPoints, 'window', range);
+    const cached = seriesWindowCache.get(cacheKey);
     if (cached) {
       setWindowState(prev => ({
         ...prev,
@@ -195,7 +199,7 @@ export function useExperimentSeriesOverview(
         .then(seriesWindow => {
           if (!active || windowRequestSeqRef.current !== seq) return;
           const columnarData = seriesWindowToColumnarData(seriesWindow);
-          rememberWindow(cacheRef.current, cacheKey, columnarData);
+          seriesWindowCache.set(cacheKey, columnarData);
           setWindowState(prev => ({
             ...prev,
             columnarData,
