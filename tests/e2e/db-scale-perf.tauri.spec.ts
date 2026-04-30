@@ -126,9 +126,8 @@ async function resetLibraryFilterEvents(page: Page): Promise<number> {
                 events?: unknown[];
             };
         };
-        if (w.__RHEOLAB_LIBRARY_FILTER_PERF_HOOK__) {
-            w.__RHEOLAB_LIBRARY_FILTER_PERF_HOOK__.events.length = 0;
-        }
+        const events = w.__RHEOLAB_LIBRARY_FILTER_PERF_HOOK__?.events;
+        if (events) events.length = 0;
         return performance.now();
     });
 }

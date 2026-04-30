@@ -380,6 +380,7 @@ async function waitForDashboardCanvasPainted(page: Page): Promise<void> {
 async function dragZoomChart(page: Page): Promise<void> {
   const overlay = page.locator('[data-testid="DashboardChartContainer"] .uplot .u-over').first();
   await expect(overlay).toBeVisible({ timeout: 10_000 });
+  await overlay.scrollIntoViewIfNeeded();
   const box = await overlay.boundingBox();
   expect(box, 'uPlot overlay box').toBeTruthy();
   if (!box) return;

@@ -35,6 +35,8 @@ Minimal repo context to survive chat compaction.
 
 ## Verified Commands
 
+- GitHub Actions are **not** used as the authoritative gate for this repo. Do not block merge/readiness on GitHub Actions status unless the user explicitly asks for it.
+- Local validation is authoritative. PR/release readiness should be based on the local top-of-stack gate and the relevant Tauri perf/smoke runners.
 - `npm run test`: run Vitest suite
 - `npm run test:parsing`: run parsing tests only
 - `npm run tauri:dev`: start desktop app in dev mode (auto-syncs version.ts)
