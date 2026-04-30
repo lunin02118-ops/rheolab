@@ -283,6 +283,7 @@ pub async fn experiments_save(
 
         tx.commit()?;
         super::list::invalidate_filter_metadata_cache();
+        super::super::series::release_series_decode_cache_for_experiment(&existing_id);
         return Ok(ExperimentSaveResponse::updated(existing_id));
     }
 
@@ -355,6 +356,7 @@ pub async fn experiments_save(
 
         tx.commit()?;
         super::list::invalidate_filter_metadata_cache();
+        super::super::series::release_series_decode_cache_for_experiment(&existing_id);
         return Ok(ExperimentSaveResponse::updated(existing_id));
     }
 
@@ -438,7 +440,7 @@ pub async fn experiments_delete(
 
     super::super::data_flows::log_search_projection(&tx, Some(&id), "delete", "v1", None)?;
 
-    let deleted = tx.execute("DELETE FROM Experiment WHERE id = ?1", params![id])?;
+    let deleted = tx.execute("DELETE FROM Experiment WHERE id = ?1", params![&id])?;
 
     if deleted == 0 {
         return Ok(ExperimentDeleteResponse {
@@ -454,6 +456,7 @@ pub async fn experiments_delete(
 
     tx.commit()?;
     super::list::invalidate_filter_metadata_cache();
+    super::super::series::release_series_decode_cache_for_experiment(&id);
     Ok(ExperimentDeleteResponse {
         success: true,
         error: None,

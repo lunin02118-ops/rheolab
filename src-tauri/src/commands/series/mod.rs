@@ -17,6 +17,8 @@ use sha2::{Digest, Sha256};
 use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashMap};
 use std::io::Write;
+use std::sync::{Arc, LazyLock, Mutex};
+use std::time::{Duration, Instant};
 use tauri::State;
 
 const SERIES_MAGIC: &[u8; 8] = b"RHEOSR1\0";
@@ -25,6 +27,12 @@ const SERIES_HEADER_BYTES: usize = 20;
 const SERIES_DESCRIPTOR_BYTES: usize = 8;
 const MIN_MAX_POINTS: u32 = 100;
 const MAX_MAX_POINTS: u32 = 20_000;
+const SERIES_DECODE_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+const SERIES_DECODE_CACHE_MAX_BYTES: usize = 128 * 1024 * 1024;
+const SERIES_DECODE_CACHE_MAX_ENTRIES: usize = 16;
+
+static SERIES_DECODE_CACHE: LazyLock<Mutex<SeriesDecodeCache>> =
+    LazyLock::new(|| Mutex::new(SeriesDecodeCache::default()));
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum SeriesMetric {
@@ -135,6 +143,180 @@ struct LoadedSeries {
     columns: HashMap<String, Vec<Option<f64>>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SeriesDecodeCacheStats {
+    entries: usize,
+    byte_size: usize,
+    hits: u64,
+    misses: u64,
+}
+
+struct SeriesDecodeCacheEntry {
+    experiment_id: String,
+    series: Arc<LoadedSeries>,
+    byte_size: usize,
+    created_at: Instant,
+    last_accessed_at: Instant,
+}
+
+struct SeriesDecodeCache {
+    entries: HashMap<String, SeriesDecodeCacheEntry>,
+    ttl: Duration,
+    max_bytes: usize,
+    max_entries: usize,
+    byte_size: usize,
+    hits: u64,
+    misses: u64,
+}
+
+impl Default for SeriesDecodeCache {
+    fn default() -> Self {
+        Self::new(
+            SERIES_DECODE_CACHE_TTL,
+            SERIES_DECODE_CACHE_MAX_BYTES,
+            SERIES_DECODE_CACHE_MAX_ENTRIES,
+        )
+    }
+}
+
+impl SeriesDecodeCache {
+    fn new(ttl: Duration, max_bytes: usize, max_entries: usize) -> Self {
+        Self {
+            entries: HashMap::new(),
+            ttl,
+            max_bytes,
+            max_entries,
+            byte_size: 0,
+            hits: 0,
+            misses: 0,
+        }
+    }
+
+    fn get(&mut self, experiment_id: &str, data_hash: &str) -> Option<Arc<LoadedSeries>> {
+        self.prune();
+        let key = series_decode_cache_key(experiment_id, data_hash);
+        let Some(entry) = self.entries.get_mut(&key) else {
+            self.misses += 1;
+            return None;
+        };
+        let now = Instant::now();
+        if now.duration_since(entry.created_at) > self.ttl {
+            self.delete_key(&key);
+            self.misses += 1;
+            return None;
+        }
+        entry.last_accessed_at = now;
+        self.hits += 1;
+        Some(Arc::clone(&entry.series))
+    }
+
+    fn insert(&mut self, experiment_id: String, data_hash: String, series: Arc<LoadedSeries>) {
+        let key = series_decode_cache_key(&experiment_id, &data_hash);
+        self.delete_key(&key);
+        let byte_size = estimate_loaded_series_bytes(&series);
+        let now = Instant::now();
+        self.entries.insert(
+            key,
+            SeriesDecodeCacheEntry {
+                experiment_id,
+                series,
+                byte_size,
+                created_at: now,
+                last_accessed_at: now,
+            },
+        );
+        self.byte_size += byte_size;
+        self.prune();
+    }
+
+    fn release_experiment(&mut self, experiment_id: &str) {
+        let keys: Vec<String> = self
+            .entries
+            .iter()
+            .filter_map(|(key, entry)| {
+                if entry.experiment_id == experiment_id {
+                    Some(key.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for key in keys {
+            self.delete_key(&key);
+        }
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+        self.byte_size = 0;
+        self.hits = 0;
+        self.misses = 0;
+    }
+
+    fn stats(&mut self) -> SeriesDecodeCacheStats {
+        self.prune();
+        SeriesDecodeCacheStats {
+            entries: self.entries.len(),
+            byte_size: self.byte_size,
+            hits: self.hits,
+            misses: self.misses,
+        }
+    }
+
+    fn prune(&mut self) {
+        let now = Instant::now();
+        let expired: Vec<String> = self
+            .entries
+            .iter()
+            .filter_map(|(key, entry)| {
+                if now.duration_since(entry.created_at) > self.ttl {
+                    Some(key.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for key in expired {
+            self.delete_key(&key);
+        }
+
+        while self.entries.len() > self.max_entries || self.byte_size > self.max_bytes {
+            let Some(key) = self.oldest_entry_key() else {
+                break;
+            };
+            self.delete_key(&key);
+        }
+    }
+
+    fn oldest_entry_key(&self) -> Option<String> {
+        self.entries
+            .iter()
+            .min_by_key(|(_, entry)| entry.last_accessed_at)
+            .map(|(key, _)| key.clone())
+    }
+
+    fn delete_key(&mut self, key: &str) {
+        if let Some(entry) = self.entries.remove(key) {
+            self.byte_size = self.byte_size.saturating_sub(entry.byte_size);
+        }
+    }
+}
+
+fn series_decode_cache_key(experiment_id: &str, data_hash: &str) -> String {
+    format!("{experiment_id}:{data_hash}")
+}
+
+fn estimate_loaded_series_bytes(series: &LoadedSeries) -> usize {
+    series.data_hash.len()
+        + series
+            .columns
+            .iter()
+            .map(|(key, values)| {
+                key.len() + values.len() * std::mem::size_of::<Option<f64>>()
+            })
+            .sum::<usize>()
+}
+
 impl LoadedSeries {
     fn time_values(&self) -> Result<Vec<f64>> {
         let raw = first_present_column(&self.columns, SeriesMetric::TimeSec.aliases())
@@ -229,43 +411,49 @@ fn validate_window(x_min_sec: f64, x_max_sec: f64) -> Result<()> {
     Ok(())
 }
 
-fn load_series_by_id(pool: &DbPool, experiment_id: &str) -> Result<LoadedSeries> {
+fn load_series_by_id(pool: &DbPool, experiment_id: &str) -> Result<Arc<LoadedSeries>> {
     let conn = pool.get()?;
-    let blob: Option<Vec<u8>> = conn
+    let row: Option<(Vec<u8>, i64)> = conn
         .query_row(
-            "SELECT dataBlob FROM ExperimentData WHERE experimentId = ?1",
+            "SELECT dataBlob, pointCount FROM ExperimentData WHERE experimentId = ?1",
             [experiment_id],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()?;
-    let blob = blob.ok_or_else(|| {
+    let (blob, point_count) = row.ok_or_else(|| {
         AppError::BadRequest(format!(
             "ExperimentData not found for experimentId={experiment_id}"
         ))
     })?;
-    let point_count = conn
-        .query_row(
-            "SELECT pointCount FROM ExperimentData WHERE experimentId = ?1",
-            [experiment_id],
-            |row| row.get::<_, i64>(0),
-        )
-        .optional()?
-        .unwrap_or(0)
-        .max(0) as usize;
-
     let data_hash = hex::encode(Sha256::digest(&blob));
     drop(conn);
 
+    if let Ok(mut cache) = SERIES_DECODE_CACHE.lock() {
+        if let Some(series) = cache.get(experiment_id, &data_hash) {
+            return Ok(series);
+        }
+    }
+
     let columns = crate::db::columnar::decode_typed(&blob)?;
-    Ok(LoadedSeries {
+    let series = Arc::new(LoadedSeries {
         point_count: if point_count > 0 {
-            point_count
+            point_count as usize
         } else {
             columns.values().next().map(|col| col.len()).unwrap_or(0)
         },
-        data_hash,
+        data_hash: data_hash.clone(),
         columns,
-    })
+    });
+    if let Ok(mut cache) = SERIES_DECODE_CACHE.lock() {
+        cache.insert(experiment_id.to_string(), data_hash, Arc::clone(&series));
+    }
+    Ok(series)
+}
+
+pub(crate) fn release_series_decode_cache_for_experiment(experiment_id: &str) {
+    if let Ok(mut cache) = SERIES_DECODE_CACHE.lock() {
+        cache.release_experiment(experiment_id);
+    }
 }
 
 fn available_metrics(series: &LoadedSeries) -> Vec<SeriesMetricDescriptor> {
@@ -534,7 +722,7 @@ pub async fn experiments_series_meta(
             time_min_sec,
             time_max_sec,
             available_metrics: available_metrics(&series),
-            data_hash: series.data_hash,
+            data_hash: series.data_hash.clone(),
         })
     })
     .await?
@@ -645,6 +833,96 @@ mod tests {
         let point_count = u32::from_le_bytes(bytes[12..16].try_into().unwrap());
         let column_count = u16::from_le_bytes(bytes[16..18].try_into().unwrap());
         (point_count, column_count)
+    }
+
+    fn make_loaded_series_for_cache(hash: &str, n: usize) -> Arc<LoadedSeries> {
+        let mut columns = HashMap::new();
+        columns.insert(
+            "time_sec".to_string(),
+            (0..n).map(|idx| Some(idx as f64)).collect(),
+        );
+        columns.insert(
+            "viscosity_cp".to_string(),
+            (0..n).map(|idx| Some(100.0 + idx as f64)).collect(),
+        );
+        Arc::new(LoadedSeries {
+            point_count: n,
+            data_hash: hash.to_string(),
+            columns,
+        })
+    }
+
+    fn clear_global_decode_cache() {
+        SERIES_DECODE_CACHE.lock().unwrap().clear();
+    }
+
+    #[test]
+    fn decoded_series_cache_tracks_hits_misses_and_release() {
+        let mut cache = SeriesDecodeCache::new(Duration::from_secs(60), usize::MAX, 16);
+        let series = make_loaded_series_for_cache("hash-a", 8);
+
+        cache.insert("exp-1".to_string(), "hash-a".to_string(), Arc::clone(&series));
+
+        let hit = cache.get("exp-1", "hash-a").unwrap();
+        assert!(Arc::ptr_eq(&hit, &series));
+        assert!(cache.get("exp-1", "hash-b").is_none());
+
+        let stats = cache.stats();
+        assert_eq!(stats.entries, 1);
+        assert_eq!(stats.hits, 1);
+        assert_eq!(stats.misses, 1);
+
+        cache.release_experiment("exp-1");
+        assert_eq!(cache.stats().entries, 0);
+    }
+
+    #[test]
+    fn decoded_series_cache_prunes_by_byte_budget() {
+        let mut cache = SeriesDecodeCache::new(Duration::from_secs(60), 1, 16);
+        cache.insert(
+            "exp-1".to_string(),
+            "hash-a".to_string(),
+            make_loaded_series_for_cache("hash-a", 8),
+        );
+        assert_eq!(cache.stats().entries, 0);
+        assert_eq!(cache.stats().byte_size, 0);
+    }
+
+    #[test]
+    fn load_series_by_id_reuses_cache_and_misses_when_data_hash_changes() {
+        clear_global_decode_cache();
+        let pool_path = tempfile::NamedTempFile::new().unwrap();
+        let pool = crate::db::create_pool(pool_path.path()).unwrap();
+        {
+            let pooled = pool.get().unwrap();
+            run_migrations(&pooled).unwrap();
+            insert_blob(&pooled, "series_cache_reuse", 16);
+        }
+
+        let first = load_series_by_id(&pool, "series_cache_reuse").unwrap();
+        let second = load_series_by_id(&pool, "series_cache_reuse").unwrap();
+
+        assert!(Arc::ptr_eq(&first, &second));
+        let stats = SERIES_DECODE_CACHE.lock().unwrap().stats();
+        assert!(stats.entries >= 1);
+        assert!(stats.hits >= 1);
+
+        {
+            let pooled = pool.get().unwrap();
+            let blob = make_blob(24);
+            pooled
+                .execute(
+                    "UPDATE ExperimentData SET dataBlob = ?1, pointCount = 24 \
+                     WHERE experimentId = 'series_cache_reuse'",
+                    rusqlite::params![blob],
+                )
+                .unwrap();
+        }
+
+        let changed = load_series_by_id(&pool, "series_cache_reuse").unwrap();
+
+        assert!(!Arc::ptr_eq(&first, &changed));
+        assert_ne!(first.data_hash, changed.data_hash);
     }
 
     #[test]
