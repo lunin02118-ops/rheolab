@@ -16,6 +16,8 @@ import {
 } from '@/lib/reports/client';
 import { saveBytes, saveBytesToDir, type SaveBytesItem } from '@/lib/reports/report-save';
 import { logger } from '@/lib/logger';
+import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
+import { toFiniteNumber } from '@/lib/utils/numbers';
 
 const PDF_MIME = 'application/pdf';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -108,16 +110,22 @@ function buildWaterOverride(
         salinity: finiteNumber((params as { salinity?: unknown } | null)?.salinity),
         ph: finiteNumber(params?.ph),
         hardness: finiteNumber((params as { hardness?: unknown } | null)?.hardness),
+        fe: finiteNumber(params?.fe),
+        ca: finiteNumber(params?.ca),
+        mg: finiteNumber(params?.mg),
+        cl: finiteNumber(params?.cl),
+        so4: finiteNumber(params?.so4),
+        hco3: finiteNumber(params?.hco3),
     };
 }
 
-function sanitizeRates(rates: number[]): number[] {
+function sanitizeRates(rates: readonly number[]): number[] {
     const unique = new Set<number>();
     for (const rate of rates) {
         if (!Number.isFinite(rate) || rate <= 0) continue;
         unique.add(Math.round(rate));
     }
-    return [...unique];
+    return unique.size > 0 ? [...unique] : [...DEFAULT_VISCOSITY_SHEAR_RATES];
 }
 
 export function useReportExportById(options: UseReportExportByIdOptions) {
@@ -131,7 +139,28 @@ export function useReportExportById(options: UseReportExportByIdOptions) {
     }, [options.filename]);
 
     const buildRequest = useCallback((): ExperimentReportByIdRequest => {
-        const reportViscosityRates = sanitizeRates(options.reportViscosityRates);
+        const reportViscosityRates = sanitizeRates(
+            options.isExpert ? options.reportViscosityRates : DEFAULT_VISCOSITY_SHEAR_RATES,
+        );
+        const pointsToAverage = Math.max(
+            0,
+            Math.round(toFiniteNumber(options.isExpert ? options.expertSettings.pointsToAverage : 1, 1)),
+        );
+        const detectionSettings = {
+            stepSplitting: options.isExpert ? Boolean(options.expertSettings.stepSplitting) : true,
+            splitStartDuration: Math.max(
+                0,
+                toFiniteNumber(options.isExpert ? options.expertSettings.splitStartDuration : 30, 30),
+            ),
+            splitEndDuration: Math.max(
+                0,
+                toFiniteNumber(options.isExpert ? options.expertSettings.splitEndDuration : 30, 30),
+            ),
+            minDurationForSplit: Math.max(
+                0,
+                toFiniteNumber(options.isExpert ? options.expertSettings.minDurationForSplit : 90, 90),
+            ),
+        };
         const settings: ComparisonReportByIdsSettings = {
             language: options.language,
             unitSystem: options.unitSystem,
@@ -186,15 +215,10 @@ export function useReportExportById(options: UseReportExportByIdOptions) {
                 },
             },
             analysisSettings: {
-                pointsToAverage: options.expertSettings.pointsToAverage,
+                pointsToAverage,
                 viscosityShearRates: reportViscosityRates,
             },
-            detectionSettings: {
-                stepSplitting: options.expertSettings.stepSplitting,
-                splitStartDuration: options.expertSettings.splitStartDuration,
-                splitEndDuration: options.expertSettings.splitEndDuration,
-                minDurationForSplit: options.expertSettings.minDurationForSplit,
-            },
+            detectionSettings,
         };
 
         return {

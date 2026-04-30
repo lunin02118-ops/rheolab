@@ -595,12 +595,12 @@ fn apply_single_report_overrides(input: &mut ReportInput, request: &ExperimentRe
                 salinity: water.salinity,
                 ph: water.ph,
                 hardness: water.hardness,
-                fe: None,
-                ca: None,
-                mg: None,
-                cl: None,
-                so4: None,
-                hco3: None,
+                fe: water.fe,
+                ca: water.ca,
+                mg: water.mg,
+                cl: water.cl,
+                so4: water.so4,
+                hco3: water.hco3,
             });
         }
     }
@@ -1507,6 +1507,18 @@ pub struct ExperimentReportWaterOverride {
     pub ph: Option<f64>,
     #[serde(default)]
     pub hardness: Option<f64>,
+    #[serde(default)]
+    pub fe: Option<f64>,
+    #[serde(default)]
+    pub ca: Option<f64>,
+    #[serde(default)]
+    pub mg: Option<f64>,
+    #[serde(default)]
+    pub cl: Option<f64>,
+    #[serde(default)]
+    pub so4: Option<f64>,
+    #[serde(default)]
+    pub hco3: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
@@ -1931,7 +1943,13 @@ fn validate_water_override(water: Option<&ExperimentReportWaterOverride>) -> Res
     }
     validate_optional_finite(water.salinity, "waterOverride.salinity")?;
     validate_optional_finite(water.ph, "waterOverride.ph")?;
-    validate_optional_finite(water.hardness, "waterOverride.hardness")
+    validate_optional_finite(water.hardness, "waterOverride.hardness")?;
+    validate_optional_finite(water.fe, "waterOverride.fe")?;
+    validate_optional_finite(water.ca, "waterOverride.ca")?;
+    validate_optional_finite(water.mg, "waterOverride.mg")?;
+    validate_optional_finite(water.cl, "waterOverride.cl")?;
+    validate_optional_finite(water.so4, "waterOverride.so4")?;
+    validate_optional_finite(water.hco3, "waterOverride.hco3")
 }
 
 fn validate_optional_finite(value: Option<f64>, field: &str) -> Result<()> {
@@ -3089,6 +3107,12 @@ mod tests {
             salinity: Some(1234.0),
             ph: Some(8.2),
             hardness: Some(44.0),
+            fe: Some(0.12),
+            ca: Some(12.3),
+            mg: Some(4.5),
+            cl: Some(89.0),
+            so4: Some(7.8),
+            hco3: Some(145.0),
         });
 
         let report = build_report_input_by_id_cached_with_job(&pool, &request, None)
@@ -3102,6 +3126,12 @@ mod tests {
         assert_eq!(water.salinity, Some(1234.0));
         assert_eq!(water.ph, Some(8.2));
         assert_eq!(water.hardness, Some(44.0));
+        assert_eq!(water.fe, Some(0.12));
+        assert_eq!(water.ca, Some(12.3));
+        assert_eq!(water.mg, Some(4.5));
+        assert_eq!(water.cl, Some(89.0));
+        assert_eq!(water.so4, Some(7.8));
+        assert_eq!(water.hco3, Some(145.0));
     }
 
     #[test]
