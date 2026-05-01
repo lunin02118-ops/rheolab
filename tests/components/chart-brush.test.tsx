@@ -105,6 +105,26 @@ describe('ChartBrush — degenerate data guard', () => {
 });
 
 describe('ChartBrush — stale range clamping', () => {
+    it('renders minute labels without replacement glyphs', () => {
+        const replacementGlyph = String.fromCharCode(0xfffd);
+        const { container } = render(
+            <ChartBrush
+                times={[0, 100]}
+                values={[1, 2]}
+                range={[10, 30]}
+                onChange={() => {}}
+                onReset={() => {}}
+                width={400}
+            />,
+        );
+
+        expect(container.textContent).not.toContain(replacementGlyph);
+        expect(container.textContent).toContain('0.0 min');
+        expect(container.textContent).toContain('100.0 min');
+        expect(container.textContent).toContain('10.0 min');
+        expect(container.textContent).toContain('30.0 min');
+    });
+
     it('pans a very narrow selection from the center instead of resizing a handle', () => {
         const onChange = vi.fn();
         const onCommit = vi.fn();

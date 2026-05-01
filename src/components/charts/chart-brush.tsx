@@ -123,7 +123,7 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
     }, [times, values, width, height, tMin, tSpan]);
 
     // Zero canvas dimensions on unmount to immediately release the GPU texture
-    // backing store. Runs only once on unmount (dep array []) � mirrors the same
+    // backing store. Runs only once on unmount (dep array []) and mirrors the same
     // pattern used in UPlotChart before chart.destroy().
     useEffect(() => {
         const c = canvasRef.current;
@@ -331,10 +331,10 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
             </div>
 
             <div className="absolute bottom-0.5 left-1.5 text-[9px] text-muted-foreground pointer-events-none leading-none">
-                {tMin.toFixed(1)}�
+                {tMin.toFixed(1)} min
             </div>
             <div className="absolute bottom-0.5 right-1.5 text-[9px] text-muted-foreground pointer-events-none leading-none">
-                {tMax.toFixed(1)}�
+                {tMax.toFixed(1)} min
             </div>
 
             {range && selW > 60 && (
@@ -343,13 +343,13 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
                         className="absolute top-0.5 text-[9px] text-blue-300 pointer-events-none leading-none"
                         style={{ left: lPx + HANDLE_W / 2 + 2 }}
                     >
-                        {range[0].toFixed(1)}�
+                        {range[0].toFixed(1)} min
                     </div>
                     <div
                         className="absolute top-0.5 text-[9px] text-blue-300 pointer-events-none leading-none"
                         style={{ right: width - rPx + HANDLE_W / 2 + 2 }}
                     >
-                        {range[1].toFixed(1)}�
+                        {range[1].toFixed(1)} min
                     </div>
                 </>
             )}

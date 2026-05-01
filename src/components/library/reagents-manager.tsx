@@ -264,7 +264,7 @@ function ReagentsManagerComponent() {
                                                 onKeyDown={(e) => { if (e.key === 'Enter') handleOpenDetail(item.reagent); }}
                                                 className="flex items-center px-3 border-b border-border/30 hover:bg-secondary/30 text-sm h-full gap-2">
                                                 <span className="flex-1 font-medium text-foreground truncate">{item.reagent.name}</span>
-                                                <span className="w-40 text-muted-foreground truncate">{item.reagent.manufacturer || '�'}</span>
+                                                <span className="w-40 text-muted-foreground truncate">{item.reagent.manufacturer || '-'}</span>
                                                 <span className="w-28 text-muted-foreground">{item.reagent.country ? (COUNTRY_LABELS[item.reagent.country] || item.reagent.country) : '—'}</span>
                                                 <span className="w-24 text-muted-foreground">{item.reagent.form ? (FORM_LABELS[item.reagent.form] || item.reagent.form) : '—'}</span>
                                                 <div className="w-28 flex justify-center gap-1 flex-shrink-0">
