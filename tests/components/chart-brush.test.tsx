@@ -105,6 +105,53 @@ describe('ChartBrush — degenerate data guard', () => {
 });
 
 describe('ChartBrush — stale range clamping', () => {
+    it('pans a very narrow selection from the center instead of resizing a handle', () => {
+        const onChange = vi.fn();
+        const onCommit = vi.fn();
+        const width = 1064;
+        const range: [number, number] = [1.678477, 5.20328];
+        const extentMax = 178.59;
+        const beforeWidth = range[1] - range[0];
+        const { container } = render(
+            <ChartBrush
+                times={[0, extentMax]}
+                values={[1, 2]}
+                range={range}
+                onChange={onChange}
+                onCommit={onCommit}
+                onReset={() => {}}
+                width={width}
+            />,
+        );
+
+        const root = findBrushRoot(container);
+        Object.defineProperty(root, 'getBoundingClientRect', {
+            value: () => ({
+                left: 0,
+                top: 0,
+                right: width,
+                bottom: 36,
+                width,
+                height: 36,
+                x: 0,
+                y: 0,
+                toJSON: () => ({}),
+            }),
+        });
+
+        const centerX = ((range[0] + range[1]) / 2 / extentMax) * width;
+        fireEvent.pointerDown(root, { clientX: centerX, clientY: 18, button: 0, pointerId: 10 });
+        fireEvent.pointerMove(root, { clientX: centerX + 48, clientY: 18, pointerId: 10 });
+        fireEvent.pointerUp(root, { clientX: centerX + 48, clientY: 18, pointerId: 10 });
+
+        expect(onChange).toHaveBeenCalled();
+        const [min, max] = onChange.mock.calls.at(-1)! as [number, number];
+        expect(min).toBeGreaterThan(range[0] + 7);
+        expect(max).toBeGreaterThan(range[1] + 7);
+        expect(max - min).toBeCloseTo(beforeWidth, 4);
+        expect(onCommit).toHaveBeenLastCalledWith(min, max);
+    });
+
     it('previews every drag move but commits the range only once on pointerup', () => {
         const onChange = vi.fn();
         const onCommit = vi.fn();
@@ -290,9 +337,9 @@ describe('ChartBrush — stale range clamping', () => {
         // hiding them off-canvas while still letting subsequent drags emit
         // out-of-range viewports.  After the fix selLeft and selRight are
         // both clamped to [0, 1], collapsing the visible window to one edge
-        // — the parent (`comparison-chart-uplot.tsx`) is then expected to
-        // detect the disjoint state and clear the viewport via its
-        // `dataMinMin/dataMaxMin` guard.
+        // — the parent (`comparison-chart-uplot.tsx`) can keep the user's
+        // logical viewport and rely on the brush itself to avoid emitting
+        // invalid ranges.
         const onChange = vi.fn();
         const { container } = render(
             <ChartBrush

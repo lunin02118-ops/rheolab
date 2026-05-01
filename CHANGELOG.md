@@ -6,6 +6,24 @@
 
 ---
 
+## [0.2.2-alpha.14] — 2026-05-01
+
+> Hotfix alpha после боевой проверки узкой полосы масштабирования Comparison. Закрывает сценарий, где 3-4 минутный brush мог восприниматься как resize handle, а не как pan, из-за чего полоса “плясала” или схлопывала график.
+
+### Исправлено
+- **Narrow brush panning**: клик внутри очень узкой selection теперь всегда считается pan по центру, а не resize левого/правого handle. Узкую полосу снова можно спокойно вести влево/вправо.
+- **Viewport stability**: Comparison больше не очищает committed viewport только потому, что текущий narrow window временно пустой или не совпал с rendered axis extent. Логический zoom пользователя сохраняется.
+- **Empty window fallback**: если точный viewport-window пустой для отдельной линии, chart использует overview как visual fallback вместо пустого/схлопнутого слоя.
+- **Battle E2E proof**: добавлен Tauri-runner `perf:comparison:brush-battle`, который сохраняет 5 реальных экспериментов, ставит viewport `600s..810s` (3.5 минуты), двигает нижнюю полосу со скриншотами и проверяет отсутствие `experiments_series_window` во время drag.
+
+### Проверки
+- `npm run typecheck`, `npm run lint`, targeted Vitest `useComparisonSeriesWindows` + `chart-brush` — passed.
+- Full `npm test` — passed.
+- Tauri battle smoke: initial/committed viewport `3.5 min`; during drag `0` window requests; after commit chart layer `window`; brush width stable while both edges pan together.
+- `npm run version:validate`, `npm run audit:large-ipc`, `git diff --check` — passed.
+
+---
+
 ## [0.2.2-alpha.13] — 2026-05-01
 
 > Hotfix alpha после ручной проверки `0.2.2-alpha.12`. Закрывает неправильное смешивание overview/window-слоёв в Comparison, из-за которого часть линий могла растягиваться на полный диапазон, часть оставаться в узком viewport, а график визуально “схлопывался”.

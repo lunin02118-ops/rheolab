@@ -356,21 +356,21 @@ export function useComparisonSeriesWindows({
                         const resolvedTimeOriginSec = Number.isFinite(timeOriginSec)
                             ? Number(timeOriginSec)
                             : 0;
-                        const columnarData = seriesWindowToColumnarData(seriesWindow, {
-                            timeOriginSec: resolvedTimeOriginSec,
-                        });
-                        seriesWindowCache.set(readyCacheKey, columnarData);
                         setLineStates(prev => {
                             if (prev[exp.id]?.cacheKey !== expectedSerializedKey && prev[exp.id]?.cacheKey !== readySerializedKey) {
                                 return prev;
                             }
+                            const fallbackColumnarData = overviewColumnarData ?? prev[exp.id]?.overviewColumnarData ?? cachedOverview;
+                            const columnarData = fallbackColumnarData ?? seriesWindowToColumnarData(seriesWindow, {
+                                timeOriginSec: resolvedTimeOriginSec,
+                            });
                             return {
                                 ...prev,
                                 [exp.id]: {
                                     experimentId: exp.id,
                                     status: 'ready',
                                     columnarData,
-                                    overviewColumnarData: overviewColumnarData ?? prev[exp.id]?.overviewColumnarData ?? cachedOverview,
+                                    overviewColumnarData: fallbackColumnarData,
                                     cacheKey: readySerializedKey,
                                     fallbackViewportKey,
                                     lastLoadedAt: Date.now(),
@@ -493,7 +493,7 @@ export function useComparisonSeriesWindows({
                                         cacheKey,
                                         serializedKey,
                                         serializedKey,
-                                        undefined,
+                                        fallbackKey ?? undefined,
                                         timeOriginSec,
                                         cachedOverview,
                                         true,

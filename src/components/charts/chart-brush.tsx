@@ -166,8 +166,12 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
             const lPx = selLeft * width;
             const rPx = selRight * width;
             const xPx = frac * width;
+            const selectionWidth = rPx - lPx;
+            const isInsideSelection = xPx >= lPx && xPx <= rPx;
             let mode: 'left' | 'right' | 'center';
-            if (Math.abs(xPx - lPx) <= HANDLE_W) {
+            if (isInsideSelection && selectionWidth <= MIN_SPAN_PX) {
+                mode = 'center';
+            } else if (Math.abs(xPx - lPx) <= HANDLE_W) {
                 mode = 'left';
             } else if (Math.abs(xPx - rPx) <= HANDLE_W) {
                 mode = 'right';

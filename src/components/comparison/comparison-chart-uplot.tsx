@@ -428,48 +428,6 @@ function ComparisonChartUPlotInner({
         comparisonAxisMode,
     });
 
-    useEffect(() => {
-        if (!viewport) return;
-        if (isBrushPreviewing) return;
-        if (!binarySeries.isViewportWindowReady) return;
-        if (binarySeries.readyCount < experiments.length) return;
-        if ((uPlotData[0] as ArrayLike<unknown>).length > 0) return;
-        if ((brushUPlotData[0] as ArrayLike<unknown>).length === 0) return;
-
-        onViewportChange?.(null);
-    }, [
-        binarySeries.isViewportWindowReady,
-        binarySeries.readyCount,
-        brushUPlotData,
-        experiments.length,
-        isBrushPreviewing,
-        onViewportChange,
-        uPlotData,
-        viewport,
-    ]);
-
-    // Stale viewport guard — clears `viewport` when it falls entirely outside
-    // the loaded data extent (e.g. warm navigation restored a viewport from
-    // another experiment whose time range no longer overlaps).  Without this,
-    // brush handles would render at misleading positions and any subsequent
-    // drag could re-emit out-of-range viewports based on the fake 1 unit span
-    // that `ChartBrush` falls back to when `tMin === tMax`.  Pairs with the
-    // degenerate-data guard in `chart-brush.tsx`.
-    const uPlotTimes = uPlotData[0] as number[] | undefined;
-    const dataMinMin = uPlotTimes && uPlotTimes.length > 0 ? uPlotTimes[0] : null;
-    const dataMaxMin = uPlotTimes && uPlotTimes.length > 0 ? uPlotTimes[uPlotTimes.length - 1] : null;
-    useEffect(() => {
-        if (!viewport) return;
-        if (dataMinMin == null || dataMaxMin == null) return;
-        if (dataMaxMin <= dataMinMin) return;
-        const dataMinSec = dataMinMin * 60;
-        const dataMaxSec = dataMaxMin * 60;
-        const disjoint = viewport.xMaxSec < dataMinSec || viewport.xMinSec > dataMaxSec;
-        if (disjoint) {
-            onViewportChange?.(null);
-        }
-    }, [dataMinMin, dataMaxMin, viewport, onViewportChange]);
-
     // Brush width = plot-area width as reported by uPlot bbox.
     // Fall back to (container - leftAxis - 20px default right padding) only when
     // bbox isn't populated yet (first render before drawAxes fires).

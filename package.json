@@ -1,6 +1,6 @@
 {
   "name": "rheolab-enterprise",
-  "version": "0.2.2-alpha.13",
+  "version": "0.2.2-alpha.14",
   "private": true,
   "type": "module",
   "scripts": {
@@ -34,6 +34,7 @@
     "perf:comparison:tauri:real": "npx cross-env RHEOLAB_E2E_REAL_REPORTS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/comparison-smoke-perf.tauri.spec.ts",
     "perf:comparison:tauri:memory": "npx cross-env COMPARISON_SMOKE_MEMORY_STEPS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/comparison-smoke-perf.tauri.spec.ts",
     "perf:comparison:memory:summary": "node scripts/test/summarize-comparison-memory-phases.mjs",
+    "perf:comparison:brush-battle": "npx playwright test --config playwright.tauri.config.ts tests/e2e/comparison-brush-battle.tauri.spec.ts",
     "perf:chart:tauri": "npx playwright test --config playwright.tauri.config.ts tests/e2e/chart-series-perf.tauri.spec.ts",
     "perf:chart:tauri:memory": "npx cross-env CHART_SERIES_MEMORY_STEPS=1 npx playwright test --config playwright.tauri.config.ts tests/e2e/chart-series-perf.tauri.spec.ts",
     "perf:warm-nav:tauri": "npx playwright test --config playwright.tauri.config.ts tests/e2e/warm-navigation-comparison.tauri.spec.ts",
