@@ -165,6 +165,7 @@ while ($true) {
 
         $wv2WsBytes      = [double]0
         $wv2PrivateBytes = [double]0
+        $wv2CpuSec       = [double]0
         $wv2Count        = 0
         $wv2TypeAgg      = @{}
         $wv2Details      = New-Object System.Collections.Generic.List[object]
@@ -182,9 +183,11 @@ while ($true) {
                 $type = Get-WebView2ProcessType -CommandLine $procMeta.CommandLine
                 $wsBytes = [double]$p.WorkingSet64
                 $privateBytes = [double]$p.PrivateMemorySize64
+                $cpuSec = [double]$p.CPU
 
                 $wv2WsBytes += $wsBytes
                 $wv2PrivateBytes += $privateBytes
+                $wv2CpuSec += $cpuSec
                 $wv2Count++
 
                 Add-TypeAggregate -Agg $wv2TypeAgg -Type $type -WsBytes $wsBytes -PrivateBytes $privateBytes
@@ -193,12 +196,14 @@ while ($true) {
                     type      = $type
                     wsMb      = [math]::Round($wsBytes / 1MB, 2)
                     privateMb = [math]::Round($privateBytes / 1MB, 2)
+                    cpuSec    = [math]::Round($cpuSec, 3)
                 })
             }
         }
 
         $wv2WsMb      = [math]::Round($wv2WsBytes / 1MB, 2)
         $wv2PrivateMb = [math]::Round($wv2PrivateBytes / 1MB, 2)
+        $wv2CpuSec    = [math]::Round($wv2CpuSec, 3)
 
         $wv2BrowserWsMb  = Get-TypeMb -Agg $wv2TypeAgg -Type 'browser'  -Field 'wsBytes'
         $wv2RendererWsMb = Get-TypeMb -Agg $wv2TypeAgg -Type 'renderer' -Field 'wsBytes'
@@ -231,6 +236,7 @@ while ($true) {
         )
 
         $totalWsMb = [math]::Round($tauriWsMb + $wv2WsMb, 2)
+        $totalCpuSec = [math]::Round($tauriCpu + $wv2CpuSec, 3)
 
         $sample = [PSCustomObject]@{
             elapsedMs      = [long]$startTime.Elapsed.TotalMilliseconds
@@ -239,6 +245,7 @@ while ($true) {
             tauriCpuSec    = $tauriCpu
             webview2WsMb   = $wv2WsMb
             webview2PrivateMb = $wv2PrivateMb
+            webview2CpuSec = $wv2CpuSec
             webview2Count  = $wv2Count
             webview2BrowserWsMb  = $wv2BrowserWsMb
             webview2RendererWsMb = $wv2RendererWsMb
@@ -253,6 +260,7 @@ while ($true) {
             webview2TypeBreakdown = $wv2TypeBreakdown
             webview2Processes = $wv2Processes
             totalWsMb      = $totalWsMb
+            totalCpuSec    = $totalCpuSec
         }
 
         # Записать JSONL строку
