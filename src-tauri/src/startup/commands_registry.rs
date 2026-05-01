@@ -102,6 +102,8 @@ macro_rules! register_tauri_commands {
             // Logger commands
             $crate::commands::logger::log_info,
             $crate::commands::logger::log_error,
+            // Native window chrome polish
+            $crate::commands::window_chrome::window_set_theme_chrome,
             // Licensing commands — RISK: HIGH (activation/deactivation state)
             $crate::commands::licensing::licensing_machine_id,
             $crate::commands::licensing::licensing_debug_fingerprint,

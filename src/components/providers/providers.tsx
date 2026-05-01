@@ -4,6 +4,7 @@ import { UIModeProvider } from '@/contexts/ui-mode-context';
 import { ThemeProvider } from '@/contexts/theme-context';
 import { lazy, Suspense, useEffect } from 'react';
 import { isTauri } from '@/lib/tauri';
+import { WindowChromeSync } from '@/components/layout/window-chrome-sync';
 
 // Lazy-loaded: LogViewer is a debug panel that has no above-the-fold role.
 // Deferring its bundle load reduces initial parse cost and removes its DOM
@@ -27,6 +28,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
     return (
         <ThemeProvider>
+            <WindowChromeSync />
             <UIModeProvider>
                 {children}
                 {/* null fallback: debug panel is non-critical; no visible loading state needed */}

@@ -6,6 +6,20 @@
 
 ---
 
+## [0.2.2-alpha.15] — 2026-05-01
+
+> Alpha-проверка обновлённого брендинга: новый логотип RheoLab в приложении, favicon/installer icon и нативная верхняя строка окна, окрашенная под текущую тему.
+
+### Изменено
+- **Новый логотип RheoLab**: общий UI-компонент логотипа теперь использует новый брендовый SVG.
+- **Иконки приложения**: обновлены favicon/public logo и Windows/Tauri `.ico` для installer/app icon.
+- **Theme-aware titlebar**: нативная верхняя строка окна Windows получает цвет caption/text/border под светлую или тёмную тему, сохраняя стандартные кнопки окна.
+
+### Проверки
+- `npm run lint`, `npm run typecheck`, `npm run build:ci`, `cargo check --manifest-path src-tauri/Cargo.toml`, `npm run version:validate`, `git diff --check` — passed.
+
+---
+
 ## [0.2.2-alpha.14] — 2026-05-01
 
 > Hotfix alpha после боевой проверки узкой полосы масштабирования Comparison. Закрывает сценарий, где 3-4 минутный brush мог восприниматься как resize handle, а не как pan, из-за чего полоса “плясала” или схлопывала график.

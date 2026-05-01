@@ -17,3 +17,4 @@ pub mod reagents;
 pub mod reports;
 pub mod series;
 pub mod sync_engine;
+pub mod window_chrome;

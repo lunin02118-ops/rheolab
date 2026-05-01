@@ -1,6 +1,6 @@
 [package]
 name = "rheolab-enterprise"
-version = "0.2.2-alpha.14"
+version = "0.2.2-alpha.15"
 description = "RheoLab Enterprise - Professional Rheology Analysis Software"
 authors = ["RheoLab Team"]
 license = "Proprietary"
@@ -59,6 +59,9 @@ rayon = "1"
 rheolab-core = { path = "../src/rust/rheolab-core", default-features = false, features = ["pdf", "excel", "charts"] }
 specta = { version = "2.0.0-rc.22", features = ["derive", "export", "serde_json"] }
 specta-typescript = "0.0.9"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61.3", features = ["Win32_Foundation", "Win32_Graphics_Dwm"] }
 
 [dev-dependencies]
 calamine = { version = "0.22.1", features = ["dates"] }
@@ -169,7 +172,6 @@ opt-level = 2
 opt-level = 1
 [profile.dev.package.rheolab-core]
 opt-level = 1
-
 
 
 
