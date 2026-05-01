@@ -1,6 +1,6 @@
 {
   "name": "rheolab-enterprise",
-  "version": "0.2.2-alpha.16",
+  "version": "0.2.2-alpha.17",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:ci": "node scripts/build/build-ci.js",
     "prebuild:ci": "node scripts/version/sync.js",
+    "branding:icons": "node scripts/branding/generate-icons.mjs",
     "preview": "vite preview",
     "version:sync": "node scripts/version/sync.js",
     "version:validate": "node scripts/version/validate.js",

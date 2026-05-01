@@ -6,6 +6,20 @@
 
 ---
 
+## [0.2.2-alpha.17] — 2026-05-01
+
+> Alpha-hotfix для native icon: значок приложения/ярлыка/favicon теперь белый круг с фирменной синей каплей внутри.
+
+### Исправлено
+- **Native app icon**: Windows/Tauri `.ico` пересобран как белый круг с каплей, чтобы ярлык/taskbar/tray не показывали старый тёмный знак.
+- **Favicon**: `favicon.svg` и `favicon.ico` синхронизированы с native app icon.
+- **Icon generator**: добавлен `npm run branding:icons`, чтобы app icon/favicons собирались из одного брендового SVG без ручных расхождений.
+
+### Проверки
+- Preview: `outputs/logo-preview/app-icon-white-circle-256.png`.
+
+---
+
 ## [0.2.2-alpha.16] — 2026-05-01
 
 > Alpha-polish для обновлённого брендинга: логотип стал крупнее, а внутренняя белая подложка убрана из UI/favicons/native icon.
