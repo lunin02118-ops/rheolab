@@ -7,6 +7,39 @@
 Var DeleteUserData
 
 ; ==============================================
+; INSTALL: Refresh existing shortcuts with explicit app icon
+; ==============================================
+!macro NSIS_HOOK_POSTINSTALL
+  ; Tauri's update mode preserves existing shortcuts. Windows Explorer can keep
+  ; showing a stale EXE icon when the shortcut has an empty IconLocation, so pin
+  ; shortcuts to the bundled ICO resource and notify the shell.
+  IfFileExists "$INSTDIR\resources\rheolab-app-icon.ico" 0 iconRefreshDone
+
+  WriteRegStr SHCTX "${UNINSTKEY}" "DisplayIcon" "$\"$INSTDIR\resources\rheolab-app-icon.ico$\""
+
+  IfFileExists "$SMPROGRAMS\${PRODUCTNAME}.lnk" 0 skipStartMenuRoot
+    CreateShortcut "$SMPROGRAMS\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\resources\rheolab-app-icon.ico" 0
+    !insertmacro SetLnkAppUserModelId "$SMPROGRAMS\${PRODUCTNAME}.lnk"
+  skipStartMenuRoot:
+
+  !if "${STARTMENUFOLDER}" != ""
+    IfFileExists "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk" 0 skipStartMenuFolder
+      CreateShortcut "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\resources\rheolab-app-icon.ico" 0
+      !insertmacro SetLnkAppUserModelId "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk"
+    skipStartMenuFolder:
+  !endif
+
+  IfFileExists "$DESKTOP\${PRODUCTNAME}.lnk" 0 skipDesktopShortcut
+    CreateShortcut "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\resources\rheolab-app-icon.ico" 0
+    !insertmacro SetLnkAppUserModelId "$DESKTOP\${PRODUCTNAME}.lnk"
+  skipDesktopShortcut:
+
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+
+  iconRefreshDone:
+!macroend
+
+; ==============================================
 ; UNINSTALL: Show dialog asking about data deletion
 ; ==============================================
 !macro NSIS_HOOK_PREUNINSTALL
