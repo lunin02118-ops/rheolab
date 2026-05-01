@@ -11,7 +11,7 @@
 > Alpha-hotfix для Windows shortcut icon: после updater-обновления ярлык рабочего стола и Start Menu больше не остаются на старой cached icon.
 
 ### Исправлено
-- **Desktop/Start Menu shortcut icon**: installer теперь кладёт `rheolab-app-icon.ico` в resources и после установки/обновления явно прописывает его в существующие ярлыки.
+- **Desktop/Start Menu shortcut icon**: installer теперь кладёт `rheolab-app-icon.ico` рядом с приложением и после установки/обновления явно прописывает его в существующие ярлыки.
 - **Explorer refresh**: installer отправляет shell notification после обновления ярлыков, чтобы Windows быстрее сбросила старый icon cache.
 - **Add/Remove Programs icon**: `DisplayIcon` теперь указывает на тот же bundled `.ico`, а не на кэшируемый icon resource внутри `.exe`.
 
