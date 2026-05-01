@@ -48,6 +48,46 @@ function viewportsEqual(a: ComparisonViewport | null | undefined, b: ComparisonV
     return Math.abs(a.xMinSec - b.xMinSec) < 0.001 && Math.abs(a.xMaxSec - b.xMaxSec) < 0.001;
 }
 
+export interface ComparisonTimeExtentMinutes {
+    min: number;
+    max: number;
+}
+
+export function finiteTimeExtentMinutes(times: ArrayLike<number> | undefined): ComparisonTimeExtentMinutes | null {
+    if (!times || times.length === 0) return null;
+
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    for (let i = 0; i < times.length; i++) {
+        const value = times[i];
+        if (!Number.isFinite(value)) continue;
+        if (value < min) min = value;
+        if (value > max) max = value;
+    }
+
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return null;
+    return { min, max };
+}
+
+/**
+ * A persisted viewport is only reusable while it still fits inside the current
+ * full data extent. After removing longer experiments the old range may remain
+ * logically selected (for example [0, 354.7] min while the remaining line ends
+ * at 178.6 min). Keeping that stale viewport stretches the main chart and the
+ * brush labels. In that case we clear the viewport and let the chart auto-fit
+ * to the surviving experiments.
+ */
+export function shouldClearViewportForTimeExtent(
+    viewport: ComparisonViewport | null | undefined,
+    extent: ComparisonTimeExtentMinutes | null,
+): boolean {
+    const range = viewportToBrushRange(viewport);
+    if (!range || !extent) return false;
+
+    const toleranceMin = 0.001;
+    return range[0] < extent.min - toleranceMin || range[1] > extent.max + toleranceMin;
+}
+
 /**
  * Decide whether a transition from `previous` to `next` experiment ids should
  * proactively reset the persisted viewport.
@@ -286,7 +326,7 @@ function ComparisonChartUPlotInner({
     // Reset hidden series when experiments change. Keep the viewport for
     // ordinary add/remove flows so adding the 6th line does not snap the user
     // back to full range. If the whole selection was replaced, clear the
-    // viewport proactively; the disjoint-data guard below handles later stale
+    // viewport proactively; the stale-extent guard below handles later stale
     // ranges that can only be detected after data arrives.
     const prevExpIdsRef = useRef<string | null>(null);
     const expIds = experiments.map(e => e.id).join(',');
@@ -404,13 +444,22 @@ function ComparisonChartUPlotInner({
     useEffect(() => {
         const u = uPlotRef.current;
         const range = brushRangeRef.current;
-        if (!u || !range) return;
+        if (!u) return;
 
         const raf = requestAnimationFrame(() => {
             if (uPlotRef.current !== u) return;
             const currentRange = brushRangeRef.current;
-            if (!currentRange || !brushRangesEqual(currentRange, range)) return;
-            u.setScale('x', { min: currentRange[0], max: currentRange[1] });
+            if (currentRange) {
+                if (!range || !brushRangesEqual(currentRange, range)) return;
+                u.setScale('x', { min: currentRange[0], max: currentRange[1] });
+                return;
+            }
+
+            const times = u.data[0] as number[] | undefined;
+            const extent = finiteTimeExtentMinutes(times);
+            if (extent) {
+                u.setScale('x', { min: extent.min, max: extent.max });
+            }
         });
         return () => cancelAnimationFrame(raf);
     }, [uPlotData]);
@@ -427,6 +476,29 @@ function ComparisonChartUPlotInner({
         targetTime,
         comparisonAxisMode,
     });
+
+    const brushTimeExtent = useMemo(
+        () => finiteTimeExtentMinutes(brushUPlotData[0] as number[] | undefined),
+        [brushUPlotData],
+    );
+
+    useEffect(() => {
+        if (!shouldClearViewportForTimeExtent(chartViewport, brushTimeExtent)) return;
+
+        committedBrushViewportRef.current = null;
+        brushRangeRef.current = null;
+
+        const u = uPlotRef.current;
+        if (u && brushTimeExtent) {
+            u.setScale('x', { min: brushTimeExtent.min, max: brushTimeExtent.max });
+        }
+
+        void Promise.resolve().then(() => {
+            setIsBrushPreviewing(false);
+            setBrushRange(null);
+            onViewportChange?.(null);
+        });
+    }, [brushTimeExtent, chartViewport, onViewportChange]);
 
     // Brush width = plot-area width as reported by uPlot bbox.
     // Fall back to (container - leftAxis - 20px default right padding) only when

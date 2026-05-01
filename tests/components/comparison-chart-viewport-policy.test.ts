@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { shouldResetViewportOnExperimentChange } from '@/components/comparison/comparison-chart-uplot';
+import {
+    finiteTimeExtentMinutes,
+    shouldClearViewportForTimeExtent,
+    shouldResetViewportOnExperimentChange,
+} from '@/components/comparison/comparison-chart-uplot';
 
 /**
  * Regression tests for the "replace vs add/remove" viewport reset policy.
@@ -79,5 +83,50 @@ describe('shouldResetViewportOnExperimentChange', () => {
         // `previous === null` branch above and is unaffected by this rule.
         expect(shouldResetViewportOnExperimentChange('', 'a')).toBe(true);
         expect(shouldResetViewportOnExperimentChange('', 'a,b')).toBe(true);
+    });
+});
+
+describe('shouldClearViewportForTimeExtent', () => {
+    it('keeps a zoom window that still fits inside the remaining experiment extent', () => {
+        expect(shouldClearViewportForTimeExtent(
+            { xMinSec: 60 * 30, xMaxSec: 60 * 90 },
+            { min: 0, max: 178.6 },
+        )).toBe(false);
+    });
+
+    it('clears a stale full-range viewport after longer experiments are removed', () => {
+        // Regression for alpha.18: after going from 8 selected experiments to 1,
+        // the remaining line ended at ~178.6 min but the persisted viewport from
+        // the old set still stretched the graph to ~354.7 min.
+        expect(shouldClearViewportForTimeExtent(
+            { xMinSec: 0, xMaxSec: 354.7 * 60 },
+            { min: 0, max: 178.6 },
+        )).toBe(true);
+    });
+
+    it('clears a partially out-of-range viewport instead of showing sparse empty space', () => {
+        expect(shouldClearViewportForTimeExtent(
+            { xMinSec: 170 * 60, xMaxSec: 210 * 60 },
+            { min: 0, max: 178.6 },
+        )).toBe(true);
+    });
+
+    it('ignores invalid or missing extents until real brush overview data arrives', () => {
+        expect(shouldClearViewportForTimeExtent(
+            { xMinSec: 0, xMaxSec: 60 },
+            null,
+        )).toBe(false);
+        expect(shouldClearViewportForTimeExtent(null, { min: 0, max: 10 })).toBe(false);
+    });
+});
+
+describe('finiteTimeExtentMinutes', () => {
+    it('returns the finite min/max extent and ignores NaN samples', () => {
+        expect(finiteTimeExtentMinutes([Number.NaN, 4, 1, 3])).toEqual({ min: 1, max: 4 });
+    });
+
+    it('returns null for empty or degenerate time axes', () => {
+        expect(finiteTimeExtentMinutes([])).toBeNull();
+        expect(finiteTimeExtentMinutes([5, 5, 5])).toBeNull();
     });
 });

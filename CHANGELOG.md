@@ -6,6 +6,20 @@
 
 ---
 
+## [0.2.2-alpha.19] — 2026-05-01
+
+> Alpha-hotfix для Comparison: после удаления экспериментов график снова автоматически подгоняет X-шкалу под оставшиеся линии.
+
+### Исправлено
+- **Auto-fit after removal**: если сохранённый viewport выходит за фактический диапазон оставшихся экспериментов, Comparison очищает stale viewport и сжимает X-шкалу к текущим данным.
+- **Brush stale labels**: нижняя полоса больше не держит старую подпись диапазона от удалённых экспериментов, например `354.7 min`, когда оставшаяся линия заканчивается около `178.6 min`.
+- **No-zoom data changes**: при изменении набора данных без активного brush/zoom uPlot явно переустанавливает X-шкалу по текущему time extent.
+
+### Проверки
+- `npm run lint`, `npm run typecheck`, targeted Vitest `comparison-chart-viewport-policy` + `chart-brush` + `useComparisonSeriesWindows`, `npm run build:ci`, `npm run version:validate`, `npm run audit:large-ipc` — passed.
+
+---
+
 ## [0.2.2-alpha.18] — 2026-05-01
 
 > Alpha-hotfix для Windows shortcut icon: после updater-обновления ярлык рабочего стола и Start Menu больше не остаются на старой cached icon.
