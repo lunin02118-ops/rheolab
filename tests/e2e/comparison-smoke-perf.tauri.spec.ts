@@ -33,14 +33,17 @@
  *   RHEOLAB_E2E_REAL_REPORTS=1 COMPARISON_SMOKE_N=3 npm run perf:comparison:tauri
  *   # add direct Win32 RSS phase markers (diagnostic; adds measurement overhead):
  *   COMPARISON_SMOKE_MEMORY_STEPS=1 COMPARISON_SMOKE_N=3 npm run perf:comparison:tauri
+ *   # with memory steps, exports are direct-saved to a temp dir by default
+ *   # to avoid measuring Playwright/WebView2 browser-download overhead.
  */
 
 import { test, expect, setupBeforeEach } from './base-test.tauri';
 import type { CDPSession, Page } from '@playwright/test';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
     CHANDLER_SST_63,
@@ -61,6 +64,11 @@ const execFileAsync = promisify(execFile);
 
 const OUTPUT_DIR = path.resolve('outputs', 'e2e', 'perf');
 const MEMORY_STEPS_ENABLED = process.env.COMPARISON_SMOKE_MEMORY_STEPS === '1';
+const EXPORT_SAVE_MODE = (
+    process.env.COMPARISON_SMOKE_EXPORT_SAVE_MODE === 'download'
+        ? 'download'
+        : (process.env.COMPARISON_SMOKE_EXPORT_SAVE_MODE === 'direct' || MEMORY_STEPS_ENABLED ? 'direct' : 'download')
+) as 'download' | 'direct';
 
 /**
  * Sizes the spec measures. Each is gated by the runtime license cap. Set
@@ -102,6 +110,7 @@ const FIXTURE_POOL: TestFixture[] = [
 interface ComparisonSmokeMeasurement {
     n: number;
     report_payload: 'mocked' | 'real';
+    export_save_mode: 'download' | 'direct';
     cmp_ready_ms: number | null;
     pdf_ms: number | null;
     pdf_bytes: number | null;
@@ -122,6 +131,7 @@ interface ComparisonSmokeReport {
     platform: string;
     license_cap: number;
     memory_steps_enabled: boolean;
+    export_save_mode: 'download' | 'direct';
     native_memory_file?: string | null;
     measurements: ComparisonSmokeMeasurement[];
 }
@@ -522,6 +532,70 @@ async function readComparisonCap(page: Page): Promise<number> {
     });
 }
 
+async function clickComparisonExportAndWait(
+    page: Page,
+    click: () => Promise<unknown>,
+    kind: 'pdf' | 'excel',
+    timeoutMs: number,
+): Promise<void> {
+    await page.evaluate(
+        ({ expectedKind, timeout }) => {
+            type ExportWaitWindow = Window & {
+                __rheolab_export_wait_result?: Promise<{ timedOut: boolean; kind?: string }>;
+                __rheolab_export_wait_cleanup?: () => void;
+            };
+            const w = window as ExportWaitWindow;
+            w.__rheolab_export_wait_cleanup?.();
+            w.__rheolab_export_wait_result = new Promise<{ timedOut: boolean; kind?: string }>((resolve) => {
+            const cleanup = () => {
+                window.clearTimeout(timer);
+                window.removeEventListener('rheolab:comparison-export-buffers-released', onRelease);
+                w.__rheolab_export_wait_cleanup = undefined;
+            };
+            const onRelease = (event: Event) => {
+                const detail = (event as CustomEvent<{ kind?: string }>).detail;
+                if (detail?.kind !== expectedKind) return;
+                cleanup();
+                resolve({ timedOut: false, kind: detail.kind });
+            };
+            const timer = window.setTimeout(() => {
+                cleanup();
+                resolve({ timedOut: true });
+            }, timeout);
+            window.addEventListener('rheolab:comparison-export-buffers-released', onRelease);
+            w.__rheolab_export_wait_cleanup = cleanup;
+        });
+        },
+        { expectedKind: kind, timeout: timeoutMs },
+    );
+
+    await click();
+    const result = await page.evaluate(() => {
+        type ExportWaitWindow = Window & {
+            __rheolab_export_wait_result?: Promise<{ timedOut: boolean; kind?: string }>;
+        };
+        return (window as ExportWaitWindow).__rheolab_export_wait_result ?? Promise.resolve({ timedOut: true });
+    });
+    expect(result.timedOut).toBe(false);
+}
+
+async function assertDirectExportFile(
+    outputDir: string,
+    expectedExt: 'pdf' | 'xlsx',
+    minSizeBytes: number,
+): Promise<{ filename: string; size: number }> {
+    const files = (await readdir(outputDir))
+        .filter((file) => file.toLowerCase().endsWith(`.${expectedExt}`))
+        .sort();
+    expect(files.length).toBeGreaterThan(0);
+    const filename = files[files.length - 1];
+    const filePath = path.join(outputDir, filename);
+    const stats = await stat(filePath);
+    expect(stats.size).toBeGreaterThanOrEqual(minSizeBytes);
+    await rm(filePath, { force: true });
+    return { filename, size: stats.size };
+}
+
 async function requestRendererCleanupHint(page: Page, phase: string): Promise<RendererCleanupHint> {
     const hint: RendererCleanupHint = {
         phase,
@@ -611,8 +685,18 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
         const mode = await detectMockMode(page);
         const reportPayloadMode = mode === 'tauri-debug-mocked' ? 'mocked' : 'real';
         const comparisonCap = await readComparisonCap(page);
+        const directExportDir = EXPORT_SAVE_MODE === 'direct'
+            ? path.join(tmpdir(), `rheolab-comparison-export-${runId}`)
+            : null;
+        if (directExportDir) {
+            await mkdir(directExportDir, { recursive: true });
+            await page.evaluate((dir) => {
+                sessionStorage.setItem('__e2e_report_output_dir', dir);
+            }, directExportDir);
+        }
         console.log(`[CmpSmoke] mode=${mode} cap=${comparisonCap} runId=${runId}`);
         console.log(`[CmpSmoke] target counts=${TARGET_FIXTURE_COUNTS.join(', ')}`);
+        console.log(`[CmpSmoke] export_save_mode=${EXPORT_SAVE_MODE}`);
         if (MEMORY_STEPS_ENABLED) {
             console.log('[CmpSmoke] direct Win32 memory phase markers enabled');
         }
@@ -628,6 +712,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 measurements.push({
                     n,
                     report_payload: reportPayloadMode,
+                    export_save_mode: EXPORT_SAVE_MODE,
                     cmp_ready_ms: null,
                     pdf_ms: null,
                     pdf_bytes: null,
@@ -695,10 +780,15 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
 
                 try {
                     await recordMem('before_pdf');
-                    const { result: pdfDownload, ms } = await timeStep('pdf', () => {
-                        return cmpReports.downloadPdf(60_000);
+                    const { result: pdfInfo, ms } = await timeStep('pdf', async () => {
+                        if (EXPORT_SAVE_MODE === 'direct') {
+                            expect(directExportDir).toBeTruthy();
+                            await clickComparisonExportAndWait(page, () => cmpReports.pdfButton.click(), 'pdf', 60_000);
+                            return await assertDirectExportFile(directExportDir!, 'pdf', minExportBytes);
+                        }
+                        const pdfDownload = await cmpReports.downloadPdf(60_000);
+                        return await cmpReports.assertDownload(pdfDownload, 'pdf', minExportBytes);
                     });
-                    const pdfInfo = await cmpReports.assertDownload(pdfDownload, 'pdf', minExportBytes);
                     pdfMs = ms;
                     pdfBytes = pdfInfo.size;
                     console.log(`  [L-CMP-PDF-${n}] pdf=${pdfMs} ms bytes=${pdfBytes}`);
@@ -711,10 +801,15 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
 
                 try {
                     await recordMem('before_xlsx');
-                    const { result: xlsxDownload, ms } = await timeStep('xlsx', () => {
-                        return cmpReports.downloadExcel(60_000);
+                    const { result: xlsxInfo, ms } = await timeStep('xlsx', async () => {
+                        if (EXPORT_SAVE_MODE === 'direct') {
+                            expect(directExportDir).toBeTruthy();
+                            await clickComparisonExportAndWait(page, () => cmpReports.excelButton.click(), 'excel', 60_000);
+                            return await assertDirectExportFile(directExportDir!, 'xlsx', minExportBytes);
+                        }
+                        const xlsxDownload = await cmpReports.downloadExcel(60_000);
+                        return await cmpReports.assertDownload(xlsxDownload, 'xlsx', minExportBytes);
                     });
-                    const xlsxInfo = await cmpReports.assertDownload(xlsxDownload, 'xlsx', minExportBytes);
                     xlsxMs = ms;
                     xlsxBytes = xlsxInfo.size;
                     console.log(`  [L-CMP-XLSX-${n}] xlsx=${xlsxMs} ms bytes=${xlsxBytes}`);
@@ -746,6 +841,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 measurements.push({
                     n,
                     report_payload: reportPayloadMode,
+                    export_save_mode: EXPORT_SAVE_MODE,
                     cmp_ready_ms: cmpReadyMs,
                     pdf_ms: pdfMs,
                     pdf_bytes: pdfBytes,
@@ -761,6 +857,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 measurements.push({
                     n,
                     report_payload: reportPayloadMode,
+                    export_save_mode: EXPORT_SAVE_MODE,
                     cmp_ready_ms: null,
                     pdf_ms: null,
                     pdf_bytes: null,
@@ -783,6 +880,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
             platform: process.platform,
             license_cap: comparisonCap,
             memory_steps_enabled: MEMORY_STEPS_ENABLED,
+            export_save_mode: EXPORT_SAVE_MODE,
             native_memory_file: process.env.TAURI_E2E_NATIVE_MEM_FILE ?? null,
             measurements,
         };

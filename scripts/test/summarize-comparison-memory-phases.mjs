@@ -73,6 +73,8 @@ function parseArgs(argv) {
     markdown: null,
     writeMarkdown: false,
     json: null,
+    exportSaveMode: null,
+    onlyOk: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -91,6 +93,10 @@ function parseArgs(argv) {
       opts.writeMarkdown = true;
     } else if (arg === '--json') {
       opts.json = argv[++i];
+    } else if (arg === '--export-save-mode') {
+      opts.exportSaveMode = argv[++i];
+    } else if (arg === '--only-ok') {
+      opts.onlyOk = true;
     } else if (arg === '--help' || arg === '-h') {
       usage();
       process.exit(0);
@@ -104,6 +110,9 @@ function parseArgs(argv) {
   }
   if (!Number.isInteger(opts.latest) || opts.latest <= 0) {
     throw new Error('--latest must be a positive integer');
+  }
+  if (opts.exportSaveMode && !['download', 'direct'].includes(opts.exportSaveMode)) {
+    throw new Error('--export-save-mode must be "download" or "direct"');
   }
   return opts;
 }
@@ -121,6 +130,9 @@ Options:
   --write-md           Write docs/performance/COMPARISON-MEMORY-PHASE-READOUT.md.
   --markdown <path>    Write markdown report to a custom path.
   --json <path>        Write machine-readable summary JSON.
+  --export-save-mode <download|direct>
+                       Filter sidecars by comparison export save path.
+  --only-ok            Exclude skipped/error measurements.
 `);
 }
 
@@ -154,11 +166,17 @@ function stats(values) {
 
 function loadSidecar(file) {
   const doc = JSON.parse(readFileSync(file, 'utf8'));
+  const exportSaveModes = new Set();
+  if (doc.export_save_mode) exportSaveModes.add(doc.export_save_mode);
+  for (const measurement of doc.measurements ?? []) {
+    if (measurement.export_save_mode) exportSaveModes.add(measurement.export_save_mode);
+  }
   return {
     file,
     name: basename(file),
     generatedAt: doc.generatedAt,
     mode: doc.mode,
+    exportSaveModes: [...exportSaveModes],
     memoryStepsEnabled: Boolean(doc.memory_steps_enabled),
     doc,
   };
@@ -173,15 +191,28 @@ function hasMemoryMeasurement(entry, n) {
   return Boolean(entry.memoryStepsEnabled && Array.isArray(measurement?.memory_steps));
 }
 
-function discoverSidecars(n, latest) {
+function measurementExportSaveMode(entry, n) {
+  const measurement = measurementFor(entry, n);
+  return measurement?.export_save_mode ?? entry.doc.export_save_mode ?? null;
+}
+
+function matchesFilters(entry, opts) {
+  const measurement = measurementFor(entry, opts.n);
+  if (!hasMemoryMeasurement(entry, opts.n)) return false;
+  if (opts.exportSaveMode && measurementExportSaveMode(entry, opts.n) !== opts.exportSaveMode) return false;
+  if (opts.onlyOk && measurement?.skipped) return false;
+  return true;
+}
+
+function discoverSidecars(opts) {
   if (!existsSync(PERF_DIR)) return [];
   return readdirSync(PERF_DIR)
     .filter((file) => file.startsWith('comparison-smoke-') && file.endsWith('.json'))
     .map((file) => join(PERF_DIR, file))
     .map(loadSidecar)
-    .filter((entry) => hasMemoryMeasurement(entry, n))
+    .filter((entry) => matchesFilters(entry, opts))
     .sort((a, b) => new Date(a.generatedAt).getTime() - new Date(b.generatedAt).getTime())
-    .slice(-latest);
+    .slice(-opts.latest);
 }
 
 function phaseStep(entry, n, phase) {
@@ -214,6 +245,7 @@ function buildSummary(entries, n) {
     generatedAt: new Date().toISOString(),
     files: entries.map((entry) => entry.file),
     modes: [...new Set(entries.map((entry) => entry.mode).filter(Boolean))],
+    exportSaveModes: [...new Set(entries.flatMap((entry) => entry.exportSaveModes).filter(Boolean))],
     rows,
     deltas: {
       after_xlsx_to_after_export_gc_hint: Object.fromEntries(
@@ -266,6 +298,7 @@ function buildMarkdown(summary) {
   lines.push(`- N: ${summary.n}`);
   lines.push(`- Runs: ${summary.files.length}`);
   lines.push(`- Modes: ${summary.modes.join(', ') || 'unknown'}`);
+  lines.push(`- Export save modes: ${summary.exportSaveModes.join(', ') || 'unknown'}`);
   lines.push('- Source sidecars:');
   for (const file of summary.files) {
     lines.push(`  - \`${file.replaceAll('\\', '/')}\``);
@@ -312,8 +345,8 @@ function buildMarkdown(summary) {
 function main() {
   const opts = parseArgs(process.argv.slice(2));
   const entries = opts.files.length
-    ? opts.files.map((file) => loadSidecar(resolve(file))).filter((entry) => hasMemoryMeasurement(entry, opts.n))
-    : discoverSidecars(opts.n, opts.latest);
+    ? opts.files.map((file) => loadSidecar(resolve(file))).filter((entry) => matchesFilters(entry, opts))
+    : discoverSidecars(opts);
 
   if (entries.length === 0) {
     throw new Error(`No comparison memory sidecars found for N=${opts.n}`);

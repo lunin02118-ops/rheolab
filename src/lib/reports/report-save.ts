@@ -13,6 +13,8 @@ import { writeFile } from '@tauri-apps/plugin-fs';
 import { join } from '@tauri-apps/api/path';
 import { logger } from '@/lib/logger';
 
+const E2E_REPORT_OUTPUT_DIR_KEY = '__e2e_report_output_dir';
+
 export interface SaveBlobOptions {
     blob: Blob;
     filename: string;
@@ -28,6 +30,23 @@ export interface SaveBytesOptions {
     filters: { name: string; extensions: string[] }[];
 }
 
+function getE2EReportOutputDir(): string | null {
+    try {
+        const value = sessionStorage.getItem(E2E_REPORT_OUTPUT_DIR_KEY);
+        return value && value.trim().length > 0 ? value : null;
+    } catch {
+        return null;
+    }
+}
+
+async function writeBytesDirectly(outputDir: string, filename: string, bytes: Uint8Array): Promise<string> {
+    const safeFilename = filename.replace(/[\\/]/g, '_');
+    const separator = outputDir.includes('\\') ? '\\' : '/';
+    const filePath = `${outputDir.replace(/[\\/]+$/, '')}${separator}${safeFilename}`;
+    await writeFile(filePath, bytes);
+    return filePath;
+}
+
 /**
  * Save a Blob to disk via Tauri native dialog or browser download fallback.
  */
@@ -39,8 +58,13 @@ export async function saveBlob({ blob, filename, filters }: SaveBlobOptions): Pr
     // breaks the download assertions. The sessionStorage key itself is the
     // barrier — nothing in production code ever sets it.
     const e2eSkipDialogs = sessionStorage.getItem('__e2e_skip_dialogs') === '1';
+    const e2eOutputDir = getE2EReportOutputDir();
 
-    if (isTauri() && !e2eSkipDialogs) {
+    if (isTauri() && e2eOutputDir) {
+        const buffer = await blob.arrayBuffer();
+        const filePath = await writeBytesDirectly(e2eOutputDir, filename, new Uint8Array(buffer));
+        logger.info(`[saveBlob] E2E direct-saved to ${filePath}`);
+    } else if (isTauri() && !e2eSkipDialogs) {
         const filePath = await save({ defaultPath: filename, filters });
         if (!filePath) {
             // User cancelled the save dialog
@@ -70,8 +94,12 @@ export async function saveBlob({ blob, filename, filters }: SaveBlobOptions): Pr
  */
 export async function saveBytes({ bytes, filename, mimeType, filters }: SaveBytesOptions): Promise<void> {
     const e2eSkipDialogs = sessionStorage.getItem('__e2e_skip_dialogs') === '1';
+    const e2eOutputDir = getE2EReportOutputDir();
 
-    if (isTauri() && !e2eSkipDialogs) {
+    if (isTauri() && e2eOutputDir) {
+        const filePath = await writeBytesDirectly(e2eOutputDir, filename, bytes);
+        logger.info(`[saveBytes] E2E direct-saved to ${filePath}`);
+    } else if (isTauri() && !e2eSkipDialogs) {
         const filePath = await save({ defaultPath: filename, filters });
         if (!filePath) return;
         try {
@@ -118,8 +146,15 @@ export async function saveBlobsToDir(items: SaveBlobItem[]): Promise<void> {
     }
 
     const e2eSkipDialogs = sessionStorage.getItem('__e2e_skip_dialogs') === '1';
+    const e2eOutputDir = getE2EReportOutputDir();
 
-    if (isTauri() && !e2eSkipDialogs) {
+    if (isTauri() && e2eOutputDir) {
+        for (const item of items) {
+            const buffer = await item.blob.arrayBuffer();
+            const filePath = await writeBytesDirectly(e2eOutputDir, item.filename, new Uint8Array(buffer));
+            logger.info(`[saveBlobsToDir] E2E direct-saved to ${filePath}`);
+        }
+    } else if (isTauri() && !e2eSkipDialogs) {
         const dir = await open({ directory: true, title: 'Выберите папку для сохранения отчётов' });
         if (!dir || typeof dir !== 'string') return; // cancelled
 
@@ -162,8 +197,14 @@ export async function saveBytesToDir(items: SaveBytesItem[]): Promise<void> {
     }
 
     const e2eSkipDialogs = sessionStorage.getItem('__e2e_skip_dialogs') === '1';
+    const e2eOutputDir = getE2EReportOutputDir();
 
-    if (isTauri() && !e2eSkipDialogs) {
+    if (isTauri() && e2eOutputDir) {
+        for (const item of items) {
+            const filePath = await writeBytesDirectly(e2eOutputDir, item.filename, item.bytes);
+            logger.info(`[saveBytesToDir] E2E direct-saved to ${filePath}`);
+        }
+    } else if (isTauri() && !e2eSkipDialogs) {
         const dir = await open({ directory: true, title: 'Выберите папку для сохранения отчётов' });
         if (!dir || typeof dir !== 'string') return;
 
