@@ -175,11 +175,11 @@ export default function ComparisonPage() {
     return (
         <div data-testid="ComparisonPageRoot" className="flex flex-col h-[calc(100vh-6rem)] bg-transparent text-foreground">
             {/* Sticky header bar — mirrors library page style */}
-            <div className="border-b border-border bg-background sticky top-16 z-40">
+            <div data-testid="ComparisonPageHeader" className="border-b border-border bg-background sticky top-16 z-40">
                 <div className="w-full mx-auto px-6">
                     <div className="flex items-center justify-between gap-6">
                         {/* Tab buttons */}
-                        <div className="flex items-center gap-4">
+                        <div className="flex shrink-0 items-center gap-4">
                             <button
                                 onClick={() => setActiveTab('chart')}
                                 data-testid="ComparisonChartTabTrigger"
@@ -205,8 +205,8 @@ export default function ComparisonPage() {
                         </div>
 
                         {/* Experiment Chips */}
-                        <div data-testid="SelectedExperimentsChips" className="flex flex-wrap items-center gap-2 justify-end">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${isAtLimit ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-secondary text-muted-foreground'}`}>
+                        <div data-testid="SelectedExperimentsChips" className="flex min-w-0 flex-1 flex-nowrap items-center gap-2 justify-end overflow-x-auto py-1">
+                            <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full ${isAtLimit ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-secondary text-muted-foreground'}`}>
                                 {experiments.length}/{maxExperiments}
                             </span>
 
@@ -215,14 +215,14 @@ export default function ComparisonPage() {
                             ))}
 
                             {limitWarning && (
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 text-amber-400 rounded-full text-xs font-medium border border-amber-500/30 animate-pulse">
+                                <div className="flex shrink-0 items-center gap-2 px-3 py-1.5 bg-amber-500/20 text-amber-400 rounded-full text-xs font-medium border border-amber-500/30 animate-pulse">
                                     <AlertCircle className="w-3.5 h-3.5" />
                                     Достигнут лимит ({maxExperiments} графиков)
                                 </div>
                             )}
 
                             {duplicateWarning && (
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium border border-blue-500/30 animate-pulse">
+                                <div className="flex shrink-0 items-center gap-2 px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium border border-blue-500/30 animate-pulse">
                                     <AlertCircle className="w-3.5 h-3.5" />
                                     Уже добавлено
                                 </div>
@@ -232,7 +232,7 @@ export default function ComparisonPage() {
                                 onClick={() => setIsSelectorOpen(true)}
                                 disabled={isAtLimit}
                                 data-testid="OpenExperimentSelectorButton"
-                                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors border ${isAtLimit
+                                className={`flex shrink-0 items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors border ${isAtLimit
                                     ? 'bg-secondary/50 text-muted-foreground border-border cursor-not-allowed'
                                     : 'bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border-blue-500/20 hover:border-blue-500/30'
                                 }`}

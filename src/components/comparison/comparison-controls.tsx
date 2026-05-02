@@ -86,7 +86,7 @@ interface ExperimentChipProps {
 
 export function ExperimentChip({ name, onRemove }: ExperimentChipProps) {
     return (
-        <div data-testid="ComparisonExperimentChip" className="group flex items-center gap-2 pl-3 pr-2 py-1 bg-secondary/50 hover:bg-secondary/50 rounded-full border border-border/50 hover:border-border transition-colors text-xs">
+        <div data-testid="ComparisonExperimentChip" className="group flex shrink-0 items-center gap-2 pl-3 pr-2 py-1 bg-secondary/50 hover:bg-secondary/50 rounded-full border border-border/50 hover:border-border transition-colors text-xs">
             <span className="text-foreground/80 max-w-[150px] truncate">{name}</span>
             <div data-testid="RemoveExperimentChip">
                 <button
