@@ -78,6 +78,7 @@ macro_rules! register_tauri_commands {
             // Native parsing commands (desktop workflow without browser WASM bootstrap)
             $crate::commands::parsing::parsing_parse_file,
             $crate::commands::parsing::parsing_release_cache,
+            $crate::commands::parsing::parsing_cache_stats,
             // Native reports commands — RISK: LOW (license-gated, returns bytes)
             $crate::commands::reports::reports_generate_pdf,
             $crate::commands::reports::reports_generate_excel,

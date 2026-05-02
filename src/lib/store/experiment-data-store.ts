@@ -371,3 +371,7 @@ export const useExperimentDataStore = create<ExperimentDataState>()(
         }
     )
 );
+
+if (typeof window !== 'undefined') {
+    (window as unknown as Record<string, unknown>).__rheolab_experiment_data_store = useExperimentDataStore;
+}

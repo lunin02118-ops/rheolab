@@ -12,19 +12,57 @@ import { basename, dirname, join, resolve } from 'node:path';
 const ROOT = resolve('.');
 const PERF_DIR = join(ROOT, 'outputs', 'e2e', 'perf');
 const DEFAULT_MARKDOWN = join(ROOT, 'docs', 'performance', 'COMPARISON-MEMORY-PHASE-READOUT.md');
-const DEFAULT_PHASES = [
-  'after_chart_visible',
-  'after_pdf',
-  'after_xlsx',
-  'after_export_gc_hint',
-  'after_route_leave',
-];
 const METRICS = [
   ['total_rss_mb', 'Total RSS'],
   ['renderer_rss_mb', 'Renderer RSS'],
   ['gpu_rss_mb', 'GPU RSS'],
   ['tauri_rss_mb', 'Tauri RSS'],
 ];
+const APP_METRICS = [
+  ['js_heap_mb', 'JS heap', 'MB'],
+  ['series_cache_bytes', 'Series cache', 'bytes'],
+  ['comparison_store_raw_count', 'Cmp raw', 'count'],
+  ['comparison_store_columnar_count', 'Cmp columnar', 'count'],
+  ['parse_cache_entries', 'Parse cache entries', 'count'],
+  ['parse_cache_point_count', 'Parse cache points', 'count'],
+  ['dom_nodes', 'DOM nodes', 'count'],
+  ['canvas_count', 'Canvas count', 'count'],
+];
+
+function summaryPhases(n) {
+  const fixturePhases = [];
+  for (let i = 1; i <= n; i += 1) {
+    fixturePhases.push(
+      `before_fixture_${i}_upload`,
+      `after_fixture_${i}_parse`,
+      `after_fixture_${i}_save`,
+      `after_fixture_${i}_cleanup`,
+    );
+  }
+  const addPhases = [];
+  for (let i = 1; i <= n; i += 1) {
+    addPhases.push(`after_add_${i}`);
+  }
+  return [
+    'app_start',
+    'before_setup',
+    ...fixturePhases,
+    'after_setup',
+    'before_comparison_open',
+    'after_comparison_open',
+    ...addPhases,
+    'after_chart_visible',
+    'after_chart_ready',
+    'before_pdf',
+    'after_pdf',
+    'before_xlsx',
+    'after_xlsx',
+    'after_gc_hint',
+    'after_export_gc_hint',
+    'after_route_leave',
+    'after_second_gc_hint',
+  ];
+}
 
 function parseArgs(argv) {
   const opts = {
@@ -151,10 +189,13 @@ function phaseStep(entry, n, phase) {
 }
 
 function buildSummary(entries, n) {
-  const rows = DEFAULT_PHASES.map((phase) => {
-    const row = { phase, metrics: {} };
+  const rows = summaryPhases(n).map((phase) => {
+    const row = { phase, metrics: {}, appMetrics: {} };
     for (const [key] of METRICS) {
       row.metrics[key] = stats(entries.map((entry) => phaseStep(entry, n, phase)?.[key]));
+    }
+    for (const [key] of APP_METRICS) {
+      row.appMetrics[key] = stats(entries.map((entry) => phaseStep(entry, n, phase)?.[key]));
     }
     return row;
   });
@@ -192,6 +233,25 @@ function formatValue(value, unit = 'MB') {
   return `${Number.isInteger(value) ? value : value.toFixed(2)} ${unit}`;
 }
 
+function formatBytes(value) {
+  if (value === null || value === undefined) return 'n/a';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let current = value;
+  let unitIndex = 0;
+  while (Math.abs(current) >= 1024 && unitIndex < units.length - 1) {
+    current /= 1024;
+    unitIndex += 1;
+  }
+  return `${Number.isInteger(current) ? current : current.toFixed(2)} ${units[unitIndex]}`;
+}
+
+function formatMetricValue(value, unit) {
+  if (unit === 'bytes') return formatBytes(value);
+  if (unit === 'MB') return formatValue(value, 'MB');
+  if (value === null || value === undefined) return 'n/a';
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
 function buildMarkdown(summary) {
   const lines = [];
   lines.push('# Comparison Memory Phase Readout');
@@ -216,6 +276,15 @@ function buildMarkdown(summary) {
   lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
   for (const row of summary.rows) {
     lines.push(`| ${row.phase} | ${formatValue(row.metrics.total_rss_mb.p50)} | ${formatValue(row.metrics.total_rss_mb.p95)} | ${formatValue(row.metrics.renderer_rss_mb.p50)} | ${formatValue(row.metrics.renderer_rss_mb.p95)} | ${formatValue(row.metrics.gpu_rss_mb.p50)} | ${formatValue(row.metrics.gpu_rss_mb.p95)} | ${formatValue(row.metrics.tauri_rss_mb.p50)} | ${formatValue(row.metrics.tauri_rss_mb.p95)} |`);
+  }
+  lines.push('');
+  lines.push('## App-Owned Renderer Stats');
+  lines.push('');
+  lines.push('| Phase | JS heap p50 | Series cache p50 | Cmp raw p50 | Cmp columnar p50 | Parse entries p50 | Parse points p50 | DOM p50 | Canvas p50 |');
+  lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
+  for (const row of summary.rows) {
+    const value = (key) => row.appMetrics[key]?.p50 ?? null;
+    lines.push(`| ${row.phase} | ${formatMetricValue(value('js_heap_mb'), 'MB')} | ${formatMetricValue(value('series_cache_bytes'), 'bytes')} | ${formatMetricValue(value('comparison_store_raw_count'), 'count')} | ${formatMetricValue(value('comparison_store_columnar_count'), 'count')} | ${formatMetricValue(value('parse_cache_entries'), 'count')} | ${formatMetricValue(value('parse_cache_point_count'), 'count')} | ${formatMetricValue(value('dom_nodes'), 'count')} | ${formatMetricValue(value('canvas_count'), 'count')} |`);
   }
   lines.push('');
   lines.push('## P50 Deltas');

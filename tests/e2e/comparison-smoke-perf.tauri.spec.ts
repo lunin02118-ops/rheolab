@@ -138,7 +138,46 @@ interface NativeMemorySnapshot {
     webview2_process_count: number;
 }
 
-interface NativeMemoryStep extends Partial<NativeMemorySnapshot> {
+interface SeriesWindowCacheStatsSnapshot {
+    entries: number | null;
+    byte_size: number | null;
+    max_entries: number | null;
+    max_bytes: number | null;
+}
+
+interface ParsingCacheStatsSnapshot {
+    entries: number | null;
+    capacity: number | null;
+    point_count: number | null;
+    estimated_bytes: number | null;
+}
+
+interface RendererMemorySnapshot {
+    route: string;
+    js_heap_mb: number | null;
+    js_heap_limit_mb: number | null;
+    dom_nodes: number;
+    canvas_count: number;
+    uplot_count: number;
+    series_cache_entries: number | null;
+    series_cache_bytes: number | null;
+    series_cache_max_entries: number | null;
+    series_cache_max_bytes: number | null;
+    comparison_store_experiment_count: number;
+    comparison_store_selected_count: number;
+    comparison_store_raw_count: number;
+    comparison_store_columnar_count: number;
+    comparison_store_db_raw_count: number;
+    comparison_store_db_columnar_count: number;
+    experiment_store_parse_points: number | null;
+    experiment_store_columnar_points: number | null;
+    parse_cache_entries: number | null;
+    parse_cache_capacity: number | null;
+    parse_cache_point_count: number | null;
+    parse_cache_estimated_bytes: number | null;
+}
+
+interface NativeMemoryStep extends Partial<NativeMemorySnapshot>, Partial<RendererMemorySnapshot> {
     phase: string;
     at_ms: number;
     source: 'direct-win32' | 'unavailable';
@@ -264,17 +303,165 @@ $out | ConvertTo-Json -Compress -Depth 4
     return JSON.parse(trimmed) as NativeMemorySnapshot;
 }
 
+async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapshot> {
+    return page.evaluate(async () => {
+        type PerfMemory = {
+            usedJSHeapSize?: number;
+            jsHeapSizeLimit?: number;
+        };
+        type PerfWithMemory = Performance & { memory?: PerfMemory };
+        type CacheStats = {
+            entries?: number;
+            byteSize?: number;
+            maxEntries?: number;
+            maxBytes?: number;
+        };
+        type StoreApi = {
+            getState?: () => Record<string, unknown>;
+        };
+        type TauriInternals = {
+            invoke?: (command: string, args?: unknown) => Promise<unknown>;
+        };
+
+        const toMb = (bytes: number | undefined): number | null => (
+            Number.isFinite(bytes) ? Math.round((Number(bytes) / 1024 / 1024) * 100) / 100 : null
+        );
+        const arrayLength = (value: unknown): number => (
+            Array.isArray(value) ? value.length : 0
+        );
+        const columnarLength = (value: unknown): number => {
+            if (!value || typeof value !== 'object') return 0;
+            const timeSec = (value as { timeSec?: { length?: unknown } }).timeSec;
+            const length = Number(timeSec?.length);
+            return Number.isFinite(length) ? length : 0;
+        };
+
+        const perfMemory = (performance as PerfWithMemory).memory;
+        const cache = (window as unknown as {
+            __rheolab_series_window_cache?: { stats?: () => CacheStats };
+        }).__rheolab_series_window_cache;
+        const cacheStats = cache?.stats?.();
+
+        const comparisonStore = (window as unknown as {
+            __rheolab_comparison_store?: StoreApi;
+        }).__rheolab_comparison_store;
+        const comparisonState = comparisonStore?.getState?.() ?? {};
+        const comparisonExperiments = Array.isArray(comparisonState.experiments)
+            ? comparisonState.experiments as Array<Record<string, unknown>>
+            : [];
+        const comparisonExperimentIds = Array.isArray(comparisonState.experimentIds)
+            ? comparisonState.experimentIds as unknown[]
+            : [];
+
+        let rawCount = 0;
+        let columnarCount = 0;
+        let dbRawCount = 0;
+        let dbColumnarCount = 0;
+        for (const exp of comparisonExperiments) {
+            const id = typeof exp.id === 'string' ? exp.id : '';
+            const isDb = !id.startsWith('file-');
+            const hasRaw = arrayLength(exp.rawPoints) > 0;
+            const hasColumnar = columnarLength(exp.columnarData) > 0;
+            if (hasRaw) rawCount += 1;
+            if (hasColumnar) columnarCount += 1;
+            if (isDb && hasRaw) dbRawCount += 1;
+            if (isDb && hasColumnar) dbColumnarCount += 1;
+        }
+
+        const experimentStore = (window as unknown as {
+            __rheolab_experiment_data_store?: StoreApi;
+        }).__rheolab_experiment_data_store;
+        const experimentState = experimentStore?.getState?.() ?? {};
+        const parseResult = experimentState.parseResult && typeof experimentState.parseResult === 'object'
+            ? experimentState.parseResult as Record<string, unknown>
+            : null;
+
+        let parseCache: ParsingCacheStatsSnapshot = {
+            entries: null,
+            capacity: null,
+            point_count: null,
+            estimated_bytes: null,
+        };
+        const invoke = (window as unknown as {
+            __TAURI_INTERNALS__?: TauriInternals;
+        }).__TAURI_INTERNALS__?.invoke;
+        if (invoke) {
+            try {
+                const stats = await invoke('parsing_cache_stats', {}) as {
+                    entries?: number;
+                    capacity?: number;
+                    pointCount?: number;
+                    estimatedBytes?: number;
+                };
+                parseCache = {
+                    entries: Number.isFinite(stats.entries) ? Number(stats.entries) : null,
+                    capacity: Number.isFinite(stats.capacity) ? Number(stats.capacity) : null,
+                    point_count: Number.isFinite(stats.pointCount) ? Number(stats.pointCount) : null,
+                    estimated_bytes: Number.isFinite(stats.estimatedBytes) ? Number(stats.estimatedBytes) : null,
+                };
+            } catch {
+                // Older binaries do not expose parsing_cache_stats. Keep fields null.
+            }
+        }
+
+        const seriesStats: SeriesWindowCacheStatsSnapshot = {
+            entries: Number.isFinite(cacheStats?.entries) ? Number(cacheStats?.entries) : null,
+            byte_size: Number.isFinite(cacheStats?.byteSize) ? Number(cacheStats?.byteSize) : null,
+            max_entries: Number.isFinite(cacheStats?.maxEntries) ? Number(cacheStats?.maxEntries) : null,
+            max_bytes: Number.isFinite(cacheStats?.maxBytes) ? Number(cacheStats?.maxBytes) : null,
+        };
+
+        return {
+            route: window.location.pathname,
+            js_heap_mb: toMb(perfMemory?.usedJSHeapSize),
+            js_heap_limit_mb: toMb(perfMemory?.jsHeapSizeLimit),
+            dom_nodes: document.getElementsByTagName('*').length,
+            canvas_count: document.querySelectorAll('canvas').length,
+            uplot_count: document.querySelectorAll('.uplot').length,
+            series_cache_entries: seriesStats.entries,
+            series_cache_bytes: seriesStats.byte_size,
+            series_cache_max_entries: seriesStats.max_entries,
+            series_cache_max_bytes: seriesStats.max_bytes,
+            comparison_store_experiment_count: comparisonExperiments.length,
+            comparison_store_selected_count: comparisonExperimentIds.length,
+            comparison_store_raw_count: rawCount,
+            comparison_store_columnar_count: columnarCount,
+            comparison_store_db_raw_count: dbRawCount,
+            comparison_store_db_columnar_count: dbColumnarCount,
+            experiment_store_parse_points: parseResult
+                ? arrayLength(parseResult.data)
+                : null,
+            experiment_store_columnar_points: parseResult
+                ? columnarLength(parseResult.columnarData)
+                : null,
+            parse_cache_entries: parseCache.entries,
+            parse_cache_capacity: parseCache.capacity,
+            parse_cache_point_count: parseCache.point_count,
+            parse_cache_estimated_bytes: parseCache.estimated_bytes,
+        };
+    });
+}
+
 async function recordMemoryStep(
     steps: NativeMemoryStep[],
     runStartedAt: number,
     phase: string,
+    page?: Page,
 ): Promise<void> {
     if (!MEMORY_STEPS_ENABLED) return;
 
     try {
-        const snap = await snapshotNativeMemory();
+        const [snap, renderer] = await Promise.all([
+            snapshotNativeMemory(),
+            page ? snapshotRendererMemory(page) : Promise.resolve(null),
+        ]);
         if (!snap) {
-            steps.push({ phase, at_ms: Date.now() - runStartedAt, source: 'unavailable' });
+            steps.push({
+                phase,
+                at_ms: Date.now() - runStartedAt,
+                source: 'unavailable',
+                ...(renderer ?? {}),
+            });
             return;
         }
         const step: NativeMemoryStep = {
@@ -282,11 +469,14 @@ async function recordMemoryStep(
             at_ms: Date.now() - runStartedAt,
             source: 'direct-win32',
             ...snap,
+            ...(renderer ?? {}),
         };
         steps.push(step);
         console.log(
             `  [mem:${phase}] total=${step.total_rss_mb} MB renderer=${step.renderer_rss_mb} MB ` +
-            `gpu=${step.gpu_rss_mb} MB tauri=${step.tauri_rss_mb} MB`,
+            `gpu=${step.gpu_rss_mb} MB tauri=${step.tauri_rss_mb} MB ` +
+            `js=${step.js_heap_mb ?? 'n/a'} MB series=${step.series_cache_bytes ?? 'n/a'} B ` +
+            `cmpRaw=${step.comparison_store_raw_count ?? 'n/a'} cmpCol=${step.comparison_store_columnar_count ?? 'n/a'}`,
         );
     } catch (error) {
         steps.push({
@@ -380,13 +570,18 @@ async function setupComparisonExperiments(
     const names: string[] = [];
     for (let i = 0; i < n; i++) {
         const fx = FIXTURE_POOL[i % FIXTURE_POOL.length];
+        await recordMem?.(`before_fixture_${i + 1}_upload`);
         await dashboard.goto();
         await dashboard.uploadFile(fx);
+        await recordMem?.(`after_fixture_${i + 1}_upload`);
         await dashboard.waitForAnalysis(90_000);
+        await recordMem?.(`after_fixture_${i + 1}_parse`);
         const expName = `CmpSmoke_N${n}_${fx.displayName.replace(/\s+/g, '')}_${runId}_${i}`;
         const { name } = await dashboard.saveExperiment({ name: expName });
         names.push(name);
-        await recordMem?.(`after_save_${i + 1}`);
+        await recordMem?.(`after_fixture_${i + 1}_save`);
+        await dashboard.page.waitForTimeout(300);
+        await recordMem?.(`after_fixture_${i + 1}_cleanup`);
     }
     return names;
 }
@@ -416,7 +611,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
         for (const n of TARGET_FIXTURE_COUNTS) {
             console.log(`\n━━━ N=${n} ━━━`);
             const memorySteps: NativeMemoryStep[] = [];
-            const recordMem = (phase: string) => recordMemoryStep(memorySteps, runStartedAt, `n${n}:${phase}`);
+            const recordMem = (phase: string) => recordMemoryStep(memorySteps, runStartedAt, `n${n}:${phase}`, page);
 
             // 1. License-cap gate — record skipped entry, continue.
             if (n > comparisonCap) {
@@ -438,6 +633,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
             try {
                 // 2. Upload + save N experiments.
                 console.log(`  [setup] uploading + saving ${n} experiments...`);
+                await recordMem('app_start');
                 await recordMem('before_setup');
                 const names = await setupComparisonExperiments(n, runId, dashboard, recordMem);
                 console.log(`  [setup] saved: ${names.join(', ')}`);
@@ -470,6 +666,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     const legendCount = await comparison.getLegendSeriesCount();
                     expect(legendCount).toBeGreaterThanOrEqual(n);
                     await recordMem('after_chart_visible');
+                    await recordMem('after_chart_ready');
                 });
                 console.log(`  [L-CMP-${n}] cmp_ready=${cmpReadyMs} ms`);
 
@@ -521,6 +718,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
 
                 if (MEMORY_STEPS_ENABLED) {
                     postExportCleanupHint = await requestRendererCleanupHint(page, `n${n}:after_exports`);
+                    await recordMem('after_gc_hint');
                     await recordMem('after_export_gc_hint');
                 }
 
@@ -531,6 +729,10 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 });
                 await dashboard.goto();
                 await recordMem('after_route_leave');
+                if (MEMORY_STEPS_ENABLED) {
+                    await requestRendererCleanupHint(page, `n${n}:after_route_leave`);
+                    await recordMem('after_second_gc_hint');
+                }
 
                 measurements.push({
                     n,

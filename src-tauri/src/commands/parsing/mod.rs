@@ -5,9 +5,11 @@
 
 use crate::error::Result;
 use lru::LruCache;
+use serde::Serialize;
 use std::collections::hash_map::DefaultHasher;
 use std::fs;
 use std::hash::{Hash, Hasher};
+use std::mem::size_of;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::SystemTime;
@@ -171,6 +173,36 @@ const PARSE_CACHE_SIZE: NonZeroUsize = match NonZeroUsize::new(4) {
 
 pub(crate) static PARSE_CACHE: LazyLock<Mutex<LruCache<u64, Arc<ParseFileResponse>>>> =
     LazyLock::new(|| Mutex::new(LruCache::new(PARSE_CACHE_SIZE)));
+
+#[derive(Debug, Clone, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ParsingCacheStats {
+    pub entries: usize,
+    pub capacity: usize,
+    pub point_count: usize,
+    pub estimated_bytes: usize,
+}
+
+/// Lightweight diagnostics for perf runners/support export.
+///
+/// This reports counts only; it never serializes cached parse payloads.
+#[tauri::command]
+pub async fn parsing_cache_stats() -> crate::error::Result<ParsingCacheStats> {
+    let cache = PARSE_CACHE
+        .lock()
+        .map_err(|e| crate::error::AppError::Other(format!("parse cache lock poisoned: {}", e)))?;
+    let point_count = cache
+        .iter()
+        .map(|(_key, response)| response.data.len())
+        .sum::<usize>();
+
+    Ok(ParsingCacheStats {
+        entries: cache.len(),
+        capacity: PARSE_CACHE_SIZE.get(),
+        point_count,
+        estimated_bytes: point_count * size_of::<ParsedPoint>(),
+    })
+}
 
 pub(crate) fn parse_cache_key(filename: &str, file_path: &str) -> Option<u64> {
     let meta = fs::metadata(file_path).ok()?;
