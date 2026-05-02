@@ -11,6 +11,7 @@ import type { ComparisonViewport } from '@/lib/store/comparison-store';
 interface HookProps {
     experiments: Experiment[];
     viewport?: ComparisonViewport | null;
+    visibleMetrics?: string[];
 }
 
 vi.mock('@/lib/tauri/core', () => ({
@@ -119,6 +120,52 @@ describe('useComparisonSeriesWindows', () => {
         expect(series.window).not.toHaveBeenCalled();
         expect(result.current.experiments[0]).toMatchObject({ id: 'exp-1', rawPoints: [] });
         expect((result.current.experiments[0] as Record<string, any>).columnarData.timeSec.length).toBe(3);
+    });
+
+    it('requests only normalized visible metrics when provided', async () => {
+        const { result } = renderHook(({ experiments, visibleMetrics }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, visibleMetrics }), {
+            initialProps: {
+                experiments: [makeExperiment('exp-1')],
+                visibleMetrics: ['viscosity_cp', 'temperature_c', 'temperatureC', 'none'],
+            },
+        });
+
+        await waitFor(() => {
+            expect(result.current.readyCount).toBe(1);
+        });
+
+        expect(series.overview).toHaveBeenCalledTimes(1);
+        expect(vi.mocked(series.overview).mock.calls[0][1]).toEqual(['viscosityCp', 'temperatureC']);
+    });
+
+    it('uses a different cache key when the visible metric set changes', async () => {
+        const experiment = makeExperiment('exp-1');
+        const { rerender } = renderHook(({ experiments, visibleMetrics }: HookProps) =>
+            useComparisonSeriesWindows({ experiments, visibleMetrics }), {
+            initialProps: {
+                experiments: [experiment],
+                visibleMetrics: ['viscosity_cp'],
+            },
+        });
+
+        await waitFor(() => {
+            expect(series.overview).toHaveBeenCalledTimes(1);
+        });
+
+        rerender({
+            experiments: [experiment],
+            visibleMetrics: ['viscosity_cp', 'temperature_c'],
+        });
+
+        await waitFor(() => {
+            expect(series.overview).toHaveBeenCalledTimes(2);
+        });
+
+        expect(vi.mocked(series.overview).mock.calls.map(call => call[1])).toEqual([
+            ['viscosityCp'],
+            ['viscosityCp', 'temperatureC'],
+        ]);
     });
 
     it('adding a sixth experiment loads only the new line when old lines are ready', async () => {

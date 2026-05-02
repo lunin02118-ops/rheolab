@@ -12,6 +12,7 @@ import { useChartResize } from '@/hooks/useChartResize';
 import type uPlot from 'uplot';
 import { ComparisonLegend } from './ComparisonLegend';
 import { type ComparisonChartProps } from './comparison-chart-constants';
+import { comparisonVisibleSeriesMetrics } from './comparison-visible-series-metrics';
 import { useComparisonChartData } from './useComparisonChartData';
 import { useComparisonSeriesWindows } from './useComparisonSeriesWindows';
 import type { ComparisonViewport } from '@/lib/store/comparison-store';
@@ -155,7 +156,29 @@ function ComparisonChartUPlotInner({
     // destroy+create cycle — leaving N lazy-GC GPU textures (~70 MB each) alive
     // simultaneously.  150 ms covers typical click-through speed; the list
     // re-renders instantly, only chart GPU recreation is deferred.
-    const binarySeries = useComparisonSeriesWindows({ experiments, sessionId, viewport });
+    const visibleSeriesMetrics = useMemo(
+        () => comparisonVisibleSeriesMetrics(
+            { primaryMetric, leftSecondaryMetric, secondaryMetric, tertiaryMetric },
+            {
+                includeSmartDownsampleSupport: (chartSettings.downsampleMode ?? 'smart') === 'smart',
+                includeTouchPointSupport: showTouchPoints,
+            },
+        ),
+        [
+            primaryMetric,
+            leftSecondaryMetric,
+            secondaryMetric,
+            tertiaryMetric,
+            chartSettings.downsampleMode,
+            showTouchPoints,
+        ],
+    );
+    const binarySeries = useComparisonSeriesWindows({
+        experiments,
+        sessionId,
+        viewport,
+        visibleMetrics: visibleSeriesMetrics,
+    });
     const chartViewport = viewport;
     const chartExperiments = binarySeries.experiments;
     const brushExperiments = binarySeries.brushExperiments;

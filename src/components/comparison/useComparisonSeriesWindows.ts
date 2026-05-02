@@ -9,16 +9,10 @@ import {
     seriesWindowCache,
     type SeriesWindowCacheKey,
 } from '@/lib/series/series-window-cache';
-
-const COMPARISON_SERIES_METRICS = [
-    'viscosityCp',
-    'temperatureC',
-    'shearRate',
-    'shearStressPa',
-    'pressureBar',
-    'speedRpm',
-    'bathTemperatureC',
-];
+import {
+    DEFAULT_COMPARISON_SERIES_METRICS,
+    normalizeComparisonSeriesMetrics,
+} from './comparison-visible-series-metrics';
 
 const DEFAULT_COMPARISON_SERIES_MAX_POINTS = 1500;
 const WINDOW_DEBOUNCE_MS = 100;
@@ -46,6 +40,7 @@ export interface UseComparisonSeriesWindowsParams {
     sessionId?: string;
     viewport?: ComparisonViewport | null;
     maxPoints?: number;
+    visibleMetrics?: readonly string[];
 }
 
 export interface UseComparisonSeriesWindowsResult {
@@ -154,8 +149,18 @@ export function useComparisonSeriesWindows({
     sessionId,
     viewport,
     maxPoints = DEFAULT_COMPARISON_SERIES_MAX_POINTS,
+    visibleMetrics,
 }: UseComparisonSeriesWindowsParams): UseComparisonSeriesWindowsResult {
-    const metrics = useMemo(() => COMPARISON_SERIES_METRICS, []);
+    const visibleMetricsKey = visibleMetrics ? visibleMetrics.join('|') : '__default__';
+    const metrics = useMemo(
+        () => visibleMetrics
+            ? normalizeComparisonSeriesMetrics(visibleMetrics)
+            : [...DEFAULT_COMPARISON_SERIES_METRICS],
+        // `visibleMetrics` is often created by a caller useMemo, but the joined
+        // key keeps this hook stable even if a caller passes a fresh equal array.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [visibleMetricsKey],
+    );
     const metricsKey = useMemo(() => metrics.join(','), [metrics]);
     const activeViewport = useMemo(
         () => normalizeViewport(viewport),
