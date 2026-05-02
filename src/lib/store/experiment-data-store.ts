@@ -372,6 +372,24 @@ export const useExperimentDataStore = create<ExperimentDataState>()(
     )
 );
 
+export interface ExperimentDataDiagnosticsStats {
+    hasParseResult: boolean;
+    parsePoints: number;
+    columnarPoints: number;
+}
+
+export function getExperimentDataDiagnosticsStats(): ExperimentDataDiagnosticsStats {
+    const parseResult = useExperimentDataStore.getState().parseResult;
+
+    return {
+        hasParseResult: parseResult !== null,
+        parsePoints: parseResult?.data.length ?? 0,
+        columnarPoints: parseResult?.columnarData?.timeSec.length ?? 0,
+    };
+}
+
 if (typeof window !== 'undefined') {
-    (window as unknown as Record<string, unknown>).__rheolab_experiment_data_store = useExperimentDataStore;
+    (window as unknown as {
+        __rheolab_experiment_data_stats?: () => ExperimentDataDiagnosticsStats;
+    }).__rheolab_experiment_data_stats = getExperimentDataDiagnosticsStats;
 }

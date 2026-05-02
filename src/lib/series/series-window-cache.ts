@@ -213,6 +213,8 @@ export const seriesWindowCache = new SeriesWindowCache();
 
 if (typeof window !== 'undefined') {
   (window as unknown as {
-    __rheolab_series_window_cache?: Pick<SeriesWindowCache, 'stats' | 'clear'>;
-  }).__rheolab_series_window_cache = seriesWindowCache;
+    __rheolab_series_window_cache?: Pick<SeriesWindowCache, 'stats'>;
+  }).__rheolab_series_window_cache = {
+    stats: () => seriesWindowCache.stats(),
+  };
 }

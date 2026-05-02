@@ -319,6 +319,11 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
         type StoreApi = {
             getState?: () => Record<string, unknown>;
         };
+        type ExperimentDataStats = {
+            parsePoints?: number;
+            columnarPoints?: number;
+            hasParseResult?: boolean;
+        };
         type TauriInternals = {
             invoke?: (command: string, args?: unknown) => Promise<unknown>;
         };
@@ -368,10 +373,14 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             if (isDb && hasColumnar) dbColumnarCount += 1;
         }
 
-        const experimentStore = (window as unknown as {
+        const experimentStatsHook = (window as unknown as {
+            __rheolab_experiment_data_stats?: () => ExperimentDataStats;
+        }).__rheolab_experiment_data_stats;
+        const experimentStats = experimentStatsHook?.();
+        const legacyExperimentStore = (window as unknown as {
             __rheolab_experiment_data_store?: StoreApi;
         }).__rheolab_experiment_data_store;
-        const experimentState = experimentStore?.getState?.() ?? {};
+        const experimentState = legacyExperimentStore?.getState?.() ?? {};
         const parseResult = experimentState.parseResult && typeof experimentState.parseResult === 'object'
             ? experimentState.parseResult as Record<string, unknown>
             : null;
@@ -428,12 +437,12 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             comparison_store_columnar_count: columnarCount,
             comparison_store_db_raw_count: dbRawCount,
             comparison_store_db_columnar_count: dbColumnarCount,
-            experiment_store_parse_points: parseResult
-                ? arrayLength(parseResult.data)
-                : null,
-            experiment_store_columnar_points: parseResult
-                ? columnarLength(parseResult.columnarData)
-                : null,
+            experiment_store_parse_points: Number.isFinite(experimentStats?.parsePoints)
+                ? Number(experimentStats?.parsePoints)
+                : (parseResult ? arrayLength(parseResult.data) : null),
+            experiment_store_columnar_points: Number.isFinite(experimentStats?.columnarPoints)
+                ? Number(experimentStats?.columnarPoints)
+                : (parseResult ? columnarLength(parseResult.columnarData) : null),
             parse_cache_entries: parseCache.entries,
             parse_cache_capacity: parseCache.capacity,
             parse_cache_point_count: parseCache.point_count,

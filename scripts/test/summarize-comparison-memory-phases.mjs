@@ -34,6 +34,7 @@ function summaryPhases(n) {
   for (let i = 1; i <= n; i += 1) {
     fixturePhases.push(
       `before_fixture_${i}_upload`,
+      `after_fixture_${i}_upload`,
       `after_fixture_${i}_parse`,
       `after_fixture_${i}_save`,
       `after_fixture_${i}_cleanup`,
