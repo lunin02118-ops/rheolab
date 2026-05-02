@@ -54,7 +54,7 @@ import {
     OFITE_1100,
     type TestFixture,
 } from './fixtures';
-import { ComparisonReportsPage } from './pages';
+import { ComparisonReportsPage, type ComparisonPage } from './pages';
 
 setupBeforeEach(test);
 
@@ -180,6 +180,14 @@ interface RendererMemorySnapshot {
     canvas_count: number;
     canvas_pixel_bytes: number;
     uplot_count: number;
+    comparison_page_root_count: number;
+    comparison_chart_root_count: number;
+    comparison_chart_uplot_count: number;
+    comparison_chart_canvas_count: number;
+    comparison_report_root_count: number;
+    dashboard_chart_root_count: number;
+    dashboard_chart_uplot_count: number;
+    dashboard_chart_canvas_count: number;
     uplot_init_measure_count: number;
     uplot_init_total_ms: number | null;
     series_cache_entries: number | null;
@@ -498,6 +506,7 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
         const canvasPixelBytes = canvases.reduce((sum, canvas) => (
             sum + Math.max(0, canvas.width) * Math.max(0, canvas.height) * 4
         ), 0);
+        const countSelector = (selector: string): number => document.querySelectorAll(selector).length;
         const uplotInitMeasures = performance.getEntriesByName('uplot:init', 'measure');
         const uplotInitTotalMs = uplotInitMeasures.reduce((sum, entry) => sum + entry.duration, 0);
 
@@ -509,6 +518,14 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             canvas_count: canvases.length,
             canvas_pixel_bytes: canvasPixelBytes,
             uplot_count: document.querySelectorAll('.uplot').length,
+            comparison_page_root_count: countSelector('[data-testid="ComparisonPageRoot"]'),
+            comparison_chart_root_count: countSelector('[data-testid="ComparisonChart"]'),
+            comparison_chart_uplot_count: countSelector('[data-testid="ComparisonChart"] .uplot'),
+            comparison_chart_canvas_count: countSelector('[data-testid="ComparisonChart"] canvas'),
+            comparison_report_root_count: countSelector('[data-testid="ComparisonReportTabRoot"]'),
+            dashboard_chart_root_count: countSelector('[data-testid="DashboardChartContainer"]'),
+            dashboard_chart_uplot_count: countSelector('[data-testid="DashboardChartContainer"] .uplot'),
+            dashboard_chart_canvas_count: countSelector('[data-testid="DashboardChartContainer"] canvas'),
             uplot_init_measure_count: uplotInitMeasures.length,
             uplot_init_total_ms: uplotInitMeasures.length > 0 ? Math.round(uplotInitTotalMs * 100) / 100 : null,
             series_cache_entries: seriesStats.entries,
@@ -726,6 +743,100 @@ async function requestRendererCleanupHint(page: Page, phase: string): Promise<Re
     return hint;
 }
 
+async function waitForComparisonStoreSelectedCount(page: Page, targetCount: number): Promise<void> {
+    await expect.poll(async () => page.evaluate(() => {
+        type StoreApi = { getState?: () => { experiments?: unknown[]; experimentIds?: unknown[] } };
+        type ComparisonStats = { selectedCount?: number; experimentCount?: number };
+        const stats = (window as unknown as {
+            __rheolab_comparison_stats?: () => ComparisonStats;
+        }).__rheolab_comparison_stats?.();
+        const statsCount = Number(stats?.selectedCount ?? stats?.experimentCount);
+        if (Number.isFinite(statsCount)) return statsCount;
+        const store = (window as unknown as {
+            __rheolab_comparison_store?: StoreApi;
+        }).__rheolab_comparison_store;
+        const state = store?.getState?.();
+        const ids = Array.isArray(state?.experimentIds) ? state.experimentIds.length : 0;
+        const experiments = Array.isArray(state?.experiments) ? state.experiments.length : 0;
+        return Math.max(ids, experiments);
+    }), { timeout: 10_000 }).toBeGreaterThanOrEqual(targetCount);
+}
+
+async function waitForComparisonSeriesReady(page: Page, targetCount: number): Promise<boolean> {
+    const deadline = Date.now() + 20_000;
+    let lastSnapshot: unknown = null;
+
+    while (Date.now() < deadline) {
+        const snapshot = await page.evaluate((target) => {
+            type CacheStats = { entries?: number; byteSize?: number };
+            const cache = (window as unknown as {
+                __rheolab_series_window_cache?: { stats?: () => CacheStats };
+            }).__rheolab_series_window_cache;
+            const cacheStats = cache?.stats?.();
+            const seriesEntries = Number(cacheStats?.entries ?? 0);
+            const seriesBytes = Number(cacheStats?.byteSize ?? 0);
+            const legendCount = document.querySelectorAll('[data-testid="ComparisonLegendItem"]').length;
+            const chartCanvasCount = document.querySelectorAll('[data-testid="ComparisonChart"] .uplot canvas').length;
+            return {
+                target,
+                seriesEntries: Number.isFinite(seriesEntries) ? seriesEntries : 0,
+                seriesBytes: Number.isFinite(seriesBytes) ? seriesBytes : 0,
+                legendCount,
+                chartCanvasCount,
+            };
+        }, targetCount);
+        lastSnapshot = snapshot;
+
+        if (
+            snapshot.chartCanvasCount > 0 &&
+            (
+                snapshot.legendCount >= targetCount ||
+                snapshot.seriesEntries >= targetCount
+            )
+        ) {
+            return true;
+        }
+
+        await page.waitForTimeout(250);
+    }
+
+    console.log(`[CmpSmoke] series-ready wait timed out for target=${targetCount}: ${JSON.stringify(lastSnapshot)}`);
+    return false;
+}
+
+async function addExperimentByNameWithMemoryPhases(
+    comparison: ComparisonPage,
+    name: string,
+    targetCount: number,
+    recordMem: (phase: string) => Promise<void>,
+): Promise<void> {
+    const phasePrefix = `add_${targetCount}`;
+    await recordMem(`before_${phasePrefix}`);
+    await comparison.openSelector();
+    await recordMem(`after_${phasePrefix}_selector_open`);
+    await comparison.searchExperiment(name);
+    await recordMem(`after_${phasePrefix}_selector_search`);
+
+    const btn = comparison.page
+        .getByTestId('ComparisonSelectorExperimentButton')
+        .filter({ hasText: name })
+        .first();
+    await expect(btn).toBeVisible({ timeout: 10_000 });
+    await btn.click();
+    await recordMem(`after_${phasePrefix}_click`);
+
+    await waitForComparisonStoreSelectedCount(comparison.page, targetCount);
+    await comparison.expectChipCount(targetCount);
+    await recordMem(`after_${phasePrefix}_store_update`);
+
+    await comparison.closeSelector();
+    await waitForComparisonSeriesReady(comparison.page, targetCount);
+    await recordMem(`after_${phasePrefix}_series_ready`);
+
+    await comparison.page.waitForTimeout(300);
+    await recordMem(`after_${phasePrefix}_dom_settle`);
+}
+
 /**
  * Uploads + saves N experiments rotating through FIXTURE_POOL.
  * Returns the list of saved experiment names.
@@ -848,8 +959,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     });
                     await page.waitForTimeout(300);
                     for (let idx = 0; idx < n; idx++) {
-                        await comparison.addExperimentByName(names[idx]);
-                        await comparison.expectChipCount(idx + 1);
+                        await addExperimentByNameWithMemoryPhases(comparison, names[idx], idx + 1, recordMem);
                         await recordMem(`after_add_${idx + 1}`);
                     }
                     await comparison.expectChartVisible();

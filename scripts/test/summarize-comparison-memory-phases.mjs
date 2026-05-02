@@ -33,6 +33,14 @@ const APP_METRICS = [
   ['canvas_count', 'Canvas count', 'count'],
   ['canvas_pixel_bytes', 'Canvas pixels', 'bytes'],
   ['uplot_count', 'uPlot count', 'count'],
+  ['comparison_page_root_count', 'Cmp page root', 'count'],
+  ['comparison_chart_root_count', 'Cmp chart root', 'count'],
+  ['comparison_chart_uplot_count', 'Cmp chart uPlot', 'count'],
+  ['comparison_chart_canvas_count', 'Cmp chart canvas', 'count'],
+  ['comparison_report_root_count', 'Cmp report root', 'count'],
+  ['dashboard_chart_root_count', 'Dash chart root', 'count'],
+  ['dashboard_chart_uplot_count', 'Dash chart uPlot', 'count'],
+  ['dashboard_chart_canvas_count', 'Dash chart canvas', 'count'],
   ['uplot_init_total_ms', 'uPlot init total', 'ms'],
 ];
 
@@ -57,7 +65,16 @@ function summaryPhases(n) {
   }
   const addPhases = [];
   for (let i = 1; i <= n; i += 1) {
-    addPhases.push(`after_add_${i}`);
+    addPhases.push(
+      `before_add_${i}`,
+      `after_add_${i}_selector_open`,
+      `after_add_${i}_selector_search`,
+      `after_add_${i}_click`,
+      `after_add_${i}_store_update`,
+      `after_add_${i}_series_ready`,
+      `after_add_${i}_dom_settle`,
+      `after_add_${i}`,
+    );
   }
   return [
     'app_start',
@@ -269,6 +286,12 @@ function buildSummary(entries, n) {
     exportSaveModes: [...new Set(entries.flatMap((entry) => entry.exportSaveModes).filter(Boolean))],
     rows,
     deltas: {
+      after_fixture_cleanup_to_after_add: Object.fromEntries(
+        METRICS.map(([key]) => [key, delta(`after_add_${n}`, `after_fixture_${n}_cleanup`, key)]),
+      ),
+      after_add_to_after_chart_canvas_painted: Object.fromEntries(
+        METRICS.map(([key]) => [key, delta('after_chart_canvas_painted', `after_add_${n}`, key)]),
+      ),
       after_xlsx_to_after_export_gc_hint: Object.fromEntries(
         METRICS.map(([key]) => [key, delta('after_xlsx', 'after_export_gc_hint', key)]),
       ),
@@ -338,17 +361,20 @@ function buildMarkdown(summary) {
   lines.push('');
   lines.push('## App-Owned Renderer Stats');
   lines.push('');
-  lines.push('| Phase | JS heap p50 | Frontend series p50 | Rust series entries p50 | Rust series bytes p50 | Rust series hits/misses p50 | Cmp raw p50 | Cmp columnar p50 | Parse entries p50 | Parse points p50 | DOM p50 | Canvas p50 | Canvas bytes p50 | uPlot p50 | uPlot init p50 |');
-  lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
+  lines.push(`| Phase | ${APP_METRICS.map(([, label]) => `${label} p50`).join(' | ')} |`);
+  lines.push(`| --- | ${APP_METRICS.map(() => '---:').join(' | ')} |`);
   for (const row of summary.rows) {
     const value = (key) => row.appMetrics[key]?.p50 ?? null;
-    lines.push(`| ${row.phase} | ${formatMetricValue(value('js_heap_mb'), 'MB')} | ${formatMetricValue(value('series_cache_bytes'), 'bytes')} | ${formatMetricValue(value('rust_series_decode_cache_entries'), 'count')} | ${formatMetricValue(value('rust_series_decode_cache_bytes'), 'bytes')} | ${formatMetricValue(value('rust_series_decode_cache_hits'), 'count')}/${formatMetricValue(value('rust_series_decode_cache_misses'), 'count')} | ${formatMetricValue(value('comparison_store_raw_count'), 'count')} | ${formatMetricValue(value('comparison_store_columnar_count'), 'count')} | ${formatMetricValue(value('parse_cache_entries'), 'count')} | ${formatMetricValue(value('parse_cache_point_count'), 'count')} | ${formatMetricValue(value('dom_nodes'), 'count')} | ${formatMetricValue(value('canvas_count'), 'count')} | ${formatMetricValue(value('canvas_pixel_bytes'), 'bytes')} | ${formatMetricValue(value('uplot_count'), 'count')} | ${formatMetricValue(value('uplot_init_total_ms'), 'ms')} |`);
+    const cells = APP_METRICS.map(([key, , unit]) => formatMetricValue(value(key), unit));
+    lines.push(`| ${row.phase} | ${cells.join(' | ')} |`);
   }
   lines.push('');
   lines.push('## P50 Deltas');
   lines.push('');
   lines.push('| Delta | Total | Renderer | GPU | Tauri |');
   lines.push('| --- | ---: | ---: | ---: | ---: |');
+  lines.push(`| after_fixture_${summary.n}_cleanup -> after_add_${summary.n} | ${formatValue(summary.deltas.after_fixture_cleanup_to_after_add.total_rss_mb)} | ${formatValue(summary.deltas.after_fixture_cleanup_to_after_add.renderer_rss_mb)} | ${formatValue(summary.deltas.after_fixture_cleanup_to_after_add.gpu_rss_mb)} | ${formatValue(summary.deltas.after_fixture_cleanup_to_after_add.tauri_rss_mb)} |`);
+  lines.push(`| after_add_${summary.n} -> after_chart_canvas_painted | ${formatValue(summary.deltas.after_add_to_after_chart_canvas_painted.total_rss_mb)} | ${formatValue(summary.deltas.after_add_to_after_chart_canvas_painted.renderer_rss_mb)} | ${formatValue(summary.deltas.after_add_to_after_chart_canvas_painted.gpu_rss_mb)} | ${formatValue(summary.deltas.after_add_to_after_chart_canvas_painted.tauri_rss_mb)} |`);
   lines.push(`| after_xlsx - after_export_gc_hint | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.total_rss_mb)} | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.renderer_rss_mb)} | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.gpu_rss_mb)} | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.tauri_rss_mb)} |`);
   lines.push(`| after_export_gc_hint - after_route_leave | ${formatValue(summary.deltas.after_export_gc_hint_to_after_route_leave.total_rss_mb)} | ${formatValue(summary.deltas.after_export_gc_hint_to_after_route_leave.renderer_rss_mb)} | ${formatValue(summary.deltas.after_export_gc_hint_to_after_route_leave.gpu_rss_mb)} | ${formatValue(summary.deltas.after_export_gc_hint_to_after_route_leave.tauri_rss_mb)} |`);
   lines.push(`| after_route_leave - after_chart_visible | ${formatValue(summary.deltas.after_chart_visible_to_after_route_leave.total_rss_mb)} | ${formatValue(summary.deltas.after_chart_visible_to_after_route_leave.renderer_rss_mb)} | ${formatValue(summary.deltas.after_chart_visible_to_after_route_leave.gpu_rss_mb)} | ${formatValue(summary.deltas.after_chart_visible_to_after_route_leave.tauri_rss_mb)} |`);
