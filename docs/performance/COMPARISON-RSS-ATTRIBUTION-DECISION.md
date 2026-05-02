@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-02
 **Build under test:** 0.2.2-alpha.19 diagnostic candidate
-**Commit:** 33aa167 plus diagnostic/export-save polish
+**Commit:** f29f96b (`perf(memory): attribute comparison save and series cache phases`)
 
 This note records the first post-WN RSS attribution decision. It is based on
 the phase-decomposed Comparison smoke runner, not on user-facing latency
@@ -64,14 +64,16 @@ $env:COMPARISON_SMOKE_EXPORT_SAVE_MODE='direct'
 npm run perf:comparison:tauri
 ```
 
-Instrumented source sidecar:
+Instrumented source sidecars:
 
 - `outputs/e2e/perf/comparison-smoke-1777741845183-tauri.json`
+- `outputs/e2e/perf/comparison-smoke-1777742916586-tauri.json`
+- `outputs/e2e/perf/comparison-smoke-1777743134402-tauri.json`
 
 Instrumented summary:
 
 ```powershell
-node scripts\test\summarize-comparison-memory-phases.mjs --n 5 --latest 1 --export-save-mode direct --only-ok --json outputs\e2e\perf\comparison-memory-phase-summary-n5-direct-instrumented-latest1.json
+node scripts\test\summarize-comparison-memory-phases.mjs --n 5 --latest 3 --export-save-mode direct --only-ok --json outputs\e2e\perf\comparison-memory-phase-summary-n5-direct-instrumented-latest3.json
 ```
 
 ## Browser-Download P50 Phases
@@ -103,6 +105,45 @@ node scripts\test\summarize-comparison-memory-phases.mjs --n 5 --latest 1 --expo
 | after_route_leave | 610.69 MB | 124.83 MB | 246.59 MB | 69.62 MB |
 | after_second_gc_hint | 603.90 MB | 119.67 MB | 240.64 MB | 69.62 MB |
 
+## Instrumented Direct-Save P50 Phases
+
+The instrumented 3-run direct-save readout keeps the export conclusion intact
+and adds finer save/dialog and chart lifecycle attribution.
+
+### Save/Dialog Markers
+
+| Phase | Total RSS | Renderer RSS | GPU RSS | JS Heap |
+| --- | ---: | ---: | ---: | ---: |
+| after_fixture_1_upload | 457.56 MB | 107.29 MB | 129.12 MB | 10.67 MB |
+| after_fixture_1_parse | 455.46 MB | 106.77 MB | 128.33 MB | 11.60 MB |
+| before_fixture_1_save_dialog | 453.74 MB | 107.25 MB | 122.79 MB | 11.62 MB |
+| after_fixture_1_save_dialog_open | 486.62 MB | 128.82 MB | 132.36 MB | 12.59 MB |
+| before_fixture_1_save_commit | 510.14 MB | 147.05 MB | 132.88 MB | 16.46 MB |
+| after_fixture_1_save | 510.55 MB | 146.86 MB | 133.22 MB | 15.90 MB |
+| after_fixture_1_cleanup | 491.03 MB | 118.63 MB | 120.04 MB | 9.97 MB |
+| after_fixture_2_upload | 494.27 MB | 129.06 MB | 130.11 MB | 16.01 MB |
+| before_fixture_2_save_dialog | 492.23 MB | 127.84 MB | 129.25 MB | 12.00 MB |
+| after_fixture_2_save_dialog_open | 530.63 MB | 137.39 MB | 163.86 MB | 17.89 MB |
+| before_fixture_2_save_commit | 549.32 MB | 153.67 MB | 163.54 MB | 17.38 MB |
+| after_fixture_2_save | 549.63 MB | 154.36 MB | 162.29 MB | 21.17 MB |
+| after_fixture_2_cleanup | 497.90 MB | 121.23 MB | 143.28 MB | 10.86 MB |
+| after_fixture_5_cleanup | 511.11 MB | 130.46 MB | 148.42 MB | 13.51 MB |
+
+### Chart/Export/Lifecycle Markers
+
+| Phase | Total RSS | Renderer RSS | GPU RSS | Tauri RSS |
+| --- | ---: | ---: | ---: | ---: |
+| after_add_5 | 605.22 MB | 135.40 MB | 229.75 MB | 67.96 MB |
+| after_chart_canvas_painted | 611.02 MB | 138.15 MB | 234.17 MB | 67.96 MB |
+| after_chart_visible | 608.83 MB | 137.56 MB | 232.75 MB | 67.96 MB |
+| after_report_tab_open | 616.80 MB | 140.45 MB | 234.64 MB | 68.42 MB |
+| after_pdf | 611.55 MB | 137.91 MB | 233.11 MB | 68.98 MB |
+| after_xlsx | 607.94 MB | 138.01 MB | 229.39 MB | 69.01 MB |
+| after_export_gc_hint | 590.77 MB | 124.27 MB | 226.67 MB | 68.91 MB |
+| after_route_leave | 594.54 MB | 127.09 MB | 227.10 MB | 69.65 MB |
+| after_chart_unmount_settle | 590.43 MB | 125.45 MB | 224.57 MB | 69.65 MB |
+| after_second_gc_hint | 521.35 MB | 121.65 MB | 159.29 MB | 69.65 MB |
+
 ## App-Owned Memory Signals
 
 | Signal | Result |
@@ -111,8 +152,14 @@ node scripts\test\summarize-comparison-memory-phases.mjs --n 5 --latest 1 --expo
 | comparison store columnar count | 0 |
 | Rust parse cache entries | 0 |
 | Rust parse cache points | 0 |
-| seriesWindowCache after_add_5 | 303040 B |
-| seriesWindowCache export phases | 606080 B |
+| seriesWindowCache after_add_5 | 303,040 B |
+| seriesWindowCache export phases | 606,080 B |
+| Rust decoded series cache after_add_5 | 5 entries / 784,418 B |
+| Rust decoded series cache after_second_gc_hint | 5 entries / 784,418 B |
+| chart canvas estimate after_chart_visible | 2,400,384 B |
+| chart canvas estimate after_second_gc_hint | 2,812,800 B |
+| uPlot count after_chart_visible | 1 |
+| uPlot count after_second_gc_hint | 1 |
 | JS heap after_export_gc_hint | 11.50 MB |
 | JS heap after_second_gc_hint | 11.16 MB |
 
@@ -123,18 +170,18 @@ Direct-save keeps the same app-owned result:
 - seriesWindowCache stays below 1 MB;
 - JS heap after the export GC hint stays around 11.5 MB.
 
-The instrumented direct-save run adds Rust decoded-series cache and chart/canvas
-markers:
+The instrumented direct-save 3-run summary adds Rust decoded-series cache and
+chart/canvas markers:
 
-- Rust decoded series cache after adding 5 lines: 5 entries / 784,418 B;
-- frontend `seriesWindowCache` after adding 5 lines: 303,040 B;
-- frontend `seriesWindowCache` on report tab/export phases: 606,080 B;
+- Rust decoded series cache stays at 5 entries / 784,418 B;
+- frontend `seriesWindowCache` is 303,040 B after adding 5 lines and 606,080 B
+  on report/export phases;
 - comparison store raw/columnar counts remain 0 throughout;
 - parse cache entries/points remain 0 throughout;
-- chart canvas estimate around `after_chart_visible`: about 2.29 MB;
+- chart canvas estimates stay in the low single-digit MB range;
 - `after_add_5` to `after_chart_canvas_painted` moves total RSS from
-  617.01 MB to 627.90 MB, with GPU RSS from 244.09 MB to 250.32 MB;
-- `after_xlsx - after_export_gc_hint` remains production-like at 16.97 MB.
+  605.22 MB to 611.02 MB, with GPU RSS from 229.75 MB to 234.17 MB;
+- `after_xlsx - after_export_gc_hint` remains production-like at 17.17 MB.
 
 This keeps the previous conclusion intact: Rust decoded series cache is useful
 and bounded here, not the main Total RSS driver.
@@ -149,32 +196,37 @@ The app-owned signals are bounded and small in this scenario.
 
 NO-GO: treat the original `after_pdf` / `after_xlsx` spike as production report
 memory. With browser downloads, `after_xlsx - after_export_gc_hint` was about
-101 MB. With direct Tauri save, the same delta is about 14.6 MB:
+101 MB. With direct Tauri save, the same delta is about 14.6-17.2 MB:
 
 - browser-download `after_pdf` p50 total RSS: 728.14 MB
 - browser-download `after_xlsx` p50 total RSS: 718.85 MB
 - direct-save `after_pdf` p50 total RSS: 630.22 MB
 - direct-save `after_xlsx` p50 total RSS: 621.17 MB
+- instrumented direct-save `after_pdf` p50 total RSS: 611.55 MB
+- instrumented direct-save `after_xlsx` p50 total RSS: 607.94 MB
 
 This means the large export spike was primarily an E2E/browser-download artifact,
 not the normal installed-app save path.
 
 ## Next Refactor Candidate
 
-`perf(memory): attribute save/import and chart GPU lifecycle`
+`perf(memory): target save-dialog/dashboard and chart lifecycle`
 
 Scope:
 
 - keep direct-save export mode as the default when memory steps are enabled;
 - run direct-save N=5 before/after any memory PR;
-- decompose save/import phases further around parse result, DB persistence,
-  dashboard chart render, and post-save cleanup (instrumented once; repeat
-  3-run summary before choosing a memory refactor);
-- add chart/GPU lifecycle markers around uPlot mount, canvas paint, tab switch,
-  route leave, and canvas destruction (instrumented once; repeat 3-run summary
-  before choosing a chart/GPU refactor);
-- include Rust decoded series cache entries/bytes/hits/misses in the memory
-  sidecar;
+- investigate the save-dialog/save-commit burst: fixture 1 moves from
+  453.74 MB before save dialog to 510.55 MB after save, then drops to
+  491.03 MB after cleanup; fixture 2 moves from 492.23 MB to 549.63 MB, then
+  drops to 497.90 MB;
+- investigate the chart/GPU phase separately: adding 5 lines moves total RSS to
+  605.22 MB, while first canvas paint is 611.02 MB and chart visible is
+  608.83 MB;
+- verify why a canvas/uPlot marker remains visible after route leave in the
+  sidecar before doing a cleanup refactor;
+- keep Rust decoded series cache entries/bytes/hits/misses in the memory
+  sidecar for before/after comparisons;
 - do not change Comparison warm cache policy unless a new measurement points
   there.
 
