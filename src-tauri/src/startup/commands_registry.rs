@@ -53,6 +53,7 @@ macro_rules! register_tauri_commands {
             $crate::commands::series::experiments_series_meta,
             $crate::commands::series::experiments_series_overview,
             $crate::commands::series::experiments_series_window,
+            $crate::commands::series::series_decode_cache_stats,
             // Reagents commands — RISK: MEDIUM (writes catalog data)
             $crate::commands::reagents::reagents_list,
             $crate::commands::reagents::reagents_create,

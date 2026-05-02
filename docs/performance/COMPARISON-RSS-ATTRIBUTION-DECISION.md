@@ -55,6 +55,25 @@ Direct-save summary:
 node scripts\test\summarize-comparison-memory-phases.mjs --n 5 --latest 3 --export-save-mode direct --only-ok --json outputs\e2e\perf\comparison-memory-phase-summary-n5-direct-latest3.json
 ```
 
+Instrumented save/chart direct-save diagnostic command:
+
+```powershell
+$env:COMPARISON_SMOKE_MEMORY_STEPS='1'
+$env:COMPARISON_SMOKE_N='5'
+$env:COMPARISON_SMOKE_EXPORT_SAVE_MODE='direct'
+npm run perf:comparison:tauri
+```
+
+Instrumented source sidecar:
+
+- `outputs/e2e/perf/comparison-smoke-1777741845183-tauri.json`
+
+Instrumented summary:
+
+```powershell
+node scripts\test\summarize-comparison-memory-phases.mjs --n 5 --latest 1 --export-save-mode direct --only-ok --json outputs\e2e\perf\comparison-memory-phase-summary-n5-direct-instrumented-latest1.json
+```
+
 ## Browser-Download P50 Phases
 
 | Phase | Total RSS | Renderer RSS | GPU RSS | Tauri RSS |
@@ -104,6 +123,22 @@ Direct-save keeps the same app-owned result:
 - seriesWindowCache stays below 1 MB;
 - JS heap after the export GC hint stays around 11.5 MB.
 
+The instrumented direct-save run adds Rust decoded-series cache and chart/canvas
+markers:
+
+- Rust decoded series cache after adding 5 lines: 5 entries / 784,418 B;
+- frontend `seriesWindowCache` after adding 5 lines: 303,040 B;
+- frontend `seriesWindowCache` on report tab/export phases: 606,080 B;
+- comparison store raw/columnar counts remain 0 throughout;
+- parse cache entries/points remain 0 throughout;
+- chart canvas estimate around `after_chart_visible`: about 2.29 MB;
+- `after_add_5` to `after_chart_canvas_painted` moves total RSS from
+  617.01 MB to 627.90 MB, with GPU RSS from 244.09 MB to 250.32 MB;
+- `after_xlsx - after_export_gc_hint` remains production-like at 16.97 MB.
+
+This keeps the previous conclusion intact: Rust decoded series cache is useful
+and bounded here, not the main Total RSS driver.
+
 ## Decision
 
 GO: keep the WN/Comparison session architecture. The current RSS issue is not
@@ -133,9 +168,13 @@ Scope:
 - keep direct-save export mode as the default when memory steps are enabled;
 - run direct-save N=5 before/after any memory PR;
 - decompose save/import phases further around parse result, DB persistence,
-  dashboard chart render, and post-save cleanup;
+  dashboard chart render, and post-save cleanup (instrumented once; repeat
+  3-run summary before choosing a memory refactor);
 - add chart/GPU lifecycle markers around uPlot mount, canvas paint, tab switch,
-  route leave, and canvas destruction;
+  route leave, and canvas destruction (instrumented once; repeat 3-run summary
+  before choosing a chart/GPU refactor);
+- include Rust decoded series cache entries/bytes/hits/misses in the memory
+  sidecar;
 - do not change Comparison warm cache policy unless a new measurement points
   there.
 

@@ -211,6 +211,9 @@ export class DashboardPage {
     operator?: string;
     well?: string;
     waterSource?: string;
+    onAfterDialogOpen?: () => Promise<void>;
+    onBeforeCommit?: () => Promise<void>;
+    onAfterCommit?: () => Promise<void>;
   } = {}) {
     const runId = Date.now().toString();
     const name = overrides.name ?? `E2E Test ${runId}`;
@@ -227,6 +230,7 @@ export class DashboardPage {
       await this.saveButton.click();
     }
     await expect(this.saveDialog).toBeVisible({ timeout: 5_000 });
+    await overrides.onAfterDialogOpen?.();
 
     // Fill all required fields
     await this.saveDialogName.clear();
@@ -248,10 +252,12 @@ export class DashboardPage {
 
     // Wait for Save button to become enabled (validation)
     await expect(this.saveDialogSave).toBeEnabled({ timeout: 10_000 });
+    await overrides.onBeforeCommit?.();
     await this.saveDialogSave.click();
 
     // Wait for dialog to close (success)
     await expect(this.saveDialog).not.toBeVisible({ timeout: 10_000 });
+    await overrides.onAfterCommit?.();
     await this.dismissBlockingToasts();
 
     return { name, field, operator, well };

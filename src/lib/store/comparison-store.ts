@@ -71,6 +71,15 @@ export interface ComparisonViewport {
     xMaxSec: number;
 }
 
+export interface ComparisonDiagnosticsStats {
+    experimentCount: number;
+    selectedCount: number;
+    rawCount: number;
+    columnarCount: number;
+    dbRawCount: number;
+    dbColumnarCount: number;
+}
+
 export interface ComparisonSessionExperiment {
     id: string;
     name: string;
@@ -423,9 +432,51 @@ export const useComparisonStore = create<ComparisonState>()(
     )
 );
 
-// Expose store globally for E2E test harness (allows forced clear after IPC proxy injection)
+function columnarLength(value: unknown): number {
+    if (!value || typeof value !== 'object') return 0;
+    const timeSec = (value as { timeSec?: { length?: unknown } }).timeSec;
+    const length = Number(timeSec?.length);
+    return Number.isFinite(length) ? length : 0;
+}
+
+export function getComparisonDiagnosticsStats(): ComparisonDiagnosticsStats {
+    const state = useComparisonStore.getState();
+    let rawCount = 0;
+    let columnarCount = 0;
+    let dbRawCount = 0;
+    let dbColumnarCount = 0;
+
+    for (const exp of state.experiments) {
+        const id = typeof exp.id === 'string' ? exp.id : '';
+        const isDb = !id.startsWith('file-');
+        const hasRaw = Array.isArray(exp.rawPoints) && exp.rawPoints.length > 0;
+        const hasColumnar = columnarLength((exp as Record<string, unknown>).columnarData) > 0;
+        if (hasRaw) rawCount += 1;
+        if (hasColumnar) columnarCount += 1;
+        if (isDb && hasRaw) dbRawCount += 1;
+        if (isDb && hasColumnar) dbColumnarCount += 1;
+    }
+
+    return {
+        experimentCount: state.experiments.length,
+        selectedCount: state.experimentIds.length,
+        rawCount,
+        columnarCount,
+        dbRawCount,
+        dbColumnarCount,
+    };
+}
+
+// Expose read-only diagnostics globally; E2E still uses the legacy store hook
+// for controlled setup/teardown until those tests move to purpose-built helpers.
 if (typeof window !== 'undefined') {
-    (window as unknown as Record<string, unknown>).__rheolab_comparison_store = useComparisonStore;
+    (window as unknown as {
+        __rheolab_comparison_stats?: () => ComparisonDiagnosticsStats;
+        __rheolab_comparison_store?: typeof useComparisonStore;
+    }).__rheolab_comparison_stats = getComparisonDiagnosticsStats;
+    (window as unknown as {
+        __rheolab_comparison_store?: typeof useComparisonStore;
+    }).__rheolab_comparison_store = useComparisonStore;
 }
 
 // Subscribe to license deactivation — clear comparison on license change.

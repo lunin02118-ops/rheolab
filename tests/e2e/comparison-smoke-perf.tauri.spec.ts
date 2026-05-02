@@ -162,17 +162,37 @@ interface ParsingCacheStatsSnapshot {
     estimated_bytes: number | null;
 }
 
+interface RustSeriesDecodeCacheStatsSnapshot {
+    entries: number | null;
+    byte_size: number | null;
+    max_entries: number | null;
+    max_bytes: number | null;
+    ttl_seconds: number | null;
+    hits: number | null;
+    misses: number | null;
+}
+
 interface RendererMemorySnapshot {
     route: string;
     js_heap_mb: number | null;
     js_heap_limit_mb: number | null;
     dom_nodes: number;
     canvas_count: number;
+    canvas_pixel_bytes: number;
     uplot_count: number;
+    uplot_init_measure_count: number;
+    uplot_init_total_ms: number | null;
     series_cache_entries: number | null;
     series_cache_bytes: number | null;
     series_cache_max_entries: number | null;
     series_cache_max_bytes: number | null;
+    rust_series_decode_cache_entries: number | null;
+    rust_series_decode_cache_bytes: number | null;
+    rust_series_decode_cache_max_entries: number | null;
+    rust_series_decode_cache_max_bytes: number | null;
+    rust_series_decode_cache_ttl_seconds: number | null;
+    rust_series_decode_cache_hits: number | null;
+    rust_series_decode_cache_misses: number | null;
     comparison_store_experiment_count: number;
     comparison_store_selected_count: number;
     comparison_store_raw_count: number;
@@ -329,6 +349,14 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
         type StoreApi = {
             getState?: () => Record<string, unknown>;
         };
+        type ComparisonStats = {
+            experimentCount?: number;
+            selectedCount?: number;
+            rawCount?: number;
+            columnarCount?: number;
+            dbRawCount?: number;
+            dbColumnarCount?: number;
+        };
         type ExperimentDataStats = {
             parsePoints?: number;
             columnarPoints?: number;
@@ -357,6 +385,10 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
         }).__rheolab_series_window_cache;
         const cacheStats = cache?.stats?.();
 
+        const comparisonStatsHook = (window as unknown as {
+            __rheolab_comparison_stats?: () => ComparisonStats;
+        }).__rheolab_comparison_stats;
+        const comparisonStats = comparisonStatsHook?.();
         const comparisonStore = (window as unknown as {
             __rheolab_comparison_store?: StoreApi;
         }).__rheolab_comparison_store;
@@ -368,19 +400,21 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             ? comparisonState.experimentIds as unknown[]
             : [];
 
-        let rawCount = 0;
-        let columnarCount = 0;
-        let dbRawCount = 0;
-        let dbColumnarCount = 0;
-        for (const exp of comparisonExperiments) {
-            const id = typeof exp.id === 'string' ? exp.id : '';
-            const isDb = !id.startsWith('file-');
-            const hasRaw = arrayLength(exp.rawPoints) > 0;
-            const hasColumnar = columnarLength(exp.columnarData) > 0;
-            if (hasRaw) rawCount += 1;
-            if (hasColumnar) columnarCount += 1;
-            if (isDb && hasRaw) dbRawCount += 1;
-            if (isDb && hasColumnar) dbColumnarCount += 1;
+        let rawCount = Number.isFinite(comparisonStats?.rawCount) ? Number(comparisonStats?.rawCount) : 0;
+        let columnarCount = Number.isFinite(comparisonStats?.columnarCount) ? Number(comparisonStats?.columnarCount) : 0;
+        let dbRawCount = Number.isFinite(comparisonStats?.dbRawCount) ? Number(comparisonStats?.dbRawCount) : 0;
+        let dbColumnarCount = Number.isFinite(comparisonStats?.dbColumnarCount) ? Number(comparisonStats?.dbColumnarCount) : 0;
+        if (!comparisonStats) {
+            for (const exp of comparisonExperiments) {
+                const id = typeof exp.id === 'string' ? exp.id : '';
+                const isDb = !id.startsWith('file-');
+                const hasRaw = arrayLength(exp.rawPoints) > 0;
+                const hasColumnar = columnarLength(exp.columnarData) > 0;
+                if (hasRaw) rawCount += 1;
+                if (hasColumnar) columnarCount += 1;
+                if (isDb && hasRaw) dbRawCount += 1;
+                if (isDb && hasColumnar) dbColumnarCount += 1;
+            }
         }
 
         const experimentStatsHook = (window as unknown as {
@@ -400,6 +434,15 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             capacity: null,
             point_count: null,
             estimated_bytes: null,
+        };
+        let rustSeriesDecodeCache: RustSeriesDecodeCacheStatsSnapshot = {
+            entries: null,
+            byte_size: null,
+            max_entries: null,
+            max_bytes: null,
+            ttl_seconds: null,
+            hits: null,
+            misses: null,
         };
         const invoke = (window as unknown as {
             __TAURI_INTERNALS__?: TauriInternals;
@@ -421,6 +464,28 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             } catch {
                 // Older binaries do not expose parsing_cache_stats. Keep fields null.
             }
+            try {
+                const stats = await invoke('series_decode_cache_stats', {}) as {
+                    entries?: number;
+                    byteSize?: number;
+                    maxEntries?: number;
+                    maxBytes?: number;
+                    ttlSeconds?: number;
+                    hits?: number;
+                    misses?: number;
+                };
+                rustSeriesDecodeCache = {
+                    entries: Number.isFinite(stats.entries) ? Number(stats.entries) : null,
+                    byte_size: Number.isFinite(stats.byteSize) ? Number(stats.byteSize) : null,
+                    max_entries: Number.isFinite(stats.maxEntries) ? Number(stats.maxEntries) : null,
+                    max_bytes: Number.isFinite(stats.maxBytes) ? Number(stats.maxBytes) : null,
+                    ttl_seconds: Number.isFinite(stats.ttlSeconds) ? Number(stats.ttlSeconds) : null,
+                    hits: Number.isFinite(stats.hits) ? Number(stats.hits) : null,
+                    misses: Number.isFinite(stats.misses) ? Number(stats.misses) : null,
+                };
+            } catch {
+                // Older binaries do not expose series_decode_cache_stats. Keep fields null.
+            }
         }
 
         const seriesStats: SeriesWindowCacheStatsSnapshot = {
@@ -429,20 +494,40 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             max_entries: Number.isFinite(cacheStats?.maxEntries) ? Number(cacheStats?.maxEntries) : null,
             max_bytes: Number.isFinite(cacheStats?.maxBytes) ? Number(cacheStats?.maxBytes) : null,
         };
+        const canvases = [...document.querySelectorAll('canvas')];
+        const canvasPixelBytes = canvases.reduce((sum, canvas) => (
+            sum + Math.max(0, canvas.width) * Math.max(0, canvas.height) * 4
+        ), 0);
+        const uplotInitMeasures = performance.getEntriesByName('uplot:init', 'measure');
+        const uplotInitTotalMs = uplotInitMeasures.reduce((sum, entry) => sum + entry.duration, 0);
 
         return {
             route: window.location.pathname,
             js_heap_mb: toMb(perfMemory?.usedJSHeapSize),
             js_heap_limit_mb: toMb(perfMemory?.jsHeapSizeLimit),
             dom_nodes: document.getElementsByTagName('*').length,
-            canvas_count: document.querySelectorAll('canvas').length,
+            canvas_count: canvases.length,
+            canvas_pixel_bytes: canvasPixelBytes,
             uplot_count: document.querySelectorAll('.uplot').length,
+            uplot_init_measure_count: uplotInitMeasures.length,
+            uplot_init_total_ms: uplotInitMeasures.length > 0 ? Math.round(uplotInitTotalMs * 100) / 100 : null,
             series_cache_entries: seriesStats.entries,
             series_cache_bytes: seriesStats.byte_size,
             series_cache_max_entries: seriesStats.max_entries,
             series_cache_max_bytes: seriesStats.max_bytes,
-            comparison_store_experiment_count: comparisonExperiments.length,
-            comparison_store_selected_count: comparisonExperimentIds.length,
+            rust_series_decode_cache_entries: rustSeriesDecodeCache.entries,
+            rust_series_decode_cache_bytes: rustSeriesDecodeCache.byte_size,
+            rust_series_decode_cache_max_entries: rustSeriesDecodeCache.max_entries,
+            rust_series_decode_cache_max_bytes: rustSeriesDecodeCache.max_bytes,
+            rust_series_decode_cache_ttl_seconds: rustSeriesDecodeCache.ttl_seconds,
+            rust_series_decode_cache_hits: rustSeriesDecodeCache.hits,
+            rust_series_decode_cache_misses: rustSeriesDecodeCache.misses,
+            comparison_store_experiment_count: Number.isFinite(comparisonStats?.experimentCount)
+                ? Number(comparisonStats?.experimentCount)
+                : comparisonExperiments.length,
+            comparison_store_selected_count: Number.isFinite(comparisonStats?.selectedCount)
+                ? Number(comparisonStats?.selectedCount)
+                : comparisonExperimentIds.length,
             comparison_store_raw_count: rawCount,
             comparison_store_columnar_count: columnarCount,
             comparison_store_db_raw_count: dbRawCount,
@@ -495,6 +580,7 @@ async function recordMemoryStep(
             `  [mem:${phase}] total=${step.total_rss_mb} MB renderer=${step.renderer_rss_mb} MB ` +
             `gpu=${step.gpu_rss_mb} MB tauri=${step.tauri_rss_mb} MB ` +
             `js=${step.js_heap_mb ?? 'n/a'} MB series=${step.series_cache_bytes ?? 'n/a'} B ` +
+            `rustSeries=${step.rust_series_decode_cache_bytes ?? 'n/a'} B ` +
             `cmpRaw=${step.comparison_store_raw_count ?? 'n/a'} cmpCol=${step.comparison_store_columnar_count ?? 'n/a'}`,
         );
     } catch (error) {
@@ -653,18 +739,29 @@ async function setupComparisonExperiments(
     const names: string[] = [];
     for (let i = 0; i < n; i++) {
         const fx = FIXTURE_POOL[i % FIXTURE_POOL.length];
-        await recordMem?.(`before_fixture_${i + 1}_upload`);
+        const phasePrefix = `fixture_${i + 1}`;
+        await recordMem?.(`before_${phasePrefix}_dashboard_goto`);
         await dashboard.goto();
+        await recordMem?.(`after_${phasePrefix}_dashboard_goto`);
+        await recordMem?.(`before_${phasePrefix}_upload`);
         await dashboard.uploadFile(fx);
-        await recordMem?.(`after_fixture_${i + 1}_upload`);
+        await recordMem?.(`after_${phasePrefix}_upload`);
+        await recordMem?.(`before_${phasePrefix}_parse_wait`);
         await dashboard.waitForAnalysis(90_000);
-        await recordMem?.(`after_fixture_${i + 1}_parse`);
+        await recordMem?.(`after_${phasePrefix}_parse`);
         const expName = `CmpSmoke_N${n}_${fx.displayName.replace(/\s+/g, '')}_${runId}_${i}`;
-        const { name } = await dashboard.saveExperiment({ name: expName });
+        await recordMem?.(`before_${phasePrefix}_save_dialog`);
+        const { name } = await dashboard.saveExperiment({
+            name: expName,
+            onAfterDialogOpen: () => recordMem?.(`after_${phasePrefix}_save_dialog_open`) ?? Promise.resolve(),
+            onBeforeCommit: () => recordMem?.(`before_${phasePrefix}_save_commit`) ?? Promise.resolve(),
+            onAfterCommit: () => recordMem?.(`after_${phasePrefix}_save_persist`) ?? Promise.resolve(),
+        });
         names.push(name);
-        await recordMem?.(`after_fixture_${i + 1}_save`);
+        await recordMem?.(`after_${phasePrefix}_save`);
         await dashboard.page.waitForTimeout(300);
-        await recordMem?.(`after_fixture_${i + 1}_cleanup`);
+        await recordMem?.(`after_${phasePrefix}_post_save_settle`);
+        await recordMem?.(`after_${phasePrefix}_cleanup`);
     }
     return names;
 }
@@ -757,6 +854,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     }
                     await comparison.expectChartVisible();
                     await comparison.expectCanvasPainted();
+                    await recordMem('after_chart_canvas_painted');
                     const legendCount = await comparison.getLegendSeriesCount();
                     expect(legendCount).toBeGreaterThanOrEqual(n);
                     await recordMem('after_chart_visible');
@@ -765,9 +863,11 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 console.log(`  [L-CMP-${n}] cmp_ready=${cmpReadyMs} ms`);
 
                 // 5. Measure PDF + XLSX exports.
+                await recordMem('before_report_tab');
                 await cmpReports.switchToReportTab();
                 await cmpReports.expectLoaded();
                 await cmpReports.expectExportButtonsEnabled();
+                await recordMem('after_report_tab_open');
 
                 let pdfMs: number | null = null;
                 let xlsxMs: number | null = null;
@@ -826,13 +926,17 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     await recordMem('after_export_gc_hint');
                 }
 
+                await recordMem('before_route_leave');
                 await page.evaluate(() => {
                     const store = (window as unknown as { __rheolab_comparison_store?: { setState: (s: { experiments: unknown[] }) => void } }).__rheolab_comparison_store;
                     if (store) store.setState({ experiments: [] });
                     localStorage.removeItem('comparison-storage');
                 });
+                await recordMem('after_comparison_store_clear');
                 await dashboard.goto();
                 await recordMem('after_route_leave');
+                await page.waitForTimeout(300);
+                await recordMem('after_chart_unmount_settle');
                 if (MEMORY_STEPS_ENABLED) {
                     await requestRendererCleanupHint(page, `n${n}:after_route_leave`);
                     await recordMem('after_second_gc_hint');

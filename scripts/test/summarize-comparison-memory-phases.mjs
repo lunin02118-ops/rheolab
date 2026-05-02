@@ -21,22 +21,37 @@ const METRICS = [
 const APP_METRICS = [
   ['js_heap_mb', 'JS heap', 'MB'],
   ['series_cache_bytes', 'Series cache', 'bytes'],
+  ['rust_series_decode_cache_entries', 'Rust series entries', 'count'],
+  ['rust_series_decode_cache_bytes', 'Rust series cache', 'bytes'],
+  ['rust_series_decode_cache_hits', 'Rust series hits', 'count'],
+  ['rust_series_decode_cache_misses', 'Rust series misses', 'count'],
   ['comparison_store_raw_count', 'Cmp raw', 'count'],
   ['comparison_store_columnar_count', 'Cmp columnar', 'count'],
   ['parse_cache_entries', 'Parse cache entries', 'count'],
   ['parse_cache_point_count', 'Parse cache points', 'count'],
   ['dom_nodes', 'DOM nodes', 'count'],
   ['canvas_count', 'Canvas count', 'count'],
+  ['canvas_pixel_bytes', 'Canvas pixels', 'bytes'],
+  ['uplot_count', 'uPlot count', 'count'],
+  ['uplot_init_total_ms', 'uPlot init total', 'ms'],
 ];
 
 function summaryPhases(n) {
   const fixturePhases = [];
   for (let i = 1; i <= n; i += 1) {
     fixturePhases.push(
+      `before_fixture_${i}_dashboard_goto`,
+      `after_fixture_${i}_dashboard_goto`,
       `before_fixture_${i}_upload`,
       `after_fixture_${i}_upload`,
+      `before_fixture_${i}_parse_wait`,
       `after_fixture_${i}_parse`,
+      `before_fixture_${i}_save_dialog`,
+      `after_fixture_${i}_save_dialog_open`,
+      `before_fixture_${i}_save_commit`,
+      `after_fixture_${i}_save_persist`,
       `after_fixture_${i}_save`,
+      `after_fixture_${i}_post_save_settle`,
       `after_fixture_${i}_cleanup`,
     );
   }
@@ -52,15 +67,21 @@ function summaryPhases(n) {
     'before_comparison_open',
     'after_comparison_open',
     ...addPhases,
+    'after_chart_canvas_painted',
     'after_chart_visible',
     'after_chart_ready',
+    'before_report_tab',
+    'after_report_tab_open',
     'before_pdf',
     'after_pdf',
     'before_xlsx',
     'after_xlsx',
     'after_gc_hint',
     'after_export_gc_hint',
+    'before_route_leave',
+    'after_comparison_store_clear',
     'after_route_leave',
+    'after_chart_unmount_settle',
     'after_second_gc_hint',
   ];
 }
@@ -281,6 +302,9 @@ function formatBytes(value) {
 function formatMetricValue(value, unit) {
   if (unit === 'bytes') return formatBytes(value);
   if (unit === 'MB') return formatValue(value, 'MB');
+  if (unit === 'ms') return value === null || value === undefined
+    ? 'n/a'
+    : `${Number.isInteger(value) ? value : value.toFixed(2)} ms`;
   if (value === null || value === undefined) return 'n/a';
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
@@ -314,11 +338,11 @@ function buildMarkdown(summary) {
   lines.push('');
   lines.push('## App-Owned Renderer Stats');
   lines.push('');
-  lines.push('| Phase | JS heap p50 | Series cache p50 | Cmp raw p50 | Cmp columnar p50 | Parse entries p50 | Parse points p50 | DOM p50 | Canvas p50 |');
-  lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
+  lines.push('| Phase | JS heap p50 | Frontend series p50 | Rust series entries p50 | Rust series bytes p50 | Rust series hits/misses p50 | Cmp raw p50 | Cmp columnar p50 | Parse entries p50 | Parse points p50 | DOM p50 | Canvas p50 | Canvas bytes p50 | uPlot p50 | uPlot init p50 |');
+  lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
   for (const row of summary.rows) {
     const value = (key) => row.appMetrics[key]?.p50 ?? null;
-    lines.push(`| ${row.phase} | ${formatMetricValue(value('js_heap_mb'), 'MB')} | ${formatMetricValue(value('series_cache_bytes'), 'bytes')} | ${formatMetricValue(value('comparison_store_raw_count'), 'count')} | ${formatMetricValue(value('comparison_store_columnar_count'), 'count')} | ${formatMetricValue(value('parse_cache_entries'), 'count')} | ${formatMetricValue(value('parse_cache_point_count'), 'count')} | ${formatMetricValue(value('dom_nodes'), 'count')} | ${formatMetricValue(value('canvas_count'), 'count')} |`);
+    lines.push(`| ${row.phase} | ${formatMetricValue(value('js_heap_mb'), 'MB')} | ${formatMetricValue(value('series_cache_bytes'), 'bytes')} | ${formatMetricValue(value('rust_series_decode_cache_entries'), 'count')} | ${formatMetricValue(value('rust_series_decode_cache_bytes'), 'bytes')} | ${formatMetricValue(value('rust_series_decode_cache_hits'), 'count')}/${formatMetricValue(value('rust_series_decode_cache_misses'), 'count')} | ${formatMetricValue(value('comparison_store_raw_count'), 'count')} | ${formatMetricValue(value('comparison_store_columnar_count'), 'count')} | ${formatMetricValue(value('parse_cache_entries'), 'count')} | ${formatMetricValue(value('parse_cache_point_count'), 'count')} | ${formatMetricValue(value('dom_nodes'), 'count')} | ${formatMetricValue(value('canvas_count'), 'count')} | ${formatMetricValue(value('canvas_pixel_bytes'), 'bytes')} | ${formatMetricValue(value('uplot_count'), 'count')} | ${formatMetricValue(value('uplot_init_total_ms'), 'ms')} |`);
   }
   lines.push('');
   lines.push('## P50 Deltas');

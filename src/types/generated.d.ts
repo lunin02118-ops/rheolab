@@ -410,6 +410,8 @@ export type RecipeComponentResponse = { abbreviation: string; concentration: num
 
 export type ReportArtifactItem = { id: string; experimentId: string; importBatchId: string | null; reportType: string; templateVersion: string | null; storagePath: string | null; binarySha256: string | null; sizeBytes: number | null; createdAt: string }
 
+export type SeriesDecodeCacheStatsResponse = { entries: number; byteSize: number; maxEntries: number; maxBytes: number; ttlSeconds: number; hits: number; misses: number }
+
 export type SeriesMetaResponse = { experimentId: string; pointCount: number; timeMinSec: number | null; timeMaxSec: number | null; availableMetrics: SeriesMetricDescriptor[]; dataHash: string }
 
 export type SeriesMetricDescriptor = { id: number; key: string }

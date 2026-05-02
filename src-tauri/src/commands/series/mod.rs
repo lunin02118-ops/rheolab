@@ -151,6 +151,18 @@ struct SeriesDecodeCacheStats {
     misses: u64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SeriesDecodeCacheStatsResponse {
+    pub entries: usize,
+    pub byte_size: usize,
+    pub max_entries: usize,
+    pub max_bytes: usize,
+    pub ttl_seconds: u64,
+    pub hits: u64,
+    pub misses: u64,
+}
+
 struct SeriesDecodeCacheEntry {
     experiment_id: String,
     series: Arc<LoadedSeries>,
@@ -246,6 +258,7 @@ impl SeriesDecodeCache {
         }
     }
 
+    #[cfg(test)]
     fn clear(&mut self) {
         self.entries.clear();
         self.byte_size = 0;
@@ -311,9 +324,7 @@ fn estimate_loaded_series_bytes(series: &LoadedSeries) -> usize {
         + series
             .columns
             .iter()
-            .map(|(key, values)| {
-                key.len() + values.len() * std::mem::size_of::<Option<f64>>()
-            })
+            .map(|(key, values)| key.len() + values.len() * std::mem::size_of::<Option<f64>>())
             .sum::<usize>()
 }
 
@@ -454,6 +465,23 @@ pub(crate) fn release_series_decode_cache_for_experiment(experiment_id: &str) {
     if let Ok(mut cache) = SERIES_DECODE_CACHE.lock() {
         cache.release_experiment(experiment_id);
     }
+}
+
+#[tauri::command]
+pub async fn series_decode_cache_stats() -> Result<SeriesDecodeCacheStatsResponse> {
+    let mut cache = SERIES_DECODE_CACHE
+        .lock()
+        .map_err(|_| AppError::Other("series decode cache lock poisoned".into()))?;
+    let stats = cache.stats();
+    Ok(SeriesDecodeCacheStatsResponse {
+        entries: stats.entries,
+        byte_size: stats.byte_size,
+        max_entries: cache.max_entries,
+        max_bytes: cache.max_bytes,
+        ttl_seconds: cache.ttl.as_secs(),
+        hits: stats.hits,
+        misses: stats.misses,
+    })
 }
 
 fn available_metrics(series: &LoadedSeries) -> Vec<SeriesMetricDescriptor> {
@@ -861,7 +889,11 @@ mod tests {
         let mut cache = SeriesDecodeCache::new(Duration::from_secs(60), usize::MAX, 16);
         let series = make_loaded_series_for_cache("hash-a", 8);
 
-        cache.insert("exp-1".to_string(), "hash-a".to_string(), Arc::clone(&series));
+        cache.insert(
+            "exp-1".to_string(),
+            "hash-a".to_string(),
+            Arc::clone(&series),
+        );
 
         let hit = cache.get("exp-1", "hash-a").unwrap();
         assert!(Arc::ptr_eq(&hit, &series));
@@ -886,6 +918,27 @@ mod tests {
         );
         assert_eq!(cache.stats().entries, 0);
         assert_eq!(cache.stats().byte_size, 0);
+    }
+
+    #[tokio::test]
+    async fn series_decode_cache_stats_reports_budgets_without_payloads() {
+        clear_global_decode_cache();
+        {
+            let mut cache = SERIES_DECODE_CACHE.lock().unwrap();
+            cache.insert(
+                "exp-stats".to_string(),
+                "hash-a".to_string(),
+                make_loaded_series_for_cache("hash-a", 8),
+            );
+        }
+
+        let stats = series_decode_cache_stats().await.unwrap();
+
+        assert_eq!(stats.entries, 1);
+        assert!(stats.byte_size > 0);
+        assert_eq!(stats.max_entries, SERIES_DECODE_CACHE_MAX_ENTRIES);
+        assert_eq!(stats.max_bytes, SERIES_DECODE_CACHE_MAX_BYTES);
+        assert_eq!(stats.ttl_seconds, SERIES_DECODE_CACHE_TTL.as_secs());
     }
 
     #[test]
