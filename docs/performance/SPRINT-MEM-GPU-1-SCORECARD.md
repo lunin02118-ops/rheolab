@@ -110,3 +110,69 @@ lower renderer/GPU pressure around `after_add_5_click`,
 Note: `cmp_ready_ms` in this diagnostic run is inflated by many Win32 RSS phase
 samples. Use it only to confirm the runner completed, not as a user-facing
 latency measurement.
+
+## Visible Metrics Follow-Up
+
+**Date:** 2026-05-02
+**Scenario:** Comparison smoke, N=5, direct Tauri export save mode, 3-run p50.
+**Change under test:** chart binary series requests now use the visible chart
+metrics plus minimal support columns for viscosity-based selection/downsampling
+and smart/touch-point shear-rate handling.
+
+Source sidecars:
+
+- `outputs/e2e/perf/comparison-smoke-1777750030719-tauri.json`
+- `outputs/e2e/perf/comparison-smoke-1777750299113-tauri.json`
+- `outputs/e2e/perf/comparison-smoke-1777750564015-tauri.json`
+
+Summary artifact:
+
+- `outputs/e2e/perf/comparison-memory-phase-summary-n5-direct-visible-metrics-latest3.json`
+
+### P50 Phase Comparison
+
+| Phase | Baseline Total | Visible Total | Baseline GPU | Visible GPU |
+| --- | ---: | ---: | ---: | ---: |
+| after_fixture_5_cleanup | 523.26 MB | 488.81 MB | 159.14 MB | 123.28 MB |
+| after_add_5_selector_search | 526.64 MB | 509.92 MB | 160.07 MB | 146.40 MB |
+| after_add_5_click | 620.09 MB | 591.41 MB | 247.01 MB | 219.48 MB |
+| after_add_5 | 617.54 MB | 588.35 MB | 245.11 MB | 218.25 MB |
+| after_chart_canvas_painted | 624.52 MB | 596 MB | 247.79 MB | 221.46 MB |
+| after_chart_visible | 623.15 MB | 588.86 MB | 247.48 MB | 214.46 MB |
+| after_export_gc_hint | 593.32 MB | 577.78 MB | 228.25 MB | 214 MB |
+
+### P50 Deltas
+
+| Delta | Baseline | Visible metrics |
+| --- | ---: | ---: |
+| selector search -> add_5_click, Total | +93.45 MB | +81.49 MB |
+| selector search -> add_5_click, GPU | +86.94 MB | +73.08 MB |
+| fixture cleanup -> after_add_5, Total | +94.28 MB | +99.54 MB |
+| fixture cleanup -> after_add_5, GPU | +85.97 MB | +94.97 MB |
+| after_xlsx -> after_export_gc_hint, Total | -11.88 MB | -10.90 MB |
+
+### App-Owned Comparison
+
+| Signal | Baseline | Visible metrics |
+| --- | ---: | ---: |
+| comparison store raw/columnar | 0 / 0 | 0 / 0 |
+| parse cache entries/points | 0 / 0 | 0 / 0 |
+| frontend seriesWindowCache after_add_5 | 303,040 B | 265,160 B |
+| frontend seriesWindowCache export phases | 606,080 B | 530,320 B |
+| Rust decoded series cache | 5 / 784,418 B | 5 / 784,418 B |
+| JS heap after_add_5 | 15.72 MB | 15.03 MB |
+| JS heap after_export_gc_hint | 11.50 MB | 11.51 MB |
+
+### Follow-Up Decision
+
+GO: keep the visible-metrics request change. It narrows chart series requests
+and reduces frontend series cache bytes without touching WN/store/export
+architecture.
+
+NO-GO: claim that this fixes the GPU/RSS issue. The hot moment remains
+GPU-dominated: `after_add_5_selector_search -> after_add_5_click` still adds
+about 73 MB GPU p50.
+
+Next investigation, if more RAM work is approved, should target uPlot/WebView2
+chart creation and canvas texture lifecycle rather than Comparison store or
+report/export memory.
