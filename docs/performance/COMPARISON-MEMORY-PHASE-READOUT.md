@@ -1,6 +1,6 @@
 # Comparison Memory Phase Readout
 
-**Generated:** 2026-05-02T21:11:46.539Z.
+**Generated:** 2026-05-02T21:57:43.440Z.
 
 Diagnostic comparison-smoke memory run summary. These runs use direct Win32
 RSS sampling and CDP GC hints, so use them for memory phase diagnosis, not
@@ -11,365 +11,365 @@ for user-facing latency budgets.
 - Modes: tauri-debug-mocked
 - Export save modes: direct
 - Source sidecars:
-  - `D:/Development/Rheolab/outputs/e2e/perf/comparison-smoke-1777755253910-tauri.json`
-  - `D:/Development/Rheolab/outputs/e2e/perf/comparison-smoke-1777755597254-tauri.json`
-  - `D:/Development/Rheolab/outputs/e2e/perf/comparison-smoke-1777755966787-tauri.json`
+  - `D:/Development/Rheolab/outputs/e2e/perf/comparison-smoke-1777758036879-tauri.json`
+  - `D:/Development/Rheolab/outputs/e2e/perf/comparison-smoke-1777758412556-tauri.json`
+  - `D:/Development/Rheolab/outputs/e2e/perf/comparison-smoke-1777758746067-tauri.json`
 
 ## Phase RSS
 
 | Phase | Total p50 | Total p95 | Renderer p50 | Renderer p95 | GPU p50 | GPU p95 | Tauri p50 | Tauri p95 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| app_start | 425.08 MB | 426.39 MB | 87.58 MB | 89.81 MB | 115.51 MB | 117.81 MB | 56.75 MB | 57.07 MB |
-| before_setup | 422.03 MB | 423.29 MB | 87.63 MB | 89.87 MB | 115.11 MB | 117.40 MB | 56.75 MB | 57.07 MB |
-| before_fixture_1_dashboard_goto | 422.27 MB | 423.55 MB | 87.68 MB | 89.91 MB | 115.08 MB | 117.37 MB | 56.75 MB | 57.07 MB |
-| after_fixture_1_dashboard_goto | 422.02 MB | 423.25 MB | 87.71 MB | 89.96 MB | 115.06 MB | 117.33 MB | 56.75 MB | 57.07 MB |
-| before_fixture_1_upload | 422.13 MB | 423.38 MB | 87.75 MB | 89.99 MB | 115.06 MB | 117.33 MB | 56.72 MB | 57.04 MB |
-| after_fixture_1_upload | 463.12 MB | 464.30 MB | 104.30 MB | 106.57 MB | 130.93 MB | 136.21 MB | 61.79 MB | 62.14 MB |
-| before_fixture_1_parse_wait | 459.15 MB | 467.91 MB | 104.73 MB | 106.45 MB | 129.70 MB | 139.54 MB | 61.79 MB | 62.14 MB |
-| after_fixture_1_parse | 458.34 MB | 465.97 MB | 103.37 MB | 105.33 MB | 129.70 MB | 139.16 MB | 61.79 MB | 62.14 MB |
-| before_fixture_1_save_dialog | 458.06 MB | 466.59 MB | 103.75 MB | 105.63 MB | 129.29 MB | 139.15 MB | 61.79 MB | 62.14 MB |
-| after_fixture_1_save_dialog_open | 499.44 MB | 513.22 MB | 123.54 MB | 128.47 MB | 146.39 MB | 164.31 MB | 61.88 MB | 62.23 MB |
-| before_fixture_1_save_commit | 525.30 MB | 532.01 MB | 146.44 MB | 148.01 MB | 147.22 MB | 165.35 MB | 61.69 MB | 62.04 MB |
-| after_fixture_1_save_persist | 530.91 MB | 537.07 MB | 146.50 MB | 149.26 MB | 151.22 MB | 165.50 MB | 62.65 MB | 63.49 MB |
-| after_fixture_1_save | 528.96 MB | 535.55 MB | 146.79 MB | 147.72 MB | 151.04 MB | 165.61 MB | 62.65 MB | 63.48 MB |
-| after_fixture_1_post_save_settle | 512.48 MB | 526.76 MB | 144.02 MB | 147.42 MB | 150.65 MB | 164.36 MB | 62.65 MB | 63.48 MB |
-| after_fixture_1_cleanup | 490.77 MB | 500.25 MB | 114.90 MB | 120.58 MB | 149.56 MB | 150.24 MB | 62.65 MB | 63.48 MB |
-| before_fixture_2_dashboard_goto | 485.76 MB | 488.43 MB | 114.02 MB | 117.87 MB | 140.53 MB | 144.08 MB | 62.65 MB | 63.48 MB |
-| after_fixture_2_dashboard_goto | 476.61 MB | 479.43 MB | 114.23 MB | 116.98 MB | 132.42 MB | 134.73 MB | 62.65 MB | 63.48 MB |
-| before_fixture_2_upload | 476.65 MB | 479.77 MB | 114.46 MB | 117.20 MB | 132.44 MB | 134.68 MB | 62.65 MB | 63.48 MB |
-| after_fixture_2_upload | 500.25 MB | 503.65 MB | 126.69 MB | 127.98 MB | 142.34 MB | 145 MB | 63.88 MB | 64.05 MB |
-| before_fixture_2_parse_wait | 495.63 MB | 499.02 MB | 124.26 MB | 127.28 MB | 140.50 MB | 143.11 MB | 63.88 MB | 64.05 MB |
-| after_fixture_2_parse | 494.51 MB | 498.79 MB | 124.24 MB | 127.01 MB | 140.53 MB | 142.01 MB | 63.88 MB | 64.05 MB |
-| before_fixture_2_save_dialog | 494.50 MB | 498.51 MB | 124.27 MB | 127.01 MB | 140.35 MB | 141.94 MB | 63.88 MB | 64.05 MB |
-| after_fixture_2_save_dialog_open | 531.23 MB | 535.13 MB | 134.33 MB | 134.52 MB | 169.29 MB | 170.75 MB | 63.91 MB | 64.06 MB |
-| before_fixture_2_save_commit | 546.96 MB | 550.51 MB | 149.74 MB | 150.18 MB | 169.20 MB | 169.88 MB | 63.85 MB | 64 MB |
-| after_fixture_2_save_persist | 548.40 MB | 550.31 MB | 150.39 MB | 152.42 MB | 168.83 MB | 169.80 MB | 64.19 MB | 64.44 MB |
-| after_fixture_2_save | 546.54 MB | 550.51 MB | 150.48 MB | 150.60 MB | 167.83 MB | 168.86 MB | 64.19 MB | 64.44 MB |
-| after_fixture_2_post_save_settle | 537.04 MB | 540.12 MB | 149 MB | 150.49 MB | 159.58 MB | 161.04 MB | 64.14 MB | 64.44 MB |
-| after_fixture_2_cleanup | 505.07 MB | 537.91 MB | 120.81 MB | 146.69 MB | 152.26 MB | 158.88 MB | 64.14 MB | 64.39 MB |
-| before_fixture_3_dashboard_goto | 496.13 MB | 522.82 MB | 120.11 MB | 144.21 MB | 146.85 MB | 149.42 MB | 64.14 MB | 64.39 MB |
-| after_fixture_3_dashboard_goto | 485.63 MB | 510.52 MB | 117.83 MB | 144.02 MB | 134.19 MB | 141.32 MB | 64.14 MB | 64.39 MB |
-| before_fixture_3_upload | 484.57 MB | 509 MB | 118.03 MB | 142.59 MB | 134.19 MB | 141.16 MB | 64.13 MB | 64.39 MB |
-| after_fixture_3_upload | 517.85 MB | 530.41 MB | 128.07 MB | 147.56 MB | 150.46 MB | 151.90 MB | 65.26 MB | 66.19 MB |
-| before_fixture_3_parse_wait | 514.22 MB | 525.56 MB | 126.70 MB | 143.94 MB | 149.12 MB | 149.99 MB | 65.26 MB | 66.19 MB |
-| after_fixture_3_parse | 512.09 MB | 523.03 MB | 124.68 MB | 143.69 MB | 149.12 MB | 150.03 MB | 65.26 MB | 66.19 MB |
-| before_fixture_3_save_dialog | 510.89 MB | 511.32 MB | 124.47 MB | 131.94 MB | 145.06 MB | 148.26 MB | 65.26 MB | 66.19 MB |
-| after_fixture_3_save_dialog_open | 551.67 MB | 564.23 MB | 127.66 MB | 134.54 MB | 183.70 MB | 201.99 MB | 65.26 MB | 66.19 MB |
-| before_fixture_3_save_commit | 550.83 MB | 567.16 MB | 127.78 MB | 133.21 MB | 184.01 MB | 203.05 MB | 65.11 MB | 66.04 MB |
-| after_fixture_3_save_persist | 552.54 MB | 566.48 MB | 128.86 MB | 135.77 MB | 183.25 MB | 203.61 MB | 64.86 MB | 65.04 MB |
-| after_fixture_3_save | 549.52 MB | 566.90 MB | 126.94 MB | 132.61 MB | 183.40 MB | 204.72 MB | 64.86 MB | 65.04 MB |
-| after_fixture_3_post_save_settle | 548.48 MB | 560.03 MB | 127.01 MB | 132.95 MB | 182.11 MB | 199.19 MB | 64.86 MB | 65.04 MB |
-| after_fixture_3_cleanup | 529.10 MB | 543.16 MB | 126.96 MB | 132.22 MB | 173.05 MB | 178.50 MB | 64.86 MB | 65.04 MB |
-| before_fixture_4_dashboard_goto | 519.74 MB | 536.22 MB | 127.06 MB | 132.80 MB | 163.52 MB | 171.12 MB | 64.86 MB | 65.04 MB |
-| after_fixture_4_dashboard_goto | 500.41 MB | 501.44 MB | 126.36 MB | 129.96 MB | 137.33 MB | 141.88 MB | 64.86 MB | 65.04 MB |
-| before_fixture_4_upload | 500.56 MB | 501.33 MB | 127.01 MB | 130.25 MB | 137.32 MB | 141.87 MB | 64.86 MB | 65.04 MB |
-| after_fixture_4_upload | 532.13 MB | 540.92 MB | 142.65 MB | 146.81 MB | 147.02 MB | 156.77 MB | 66.91 MB | 67.18 MB |
-| before_fixture_4_parse_wait | 527.25 MB | 537 MB | 142.59 MB | 145.75 MB | 146.09 MB | 155.71 MB | 66.91 MB | 67.18 MB |
-| after_fixture_4_parse | 525.77 MB | 535.61 MB | 140.48 MB | 144.05 MB | 146.12 MB | 155.56 MB | 66.91 MB | 67.18 MB |
-| before_fixture_4_save_dialog | 524.24 MB | 530.93 MB | 140.75 MB | 144.11 MB | 144.70 MB | 150.77 MB | 66.91 MB | 67.18 MB |
-| after_fixture_4_save_dialog_open | 560.49 MB | 581.17 MB | 139.54 MB | 142.69 MB | 182.14 MB | 203.78 MB | 66.91 MB | 67.18 MB |
-| before_fixture_4_save_commit | 560.13 MB | 579.91 MB | 141.37 MB | 143.87 MB | 181.40 MB | 202.46 MB | 66.62 MB | 66.72 MB |
-| after_fixture_4_save_persist | 559.29 MB | 581.97 MB | 141.90 MB | 143.95 MB | 181.25 MB | 202.95 MB | 65.77 MB | 65.77 MB |
-| after_fixture_4_save | 559.04 MB | 574.77 MB | 142.16 MB | 144.61 MB | 180.58 MB | 196.33 MB | 65.77 MB | 65.77 MB |
-| after_fixture_4_post_save_settle | 558.54 MB | 571.33 MB | 141.45 MB | 144.02 MB | 180.54 MB | 193.27 MB | 65.77 MB | 65.77 MB |
-| after_fixture_4_cleanup | 554.38 MB | 561.29 MB | 141.72 MB | 144.04 MB | 176.47 MB | 183.17 MB | 65.77 MB | 65.77 MB |
-| before_fixture_5_dashboard_goto | 552.38 MB | 552.95 MB | 141.46 MB | 143.28 MB | 174.38 MB | 175.66 MB | 65.77 MB | 65.77 MB |
-| after_fixture_5_dashboard_goto | 516.51 MB | 525.94 MB | 141.72 MB | 143.30 MB | 139.42 MB | 149.87 MB | 65.77 MB | 65.77 MB |
-| before_fixture_5_upload | 516.32 MB | 525.85 MB | 141.77 MB | 143 MB | 139.45 MB | 149.99 MB | 65.77 MB | 65.77 MB |
-| after_fixture_5_upload | 531.19 MB | 536.48 MB | 143.61 MB | 144.96 MB | 149.07 MB | 164.72 MB | 66.33 MB | 67.48 MB |
-| before_fixture_5_parse_wait | 529.71 MB | 532.28 MB | 142.29 MB | 144.36 MB | 147.99 MB | 162.98 MB | 66.32 MB | 67.47 MB |
-| after_fixture_5_parse | 524.22 MB | 525.93 MB | 140.67 MB | 142.32 MB | 147.71 MB | 156.03 MB | 66.32 MB | 67.47 MB |
-| before_fixture_5_save_dialog | 523.46 MB | 526.03 MB | 140.68 MB | 142.35 MB | 147.75 MB | 155.40 MB | 66.32 MB | 67.47 MB |
-| after_fixture_5_save_dialog_open | 537.35 MB | 569.84 MB | 134.34 MB | 143.43 MB | 164.48 MB | 201.03 MB | 66.32 MB | 67.47 MB |
-| before_fixture_5_save_commit | 538.09 MB | 571.39 MB | 131.86 MB | 143.68 MB | 164.02 MB | 201.93 MB | 66.17 MB | 67.32 MB |
-| after_fixture_5_save_persist | 530.98 MB | 564.50 MB | 132.14 MB | 133.34 MB | 164.29 MB | 199.55 MB | 65.36 MB | 65.45 MB |
-| after_fixture_5_save | 525.73 MB | 563.35 MB | 128.39 MB | 133.05 MB | 162.75 MB | 199.52 MB | 65.36 MB | 65.44 MB |
-| after_fixture_5_post_save_settle | 524.54 MB | 557.25 MB | 128.58 MB | 130.49 MB | 161.51 MB | 193.35 MB | 65.36 MB | 65.44 MB |
-| after_fixture_5_cleanup | 523.48 MB | 543.19 MB | 128.13 MB | 129.02 MB | 161.04 MB | 179.39 MB | 65.36 MB | 65.44 MB |
-| after_setup | 517.90 MB | 523.24 MB | 128.35 MB | 129.05 MB | 155.23 MB | 160.47 MB | 65.36 MB | 65.44 MB |
-| before_comparison_open | 501.69 MB | 512.47 MB | 125.22 MB | 128.42 MB | 139.25 MB | 150.03 MB | 65.36 MB | 65.44 MB |
-| after_comparison_open | 513 MB | 524.80 MB | 126.87 MB | 130.62 MB | 147.46 MB | 159.43 MB | 65.75 MB | 65.75 MB |
-| before_add_1 | 512.83 MB | 520.71 MB | 126.76 MB | 130.49 MB | 147.31 MB | 158.30 MB | 65.75 MB | 65.75 MB |
-| after_add_1_selector_open | 511.54 MB | 520.86 MB | 126.77 MB | 128.86 MB | 147.71 MB | 158.81 MB | 65.93 MB | 65.93 MB |
-| after_add_1_selector_search | 512.56 MB | 518.34 MB | 125.44 MB | 129.40 MB | 147.78 MB | 157.91 MB | 65.98 MB | 65.98 MB |
-| before_add_1_click | 510.79 MB | 516.60 MB | 125.69 MB | 128.40 MB | 147.29 MB | 155.92 MB | 65.98 MB | 65.98 MB |
-| after_add_1_click | 513.38 MB | 526.22 MB | 127.39 MB | 130.15 MB | 147.08 MB | 162.82 MB | 66.34 MB | 66.35 MB |
-| after_add_1_click_before_chart_commit | 511.87 MB | 524.99 MB | 127.43 MB | 130.21 MB | 146.20 MB | 162.24 MB | 66.34 MB | 66.35 MB |
-| after_add_1_react_commit | 512.05 MB | 525.08 MB | 127.44 MB | 130.26 MB | 146.20 MB | 162.24 MB | 66.34 MB | 66.35 MB |
-| after_add_1_store_update | 511.86 MB | 525.12 MB | 127.44 MB | 130.26 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.34 MB |
-| after_add_1_uplot_init | 511.98 MB | 525.02 MB | 125.84 MB | 130.10 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.34 MB |
-| after_add_1_uplot_set_data | 511.75 MB | 525.16 MB | 126.07 MB | 130.12 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.29 MB |
-| after_add_1_first_canvas_paint | 511.87 MB | 525.05 MB | 126.09 MB | 130.12 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.29 MB |
-| after_add_1_series_ready | 511.75 MB | 525.21 MB | 126.10 MB | 130.12 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.29 MB |
-| after_add_1_compositor_settle_100ms | 511.87 MB | 525.23 MB | 126.10 MB | 130.12 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.29 MB |
-| after_add_1_compositor_settle_500ms | 511.75 MB | 525.12 MB | 126.10 MB | 130.12 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.29 MB |
-| after_add_1_dom_settle | 511.89 MB | 525.27 MB | 126.13 MB | 130.13 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.29 MB |
-| after_add_1 | 511.77 MB | 525.15 MB | 126.14 MB | 130.13 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.29 MB |
-| before_add_2 | 511.76 MB | 525.27 MB | 126.14 MB | 130.13 MB | 146.13 MB | 162.23 MB | 66.28 MB | 66.29 MB |
-| after_add_2_selector_open | 507.83 MB | 523.88 MB | 123.03 MB | 125.84 MB | 146.41 MB | 162.32 MB | 66.34 MB | 66.34 MB |
-| after_add_2_selector_search | 506.56 MB | 523.19 MB | 123.68 MB | 124.89 MB | 146.41 MB | 161.96 MB | 66.34 MB | 66.34 MB |
-| before_add_2_click | 506.97 MB | 522.01 MB | 122.40 MB | 125 MB | 146.43 MB | 160.68 MB | 66.34 MB | 66.34 MB |
-| after_add_2_click | 510.57 MB | 525.69 MB | 124.54 MB | 127.43 MB | 147.36 MB | 161.05 MB | 66.62 MB | 66.67 MB |
-| after_add_2_click_before_chart_commit | 509.32 MB | 524.31 MB | 124.64 MB | 126.79 MB | 146.71 MB | 160.73 MB | 66.62 MB | 66.67 MB |
-| after_add_2_react_commit | 505.54 MB | 520.41 MB | 124.70 MB | 126.84 MB | 143.59 MB | 156.94 MB | 66.62 MB | 66.67 MB |
-| after_add_2_store_update | 505.67 MB | 520.57 MB | 124.74 MB | 126.88 MB | 142.97 MB | 156.88 MB | 66.62 MB | 66.67 MB |
-| after_add_2_uplot_init | 505.41 MB | 520.51 MB | 124.75 MB | 126.76 MB | 142.97 MB | 156.88 MB | 66.62 MB | 66.67 MB |
-| after_add_2_uplot_set_data | 505.49 MB | 520.87 MB | 124.77 MB | 126.78 MB | 142.97 MB | 157.10 MB | 66.57 MB | 66.62 MB |
-| after_add_2_first_canvas_paint | 505.16 MB | 520.78 MB | 124.32 MB | 126.73 MB | 143.03 MB | 157.11 MB | 66.57 MB | 66.62 MB |
-| after_add_2_series_ready | 505.28 MB | 520.94 MB | 124.37 MB | 126.74 MB | 143.02 MB | 157.10 MB | 66.57 MB | 66.62 MB |
-| after_add_2_compositor_settle_100ms | 504.36 MB | 520.81 MB | 124.41 MB | 126.02 MB | 142.97 MB | 157.10 MB | 66.57 MB | 66.62 MB |
-| after_add_2_compositor_settle_500ms | 504.48 MB | 520.97 MB | 124.45 MB | 126.03 MB | 142.97 MB | 157.10 MB | 66.57 MB | 66.62 MB |
-| after_add_2_dom_settle | 504.36 MB | 520.88 MB | 124.48 MB | 126.03 MB | 142.97 MB | 157.10 MB | 66.57 MB | 66.62 MB |
-| after_add_2 | 504.46 MB | 521.03 MB | 124.52 MB | 126.03 MB | 142.97 MB | 157.10 MB | 66.57 MB | 66.62 MB |
-| before_add_3 | 504.34 MB | 520.94 MB | 124.55 MB | 126.04 MB | 142.97 MB | 157.10 MB | 66.57 MB | 66.62 MB |
-| after_add_3_selector_open | 504.23 MB | 521.13 MB | 124.30 MB | 125.47 MB | 143.24 MB | 157.38 MB | 66.62 MB | 66.67 MB |
-| after_add_3_selector_search | 503.50 MB | 520.30 MB | 124.05 MB | 124.87 MB | 143.28 MB | 157.57 MB | 66.63 MB | 66.68 MB |
-| before_add_3_click | 503.99 MB | 520.61 MB | 123.49 MB | 125.16 MB | 143.28 MB | 157.57 MB | 66.63 MB | 66.68 MB |
-| after_add_3_click | 517.64 MB | 533.80 MB | 125.77 MB | 128.27 MB | 153.67 MB | 168.39 MB | 66.70 MB | 66.80 MB |
-| after_add_3_click_before_chart_commit | 517.63 MB | 532.55 MB | 125.50 MB | 128.30 MB | 153.49 MB | 167.59 MB | 66.70 MB | 66.80 MB |
-| after_add_3_react_commit | 517.19 MB | 530.41 MB | 125.07 MB | 128.26 MB | 153.16 MB | 165.58 MB | 66.70 MB | 66.80 MB |
-| after_add_3_store_update | 517.30 MB | 530.53 MB | 125.07 MB | 128.26 MB | 153.16 MB | 165.58 MB | 66.70 MB | 66.80 MB |
-| after_add_3_uplot_init | 516.77 MB | 529.92 MB | 125.07 MB | 128.26 MB | 152.74 MB | 165.09 MB | 66.70 MB | 66.80 MB |
-| after_add_3_uplot_set_data | 516.82 MB | 529.98 MB | 125.07 MB | 128.26 MB | 152.74 MB | 165.09 MB | 66.64 MB | 66.74 MB |
-| after_add_3_first_canvas_paint | 516.71 MB | 529.76 MB | 125.07 MB | 128.26 MB | 152.74 MB | 165.09 MB | 66.64 MB | 66.74 MB |
-| after_add_3_series_ready | 516.82 MB | 529.88 MB | 125.07 MB | 128.26 MB | 152.74 MB | 165.09 MB | 66.64 MB | 66.74 MB |
-| after_add_3_compositor_settle_100ms | 516.71 MB | 529.76 MB | 125.07 MB | 128.26 MB | 152.74 MB | 165.09 MB | 66.64 MB | 66.74 MB |
-| after_add_3_compositor_settle_500ms | 516.82 MB | 529.88 MB | 125.07 MB | 128.26 MB | 152.74 MB | 165.09 MB | 66.64 MB | 66.74 MB |
-| after_add_3_dom_settle | 516.76 MB | 529.87 MB | 125.07 MB | 128.26 MB | 152.74 MB | 165.09 MB | 66.64 MB | 66.74 MB |
-| after_add_3 | 516.87 MB | 529.78 MB | 125.07 MB | 128.26 MB | 152.74 MB | 165.09 MB | 66.64 MB | 66.74 MB |
-| before_add_4 | 516.76 MB | 529.87 MB | 125.07 MB | 128.26 MB | 152.74 MB | 165.09 MB | 66.64 MB | 66.74 MB |
-| after_add_4_selector_open | 515.89 MB | 528.89 MB | 125.06 MB | 127.03 MB | 153.02 MB | 165.42 MB | 66.72 MB | 66.80 MB |
-| after_add_4_selector_search | 515.25 MB | 528.57 MB | 125.82 MB | 126.64 MB | 153.03 MB | 165.43 MB | 66.72 MB | 66.80 MB |
-| before_add_4_click | 515.60 MB | 528.65 MB | 125.39 MB | 126.80 MB | 153.03 MB | 165.43 MB | 66.72 MB | 66.80 MB |
-| after_add_4_click | 519.14 MB | 532.50 MB | 127.61 MB | 129.31 MB | 153.91 MB | 165.17 MB | 66.83 MB | 66.92 MB |
-| after_add_4_click_before_chart_commit | 518.01 MB | 529.84 MB | 126.82 MB | 128.53 MB | 153.44 MB | 164.12 MB | 66.83 MB | 66.92 MB |
-| after_add_4_react_commit | 516.12 MB | 529.87 MB | 127.09 MB | 128.67 MB | 151.55 MB | 163.93 MB | 66.83 MB | 66.92 MB |
-| after_add_4_store_update | 516.24 MB | 529.79 MB | 127.09 MB | 128.67 MB | 151.55 MB | 163.93 MB | 66.83 MB | 66.92 MB |
-| after_add_4_uplot_init | 516.14 MB | 528.21 MB | 127.09 MB | 128.68 MB | 151.55 MB | 162.36 MB | 66.83 MB | 66.92 MB |
-| after_add_4_uplot_set_data | 516.23 MB | 528.07 MB | 127.09 MB | 128.70 MB | 151.55 MB | 162.36 MB | 66.77 MB | 66.87 MB |
-| after_add_4_first_canvas_paint | 516.36 MB | 528.37 MB | 127.43 MB | 128.86 MB | 151.50 MB | 162.35 MB | 66.77 MB | 66.87 MB |
-| after_add_4_series_ready | 516.32 MB | 527.12 MB | 127.43 MB | 128.88 MB | 151.50 MB | 162.35 MB | 66.77 MB | 66.87 MB |
-| after_add_4_compositor_settle_100ms | 516.34 MB | 527.23 MB | 127.43 MB | 128.91 MB | 151.48 MB | 162.35 MB | 66.77 MB | 66.87 MB |
-| after_add_4_compositor_settle_500ms | 516.22 MB | 527.12 MB | 127.43 MB | 128.95 MB | 151.47 MB | 162.35 MB | 66.77 MB | 66.87 MB |
-| after_add_4_dom_settle | 516.30 MB | 527.24 MB | 127.43 MB | 128.99 MB | 151.47 MB | 162.35 MB | 66.77 MB | 66.87 MB |
-| after_add_4 | 516.17 MB | 527.22 MB | 127.43 MB | 129.01 MB | 151.47 MB | 162.35 MB | 66.77 MB | 66.87 MB |
-| before_add_5 | 516.33 MB | 527.13 MB | 127.43 MB | 129.05 MB | 151.47 MB | 162.35 MB | 66.77 MB | 66.87 MB |
-| after_add_5_selector_open | 515.81 MB | 527.82 MB | 125.27 MB | 128.13 MB | 151.78 MB | 162.64 MB | 66.83 MB | 66.92 MB |
-| after_add_5_selector_search | 516.83 MB | 528.75 MB | 125.68 MB | 128.86 MB | 151.85 MB | 162.88 MB | 66.88 MB | 66.93 MB |
-| before_add_5_click | 516.05 MB | 529.02 MB | 125.71 MB | 128.55 MB | 151.58 MB | 162.85 MB | 66.88 MB | 66.93 MB |
-| after_add_5_click | 604.32 MB | 615.62 MB | 128.05 MB | 130.34 MB | 236.75 MB | 247.51 MB | 66.88 MB | 66.99 MB |
-| after_add_5_click_before_chart_commit | 602.28 MB | 614.94 MB | 127.78 MB | 130.49 MB | 235.85 MB | 246.75 MB | 66.88 MB | 66.99 MB |
-| after_add_5_react_commit | 602.68 MB | 614.89 MB | 127.79 MB | 130.74 MB | 235.85 MB | 246.75 MB | 66.88 MB | 66.99 MB |
-| after_add_5_store_update | 602.32 MB | 614.97 MB | 127.82 MB | 130.75 MB | 235.61 MB | 246.72 MB | 66.88 MB | 66.99 MB |
-| after_add_5_uplot_init | 602.44 MB | 614.95 MB | 127.91 MB | 130.75 MB | 235.61 MB | 246.72 MB | 66.88 MB | 66.99 MB |
-| after_add_5_uplot_set_data | 602.29 MB | 615.02 MB | 127.95 MB | 130.78 MB | 235.61 MB | 246.72 MB | 66.82 MB | 66.94 MB |
-| after_add_5_first_canvas_paint | 602.41 MB | 614.97 MB | 128 MB | 130.78 MB | 235.61 MB | 246.72 MB | 66.82 MB | 66.94 MB |
-| after_add_5_series_ready | 602.45 MB | 615.12 MB | 128.05 MB | 130.79 MB | 235.61 MB | 246.72 MB | 66.82 MB | 66.94 MB |
-| after_add_5_compositor_settle_100ms | 602.29 MB | 615.03 MB | 128.09 MB | 130.79 MB | 235.61 MB | 246.72 MB | 66.82 MB | 66.94 MB |
-| after_add_5_compositor_settle_500ms | 602.88 MB | 615.07 MB | 128.12 MB | 130.85 MB | 235.65 MB | 246.72 MB | 66.82 MB | 66.97 MB |
-| after_add_5_dom_settle | 603.21 MB | 615.04 MB | 128.16 MB | 130.92 MB | 235.65 MB | 246.72 MB | 66.82 MB | 66.97 MB |
-| after_add_5 | 603.25 MB | 615.19 MB | 128.21 MB | 130.93 MB | 235.65 MB | 246.72 MB | 66.82 MB | 66.96 MB |
-| after_chart_canvas_painted | 610.18 MB | 621.96 MB | 132.80 MB | 135.34 MB | 238.54 MB | 249.10 MB | 66.82 MB | 66.96 MB |
-| after_chart_visible | 610.28 MB | 622.01 MB | 132.85 MB | 135.34 MB | 238.53 MB | 248.98 MB | 66.82 MB | 66.96 MB |
-| after_chart_ready | 610.15 MB | 621.89 MB | 132.85 MB | 135.34 MB | 238.53 MB | 248.98 MB | 66.82 MB | 66.96 MB |
-| before_report_tab | 598 MB | 613.77 MB | 132.88 MB | 135.35 MB | 226.27 MB | 240.72 MB | 66.82 MB | 66.96 MB |
-| after_report_tab_open | 620.41 MB | 625.95 MB | 136.42 MB | 138.86 MB | 243.32 MB | 250.62 MB | 68.75 MB | 69.20 MB |
-| before_pdf | 620.28 MB | 625.53 MB | 136.52 MB | 138.98 MB | 242.96 MB | 250.10 MB | 68.75 MB | 69.20 MB |
-| after_pdf | 616.52 MB | 622.14 MB | 135.93 MB | 137.60 MB | 240.24 MB | 248.02 MB | 69.29 MB | 69.76 MB |
-| before_xlsx | 615.30 MB | 621.24 MB | 135.95 MB | 137.57 MB | 238.94 MB | 247.27 MB | 69.29 MB | 69.76 MB |
-| after_xlsx | 613.79 MB | 618.17 MB | 136.22 MB | 137.83 MB | 237.24 MB | 244.23 MB | 69.32 MB | 69.80 MB |
-| after_gc_hint | 596.58 MB | 606.06 MB | 121.18 MB | 121.22 MB | 236.75 MB | 242.60 MB | 69.22 MB | 69.70 MB |
-| after_export_gc_hint | 595.29 MB | 605.66 MB | 121.23 MB | 121.26 MB | 235.68 MB | 242.30 MB | 69.22 MB | 69.70 MB |
-| before_route_leave | 595.45 MB | 605.80 MB | 121.29 MB | 121.32 MB | 235.66 MB | 242.29 MB | 69.22 MB | 69.66 MB |
-| after_comparison_store_clear | 595.09 MB | 604.93 MB | 120.76 MB | 121.03 MB | 235.72 MB | 242.61 MB | 69.22 MB | 69.66 MB |
-| after_route_leave | 603.22 MB | 607.92 MB | 125.34 MB | 125.64 MB | 237.98 MB | 240.51 MB | 69.23 MB | 69.68 MB |
-| after_chart_unmount_settle | 599.62 MB | 604.78 MB | 123.59 MB | 123.87 MB | 237.46 MB | 239.12 MB | 69.19 MB | 69.68 MB |
-| after_second_gc_hint | 549.15 MB | 589.64 MB | 119.52 MB | 119.95 MB | 187.31 MB | 230.92 MB | 69.19 MB | 69.68 MB |
+| app_start | 418.47 MB | 418.57 MB | 89.89 MB | 89.94 MB | 108.61 MB | 108.65 MB | 56.75 MB | 57.78 MB |
+| before_setup | 415.37 MB | 418.34 MB | 89.98 MB | 90.02 MB | 108.22 MB | 108.23 MB | 56.75 MB | 57.78 MB |
+| before_fixture_1_dashboard_goto | 415.60 MB | 415.72 MB | 90.02 MB | 90.05 MB | 108.16 MB | 108.17 MB | 56.75 MB | 57.78 MB |
+| after_fixture_1_dashboard_goto | 415.44 MB | 415.69 MB | 90.07 MB | 90.10 MB | 108.12 MB | 108.16 MB | 56.73 MB | 57.77 MB |
+| before_fixture_1_upload | 415.46 MB | 415.61 MB | 90.11 MB | 90.15 MB | 108.12 MB | 108.16 MB | 56.73 MB | 57.77 MB |
+| after_fixture_1_upload | 450.33 MB | 450.71 MB | 106.14 MB | 106.19 MB | 118.96 MB | 120.32 MB | 62.72 MB | 63.28 MB |
+| before_fixture_1_parse_wait | 448.27 MB | 449.67 MB | 104.59 MB | 106.04 MB | 118.77 MB | 120.04 MB | 62.72 MB | 63.28 MB |
+| after_fixture_1_parse | 447.27 MB | 447.93 MB | 104.84 MB | 105.27 MB | 118.17 MB | 118.71 MB | 62.72 MB | 63.28 MB |
+| before_fixture_1_save_dialog | 446.59 MB | 448.21 MB | 105.33 MB | 105.33 MB | 117.96 MB | 118.08 MB | 62.72 MB | 63.28 MB |
+| after_fixture_1_save_dialog_open | 471.12 MB | 482.62 MB | 122.61 MB | 123.02 MB | 121.71 MB | 134.62 MB | 62.62 MB | 63.34 MB |
+| before_fixture_1_save_commit | 497.46 MB | 511.39 MB | 143.94 MB | 144.96 MB | 121.69 MB | 135.58 MB | 62.61 MB | 63.17 MB |
+| after_fixture_1_save_persist | 502.35 MB | 514.82 MB | 146.97 MB | 148.90 MB | 122.25 MB | 135.45 MB | 63.61 MB | 64.52 MB |
+| after_fixture_1_save | 502.64 MB | 515.27 MB | 147.77 MB | 149.50 MB | 121.55 MB | 135.27 MB | 63.62 MB | 64.52 MB |
+| after_fixture_1_post_save_settle | 502.23 MB | 513.21 MB | 147.31 MB | 149.08 MB | 121.50 MB | 133.40 MB | 63.62 MB | 64.52 MB |
+| after_fixture_1_cleanup | 471.81 MB | 474.20 MB | 117.61 MB | 117.78 MB | 121.13 MB | 125.89 MB | 63.62 MB | 64.52 MB |
+| before_fixture_2_dashboard_goto | 470.49 MB | 470.63 MB | 116.43 MB | 118.11 MB | 121.14 MB | 121.14 MB | 63.62 MB | 64.52 MB |
+| after_fixture_2_dashboard_goto | 470.11 MB | 471.02 MB | 116.71 MB | 118.17 MB | 121.10 MB | 121.14 MB | 63.62 MB | 64.52 MB |
+| before_fixture_2_upload | 470.80 MB | 470.83 MB | 116.75 MB | 118.60 MB | 121.13 MB | 121.14 MB | 63.62 MB | 64.52 MB |
+| after_fixture_2_upload | 487.71 MB | 491.23 MB | 128.92 MB | 129.83 MB | 123.15 MB | 127.91 MB | 63.82 MB | 65.15 MB |
+| before_fixture_2_parse_wait | 484.12 MB | 488.18 MB | 128.42 MB | 129.31 MB | 122.07 MB | 127.01 MB | 63.82 MB | 65.15 MB |
+| after_fixture_2_parse | 482.69 MB | 485.71 MB | 126.59 MB | 126.76 MB | 121.75 MB | 127.01 MB | 63.82 MB | 65.15 MB |
+| before_fixture_2_save_dialog | 481.84 MB | 485.01 MB | 126.84 MB | 126.89 MB | 121.56 MB | 126.38 MB | 63.82 MB | 65.15 MB |
+| after_fixture_2_save_dialog_open | 489.88 MB | 506.38 MB | 134.48 MB | 139.56 MB | 122.58 MB | 134.82 MB | 63.78 MB | 65.16 MB |
+| before_fixture_2_save_commit | 507.03 MB | 513.04 MB | 150.21 MB | 151.18 MB | 122.69 MB | 134.61 MB | 63.72 MB | 65.10 MB |
+| after_fixture_2_save_persist | 512.78 MB | 521.02 MB | 153.83 MB | 156.25 MB | 122.77 MB | 134.97 MB | 64.50 MB | 65.14 MB |
+| after_fixture_2_save | 510.86 MB | 519.01 MB | 154.27 MB | 154.37 MB | 122.84 MB | 134.50 MB | 64.50 MB | 65.14 MB |
+| after_fixture_2_post_save_settle | 510.11 MB | 516.57 MB | 153.32 MB | 153.87 MB | 122.24 MB | 134.41 MB | 64.49 MB | 65.14 MB |
+| after_fixture_2_cleanup | 506.96 MB | 514.88 MB | 148.26 MB | 150.28 MB | 122.24 MB | 133.87 MB | 64.49 MB | 65.14 MB |
+| before_fixture_3_dashboard_goto | 506.10 MB | 516.28 MB | 149.55 MB | 150.04 MB | 122.15 MB | 133.89 MB | 64.53 MB | 65.14 MB |
+| after_fixture_3_dashboard_goto | 505.91 MB | 516.75 MB | 149.57 MB | 149.71 MB | 122.16 MB | 133.79 MB | 64.56 MB | 65.10 MB |
+| before_fixture_3_upload | 506.82 MB | 516.67 MB | 148.96 MB | 150.70 MB | 122.14 MB | 133.95 MB | 64.58 MB | 65.10 MB |
+| after_fixture_3_upload | 517.47 MB | 525.71 MB | 156.47 MB | 156.69 MB | 124.40 MB | 135.12 MB | 64.77 MB | 67 MB |
+| before_fixture_3_parse_wait | 513.74 MB | 522.33 MB | 153.96 MB | 156.02 MB | 122.96 MB | 134.28 MB | 64.77 MB | 67 MB |
+| after_fixture_3_parse | 512.43 MB | 521.76 MB | 154.30 MB | 154.69 MB | 122.97 MB | 133.79 MB | 64.77 MB | 66.99 MB |
+| before_fixture_3_save_dialog | 512.11 MB | 520.36 MB | 152.56 MB | 154.86 MB | 122.52 MB | 133.78 MB | 64.77 MB | 66.99 MB |
+| after_fixture_3_save_dialog_open | 511.61 MB | 512.46 MB | 134.83 MB | 147.08 MB | 128.39 MB | 142.64 MB | 64.77 MB | 66.99 MB |
+| before_fixture_3_save_commit | 513.71 MB | 513.83 MB | 134.82 MB | 150.12 MB | 127.21 MB | 143.25 MB | 64.62 MB | 66.84 MB |
+| after_fixture_3_save_persist | 512.98 MB | 514.12 MB | 134.95 MB | 149.18 MB | 127.70 MB | 143.16 MB | 65.56 MB | 65.99 MB |
+| after_fixture_3_save | 511.34 MB | 513.16 MB | 132.35 MB | 149.41 MB | 127.34 MB | 142.69 MB | 65.56 MB | 65.99 MB |
+| after_fixture_3_post_save_settle | 489.57 MB | 504.45 MB | 127.78 MB | 128.10 MB | 126.91 MB | 142.22 MB | 65.56 MB | 65.99 MB |
+| after_fixture_3_cleanup | 490.18 MB | 504.22 MB | 127.32 MB | 128.46 MB | 126.92 MB | 142.18 MB | 65.56 MB | 65.99 MB |
+| before_fixture_4_dashboard_goto | 488.86 MB | 496.74 MB | 127.45 MB | 127.55 MB | 126.90 MB | 134.78 MB | 65.56 MB | 65.99 MB |
+| after_fixture_4_dashboard_goto | 483.14 MB | 488.94 MB | 127.30 MB | 127.91 MB | 122.55 MB | 126.48 MB | 65.56 MB | 65.99 MB |
+| before_fixture_4_upload | 483.18 MB | 488.22 MB | 125.91 MB | 127.24 MB | 122.57 MB | 126.47 MB | 65.56 MB | 65.99 MB |
+| after_fixture_4_upload | 515.74 MB | 528.60 MB | 147.42 MB | 148.14 MB | 128.33 MB | 141.05 MB | 67.02 MB | 67.18 MB |
+| before_fixture_4_parse_wait | 510.78 MB | 521.68 MB | 144.58 MB | 145.07 MB | 127.64 MB | 139.88 MB | 67.02 MB | 67.18 MB |
+| after_fixture_4_parse | 509.35 MB | 522.14 MB | 144.83 MB | 145.49 MB | 127 MB | 139.84 MB | 67.02 MB | 67.18 MB |
+| before_fixture_4_save_dialog | 504.85 MB | 520.95 MB | 144.36 MB | 145.52 MB | 122.97 MB | 138.91 MB | 67.02 MB | 67.18 MB |
+| after_fixture_4_save_dialog_open | 505.81 MB | 565.37 MB | 143.02 MB | 144.08 MB | 124.58 MB | 185.52 MB | 67.02 MB | 67.18 MB |
+| before_fixture_4_save_commit | 503.12 MB | 564.33 MB | 141.78 MB | 142.73 MB | 124.20 MB | 185.46 MB | 66.84 MB | 67 MB |
+| after_fixture_4_save_persist | 505.09 MB | 567.75 MB | 146.32 MB | 147.35 MB | 123.57 MB | 185.38 MB | 66.01 MB | 66.74 MB |
+| after_fixture_4_save | 503.04 MB | 564.89 MB | 144.18 MB | 144.32 MB | 123.65 MB | 185.39 MB | 66.01 MB | 66.74 MB |
+| after_fixture_4_post_save_settle | 502.82 MB | 515.17 MB | 144.48 MB | 144.53 MB | 123.13 MB | 135.29 MB | 66.01 MB | 66.74 MB |
+| after_fixture_4_cleanup | 502.42 MB | 515.05 MB | 144.09 MB | 144.20 MB | 123.12 MB | 135.31 MB | 66.01 MB | 66.74 MB |
+| before_fixture_5_dashboard_goto | 502.58 MB | 515.08 MB | 144.45 MB | 144.45 MB | 123.10 MB | 135.30 MB | 66 MB | 66.74 MB |
+| after_fixture_5_dashboard_goto | 502.31 MB | 512.30 MB | 143.07 MB | 143.91 MB | 123.10 MB | 134.97 MB | 66 MB | 66.74 MB |
+| before_fixture_5_upload | 499.78 MB | 512.06 MB | 141.17 MB | 141.82 MB | 123.27 MB | 134.93 MB | 66 MB | 66.74 MB |
+| after_fixture_5_upload | 508.74 MB | 534.65 MB | 145.07 MB | 146.32 MB | 125.05 MB | 149.64 MB | 66.71 MB | 66.76 MB |
+| before_fixture_5_parse_wait | 503.22 MB | 530.71 MB | 142.40 MB | 144.70 MB | 123.70 MB | 148.58 MB | 66.71 MB | 66.76 MB |
+| after_fixture_5_parse | 502.37 MB | 518.95 MB | 142.35 MB | 142.84 MB | 123.72 MB | 147.64 MB | 66.71 MB | 66.76 MB |
+| before_fixture_5_save_dialog | 500.61 MB | 519.06 MB | 134.71 MB | 141.26 MB | 123.21 MB | 147.47 MB | 66.69 MB | 66.76 MB |
+| after_fixture_5_save_dialog_open | 497.32 MB | 543.83 MB | 135.93 MB | 136.26 MB | 125 MB | 171.58 MB | 66.69 MB | 66.76 MB |
+| before_fixture_5_save_commit | 494.50 MB | 543.49 MB | 134.36 MB | 134.86 MB | 124.45 MB | 172.47 MB | 66.54 MB | 66.73 MB |
+| after_fixture_5_save_persist | 493.26 MB | 539.70 MB | 132.89 MB | 133.54 MB | 124.08 MB | 171.73 MB | 65.66 MB | 66.42 MB |
+| after_fixture_5_save | 490.85 MB | 540.30 MB | 131.64 MB | 133.25 MB | 124.23 MB | 171.91 MB | 65.66 MB | 66.42 MB |
+| after_fixture_5_post_save_settle | 490.63 MB | 537.88 MB | 131.25 MB | 132.33 MB | 123.62 MB | 170.52 MB | 65.66 MB | 66.42 MB |
+| after_fixture_5_cleanup | 489.58 MB | 525.25 MB | 130.72 MB | 132.57 MB | 123.62 MB | 157.52 MB | 65.66 MB | 66.42 MB |
+| after_setup | 490.14 MB | 518.81 MB | 131.06 MB | 132.63 MB | 123.59 MB | 151.18 MB | 65.66 MB | 66.42 MB |
+| before_comparison_open | 489.59 MB | 500.38 MB | 130.50 MB | 131.62 MB | 123.59 MB | 133.59 MB | 65.66 MB | 66.41 MB |
+| after_comparison_open | 491.49 MB | 509.65 MB | 131.32 MB | 134.01 MB | 123.62 MB | 139.60 MB | 66.10 MB | 66.85 MB |
+| before_add_1 | 491.45 MB | 509.86 MB | 131.20 MB | 134.03 MB | 123.50 MB | 139.58 MB | 66.10 MB | 66.85 MB |
+| after_add_1_selector_open | 491.79 MB | 509.91 MB | 130.50 MB | 133.60 MB | 124.20 MB | 140.02 MB | 66.27 MB | 67.01 MB |
+| after_add_1_selector_search | 490.34 MB | 503.45 MB | 129.17 MB | 129.42 MB | 124.07 MB | 139.95 MB | 66.32 MB | 67.06 MB |
+| before_add_1_click | 488.88 MB | 502.10 MB | 127.66 MB | 128.34 MB | 123.88 MB | 138.61 MB | 66.32 MB | 67.06 MB |
+| after_add_1_click | 492.98 MB | 506.62 MB | 129.45 MB | 130.07 MB | 124.72 MB | 139.76 MB | 66.86 MB | 67.47 MB |
+| after_add_1_click_before_chart_commit | 491.31 MB | 504.87 MB | 129.44 MB | 130.07 MB | 123.81 MB | 138.80 MB | 66.86 MB | 67.47 MB |
+| after_add_1_react_commit | 491.52 MB | 505.09 MB | 129.46 MB | 130.10 MB | 123.81 MB | 138.80 MB | 66.86 MB | 67.47 MB |
+| after_add_1_store_update | 491.14 MB | 504.86 MB | 129.46 MB | 130.11 MB | 123.61 MB | 138.72 MB | 66.86 MB | 67.47 MB |
+| after_add_1_uplot_init | 491.33 MB | 505.05 MB | 129.48 MB | 130.12 MB | 123.61 MB | 138.72 MB | 66.86 MB | 67.47 MB |
+| after_add_1_uplot_set_data | 491.23 MB | 504.82 MB | 129.50 MB | 130.12 MB | 123.61 MB | 138.72 MB | 66.79 MB | 67.40 MB |
+| after_add_1_first_canvas_paint | 491.23 MB | 505.01 MB | 129.52 MB | 130.12 MB | 123.61 MB | 138.72 MB | 66.79 MB | 67.40 MB |
+| after_add_1_series_ready | 491.23 MB | 504.84 MB | 129.52 MB | 130.12 MB | 123.61 MB | 138.72 MB | 66.79 MB | 67.40 MB |
+| after_add_1_compositor_settle_100ms | 491.05 MB | 504.98 MB | 129.52 MB | 130.12 MB | 123.61 MB | 138.72 MB | 66.79 MB | 67.40 MB |
+| after_add_1_compositor_settle_500ms | 491.23 MB | 504.80 MB | 129.53 MB | 130.12 MB | 123.61 MB | 138.72 MB | 66.79 MB | 67.40 MB |
+| after_add_1_dom_settle | 489.30 MB | 504.78 MB | 128.44 MB | 129.15 MB | 123.61 MB | 138.72 MB | 66.79 MB | 67.40 MB |
+| after_add_1 | 489.52 MB | 504.67 MB | 128.44 MB | 129.18 MB | 123.61 MB | 138.72 MB | 66.79 MB | 67.40 MB |
+| before_add_2 | 489.34 MB | 504.81 MB | 128.44 MB | 129.18 MB | 123.61 MB | 138.72 MB | 66.79 MB | 67.40 MB |
+| after_add_2_selector_open | 487.45 MB | 503.70 MB | 126 MB | 127.84 MB | 123.91 MB | 139.02 MB | 66.85 MB | 67.46 MB |
+| after_add_2_selector_search | 487.68 MB | 504.36 MB | 126.51 MB | 128.30 MB | 123.89 MB | 139.02 MB | 66.85 MB | 67.46 MB |
+| before_add_2_click | 487.17 MB | 503.90 MB | 125.77 MB | 128.07 MB | 123.89 MB | 138.98 MB | 66.85 MB | 67.46 MB |
+| after_add_2_click | 490.22 MB | 508.46 MB | 127.66 MB | 130.01 MB | 124.44 MB | 139.99 MB | 67.28 MB | 67.77 MB |
+| after_add_2_click_before_chart_commit | 489.75 MB | 506.14 MB | 127.70 MB | 130.12 MB | 124.04 MB | 138.75 MB | 67.28 MB | 67.77 MB |
+| after_add_2_react_commit | 489.55 MB | 506.35 MB | 127.71 MB | 130.19 MB | 124.04 MB | 138.75 MB | 67.28 MB | 67.77 MB |
+| after_add_2_store_update | 489.03 MB | 506.35 MB | 127.11 MB | 130.18 MB | 124.04 MB | 138.75 MB | 67.28 MB | 67.77 MB |
+| after_add_2_uplot_init | 488.83 MB | 506.24 MB | 126.90 MB | 130.23 MB | 124.04 MB | 138.75 MB | 67.28 MB | 67.77 MB |
+| after_add_2_uplot_set_data | 488.24 MB | 506.18 MB | 126.93 MB | 130.29 MB | 123.66 MB | 138.71 MB | 67.22 MB | 67.71 MB |
+| after_add_2_first_canvas_paint | 488.41 MB | 506.07 MB | 126.93 MB | 130.33 MB | 123.66 MB | 138.71 MB | 67.22 MB | 67.71 MB |
+| after_add_2_series_ready | 488.24 MB | 506.28 MB | 126.94 MB | 130.39 MB | 123.66 MB | 138.71 MB | 67.22 MB | 67.71 MB |
+| after_add_2_compositor_settle_100ms | 488.41 MB | 506.17 MB | 126.94 MB | 130.43 MB | 123.66 MB | 138.71 MB | 67.22 MB | 67.71 MB |
+| after_add_2_compositor_settle_500ms | 488.06 MB | 506.34 MB | 126.94 MB | 130.48 MB | 123.66 MB | 138.71 MB | 67.22 MB | 67.71 MB |
+| after_add_2_dom_settle | 488.23 MB | 506.10 MB | 126.94 MB | 130.39 MB | 123.66 MB | 138.71 MB | 67.22 MB | 67.71 MB |
+| after_add_2 | 488.06 MB | 506.25 MB | 126.94 MB | 130.39 MB | 123.66 MB | 138.71 MB | 67.22 MB | 67.71 MB |
+| before_add_3 | 488.23 MB | 506.10 MB | 126.94 MB | 130.39 MB | 123.66 MB | 138.71 MB | 67.22 MB | 67.71 MB |
+| after_add_3_selector_open | 487.81 MB | 505.59 MB | 126.23 MB | 129.31 MB | 123.95 MB | 139.02 MB | 67.29 MB | 67.78 MB |
+| after_add_3_selector_search | 487.71 MB | 505.62 MB | 126.43 MB | 129.64 MB | 123.93 MB | 138.89 MB | 67.29 MB | 67.79 MB |
+| before_add_3_click | 487.76 MB | 505.18 MB | 126.18 MB | 129.05 MB | 123.93 MB | 138.85 MB | 67.29 MB | 67.79 MB |
+| after_add_3_click | 493.51 MB | 517.62 MB | 127.99 MB | 129.85 MB | 126.24 MB | 150.32 MB | 67.39 MB | 67.93 MB |
+| after_add_3_click_before_chart_commit | 492.74 MB | 517 MB | 128.08 MB | 129.94 MB | 125.38 MB | 149.45 MB | 67.39 MB | 67.93 MB |
+| after_add_3_react_commit | 491.56 MB | 514.97 MB | 128.10 MB | 130.05 MB | 125.38 MB | 147.66 MB | 67.39 MB | 67.93 MB |
+| after_add_3_store_update | 491.56 MB | 515.12 MB | 128.10 MB | 130.05 MB | 125.38 MB | 147.66 MB | 67.39 MB | 67.93 MB |
+| after_add_3_uplot_init | 490.64 MB | 514.85 MB | 128.10 MB | 130.05 MB | 124.70 MB | 147.57 MB | 67.39 MB | 67.93 MB |
+| after_add_3_uplot_set_data | 490.78 MB | 514.96 MB | 128.12 MB | 130.06 MB | 124.70 MB | 147.57 MB | 67.33 MB | 67.87 MB |
+| after_add_3_first_canvas_paint | 490.60 MB | 514.79 MB | 128.12 MB | 130.06 MB | 124.70 MB | 147.57 MB | 67.33 MB | 67.87 MB |
+| after_add_3_series_ready | 490.78 MB | 514.97 MB | 128.12 MB | 130.06 MB | 124.70 MB | 147.57 MB | 67.34 MB | 67.87 MB |
+| after_add_3_compositor_settle_100ms | 490.60 MB | 514.84 MB | 128.12 MB | 130.06 MB | 124.70 MB | 147.57 MB | 67.34 MB | 67.87 MB |
+| after_add_3_compositor_settle_500ms | 490.78 MB | 514.80 MB | 128.12 MB | 130.06 MB | 124.70 MB | 147.52 MB | 67.34 MB | 67.87 MB |
+| after_add_3_dom_settle | 490.60 MB | 514.94 MB | 128.12 MB | 130.06 MB | 124.70 MB | 147.52 MB | 67.34 MB | 67.87 MB |
+| after_add_3 | 490.78 MB | 514.80 MB | 128.12 MB | 130.06 MB | 124.70 MB | 147.52 MB | 67.34 MB | 67.87 MB |
+| before_add_4 | 490.60 MB | 514.94 MB | 128.12 MB | 130.06 MB | 124.70 MB | 147.52 MB | 67.34 MB | 67.87 MB |
+| after_add_4_selector_open | 490.21 MB | 513.83 MB | 127.18 MB | 128.51 MB | 124.99 MB | 147.83 MB | 67.40 MB | 67.93 MB |
+| after_add_4_selector_search | 490.81 MB | 513.83 MB | 127.86 MB | 128.54 MB | 125.03 MB | 147.84 MB | 67.40 MB | 67.93 MB |
+| before_add_4_click | 490.63 MB | 514 MB | 127.73 MB | 128.87 MB | 124.99 MB | 147.83 MB | 67.40 MB | 67.93 MB |
+| after_add_4_click | 494.31 MB | 519.06 MB | 130.02 MB | 131.98 MB | 125.87 MB | 148.77 MB | 67.43 MB | 68.02 MB |
+| after_add_4_click_before_chart_commit | 493.26 MB | 517.07 MB | 130.06 MB | 131.98 MB | 125.16 MB | 147.64 MB | 67.43 MB | 68.02 MB |
+| after_add_4_react_commit | 492.90 MB | 516.48 MB | 130.06 MB | 131.26 MB | 125.16 MB | 147.64 MB | 67.43 MB | 68.02 MB |
+| after_add_4_store_update | 492.72 MB | 516.46 MB | 130.06 MB | 131.26 MB | 125.16 MB | 147.64 MB | 67.43 MB | 68.02 MB |
+| after_add_4_uplot_init | 492.90 MB | 516.30 MB | 130.06 MB | 131.26 MB | 125.16 MB | 147.64 MB | 67.43 MB | 68.02 MB |
+| after_add_4_uplot_set_data | 492.25 MB | 516.33 MB | 130.06 MB | 131.26 MB | 124.75 MB | 147.59 MB | 67.37 MB | 67.96 MB |
+| after_add_4_first_canvas_paint | 492.77 MB | 516.58 MB | 130.25 MB | 131.65 MB | 124.75 MB | 147.57 MB | 67.37 MB | 67.96 MB |
+| after_add_4_series_ready | 492.73 MB | 516.07 MB | 130.25 MB | 130.98 MB | 124.67 MB | 147.57 MB | 67.37 MB | 67.96 MB |
+| after_add_4_compositor_settle_100ms | 492.78 MB | 515.91 MB | 130.25 MB | 130.98 MB | 124.67 MB | 147.57 MB | 67.37 MB | 67.96 MB |
+| after_add_4_compositor_settle_500ms | 492.65 MB | 515.95 MB | 130.25 MB | 130.98 MB | 124.67 MB | 147.57 MB | 67.37 MB | 67.96 MB |
+| after_add_4_dom_settle | 492.87 MB | 515.97 MB | 130.25 MB | 130.98 MB | 124.67 MB | 147.57 MB | 67.37 MB | 67.96 MB |
+| after_add_4 | 492.87 MB | 515.81 MB | 130.42 MB | 131 MB | 124.67 MB | 147.57 MB | 67.37 MB | 67.96 MB |
+| before_add_5 | 492.67 MB | 515.99 MB | 130.42 MB | 131.01 MB | 124.67 MB | 147.59 MB | 67.37 MB | 67.96 MB |
+| after_add_5_selector_open | 492.14 MB | 514.66 MB | 128.77 MB | 129.57 MB | 125.01 MB | 147.72 MB | 67.43 MB | 68.03 MB |
+| after_add_5_selector_search | 492.26 MB | 513.43 MB | 129.10 MB | 129.21 MB | 125.01 MB | 147.84 MB | 67.43 MB | 68.03 MB |
+| before_add_5_click | 492.07 MB | 513.43 MB | 128.72 MB | 128.83 MB | 125.01 MB | 147.82 MB | 67.43 MB | 68.03 MB |
+| after_add_5_click | 556.02 MB | 600.20 MB | 130.82 MB | 131.15 MB | 186.07 MB | 230.59 MB | 67.48 MB | 68.06 MB |
+| after_add_5_click_before_chart_commit | 553.55 MB | 598.86 MB | 130.51 MB | 130.95 MB | 185.12 MB | 229.38 MB | 67.48 MB | 68.06 MB |
+| after_add_5_react_commit | 553.62 MB | 597.95 MB | 130.67 MB | 131.03 MB | 185.12 MB | 229.38 MB | 67.48 MB | 68.06 MB |
+| after_add_5_store_update | 553.65 MB | 597.98 MB | 130.67 MB | 131.07 MB | 185.12 MB | 229.36 MB | 67.48 MB | 68.06 MB |
+| after_add_5_uplot_init | 553.39 MB | 598.04 MB | 130.67 MB | 131.16 MB | 184.81 MB | 229.33 MB | 67.48 MB | 68.06 MB |
+| after_add_5_uplot_set_data | 553.28 MB | 598.40 MB | 130.67 MB | 131.25 MB | 184.81 MB | 229.37 MB | 67.46 MB | 68 MB |
+| after_add_5_first_canvas_paint | 553.33 MB | 598.34 MB | 130.67 MB | 131.30 MB | 184.81 MB | 229.37 MB | 67.46 MB | 68 MB |
+| after_add_5_series_ready | 553.33 MB | 598.83 MB | 130.67 MB | 131.41 MB | 184.81 MB | 229.37 MB | 67.45 MB | 68 MB |
+| after_add_5_compositor_settle_100ms | 553.33 MB | 598.52 MB | 130.67 MB | 131.45 MB | 184.81 MB | 229.37 MB | 67.45 MB | 68 MB |
+| after_add_5_compositor_settle_500ms | 553.24 MB | 598.56 MB | 130.67 MB | 131.50 MB | 184.81 MB | 229.37 MB | 67.45 MB | 68 MB |
+| after_add_5_dom_settle | 553.24 MB | 598.81 MB | 130.67 MB | 131.59 MB | 184.81 MB | 229.37 MB | 67.45 MB | 68 MB |
+| after_add_5 | 553.24 MB | 598.67 MB | 130.67 MB | 131.63 MB | 184.81 MB | 229.37 MB | 67.45 MB | 68 MB |
+| after_chart_canvas_painted | 563.14 MB | 608.68 MB | 135.13 MB | 136.11 MB | 190.14 MB | 234.65 MB | 67.45 MB | 68 MB |
+| after_chart_visible | 563.04 MB | 608.43 MB | 135.13 MB | 136.11 MB | 190.14 MB | 234.65 MB | 67.45 MB | 68 MB |
+| after_chart_ready | 563.11 MB | 608.60 MB | 135.13 MB | 136.11 MB | 190.14 MB | 234.65 MB | 67.45 MB | 68 MB |
+| before_report_tab | 563.34 MB | 602.38 MB | 135.13 MB | 136.11 MB | 190.17 MB | 228.57 MB | 67.45 MB | 68 MB |
+| after_report_tab_open | 572.53 MB | 612.20 MB | 139.63 MB | 139.82 MB | 190.76 MB | 231.76 MB | 69.03 MB | 69.94 MB |
+| before_pdf | 570.39 MB | 607.86 MB | 139.86 MB | 139.88 MB | 190.20 MB | 231.08 MB | 69.03 MB | 69.94 MB |
+| after_pdf | 570.77 MB | 603.22 MB | 137.56 MB | 137.83 MB | 191.61 MB | 227.78 MB | 69.64 MB | 70.56 MB |
+| before_xlsx | 569.93 MB | 601.84 MB | 137.77 MB | 138.05 MB | 191.04 MB | 226.82 MB | 69.64 MB | 70.56 MB |
+| after_xlsx | 568.65 MB | 600.19 MB | 138.03 MB | 138.27 MB | 189.21 MB | 224.70 MB | 69.68 MB | 70.63 MB |
+| after_gc_hint | 552.67 MB | 586.46 MB | 122.69 MB | 123.63 MB | 188.90 MB | 223.81 MB | 69.57 MB | 70.53 MB |
+| after_export_gc_hint | 551.99 MB | 586.62 MB | 122.77 MB | 122.88 MB | 188.05 MB | 223.73 MB | 69.57 MB | 70.52 MB |
+| before_route_leave | 552.23 MB | 586.52 MB | 122.83 MB | 123.15 MB | 188.04 MB | 223.71 MB | 69.57 MB | 70.52 MB |
+| after_comparison_store_clear | 551.70 MB | 587.73 MB | 121.91 MB | 122.90 MB | 188.81 MB | 224.63 MB | 69.57 MB | 70.52 MB |
+| after_route_leave | 557.01 MB | 593.13 MB | 126.16 MB | 127.16 MB | 189.09 MB | 225.81 MB | 69.57 MB | 70.55 MB |
+| after_chart_unmount_settle | 554.50 MB | 590.39 MB | 124.57 MB | 125.17 MB | 188.90 MB | 225 MB | 69.54 MB | 70.51 MB |
+| after_second_gc_hint | 551.72 MB | 583.97 MB | 121.97 MB | 122.08 MB | 188.58 MB | 221.66 MB | 69.54 MB | 70.51 MB |
 
 ## App-Owned Renderer Stats
 
-| Phase | JS heap p50 | Series cache p50 | Rust series entries p50 | Rust series cache p50 | Rust series hits p50 | Rust series misses p50 | Cmp raw p50 | Cmp columnar p50 | Parse cache entries p50 | Parse cache points p50 | DOM nodes p50 | Canvas count p50 | Canvas pixels p50 | uPlot count p50 | Cmp page root p50 | Cmp chart root p50 | Cmp chart uPlot p50 | Cmp chart canvas p50 | Cmp report root p50 | Dash chart root p50 | Dash chart uPlot p50 | Dash chart canvas p50 | uPlot init total p50 | Cmp lifecycle active p50 | Cmp lifecycle max active p50 | Cmp lifecycle creates p50 | Cmp lifecycle destroys p50 | Cmp lifecycle setData p50 | Cmp lifecycle setSize p50 | Cmp lifecycle redraws p50 | Cmp lifecycle first paints p50 | Cmp lifecycle events p50 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| app_start | 8.33 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_setup | 8.40 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_1_dashboard_goto | 8.44 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_1_dashboard_goto | 8.48 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_1_upload | 8.52 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_1_upload | 10.68 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 143 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_1_parse_wait | 11.55 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_1_parse | 11.69 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_1_save_dialog | 11.73 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_1_save_dialog_open | 14.95 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 595 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_1_save_commit | 16.25 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 600 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_1_save_persist | 15.75 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 386 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_1_save | 15.89 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_1_post_save_settle | 15.93 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_1_cleanup | 15.97 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_2_dashboard_goto | 9.89 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_2_dashboard_goto | 9.92 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_2_upload | 9.96 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_2_upload | 16.03 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 145 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_2_parse_wait | 11.89 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_2_parse | 12.01 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_2_save_dialog | 12.05 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_2_save_dialog_open | 17.56 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 724 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_2_save_commit | 17.39 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 726 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_2_save_persist | 24.58 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 512 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_2_save | 24.71 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_2_post_save_settle | 24.75 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_2_cleanup | 10.87 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_3_dashboard_goto | 10.87 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_3_dashboard_goto | 10.92 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_3_upload | 11.03 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_3_upload | 18.47 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 145 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_3_parse_wait | 14.41 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_3_parse | 14.52 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_3_save_dialog | 14.57 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_3_save_dialog_open | 12.15 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 823 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_3_save_commit | 12.69 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 824 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_3_save_persist | 12.71 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 680 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_3_save | 12.88 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_3_post_save_settle | 12.91 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_3_cleanup | 12.44 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_4_dashboard_goto | 12.48 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_4_dashboard_goto | 11.21 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_4_upload | 11.24 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 3.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_4_upload | 11.93 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 145 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_4_parse_wait | 19.62 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_4_parse | 19.72 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_4_save_dialog | 19.76 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_4_save_dialog_open | 15.14 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 529 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_4_save_commit | 15.21 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 530 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_4_save_persist | 14.74 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 386 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_4_save | 14.79 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_4_post_save_settle | 14.83 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_4_cleanup | 14.87 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_5_dashboard_goto | 14.91 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_5_dashboard_goto | 14.95 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_5_upload | 14.92 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_5_upload | 19.20 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 145 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_5_parse_wait | 14.24 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_5_parse | 14.12 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_5_save_dialog | 14.16 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_5_save_dialog_open | 15.06 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 592 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_fixture_5_save_commit | 14.32 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 593 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_5_save_persist | 13.10 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 449 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_5_save | 13.24 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_5_post_save_settle | 13.28 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_fixture_5_cleanup | 13.32 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_setup | 13.36 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_comparison_open | 13.40 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_comparison_open | 14.14 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 206 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_add_1 | 14.24 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 206 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_add_1_selector_open | 14.52 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 281 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_add_1_selector_search | 14.78 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 237 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| before_add_1_click | 13.61 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 237 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_add_1_click | 14.09 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 215 | 0 | 0 B | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| after_add_1_click_before_chart_commit | 14.02 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1_react_commit | 14.06 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1_store_update | 14.11 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1_uplot_init | 14.19 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1_uplot_set_data | 14.23 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1_first_canvas_paint | 14.28 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1_series_ready | 14.33 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1_compositor_settle_100ms | 14.37 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1_compositor_settle_500ms | 14.41 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1_dom_settle | 14.45 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_1 | 14.49 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| before_add_2 | 14.52 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_2_selector_open | 11.20 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 278 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_2_selector_search | 11.36 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 278 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| before_add_2_click | 11.44 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 278 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_2_click | 11.68 MB | 28.49 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 251 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
-| after_add_2_click_before_chart_commit | 12.61 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2_react_commit | 12.67 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2_store_update | 12.71 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2_uplot_init | 12.79 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2_uplot_set_data | 12.26 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2_first_canvas_paint | 12.23 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2_series_ready | 12.34 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2_compositor_settle_100ms | 12.39 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2_compositor_settle_500ms | 12.43 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2_dom_settle | 12.47 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_2 | 12.50 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| before_add_3 | 12.55 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_3_selector_open | 12.78 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 292 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_3_selector_search | 12.68 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 292 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| before_add_3_click | 12.40 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 292 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_3_click | 12.63 MB | 96.14 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 265 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
-| after_add_3_click_before_chart_commit | 13.72 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3_react_commit | 13.59 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3_store_update | 13.10 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3_uplot_init | 13.20 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3_uplot_set_data | 13.24 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3_first_canvas_paint | 13.29 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3_series_ready | 13.34 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3_compositor_settle_100ms | 13.38 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3_compositor_settle_500ms | 13.42 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3_dom_settle | 13.45 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_3 | 13.50 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| before_add_4 | 13.54 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_4_selector_open | 13.80 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 306 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_4_selector_search | 13.43 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 306 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| before_add_4_click | 13.48 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 306 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_4_click | 13.70 MB | 162.80 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 279 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.70 ms | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
-| after_add_4_click_before_chart_commit | 14.17 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4_react_commit | 14.13 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4_store_update | 13.49 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4_uplot_init | 13.57 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4_uplot_set_data | 13.62 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4_first_canvas_paint | 13.68 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4_series_ready | 13.73 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4_compositor_settle_100ms | 13.79 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4_compositor_settle_500ms | 13.83 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4_dom_settle | 13.88 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_4 | 13.92 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| before_add_5 | 13.95 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_5_selector_open | 14.18 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 320 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_5_selector_search | 14.37 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 320 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| before_add_5_click | 13.81 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 320 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
-| after_add_5_click | 14.28 MB | 205.57 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 293 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 4 | 3 | 4 | 7 | 1 | 4 | 42 |
-| after_add_5_click_before_chart_commit | 14.30 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5_react_commit | 14.21 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5_store_update | 14.25 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5_uplot_init | 14.34 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5_uplot_set_data | 14.39 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5_first_canvas_paint | 14.44 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5_series_ready | 14.48 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5_compositor_settle_100ms | 14.54 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5_compositor_settle_500ms | 14.58 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5_dom_settle | 14.62 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_add_5 | 14.66 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_chart_canvas_painted | 16.99 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_chart_visible | 17.05 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_chart_ready | 17.02 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| before_report_tab | 16.93 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.29 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 1 | 5 | 4 | 5 | 8 | 1 | 5 | 51 |
-| after_report_tab_open | 17.99 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 272 | 0 | 0 B | 0 | 1 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | n/a | 0 | 1 | 5 | 5 | 5 | 8 | 1 | 5 | 53 |
-| before_pdf | 18.18 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.65 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 6 | 5 | 6 | 11 | 2 | 6 | 66 |
-| after_pdf | 18.14 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.65 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 6 | 5 | 6 | 11 | 2 | 6 | 66 |
-| before_xlsx | 18.19 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.65 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 6 | 5 | 6 | 11 | 2 | 6 | 66 |
-| after_xlsx | 18.37 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.65 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 6 | 5 | 6 | 11 | 2 | 6 | 66 |
-| after_gc_hint | 11.50 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.65 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 6 | 5 | 6 | 11 | 2 | 6 | 66 |
-| after_export_gc_hint | 11.56 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.65 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 6 | 5 | 6 | 11 | 2 | 6 | 66 |
-| before_route_leave | 11.60 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.65 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 1 | 6 | 5 | 6 | 11 | 2 | 6 | 66 |
-| after_comparison_store_clear | 11.73 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 215 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | n/a | 0 | 1 | 6 | 6 | 6 | 11 | 2 | 6 | 68 |
-| after_route_leave | 11.92 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 307 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.60 ms | 0 | 1 | 6 | 6 | 6 | 11 | 2 | 6 | 68 |
-| after_chart_unmount_settle | 12.32 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 453 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.60 ms | 0 | 1 | 6 | 6 | 6 | 11 | 2 | 6 | 68 |
-| after_second_gc_hint | 11.18 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 453 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.60 ms | 0 | 1 | 6 | 6 | 6 | 11 | 2 | 6 | 68 |
+| Phase | JS heap p50 | Series cache p50 | Rust series entries p50 | Rust series cache p50 | Rust series hits p50 | Rust series misses p50 | Cmp raw p50 | Cmp columnar p50 | Parse cache entries p50 | Parse cache points p50 | DOM nodes p50 | Canvas count p50 | Canvas pixels p50 | uPlot count p50 | Cmp page root p50 | Cmp chart root p50 | Cmp chart uPlot p50 | Cmp chart canvas p50 | Cmp report root p50 | Dash chart root p50 | Dash chart uPlot p50 | Dash chart canvas p50 | uPlot init total p50 | DPR p50 | Cmp header height p50 | Cmp chips width p50 | Cmp chips height p50 | Cmp chips area p50 | Cmp chart shell width p50 | Cmp chart shell height p50 | Cmp chart shell area p50 | Cmp chart width p50 | Cmp chart height p50 | Cmp chart area p50 | Cmp canvas CSS width p50 | Cmp canvas CSS height p50 | Cmp canvas backing width p50 | Cmp canvas backing height p50 | Cmp header rect changes p50 | Cmp chips rect changes p50 | Cmp chart shell rect changes p50 | Cmp chart rect changes p50 | Cmp canvas rect changes p50 | Cmp lifecycle active p50 | Cmp lifecycle max active p50 | Cmp lifecycle creates p50 | Cmp lifecycle destroys p50 | Cmp lifecycle setData p50 | Cmp lifecycle setSize p50 | Cmp lifecycle redraws p50 | Cmp lifecycle first paints p50 | Cmp lifecycle events p50 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| app_start | 8.33 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_setup | 8.42 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_1_dashboard_goto | 8.48 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_1_dashboard_goto | 8.53 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_1_upload | 8.58 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 152 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_1_upload | 10.82 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 143 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_1_parse_wait | 9.05 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_1_parse | 9.14 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_1_save_dialog | 9.20 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_1_save_dialog_open | 18.06 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 595 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_1_save_commit | 18.33 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 600 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_1_save_persist | 22.19 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 386 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_1_save | 22.35 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_1_post_save_settle | 22.40 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_1_cleanup | 14.12 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_2_dashboard_goto | 9.89 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_2_dashboard_goto | 9.96 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_2_upload | 10.01 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_2_upload | 16.04 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 145 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_2_parse_wait | 13.24 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_2_parse | 13.38 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_2_save_dialog | 10.73 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_2_save_dialog_open | 13.79 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 724 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_2_save_commit | 24.37 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 726 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_2_save_persist | 10.85 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 512 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_2_save | 11.03 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_2_post_save_settle | 11.09 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_2_cleanup | 11.14 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_3_dashboard_goto | 11.15 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_3_dashboard_goto | 11.25 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_3_upload | 11.30 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 504 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 4.90 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_3_upload | 27.86 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 145 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_3_parse_wait | 13.31 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_3_parse | 13.44 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_3_save_dialog | 13.50 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_3_save_dialog_open | 12.29 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 823 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_3_save_commit | 12.54 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 824 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_3_save_persist | 12.22 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 680 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_3_save | 12.40 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_3_post_save_settle | 12.46 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_3_cleanup | 12.51 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_4_dashboard_goto | 12.21 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_4_dashboard_goto | 12.26 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_4_upload | 12.31 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 672 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.20 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_4_upload | 12.48 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 145 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_4_parse_wait | 19.57 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_4_parse | 19.69 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_4_save_dialog | 19.74 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_4_save_dialog_open | 15.15 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 529 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_4_save_commit | 15.25 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 530 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_4_save_persist | 14.67 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 386 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_4_save | 14.81 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_4_post_save_settle | 14.86 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_4_cleanup | 14.91 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_5_dashboard_goto | 14.96 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_5_dashboard_goto | 15.02 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_5_upload | 15.03 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 378 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1.30 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_5_upload | 19.18 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 145 | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_5_parse_wait | 14.25 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_5_parse | 14.07 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_5_save_dialog | 14.13 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_5_save_dialog_open | 15.05 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 592 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_fixture_5_save_commit | 14.30 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 593 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_5_save_persist | 13.03 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 449 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_5_save | 13.20 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_5_post_save_settle | 13.27 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_fixture_5_cleanup | 13.32 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_setup | 13.37 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_comparison_open | 13.42 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 441 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.70 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_comparison_open | 14.19 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 206 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | 55 | 1058.45 | 34 | 35987.30 | 1264 | 572 | 723008 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_add_1 | 14.31 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 206 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | 55 | 1058.45 | 34 | 35987.30 | 1264 | 572 | 723008 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_add_1_selector_open | 14.60 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 281 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | 55 | 1058.45 | 34 | 35987.30 | 1264 | 572 | 723008 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_add_1_selector_search | 13.61 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 237 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | 55 | 1058.45 | 34 | 35987.30 | 1264 | 572 | 723008 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| before_add_1_click | 13.71 MB | 0 B | 0 | 0 B | 0 | 0 | 0 | 0 | 0 | 0 | 237 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | 55 | 1058.45 | 34 | 35987.30 | 1264 | 572 | 723008 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_add_1_click | 14.04 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 215 | 0 | 0 B | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | n/a | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 502 | 629508 | n/a | n/a | n/a | n/a | 0 | 1 | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| after_add_1_click_before_chart_commit | 14.19 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1_react_commit | 14.21 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1_store_update | 14.26 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1_uplot_init | 14.35 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1_uplot_set_data | 14.41 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1_first_canvas_paint | 14.47 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1_series_ready | 14.52 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1_compositor_settle_100ms | 14.58 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1_compositor_settle_500ms | 14.63 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1_dom_settle | 14.68 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_1 | 14.08 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| before_add_2 | 14.13 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 247 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_2_selector_open | 11.19 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 278 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_2_selector_search | 11.38 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 278 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| before_add_2_click | 11.47 MB | 28.49 KB | 1 | 65.29 KB | 0 | 1 | 0 | 0 | 0 | 0 | 278 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_2_click | 11.73 MB | 28.49 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 251 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 13 |
+| after_add_2_click_before_chart_commit | 12.51 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2_react_commit | 12.58 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2_store_update | 12.64 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2_uplot_init | 12.14 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2_uplot_set_data | 12.13 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2_first_canvas_paint | 12.19 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2_series_ready | 12.25 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2_compositor_settle_100ms | 12.30 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2_compositor_settle_500ms | 12.35 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2_dom_settle | 12.40 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_2 | 12.45 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| before_add_3 | 12.50 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 261 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_3_selector_open | 12.12 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 292 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_3_selector_search | 12.31 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 292 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| before_add_3_click | 12.40 MB | 96.14 KB | 2 | 220.07 KB | 0 | 2 | 0 | 0 | 0 | 0 | 292 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_3_click | 12.64 MB | 96.14 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 265 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 2 | 4 | 1 | 2 | 22 |
+| after_add_3_click_before_chart_commit | 13.18 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3_react_commit | 13.16 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3_store_update | 13.21 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3_uplot_init | 13.31 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3_uplot_set_data | 13.37 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3_first_canvas_paint | 13.43 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3_series_ready | 13.49 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3_compositor_settle_100ms | 13.54 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3_compositor_settle_500ms | 13.59 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3_dom_settle | 13.64 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_3 | 13.69 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| before_add_4 | 13.74 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 275 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_4_selector_open | 14.01 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 306 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_4_selector_search | 14.22 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 306 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| before_add_4_click | 14.32 MB | 162.80 KB | 3 | 372.61 KB | 0 | 3 | 0 | 0 | 0 | 0 | 306 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_4_click | 14.55 MB | 162.80 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 279 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.40 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 3 | 2 | 3 | 5 | 1 | 3 | 31 |
+| after_add_4_click_before_chart_commit | 14.96 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4_react_commit | 14.93 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4_store_update | 14.98 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4_uplot_init | 15.07 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4_uplot_set_data | 15.13 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4_first_canvas_paint | 15.21 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4_series_ready | 15.26 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4_compositor_settle_100ms | 15.33 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4_compositor_settle_500ms | 15.38 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4_dom_settle | 15.43 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_4 | 14.21 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| before_add_5 | 14.25 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 289 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_5_selector_open | 14.49 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 320 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_5_selector_search | 14.68 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 320 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| before_add_5_click | 14.78 MB | 205.57 KB | 4 | 659.14 KB | 0 | 4 | 0 | 0 | 0 | 0 | 320 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_5_click | 14.29 MB | 205.57 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 293 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 4 | 3 | 4 | 6 | 1 | 4 | 40 |
+| after_add_5_click_before_chart_commit | 13.83 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5_react_commit | 13.64 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5_store_update | 13.69 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5_uplot_init | 13.79 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5_uplot_set_data | 13.85 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5_first_canvas_paint | 13.92 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5_series_ready | 13.98 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5_compositor_settle_100ms | 14.03 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5_compositor_settle_500ms | 14.08 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5_dom_settle | 14.13 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_add_5 | 14.18 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_chart_canvas_painted | 16.57 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_chart_visible | 16.64 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_chart_ready | 16.69 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| before_report_tab | 16.74 MB | 258.95 KB | 5 | 766.03 KB | 0 | 5 | 0 | 0 | 0 | 0 | 303 | 2 | 2.34 MB | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0.50 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | 1264 | 572 | 723008 | 1254 | 458 | 574332 | 1254 | 458 | 1254 | 458 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 5 | 4 | 5 | 7 | 1 | 5 | 49 |
+| after_report_tab_open | 17.51 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 272 | 0 | 0 B | 0 | 1 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | n/a | 1 | 55 | 1058.45 | 38 | 40221.10 | n/a | n/a | n/a | 900 | 499 | 449100 | n/a | n/a | n/a | n/a | 0 | 1 | n/a | 2 | n/a | 0 | 1 | 5 | 5 | 5 | 7 | 1 | 5 | 51 |
+| before_pdf | 18.31 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.66 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | n/a | n/a | n/a | 900 | 455 | 409500 | 900 | 455 | 900 | 455 | 0 | 1 | n/a | 3 | 1 | 1 | 1 | 6 | 5 | 6 | 10 | 2 | 6 | 64 |
+| after_pdf | 18.13 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.66 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | n/a | n/a | n/a | 900 | 455 | 409500 | 900 | 455 | 900 | 455 | 0 | 1 | n/a | 3 | 1 | 1 | 1 | 6 | 5 | 6 | 10 | 2 | 6 | 64 |
+| before_xlsx | 18.19 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.66 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | n/a | n/a | n/a | 900 | 455 | 409500 | 900 | 455 | 900 | 455 | 0 | 1 | n/a | 3 | 1 | 1 | 1 | 6 | 5 | 6 | 10 | 2 | 6 | 64 |
+| after_xlsx | 18.40 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.66 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | n/a | n/a | n/a | 900 | 455 | 409500 | 900 | 455 | 900 | 455 | 0 | 1 | n/a | 3 | 1 | 1 | 1 | 6 | 5 | 6 | 10 | 2 | 6 | 64 |
+| after_gc_hint | 11.48 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.66 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | n/a | n/a | n/a | 900 | 455 | 409500 | 900 | 455 | 900 | 455 | 0 | 1 | n/a | 3 | 1 | 1 | 1 | 6 | 5 | 6 | 10 | 2 | 6 | 64 |
+| after_export_gc_hint | 11.56 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.66 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | n/a | n/a | n/a | 900 | 455 | 409500 | 900 | 455 | 900 | 455 | 0 | 1 | n/a | 3 | 1 | 1 | 1 | 6 | 5 | 6 | 10 | 2 | 6 | 64 |
+| before_route_leave | 11.62 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 312 | 2 | 1.66 MB | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0.60 ms | 1 | 55 | 1058.45 | 38 | 40221.10 | n/a | n/a | n/a | 900 | 455 | 409500 | 900 | 455 | 900 | 455 | 0 | 1 | n/a | 3 | 1 | 1 | 1 | 6 | 5 | 6 | 10 | 2 | 6 | 64 |
+| after_comparison_store_clear | 11.76 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 215 | 0 | 0 B | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | n/a | 1 | 55 | 1058.45 | 34 | 35987.30 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | 2 | n/a | n/a | n/a | 0 | 1 | 6 | 6 | 6 | 10 | 2 | 6 | 66 |
+| after_route_leave | 11.95 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 307 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.60 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | 1 | 6 | 6 | 6 | 10 | 2 | 6 | 66 |
+| after_chart_unmount_settle | 12.35 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 453 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.60 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | 1 | 6 | 6 | 6 | 10 | 2 | 6 | 66 |
+| after_second_gc_hint | 11.16 MB | 517.89 KB | 5 | 766.03 KB | 5 | 5 | 0 | 0 | 0 | 0 | 453 | 1 | 2.68 MB | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0.60 ms | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | 1 | 6 | 6 | 6 | 10 | 2 | 6 | 66 |
 
 ## P50 Deltas
 
 | Delta | Total | Renderer | GPU | Tauri |
 | --- | ---: | ---: | ---: | ---: |
-| after_add_5_selector_search -> after_add_5_click | 87.49 MB | 2.37 MB | 84.90 MB | 0 MB |
-| after_add_5_click -> after_add_5_uplot_init | -1.88 MB | -0.14 MB | -1.14 MB | 0 MB |
-| after_add_5_uplot_init -> after_add_5_first_canvas_paint | -0.03 MB | 0.09 MB | 0 MB | -0.06 MB |
-| after_add_5_first_canvas_paint -> after_add_5_compositor_settle_500ms | 0.47 MB | 0.12 MB | 0.04 MB | 0 MB |
-| after_fixture_5_cleanup -> after_add_5 | 79.77 MB | 0.08 MB | 74.61 MB | 1.46 MB |
-| after_add_5 -> after_chart_canvas_painted | 6.93 MB | 4.59 MB | 2.89 MB | 0 MB |
-| after_xlsx - after_export_gc_hint | 18.50 MB | 14.99 MB | 1.56 MB | 0.10 MB |
-| after_export_gc_hint - after_route_leave | -7.93 MB | -4.11 MB | -2.30 MB | -0.01 MB |
-| after_route_leave - after_chart_visible | -7.06 MB | -7.51 MB | -0.55 MB | 2.41 MB |
+| after_add_5_selector_search -> after_add_5_click | 63.76 MB | 1.72 MB | 61.06 MB | 0.05 MB |
+| after_add_5_click -> after_add_5_uplot_init | -2.63 MB | -0.15 MB | -1.26 MB | 0 MB |
+| after_add_5_uplot_init -> after_add_5_first_canvas_paint | -0.06 MB | 0 MB | 0 MB | -0.02 MB |
+| after_add_5_first_canvas_paint -> after_add_5_compositor_settle_500ms | -0.09 MB | 0 MB | 0 MB | -0.01 MB |
+| after_fixture_5_cleanup -> after_add_5 | 63.66 MB | -0.05 MB | 61.19 MB | 1.79 MB |
+| after_add_5 -> after_chart_canvas_painted | 9.90 MB | 4.46 MB | 5.33 MB | 0 MB |
+| after_xlsx - after_export_gc_hint | 16.66 MB | 15.26 MB | 1.16 MB | 0.11 MB |
+| after_export_gc_hint - after_route_leave | -5.02 MB | -3.39 MB | -1.04 MB | 0 MB |
+| after_route_leave - after_chart_visible | -6.03 MB | -8.97 MB | -1.05 MB | 2.12 MB |
 
 ## Readout
 
