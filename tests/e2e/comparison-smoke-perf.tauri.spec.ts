@@ -184,6 +184,26 @@ interface RendererMemorySnapshot {
     comparison_chart_root_count: number;
     comparison_chart_uplot_count: number;
     comparison_chart_canvas_count: number;
+    device_pixel_ratio: number | null;
+    comparison_header_height: number | null;
+    comparison_chips_width: number | null;
+    comparison_chips_height: number | null;
+    comparison_chips_area: number | null;
+    comparison_chart_container_width: number | null;
+    comparison_chart_container_height: number | null;
+    comparison_chart_container_area: number | null;
+    comparison_chart_width: number | null;
+    comparison_chart_height: number | null;
+    comparison_chart_area: number | null;
+    comparison_chart_canvas_css_width: number | null;
+    comparison_chart_canvas_css_height: number | null;
+    comparison_chart_canvas_backing_width: number | null;
+    comparison_chart_canvas_backing_height: number | null;
+    comparison_header_rect_change_count: number | null;
+    comparison_chips_rect_change_count: number | null;
+    comparison_chart_container_rect_change_count: number | null;
+    comparison_chart_rect_change_count: number | null;
+    comparison_canvas_rect_change_count: number | null;
     comparison_report_root_count: number;
     dashboard_chart_root_count: number;
     dashboard_chart_uplot_count: number;
@@ -399,6 +419,10 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             events?: UPlotLifecycleEvent[];
             stats?: () => Record<string, UPlotLifecycleLabelStats>;
         };
+        type ComparisonGeometryState = {
+            previous: Record<string, string>;
+            changes: Record<string, number>;
+        };
 
         const toMb = (bytes: number | undefined): number | null => (
             Number.isFinite(bytes) ? Math.round((Number(bytes) / 1024 / 1024) * 100) / 100 : null
@@ -533,6 +557,73 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             sum + Math.max(0, canvas.width) * Math.max(0, canvas.height) * 4
         ), 0);
         const countSelector = (selector: string): number => document.querySelectorAll(selector).length;
+        const rounded = (value: number): number => Math.round(value * 100) / 100;
+        const rectForSelector = (selector: string): {
+            width: number | null;
+            height: number | null;
+            area: number | null;
+            key: string | null;
+        } => {
+            const element = document.querySelector(selector);
+            if (!element) return { width: null, height: null, area: null, key: null };
+            const rect = element.getBoundingClientRect();
+            const width = rounded(rect.width);
+            const height = rounded(rect.height);
+            return {
+                width,
+                height,
+                area: rounded(width * height),
+                key: `${rounded(rect.left)},${rounded(rect.top)},${width},${height}`,
+            };
+        };
+        const canvasRect = (() => {
+            const canvas = document.querySelector('[data-testid="ComparisonChart"] canvas') as HTMLCanvasElement | null;
+            if (!canvas) {
+                return {
+                    width: null,
+                    height: null,
+                    area: null,
+                    backingWidth: null,
+                    backingHeight: null,
+                    key: null,
+                };
+            }
+            const rect = canvas.getBoundingClientRect();
+            const width = rounded(rect.width);
+            const height = rounded(rect.height);
+            return {
+                width,
+                height,
+                area: rounded(width * height),
+                backingWidth: Math.max(0, canvas.width),
+                backingHeight: Math.max(0, canvas.height),
+                key: `${rounded(rect.left)},${rounded(rect.top)},${width},${height},${canvas.width},${canvas.height}`,
+            };
+        })();
+        const geometryState = (() => {
+            const target = window as unknown as { __rheolab_comparison_geometry?: ComparisonGeometryState };
+            target.__rheolab_comparison_geometry ??= { previous: {}, changes: {} };
+            return target.__rheolab_comparison_geometry;
+        })();
+        const rectChangeCount = (name: string, key: string | null): number | null => {
+            if (!key) return null;
+            if (geometryState.previous[name] && geometryState.previous[name] !== key) {
+                geometryState.changes[name] = (geometryState.changes[name] ?? 0) + 1;
+            } else {
+                geometryState.changes[name] ??= 0;
+            }
+            geometryState.previous[name] = key;
+            return geometryState.changes[name];
+        };
+        const comparisonHeaderRect = rectForSelector('[data-testid="ComparisonPageHeader"]');
+        const comparisonChipsRect = rectForSelector('[data-testid="SelectedExperimentsChips"]');
+        const comparisonChartContainerRect = rectForSelector('[data-testid="ComparisonChartContainer"]');
+        const comparisonChartRect = rectForSelector('[data-testid="ComparisonChart"]');
+        const comparisonHeaderChangeCount = rectChangeCount('header', comparisonHeaderRect.key);
+        const comparisonChipsChangeCount = rectChangeCount('chips', comparisonChipsRect.key);
+        const comparisonChartContainerChangeCount = rectChangeCount('chartContainer', comparisonChartContainerRect.key);
+        const comparisonChartChangeCount = rectChangeCount('chart', comparisonChartRect.key);
+        const comparisonCanvasChangeCount = rectChangeCount('canvas', canvasRect.key);
         const uplotInitMeasures = performance.getEntriesByName('uplot:init', 'measure');
         const uplotInitTotalMs = uplotInitMeasures.reduce((sum, entry) => sum + entry.duration, 0);
         const lifecycle = (window as unknown as {
@@ -555,6 +646,26 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             comparison_chart_root_count: countSelector('[data-testid="ComparisonChart"]'),
             comparison_chart_uplot_count: countSelector('[data-testid="ComparisonChart"] .uplot'),
             comparison_chart_canvas_count: countSelector('[data-testid="ComparisonChart"] canvas'),
+            device_pixel_ratio: Number.isFinite(window.devicePixelRatio) ? Number(window.devicePixelRatio) : null,
+            comparison_header_height: comparisonHeaderRect.height,
+            comparison_chips_width: comparisonChipsRect.width,
+            comparison_chips_height: comparisonChipsRect.height,
+            comparison_chips_area: comparisonChipsRect.area,
+            comparison_chart_container_width: comparisonChartContainerRect.width,
+            comparison_chart_container_height: comparisonChartContainerRect.height,
+            comparison_chart_container_area: comparisonChartContainerRect.area,
+            comparison_chart_width: comparisonChartRect.width,
+            comparison_chart_height: comparisonChartRect.height,
+            comparison_chart_area: comparisonChartRect.area,
+            comparison_chart_canvas_css_width: canvasRect.width,
+            comparison_chart_canvas_css_height: canvasRect.height,
+            comparison_chart_canvas_backing_width: canvasRect.backingWidth,
+            comparison_chart_canvas_backing_height: canvasRect.backingHeight,
+            comparison_header_rect_change_count: comparisonHeaderChangeCount,
+            comparison_chips_rect_change_count: comparisonChipsChangeCount,
+            comparison_chart_container_rect_change_count: comparisonChartContainerChangeCount,
+            comparison_chart_rect_change_count: comparisonChartChangeCount,
+            comparison_canvas_rect_change_count: comparisonCanvasChangeCount,
             comparison_report_root_count: countSelector('[data-testid="ComparisonReportTabRoot"]'),
             dashboard_chart_root_count: countSelector('[data-testid="DashboardChartContainer"]'),
             dashboard_chart_uplot_count: countSelector('[data-testid="DashboardChartContainer"] .uplot'),
