@@ -27,8 +27,7 @@
         "$DOWNLOADS/**",
         "$TEMP/**",
         "$DESKTOP/**",
-        "$DOCUMENT/**",
-        "$HOME/**"
+        "$DOCUMENT/**"
       ]
     },
     "dialog:default",
