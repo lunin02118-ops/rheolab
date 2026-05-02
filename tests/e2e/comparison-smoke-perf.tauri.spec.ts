@@ -190,6 +190,15 @@ interface RendererMemorySnapshot {
     dashboard_chart_canvas_count: number;
     uplot_init_measure_count: number;
     uplot_init_total_ms: number | null;
+    comparison_uplot_lifecycle_active_instances: number | null;
+    comparison_uplot_lifecycle_max_active_instances: number | null;
+    comparison_uplot_lifecycle_create_count: number | null;
+    comparison_uplot_lifecycle_destroy_count: number | null;
+    comparison_uplot_lifecycle_set_data_count: number | null;
+    comparison_uplot_lifecycle_size_count: number | null;
+    comparison_uplot_lifecycle_redraw_count: number | null;
+    comparison_uplot_lifecycle_first_paint_count: number | null;
+    comparison_uplot_lifecycle_event_count: number | null;
     series_cache_entries: number | null;
     series_cache_bytes: number | null;
     series_cache_max_entries: number | null;
@@ -373,6 +382,23 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
         type TauriInternals = {
             invoke?: (command: string, args?: unknown) => Promise<unknown>;
         };
+        type UPlotLifecycleLabelStats = {
+            activeInstances?: number;
+            maxActiveInstances?: number;
+            createCount?: number;
+            destroyCount?: number;
+            setDataCount?: number;
+            sizeCount?: number;
+            redrawCount?: number;
+            firstPaintCount?: number;
+        };
+        type UPlotLifecycleEvent = {
+            label?: string;
+        };
+        type UPlotLifecycleState = {
+            events?: UPlotLifecycleEvent[];
+            stats?: () => Record<string, UPlotLifecycleLabelStats>;
+        };
 
         const toMb = (bytes: number | undefined): number | null => (
             Number.isFinite(bytes) ? Math.round((Number(bytes) / 1024 / 1024) * 100) / 100 : null
@@ -509,6 +535,13 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
         const countSelector = (selector: string): number => document.querySelectorAll(selector).length;
         const uplotInitMeasures = performance.getEntriesByName('uplot:init', 'measure');
         const uplotInitTotalMs = uplotInitMeasures.reduce((sum, entry) => sum + entry.duration, 0);
+        const lifecycle = (window as unknown as {
+            __rheolab_uplot_lifecycle?: UPlotLifecycleState;
+        }).__rheolab_uplot_lifecycle;
+        const comparisonLifecycle = lifecycle?.stats?.().comparison;
+        const comparisonLifecycleEventCount = lifecycle?.events
+            ? lifecycle.events.filter(event => event.label === 'comparison').length
+            : null;
 
         return {
             route: window.location.pathname,
@@ -528,6 +561,33 @@ async function snapshotRendererMemory(page: Page): Promise<RendererMemorySnapsho
             dashboard_chart_canvas_count: countSelector('[data-testid="DashboardChartContainer"] canvas'),
             uplot_init_measure_count: uplotInitMeasures.length,
             uplot_init_total_ms: uplotInitMeasures.length > 0 ? Math.round(uplotInitTotalMs * 100) / 100 : null,
+            comparison_uplot_lifecycle_active_instances: Number.isFinite(comparisonLifecycle?.activeInstances)
+                ? Number(comparisonLifecycle?.activeInstances)
+                : null,
+            comparison_uplot_lifecycle_max_active_instances: Number.isFinite(comparisonLifecycle?.maxActiveInstances)
+                ? Number(comparisonLifecycle?.maxActiveInstances)
+                : null,
+            comparison_uplot_lifecycle_create_count: Number.isFinite(comparisonLifecycle?.createCount)
+                ? Number(comparisonLifecycle?.createCount)
+                : null,
+            comparison_uplot_lifecycle_destroy_count: Number.isFinite(comparisonLifecycle?.destroyCount)
+                ? Number(comparisonLifecycle?.destroyCount)
+                : null,
+            comparison_uplot_lifecycle_set_data_count: Number.isFinite(comparisonLifecycle?.setDataCount)
+                ? Number(comparisonLifecycle?.setDataCount)
+                : null,
+            comparison_uplot_lifecycle_size_count: Number.isFinite(comparisonLifecycle?.sizeCount)
+                ? Number(comparisonLifecycle?.sizeCount)
+                : null,
+            comparison_uplot_lifecycle_redraw_count: Number.isFinite(comparisonLifecycle?.redrawCount)
+                ? Number(comparisonLifecycle?.redrawCount)
+                : null,
+            comparison_uplot_lifecycle_first_paint_count: Number.isFinite(comparisonLifecycle?.firstPaintCount)
+                ? Number(comparisonLifecycle?.firstPaintCount)
+                : null,
+            comparison_uplot_lifecycle_event_count: Number.isFinite(comparisonLifecycleEventCount)
+                ? Number(comparisonLifecycleEventCount)
+                : null,
             series_cache_entries: seriesStats.entries,
             series_cache_bytes: seriesStats.byte_size,
             series_cache_max_entries: seriesStats.max_entries,
@@ -608,6 +668,76 @@ async function recordMemoryStep(
             error: error instanceof Error ? error.message : String(error),
         });
     }
+}
+
+interface ComparisonUPlotLifecycleStats {
+    activeInstances: number;
+    maxActiveInstances: number;
+    createCount: number;
+    destroyCount: number;
+    setDataCount: number;
+    sizeCount: number;
+    redrawCount: number;
+    firstPaintCount: number;
+    eventCount: number;
+}
+
+type ComparisonUPlotLifecycleCountKey = Exclude<keyof ComparisonUPlotLifecycleStats, 'eventCount'>;
+
+async function readComparisonUPlotLifecycleStats(page: Page): Promise<ComparisonUPlotLifecycleStats> {
+    return page.evaluate(() => {
+        type LabelStats = {
+            activeInstances?: number;
+            maxActiveInstances?: number;
+            createCount?: number;
+            destroyCount?: number;
+            setDataCount?: number;
+            sizeCount?: number;
+            redrawCount?: number;
+            firstPaintCount?: number;
+        };
+        type LifecycleState = {
+            events?: Array<{ label?: string }>;
+            stats?: () => Record<string, LabelStats>;
+        };
+        const lifecycle = (window as unknown as {
+            __rheolab_uplot_lifecycle?: LifecycleState;
+        }).__rheolab_uplot_lifecycle;
+        const stats = lifecycle?.stats?.().comparison ?? {};
+        const numberValue = (value: unknown): number => (
+            Number.isFinite(Number(value)) ? Number(value) : 0
+        );
+        return {
+            activeInstances: numberValue(stats.activeInstances),
+            maxActiveInstances: numberValue(stats.maxActiveInstances),
+            createCount: numberValue(stats.createCount),
+            destroyCount: numberValue(stats.destroyCount),
+            setDataCount: numberValue(stats.setDataCount),
+            sizeCount: numberValue(stats.sizeCount),
+            redrawCount: numberValue(stats.redrawCount),
+            firstPaintCount: numberValue(stats.firstPaintCount),
+            eventCount: Array.isArray(lifecycle?.events)
+                ? lifecycle.events.filter(event => event.label === 'comparison').length
+                : 0,
+        };
+    });
+}
+
+async function waitForComparisonUPlotLifecycleCount(
+    page: Page,
+    key: ComparisonUPlotLifecycleCountKey,
+    minValue: number,
+    timeoutMs = 5_000,
+): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        const stats = await readComparisonUPlotLifecycleStats(page);
+        if (stats[key] >= minValue) return true;
+        await page.waitForTimeout(50);
+    }
+    const stats = await readComparisonUPlotLifecycleStats(page);
+    console.log(`[CmpSmoke] lifecycle wait timed out for ${key} >= ${minValue}: ${JSON.stringify(stats)}`);
+    return false;
 }
 
 /**
@@ -822,17 +952,34 @@ async function addExperimentByNameWithMemoryPhases(
         .filter({ hasText: name })
         .first();
     await expect(btn).toBeVisible({ timeout: 10_000 });
+    const lifecycleBeforeClick = await readComparisonUPlotLifecycleStats(comparison.page);
+    await recordMem(`before_${phasePrefix}_click`);
     await btn.click();
     await recordMem(`after_${phasePrefix}_click`);
+    await recordMem(`after_${phasePrefix}_click_before_chart_commit`);
 
     await waitForComparisonStoreSelectedCount(comparison.page, targetCount);
     await comparison.expectChipCount(targetCount);
+    await recordMem(`after_${phasePrefix}_react_commit`);
     await recordMem(`after_${phasePrefix}_store_update`);
 
     await comparison.closeSelector();
+    const expectedCreateCount = lifecycleBeforeClick.createCount + 1;
+    const expectedSetDataCount = lifecycleBeforeClick.setDataCount + 1;
+    const expectedFirstPaintCount = lifecycleBeforeClick.firstPaintCount + 1;
+    await waitForComparisonUPlotLifecycleCount(comparison.page, 'createCount', expectedCreateCount);
+    await recordMem(`after_${phasePrefix}_uplot_init`);
+    await waitForComparisonUPlotLifecycleCount(comparison.page, 'setDataCount', expectedSetDataCount);
+    await recordMem(`after_${phasePrefix}_uplot_set_data`);
+    await waitForComparisonUPlotLifecycleCount(comparison.page, 'firstPaintCount', expectedFirstPaintCount);
+    await recordMem(`after_${phasePrefix}_first_canvas_paint`);
     await waitForComparisonSeriesReady(comparison.page, targetCount);
     await recordMem(`after_${phasePrefix}_series_ready`);
 
+    await comparison.page.waitForTimeout(100);
+    await recordMem(`after_${phasePrefix}_compositor_settle_100ms`);
+    await comparison.page.waitForTimeout(400);
+    await recordMem(`after_${phasePrefix}_compositor_settle_500ms`);
     await comparison.page.waitForTimeout(300);
     await recordMem(`after_${phasePrefix}_dom_settle`);
 }

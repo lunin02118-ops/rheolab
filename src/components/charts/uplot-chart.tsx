@@ -2,6 +2,146 @@ import React, { useEffect, useRef } from 'react';
 import uPlot from 'uplot';
 import 'uplot/dist/uPlot.min.css';
 
+type UPlotLifecycleEventName =
+    | 'create-start'
+    | 'create-end'
+    | 'set-data-start'
+    | 'set-data-end'
+    | 'size-start'
+    | 'size-end'
+    | 'redraw-start'
+    | 'redraw-end'
+    | 'first-paint'
+    | 'destroy-start'
+    | 'destroy-end';
+
+interface UPlotLifecycleEvent {
+    label: string;
+    instanceId: number;
+    event: UPlotLifecycleEventName;
+    at: number;
+    activeInstances: number;
+}
+
+interface UPlotLifecycleLabelStats {
+    activeInstances: number;
+    maxActiveInstances: number;
+    createCount: number;
+    destroyCount: number;
+    setDataCount: number;
+    sizeCount: number;
+    redrawCount: number;
+    firstPaintCount: number;
+}
+
+interface UPlotLifecycleState {
+    nextInstanceId: number;
+    active: Record<number, string>;
+    maxActiveByLabel: Record<string, number>;
+    events: UPlotLifecycleEvent[];
+    stats: () => Record<string, UPlotLifecycleLabelStats>;
+}
+
+declare global {
+    interface Window {
+        __rheolab_uplot_lifecycle?: UPlotLifecycleState;
+    }
+}
+
+const MAX_LIFECYCLE_EVENTS = 300;
+
+function lifecycleNow(): number {
+    return typeof performance !== 'undefined' ? Math.round(performance.now() * 100) / 100 : Date.now();
+}
+
+function lifecycleState(): UPlotLifecycleState | null {
+    if (typeof window === 'undefined') return null;
+    if (!window.__rheolab_uplot_lifecycle) {
+        const state: UPlotLifecycleState = {
+            nextInstanceId: 0,
+            active: {},
+            maxActiveByLabel: {},
+            events: [],
+            stats: () => {
+                const out: Record<string, UPlotLifecycleLabelStats> = {};
+                const ensure = (label: string): UPlotLifecycleLabelStats => {
+                    out[label] ??= {
+                        activeInstances: Object.values(state.active).filter(value => value === label).length,
+                        maxActiveInstances: state.maxActiveByLabel[label] ?? 0,
+                        createCount: 0,
+                        destroyCount: 0,
+                        setDataCount: 0,
+                        sizeCount: 0,
+                        redrawCount: 0,
+                        firstPaintCount: 0,
+                    };
+                    return out[label];
+                };
+
+                for (const label of Object.values(state.active)) {
+                    ensure(label);
+                }
+                for (const label of Object.keys(state.maxActiveByLabel)) {
+                    ensure(label);
+                }
+                for (const event of state.events) {
+                    const stats = ensure(event.label);
+                    if (event.event === 'create-end') stats.createCount += 1;
+                    if (event.event === 'destroy-end') stats.destroyCount += 1;
+                    if (event.event === 'set-data-end') stats.setDataCount += 1;
+                    if (event.event === 'size-end') stats.sizeCount += 1;
+                    if (event.event === 'redraw-end') stats.redrawCount += 1;
+                    if (event.event === 'first-paint') stats.firstPaintCount += 1;
+                }
+                return out;
+            },
+        };
+        window.__rheolab_uplot_lifecycle = state;
+    }
+    return window.__rheolab_uplot_lifecycle;
+}
+
+function allocateLifecycleInstance(): number {
+    const state = lifecycleState();
+    if (!state) return 0;
+    state.nextInstanceId += 1;
+    return state.nextInstanceId;
+}
+
+function activeCountForLabel(state: UPlotLifecycleState, label: string): number {
+    return Object.values(state.active).filter(value => value === label).length;
+}
+
+function recordLifecycleEvent(
+    label: string | undefined,
+    instanceId: number,
+    event: UPlotLifecycleEventName,
+): void {
+    if (!label) return;
+    const state = lifecycleState();
+    if (!state) return;
+
+    if (event === 'create-end') {
+        state.active[instanceId] = label;
+        const activeCount = activeCountForLabel(state, label);
+        state.maxActiveByLabel[label] = Math.max(state.maxActiveByLabel[label] ?? 0, activeCount);
+    }
+    if (event === 'destroy-end') {
+        delete state.active[instanceId];
+    }
+
+    state.events.push({
+        label,
+        instanceId,
+        event,
+        at: lifecycleNow(),
+        activeInstances: activeCountForLabel(state, label),
+    });
+    if (state.events.length > MAX_LIFECYCLE_EVENTS) {
+        state.events.splice(0, state.events.length - MAX_LIFECYCLE_EVENTS);
+    }
+}
+
 /**
  * Collect tooltip instance IDs from the plugins array so the cleanup
  * effect can do a targeted safety-net removal of body-appended tooltips
@@ -35,6 +175,8 @@ export interface UPlotChartProps {
      *  Useful for imperative access (e.g. ChartBrush calling setScale).
      *  Always receives the freshest instance even if options change. */
     onInit?: (u: uPlot) => void;
+    /** Optional read-only diagnostics label for perf smoke lifecycle counters. */
+    diagnosticsLabel?: string;
     /**
      * When this value changes identity (reference or primitive), calls
      * `u.redraw(false)` on the existing chart without recreating it.
@@ -53,6 +195,7 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
     className,
     ariaLabel,
     onInit,
+    diagnosticsLabel,
     redrawTrigger,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -82,16 +225,21 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
         if (!containerRef.current) return;
 
         let chart: uPlot | null = null;
+        let firstPaintRaf = 0;
+        let secondPaintRaf = 0;
+        const lifecycleInstanceId = diagnosticsLabel ? allocateLifecycleInstance() : 0;
         // Snapshot tooltip IDs BEFORE creating the chart — they are embedded
         // in the plugins array by tooltipPlugin() and won't change later.
         const tooltipIds = collectTooltipIds(options.plugins);
 
         try {
+            recordLifecycleEvent(diagnosticsLabel, lifecycleInstanceId, 'create-start');
             performance.mark('uplot:init:start');
             chart = new uPlot(options, dataRef.current, containerRef.current);
             performance.mark('uplot:init:end');
             try { performance.measure('uplot:init', 'uplot:init:start', 'uplot:init:end'); } catch (_e) { /* ignore */ }
             chartRef.current = chart;
+            recordLifecycleEvent(diagnosticsLabel, lifecycleInstanceId, 'create-end');
 
             // After creation, immediately apply the correct container size.
             // The options contain dummy width/height (100×100); the real size
@@ -102,19 +250,29 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
             const w = sizeRef.current.width;
             const h = sizeRef.current.height;
             if (w !== undefined && h !== undefined) {
+                recordLifecycleEvent(diagnosticsLabel, lifecycleInstanceId, 'size-start');
                 chart.setSize({ width: w, height: h });
+                recordLifecycleEvent(diagnosticsLabel, lifecycleInstanceId, 'size-end');
             }
 
             // Use the ref so we always call the latest onInit even if the prop
             // changed between renders without options changing.
             onInitRef.current?.(chart);
+            firstPaintRaf = requestAnimationFrame(() => {
+                secondPaintRaf = requestAnimationFrame(() => {
+                    recordLifecycleEvent(diagnosticsLabel, lifecycleInstanceId, 'first-paint');
+                });
+            });
         } catch (err) {
             console.error('[UPlotChart] Failed to create uPlot instance:', err);
             chartRef.current = null;
         }
 
         return () => {
+            if (firstPaintRaf) cancelAnimationFrame(firstPaintRaf);
+            if (secondPaintRaf) cancelAnimationFrame(secondPaintRaf);
             if (chart) {
+                recordLifecycleEvent(diagnosticsLabel, lifecycleInstanceId, 'destroy-start');
                 try {
                     // Zero out canvas dimensions before destroy() to immediately
                     // release the GPU texture backing store. Without this, the GPU
@@ -127,6 +285,8 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
                     chart.destroy();
                 } catch (err) {
                     console.warn('[UPlotChart] chart.destroy() error:', err);
+                } finally {
+                    recordLifecycleEvent(diagnosticsLabel, lifecycleInstanceId, 'destroy-end');
                 }
                 // Break the closure reference so the uPlot instance (and all
                 // its internal DOM nodes) can be GC'd even if React's fiber
@@ -153,30 +313,36 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
             }
         };
          
-    }, [options]); // Do NOT add width/height here — handled by setSize below
+    }, [diagnosticsLabel, options]); // Do NOT add width/height here — handled by setSize below
 
     // Update data in-place without triggering chart recreation
     useEffect(() => {
         if (chartRef.current) {
+            recordLifecycleEvent(diagnosticsLabel, 0, 'set-data-start');
             chartRef.current.setData(data, resetScalesOnDataChange);
+            recordLifecycleEvent(diagnosticsLabel, 0, 'set-data-end');
         }
-    }, [data, resetScalesOnDataChange]);
+    }, [data, diagnosticsLabel, resetScalesOnDataChange]);
 
     // Apply size changes via setSize — much cheaper than full recreation
     useEffect(() => {
         if (chartRef.current && width !== undefined && height !== undefined) {
+            recordLifecycleEvent(diagnosticsLabel, 0, 'size-start');
             chartRef.current.setSize({ width, height });
+            recordLifecycleEvent(diagnosticsLabel, 0, 'size-end');
         }
-    }, [width, height]);
+    }, [diagnosticsLabel, width, height]);
 
     // Force plugin-overlay repaint when caller signals a change (e.g. touch-point
     // settings update) without recreating the chart or re-running setData.
     useEffect(() => {
         if (chartRef.current) {
+            recordLifecycleEvent(diagnosticsLabel, 0, 'redraw-start');
             chartRef.current.redraw(false);
+            recordLifecycleEvent(diagnosticsLabel, 0, 'redraw-end');
         }
      
-    }, [redrawTrigger]);
+    }, [diagnosticsLabel, redrawTrigger]);
 
     return (
         <div

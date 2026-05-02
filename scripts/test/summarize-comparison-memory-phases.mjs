@@ -42,6 +42,15 @@ const APP_METRICS = [
   ['dashboard_chart_uplot_count', 'Dash chart uPlot', 'count'],
   ['dashboard_chart_canvas_count', 'Dash chart canvas', 'count'],
   ['uplot_init_total_ms', 'uPlot init total', 'ms'],
+  ['comparison_uplot_lifecycle_active_instances', 'Cmp lifecycle active', 'count'],
+  ['comparison_uplot_lifecycle_max_active_instances', 'Cmp lifecycle max active', 'count'],
+  ['comparison_uplot_lifecycle_create_count', 'Cmp lifecycle creates', 'count'],
+  ['comparison_uplot_lifecycle_destroy_count', 'Cmp lifecycle destroys', 'count'],
+  ['comparison_uplot_lifecycle_set_data_count', 'Cmp lifecycle setData', 'count'],
+  ['comparison_uplot_lifecycle_size_count', 'Cmp lifecycle setSize', 'count'],
+  ['comparison_uplot_lifecycle_redraw_count', 'Cmp lifecycle redraws', 'count'],
+  ['comparison_uplot_lifecycle_first_paint_count', 'Cmp lifecycle first paints', 'count'],
+  ['comparison_uplot_lifecycle_event_count', 'Cmp lifecycle events', 'count'],
 ];
 
 function summaryPhases(n) {
@@ -69,9 +78,17 @@ function summaryPhases(n) {
       `before_add_${i}`,
       `after_add_${i}_selector_open`,
       `after_add_${i}_selector_search`,
+      `before_add_${i}_click`,
       `after_add_${i}_click`,
+      `after_add_${i}_click_before_chart_commit`,
+      `after_add_${i}_react_commit`,
       `after_add_${i}_store_update`,
+      `after_add_${i}_uplot_init`,
+      `after_add_${i}_uplot_set_data`,
+      `after_add_${i}_first_canvas_paint`,
       `after_add_${i}_series_ready`,
+      `after_add_${i}_compositor_settle_100ms`,
+      `after_add_${i}_compositor_settle_500ms`,
       `after_add_${i}_dom_settle`,
       `after_add_${i}`,
     );
@@ -286,6 +303,18 @@ function buildSummary(entries, n) {
     exportSaveModes: [...new Set(entries.flatMap((entry) => entry.exportSaveModes).filter(Boolean))],
     rows,
     deltas: {
+      after_add_selector_search_to_click: Object.fromEntries(
+        METRICS.map(([key]) => [key, delta(`after_add_${n}_click`, `after_add_${n}_selector_search`, key)]),
+      ),
+      after_add_click_to_uplot_init: Object.fromEntries(
+        METRICS.map(([key]) => [key, delta(`after_add_${n}_uplot_init`, `after_add_${n}_click`, key)]),
+      ),
+      after_uplot_init_to_first_canvas_paint: Object.fromEntries(
+        METRICS.map(([key]) => [key, delta(`after_add_${n}_first_canvas_paint`, `after_add_${n}_uplot_init`, key)]),
+      ),
+      after_first_canvas_paint_to_compositor_settle_500ms: Object.fromEntries(
+        METRICS.map(([key]) => [key, delta(`after_add_${n}_compositor_settle_500ms`, `after_add_${n}_first_canvas_paint`, key)]),
+      ),
       after_fixture_cleanup_to_after_add: Object.fromEntries(
         METRICS.map(([key]) => [key, delta(`after_add_${n}`, `after_fixture_${n}_cleanup`, key)]),
       ),
@@ -373,6 +402,10 @@ function buildMarkdown(summary) {
   lines.push('');
   lines.push('| Delta | Total | Renderer | GPU | Tauri |');
   lines.push('| --- | ---: | ---: | ---: | ---: |');
+  lines.push(`| after_add_${summary.n}_selector_search -> after_add_${summary.n}_click | ${formatValue(summary.deltas.after_add_selector_search_to_click.total_rss_mb)} | ${formatValue(summary.deltas.after_add_selector_search_to_click.renderer_rss_mb)} | ${formatValue(summary.deltas.after_add_selector_search_to_click.gpu_rss_mb)} | ${formatValue(summary.deltas.after_add_selector_search_to_click.tauri_rss_mb)} |`);
+  lines.push(`| after_add_${summary.n}_click -> after_add_${summary.n}_uplot_init | ${formatValue(summary.deltas.after_add_click_to_uplot_init.total_rss_mb)} | ${formatValue(summary.deltas.after_add_click_to_uplot_init.renderer_rss_mb)} | ${formatValue(summary.deltas.after_add_click_to_uplot_init.gpu_rss_mb)} | ${formatValue(summary.deltas.after_add_click_to_uplot_init.tauri_rss_mb)} |`);
+  lines.push(`| after_add_${summary.n}_uplot_init -> after_add_${summary.n}_first_canvas_paint | ${formatValue(summary.deltas.after_uplot_init_to_first_canvas_paint.total_rss_mb)} | ${formatValue(summary.deltas.after_uplot_init_to_first_canvas_paint.renderer_rss_mb)} | ${formatValue(summary.deltas.after_uplot_init_to_first_canvas_paint.gpu_rss_mb)} | ${formatValue(summary.deltas.after_uplot_init_to_first_canvas_paint.tauri_rss_mb)} |`);
+  lines.push(`| after_add_${summary.n}_first_canvas_paint -> after_add_${summary.n}_compositor_settle_500ms | ${formatValue(summary.deltas.after_first_canvas_paint_to_compositor_settle_500ms.total_rss_mb)} | ${formatValue(summary.deltas.after_first_canvas_paint_to_compositor_settle_500ms.renderer_rss_mb)} | ${formatValue(summary.deltas.after_first_canvas_paint_to_compositor_settle_500ms.gpu_rss_mb)} | ${formatValue(summary.deltas.after_first_canvas_paint_to_compositor_settle_500ms.tauri_rss_mb)} |`);
   lines.push(`| after_fixture_${summary.n}_cleanup -> after_add_${summary.n} | ${formatValue(summary.deltas.after_fixture_cleanup_to_after_add.total_rss_mb)} | ${formatValue(summary.deltas.after_fixture_cleanup_to_after_add.renderer_rss_mb)} | ${formatValue(summary.deltas.after_fixture_cleanup_to_after_add.gpu_rss_mb)} | ${formatValue(summary.deltas.after_fixture_cleanup_to_after_add.tauri_rss_mb)} |`);
   lines.push(`| after_add_${summary.n} -> after_chart_canvas_painted | ${formatValue(summary.deltas.after_add_to_after_chart_canvas_painted.total_rss_mb)} | ${formatValue(summary.deltas.after_add_to_after_chart_canvas_painted.renderer_rss_mb)} | ${formatValue(summary.deltas.after_add_to_after_chart_canvas_painted.gpu_rss_mb)} | ${formatValue(summary.deltas.after_add_to_after_chart_canvas_painted.tauri_rss_mb)} |`);
   lines.push(`| after_xlsx - after_export_gc_hint | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.total_rss_mb)} | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.renderer_rss_mb)} | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.gpu_rss_mb)} | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.tauri_rss_mb)} |`);

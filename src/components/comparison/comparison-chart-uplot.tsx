@@ -676,6 +676,7 @@ function ComparisonChartUPlotInner({
                             width={chartSize.width} 
                             height={chartSize.height}
                             onInit={handleChartInit}
+                            diagnosticsLabel="comparison"
                         />
                     </div>
                 ) : (
