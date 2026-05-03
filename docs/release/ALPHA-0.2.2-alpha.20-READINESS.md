@@ -46,9 +46,36 @@ Notes:
 - An initial `perf:comparison:tauri` run failed because the existing debug binary opened `localhost` instead of bundled `tauri.localhost`. Rebuilding with `src-tauri/tauri.e2e.conf.json` fixed the runner, and the rerun passed.
 - Tauri E2E teardown still prints occasional Windows `EBUSY`/`EPERM` cleanup warnings for isolated temp DB/WebView2 folders after the test process exits. The release gate itself passed and terminated the Tauri process.
 
-## Last Two Weeks: Work, Results, Benefit
+## Last Four Weeks: Comparison, Results, Benefit
 
-Scope: 2026-04-19 through 2026-05-03.
+Scope: 2026-04-05 through 2026-05-03. The available repository history inside
+that window starts on 2026-04-17 with `0.2.0-beta.5`.
+
+## Four-Week Executive Delta
+
+| Metric | Start of available 4-week history | Current alpha.20 state | Result |
+| --- | --- | --- | --- |
+| Version/channel | `0.2.0-beta.5` | `0.2.2-alpha.20` | Alpha release train prepared with SSoT validation. |
+| Commits in window | n/a | 375 commits | Heavy hardening/refactor/release push. |
+| Files changed in window | n/a | 1,101 files touched | Large modernization pass, including docs/tests/generated artifacts. |
+| Net diff in window | n/a | +226,234 / -29,465 lines | Broad codebase reshaping; includes generated/bundled/documentation churn. |
+| Commit mix | n/a | 67 chore, 67 docs, 56 fix, 51 refactor, 44 perf, 40 feat, 12 test, 6 build, 5 sec | Work was not only feature work; most changes were release, audit, hardening and stabilization. |
+| Version discipline | Multiple version files were manually synchronized | `/version.json` is SSoT; 4 dependents validated | Drift is caught by `version:validate` before build/release. |
+| Release gate | Comparison report workflow existed but was not the final authority | `npm run test:release-gate` PASS | 4 fixtures, Comparison chart, Report tab, 7 exports; heap growth `+5.29 MB` vs `20 MB` budget. |
+| Frontend/type gate | Existing suite varied by phase | `npm test`, `typecheck`, `lint`, `build:ci` all PASS | Alpha branch is locally green. |
+| Rust gate | Multiple focused Rust suites existed | Full `cargo test --manifest-path src-tauri/Cargo.toml` PASS | 455 lib tests + 25 AI parsing + 12 DB integrity + 10 IPC contract tests. |
+| Dependency security | npm/cargo audits were part of audit work | `npm audit --omit=dev` = 0 vulns; `cargo audit` PASS, 884 deps scanned | No known production dependency advisories in current gate. |
+| Large IPC | Legacy report/comparison payload IPC still existed earlier in the window | `audit:large-ipc` PASS, 92 Rust files, 0 violations | Report/comparison paths no longer rely on full scientific payload IPC. |
+| Tauri FS scope | Broad filesystem scope was identified as a security debt | `$HOME/**` removed; scope narrowed to app/download/temp/desktop/document paths | Smaller renderer-compromise blast radius. |
+| Comparison app-owned memory | Earlier hypothesis blamed WN/Comparison store/export | raw/columnar `0/0`, parse cache `0`, JS heap after export GC about `11.5 MB` | Current evidence rejects more blind WN/store/export RAM refactors. |
+| Remaining RSS/GPU | Total RSS was being treated as a hard target | Classified as WebView2/GPU compositor soft RSS at chart commit | Release claim is honest: app-owned memory bounded, Total/GPU RSS soft. |
+| Comparison UX latency | No post-memory-closeout UX baseline | N=5 direct-save p50 `4302 ms`, p95 `4339.8 ms`; alpha.20 smoke `4362 ms` | Next perf target is selector search, not memory/cache. |
+| Series/request footprint | Chart requested broader metric sets | Visible-metrics request path; frontend cache after add-5 `265,160 B` | Smaller renderer cache footprint without affecting report export truth. |
+| Report/export path | Full payload report flows were still being removed | By-id PDF/XLSX path release-gated; 7 exports validated in desktop workflow | Export is safer, smaller over IPC and tested end-to-end. |
+| DB/library | Audit identified index/query/projection work | Migrations/indexes/projection/query-plan tests pass | Better scaling path for saved experiment library. |
+| Backup/restore | Restore/import integrity gaps were audited | FK collision rollback, pending restore validation and quarantine covered by tests | Lower risk of corrupting user data. |
+
+## Four-Week Work Breakdown
 
 | Area | What changed | Real result | Product/release benefit |
 | --- | --- | --- | --- |
