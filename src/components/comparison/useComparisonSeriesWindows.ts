@@ -16,6 +16,7 @@ import {
 
 const DEFAULT_COMPARISON_SERIES_MAX_POINTS = 1500;
 const WINDOW_DEBOUNCE_MS = 100;
+const COMPARISON_BINARY_SERIES_OPT_IN_FLAG = 'RHEOLAB_COMPARISON_BINARY_SERIES';
 
 export type ComparisonLineSeriesStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -68,7 +69,7 @@ export function isComparisonBinarySeriesEnabled(): boolean {
     if (!isTauri()) return false;
     if (localStorageFlag('RHEOLAB_SERIES_LEGACY_AOS') === '1') return false;
     if (localStorageFlag('RHEOLAB_COMPARISON_LEGACY_EXPERIMENT_STORE') === '1') return false;
-    return true;
+    return localStorageFlag(COMPARISON_BINARY_SERIES_OPT_IN_FLAG) === '1';
 }
 
 function isFileExperiment(exp: Experiment): boolean {

@@ -50,6 +50,7 @@ describe('ComparisonSelector', () => {
     });
 
     it('adds saved DB experiments as metadata-only records in binary comparison mode', async () => {
+        window.localStorage.setItem('RHEOLAB_COMPARISON_BINARY_SERIES', '1');
         const onSelect = vi.fn();
 
         render(<ComparisonSelector isOpen onClose={vi.fn()} onSelect={onSelect} />);
@@ -69,8 +70,7 @@ describe('ComparisonSelector', () => {
         });
     });
 
-    it('keeps the legacy full-data load when the comparison store fallback is enabled', async () => {
-        window.localStorage.setItem('RHEOLAB_COMPARISON_LEGACY_EXPERIMENT_STORE', '1');
+    it('loads full saved DB experiments by default for the alpha comparison chart path', async () => {
         const fullExperiment = makeListExperiment({
             rawPoints: [{ time_sec: 0, viscosity_cp: 100 }],
         });

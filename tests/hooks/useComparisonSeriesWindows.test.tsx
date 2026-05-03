@@ -2,7 +2,10 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Experiment } from '@/types';
-import { useComparisonSeriesWindows } from '@/components/comparison/useComparisonSeriesWindows';
+import {
+    isComparisonBinarySeriesEnabled,
+    useComparisonSeriesWindows,
+} from '@/components/comparison/useComparisonSeriesWindows';
 import { series } from '@/lib/tauri/series';
 import { seriesWindowCache } from '@/lib/series/series-window-cache';
 import type { SeriesWindow } from '@/lib/series/binary-series';
@@ -89,6 +92,8 @@ function deferred<T>() {
 describe('useComparisonSeriesWindows', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        window.localStorage.clear();
+        window.localStorage.setItem('RHEOLAB_COMPARISON_BINARY_SERIES', '1');
         seriesWindowCache.clear();
         vi.mocked(series.meta).mockResolvedValue({
             experimentId: 'exp-1',
@@ -104,6 +109,35 @@ describe('useComparisonSeriesWindows', () => {
         vi.mocked(series.window).mockImplementation((experimentId: string) =>
             Promise.resolve(makeSeriesWindow(experimentId)),
         );
+    });
+
+    it('defaults to full-data passthrough unless binary mode is explicitly enabled', () => {
+        window.localStorage.removeItem('RHEOLAB_COMPARISON_BINARY_SERIES');
+        const experiment = makeExperiment('exp-1');
+
+        const { result } = renderHook(({ experiments }: HookProps) =>
+            useComparisonSeriesWindows({ experiments }), {
+            initialProps: { experiments: [experiment] },
+        });
+
+        expect(isComparisonBinarySeriesEnabled()).toBe(false);
+        expect(series.overview).not.toHaveBeenCalled();
+        expect(series.window).not.toHaveBeenCalled();
+        expect(result.current.experiments[0]).toBe(experiment);
+        expect(result.current.brushExperiments[0]).toBe(experiment);
+    });
+
+    it('allows the binary window path behind the diagnostic opt-in flag', () => {
+        expect(isComparisonBinarySeriesEnabled()).toBe(true);
+    });
+
+    it('keeps legacy kill switches authoritative over the diagnostic opt-in flag', () => {
+        window.localStorage.setItem('RHEOLAB_SERIES_LEGACY_AOS', '1');
+        expect(isComparisonBinarySeriesEnabled()).toBe(false);
+
+        window.localStorage.removeItem('RHEOLAB_SERIES_LEGACY_AOS');
+        window.localStorage.setItem('RHEOLAB_COMPARISON_LEGACY_EXPERIMENT_STORE', '1');
+        expect(isComparisonBinarySeriesEnabled()).toBe(false);
     });
 
     it('loads each DB-backed experiment independently', async () => {

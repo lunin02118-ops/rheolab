@@ -236,6 +236,7 @@ function expectBrushPannedWithoutResize(before: BrushState, next: BrushState | n
 
 async function resetComparisonState(page: Page): Promise<void> {
   await page.evaluate(() => {
+    localStorage.setItem('RHEOLAB_COMPARISON_BINARY_SERIES', '1');
     localStorage.removeItem('comparison-storage');
     const store = (window as unknown as {
       __rheolab_comparison_store?: {
