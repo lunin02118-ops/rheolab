@@ -132,6 +132,7 @@ interface ComparisonSmokeMeasurement {
     export_save_mode: 'download' | 'direct';
     add5_experiment: Add5ExperimentMode;
     cmp_ready_ms: number | null;
+    latency?: ComparisonLatencyBreakdown;
     pdf_ms: number | null;
     pdf_bytes: number | null;
     xlsx_ms: number | null;
@@ -279,12 +280,180 @@ interface RendererCleanupHint {
     error?: string;
 }
 
+interface SeriesPerfCall {
+    command: string;
+    experiment_id: string | null;
+    at_ms: number;
+    duration_ms: number;
+    byte_length: number | null;
+    max_points: number | null;
+    x_min_sec: number | null;
+    x_max_sec: number | null;
+}
+
+interface LongTaskSnapshot {
+    start_time_ms: number;
+    duration_ms: number;
+}
+
+interface ComparisonAddLatencyStep {
+    target_count: number;
+    selector_open_ms: number | null;
+    selector_search_ms: number | null;
+    add_ready_ms: number | null;
+    store_update_ms: number | null;
+    uplot_init_ms: number | null;
+    first_canvas_paint_ms: number | null;
+    series_ready_ms: number | null;
+}
+
+interface ComparisonLatencyBreakdown {
+    comparison_open_ms: number | null;
+    add_steps: ComparisonAddLatencyStep[];
+    chart_first_visible_ms: number | null;
+    chart_ready_ms: number | null;
+    report_tab_open_ms: number | null;
+    long_tasks_count: number;
+    long_tasks_total_ms: number;
+    series_request_count: number;
+    series_request_total_ms: number;
+    series_request_total_bytes: number | null;
+    series_overview_request_count: number;
+    series_window_request_count: number;
+    series_calls: SeriesPerfCall[];
+    long_tasks: LongTaskSnapshot[];
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Wall-clock timer; returns elapsed ms. */
 function timeStep<T>(_label: string, fn: () => Promise<T>): Promise<{ result: T; ms: number }> {
     const t0 = Date.now();
     return fn().then((result) => ({ result, ms: Date.now() - t0 }));
+}
+
+async function installComparisonLatencyRecorder(page: Page): Promise<string> {
+    return page.evaluate(() => {
+        type MutableWindow = Window & {
+            __rheolabComparisonLatencyPerf?: {
+                startedAt: number;
+                recorderStatus: string;
+                seriesCalls: SeriesIpcCall[];
+                longTasks: { startTime: number; duration: number }[];
+                observer?: PerformanceObserver;
+            };
+            __RHEOLAB_SERIES_PERF_HOOK__?: {
+                record?: (call: Omit<SeriesIpcCall, 'at_ms'>) => void;
+            };
+        };
+        interface SeriesIpcCall {
+            command: string;
+            experiment_id: string | null;
+            at_ms: number;
+            duration_ms: number;
+            byte_length: number | null;
+            max_points: number | null;
+            x_min_sec: number | null;
+            x_max_sec: number | null;
+        }
+
+        const w = window as MutableWindow;
+        const startedAt = performance.now();
+        const state = {
+            startedAt,
+            recorderStatus: 'hook-installed',
+            seriesCalls: [] as SeriesIpcCall[],
+            longTasks: [] as { startTime: number; duration: number }[],
+            observer: undefined as PerformanceObserver | undefined,
+        };
+        w.__rheolabComparisonLatencyPerf = state;
+
+        try {
+            const observer = new PerformanceObserver((list) => {
+                for (const entry of list.getEntries()) {
+                    state.longTasks.push({
+                        startTime: entry.startTime,
+                        duration: entry.duration,
+                    });
+                }
+            });
+            observer.observe({ entryTypes: ['longtask'] });
+            state.observer = observer;
+        } catch {
+            // The Long Task API is optional in embedded WebView2 contexts.
+        }
+
+        w.__RHEOLAB_SERIES_PERF_HOOK__ = {
+            record(call) {
+                state.seriesCalls.push({
+                    command: call.command,
+                    experiment_id: call.experiment_id ?? null,
+                    at_ms: Math.round(performance.now() - startedAt),
+                    duration_ms: call.duration_ms,
+                    byte_length: call.byte_length,
+                    max_points: call.max_points,
+                    x_min_sec: call.x_min_sec,
+                    x_max_sec: call.x_max_sec,
+                });
+            },
+        };
+
+        return state.recorderStatus;
+    });
+}
+
+async function readComparisonLatencyRecorder(page: Page): Promise<Pick<
+    ComparisonLatencyBreakdown,
+    | 'long_tasks_count'
+    | 'long_tasks_total_ms'
+    | 'series_request_count'
+    | 'series_request_total_ms'
+    | 'series_request_total_bytes'
+    | 'series_overview_request_count'
+    | 'series_window_request_count'
+    | 'series_calls'
+    | 'long_tasks'
+>> {
+    return page.evaluate(() => {
+        type MutableWindow = Window & {
+            __rheolabComparisonLatencyPerf?: {
+                seriesCalls?: SeriesPerfCall[];
+                longTasks?: { startTime: number; duration: number }[];
+            };
+        };
+        interface SeriesPerfCall {
+            command: string;
+            experiment_id: string | null;
+            at_ms: number;
+            duration_ms: number;
+            byte_length: number | null;
+            max_points: number | null;
+            x_min_sec: number | null;
+            x_max_sec: number | null;
+        }
+
+        const state = (window as MutableWindow).__rheolabComparisonLatencyPerf;
+        const seriesCalls = [...(state?.seriesCalls ?? [])];
+        const longTasks = (state?.longTasks ?? []).map((task) => ({
+            start_time_ms: Math.round(task.startTime * 10) / 10,
+            duration_ms: Math.round(task.duration * 10) / 10,
+        }));
+        const totalBytes = seriesCalls.reduce((sum, call) => (
+            typeof call.byte_length === 'number' ? sum + call.byte_length : sum
+        ), 0);
+
+        return {
+            long_tasks_count: longTasks.length,
+            long_tasks_total_ms: Math.round(longTasks.reduce((sum, task) => sum + task.duration_ms, 0) * 10) / 10,
+            series_request_count: seriesCalls.length,
+            series_request_total_ms: Math.round(seriesCalls.reduce((sum, call) => sum + call.duration_ms, 0) * 10) / 10,
+            series_request_total_bytes: totalBytes > 0 ? totalBytes : null,
+            series_overview_request_count: seriesCalls.filter((call) => call.command === 'experiments_series_overview').length,
+            series_window_request_count: seriesCalls.filter((call) => call.command === 'experiments_series_window').length,
+            series_calls: seriesCalls,
+            long_tasks: longTasks,
+        };
+    });
 }
 
 function encodePowerShell(script: string): string {
@@ -1161,24 +1330,33 @@ async function addExperimentByNameWithMemoryPhases(
     name: string,
     targetCount: number,
     recordMem: (phase: string) => Promise<void>,
+    latency?: ComparisonAddLatencyStep,
 ): Promise<void> {
     const phasePrefix = `add_${targetCount}`;
     await recordMem(`before_${phasePrefix}`);
-    await comparison.openSelector();
+    const { ms: selectorOpenMs } = await timeStep(`${phasePrefix}_selector_open`, async () => {
+        await comparison.openSelector();
+    });
+    if (latency) latency.selector_open_ms = selectorOpenMs;
     await recordMem(`after_${phasePrefix}_selector_open`);
-    await comparison.searchExperiment(name);
+    const btn = experimentSelectorButtonByName(comparison, name);
+    const { ms: selectorSearchMs } = await timeStep(`${phasePrefix}_selector_search`, async () => {
+        await comparison.searchExperiment(name);
+        await expect(btn).toBeVisible({ timeout: 10_000 });
+    });
+    if (latency) latency.selector_search_ms = selectorSearchMs;
     await recordMem(`after_${phasePrefix}_selector_search`);
 
-    const btn = experimentSelectorButtonByName(comparison, name);
-    await expect(btn).toBeVisible({ timeout: 10_000 });
     const lifecycleBeforeClick = await readComparisonUPlotLifecycleStats(comparison.page);
     await recordMem(`before_${phasePrefix}_click`);
+    const clickStartedAt = Date.now();
     await btn.click();
     await recordMem(`after_${phasePrefix}_click`);
     await recordMem(`after_${phasePrefix}_click_before_chart_commit`);
 
     await waitForComparisonStoreSelectedCount(comparison.page, targetCount);
     await comparison.expectChipCount(targetCount);
+    if (latency) latency.store_update_ms = Date.now() - clickStartedAt;
     await recordMem(`after_${phasePrefix}_react_commit`);
     await recordMem(`after_${phasePrefix}_store_update`);
 
@@ -1187,20 +1365,28 @@ async function addExperimentByNameWithMemoryPhases(
     const expectedSetDataCount = lifecycleBeforeClick.setDataCount + 1;
     const expectedFirstPaintCount = lifecycleBeforeClick.firstPaintCount + 1;
     await waitForComparisonUPlotLifecycleCount(comparison.page, 'createCount', expectedCreateCount);
+    if (latency) latency.uplot_init_ms = Date.now() - clickStartedAt;
     await recordMem(`after_${phasePrefix}_uplot_init`);
     await waitForComparisonUPlotLifecycleCount(comparison.page, 'setDataCount', expectedSetDataCount);
     await recordMem(`after_${phasePrefix}_uplot_set_data`);
     await waitForComparisonUPlotLifecycleCount(comparison.page, 'firstPaintCount', expectedFirstPaintCount);
+    if (latency) latency.first_canvas_paint_ms = Date.now() - clickStartedAt;
     await recordMem(`after_${phasePrefix}_first_canvas_paint`);
     await waitForComparisonSeriesReady(comparison.page, targetCount);
+    if (latency) {
+        latency.series_ready_ms = Date.now() - clickStartedAt;
+        latency.add_ready_ms = latency.series_ready_ms;
+    }
     await recordMem(`after_${phasePrefix}_series_ready`);
 
-    await comparison.page.waitForTimeout(100);
-    await recordMem(`after_${phasePrefix}_compositor_settle_100ms`);
-    await comparison.page.waitForTimeout(400);
-    await recordMem(`after_${phasePrefix}_compositor_settle_500ms`);
-    await comparison.page.waitForTimeout(300);
-    await recordMem(`after_${phasePrefix}_dom_settle`);
+    if (MEMORY_STEPS_ENABLED) {
+        await comparison.page.waitForTimeout(100);
+        await recordMem(`after_${phasePrefix}_compositor_settle_100ms`);
+        await comparison.page.waitForTimeout(400);
+        await recordMem(`after_${phasePrefix}_compositor_settle_500ms`);
+        await comparison.page.waitForTimeout(300);
+        await recordMem(`after_${phasePrefix}_dom_settle`);
+    }
 }
 
 async function runSelectorCloseOnlyAdd5Experiment(
@@ -1446,11 +1632,31 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                 });
 
                 // 4. Open comparison view + add all N experiments + measure UI-ready.
+                const latencyBreakdown: ComparisonLatencyBreakdown = {
+                    comparison_open_ms: null,
+                    add_steps: [],
+                    chart_first_visible_ms: null,
+                    chart_ready_ms: null,
+                    report_tab_open_ms: null,
+                    long_tasks_count: 0,
+                    long_tasks_total_ms: 0,
+                    series_request_count: 0,
+                    series_request_total_ms: 0,
+                    series_request_total_bytes: null,
+                    series_overview_request_count: 0,
+                    series_window_request_count: 0,
+                    series_calls: [],
+                    long_tasks: [],
+                };
+                await installComparisonLatencyRecorder(page);
                 const { ms: cmpReadyMs } = await timeStep('cmp_ready', async () => {
-                    await recordMem('before_comparison_open');
-                    await comparison.goto();
-                    await comparison.expectLoaded();
-                    await recordMem('after_comparison_open');
+                    const { ms: comparisonOpenMs } = await timeStep('comparison_open', async () => {
+                        await recordMem('before_comparison_open');
+                        await comparison.goto();
+                        await comparison.expectLoaded();
+                        await recordMem('after_comparison_open');
+                    });
+                    latencyBreakdown.comparison_open_ms = comparisonOpenMs;
                     await page.evaluate(() => {
                         const store = (window as unknown as { __rheolab_comparison_store?: { setState: (s: { experiments: unknown[] }) => void } }).__rheolab_comparison_store;
                         if (store) store.setState({ experiments: [] });
@@ -1459,33 +1665,52 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     await page.waitForTimeout(300);
                     for (let idx = 0; idx < n; idx++) {
                         const targetCount = idx + 1;
+                        const addLatency: ComparisonAddLatencyStep = {
+                            target_count: targetCount,
+                            selector_open_ms: null,
+                            selector_search_ms: null,
+                            add_ready_ms: null,
+                            store_update_ms: null,
+                            uplot_init_ms: null,
+                            first_canvas_paint_ms: null,
+                            series_ready_ms: null,
+                        };
+                        latencyBreakdown.add_steps.push(addLatency);
                         if (n === 5 && targetCount === 5 && ADD5_EXPERIMENT === 'selector-close-only') {
                             await runSelectorCloseOnlyAdd5Experiment(comparison, names[idx], recordMem);
-                            await addExperimentByNameWithMemoryPhases(comparison, names[idx], targetCount, recordMem);
+                            await addExperimentByNameWithMemoryPhases(comparison, names[idx], targetCount, recordMem, addLatency);
                         } else if (n === 5 && targetCount === 5 && ADD5_EXPERIMENT === 'commit-without-close') {
                             await addExperimentByNameWithoutClosingSelector(comparison, names[idx], targetCount, recordMem);
                         } else if (n === 5 && targetCount === 5 && ADD5_EXPERIMENT === 'defer-chart-commit') {
                             await addExperimentByNameWithDeferredChartCommit(comparison, names[idx], targetCount, recordMem);
                         } else {
-                            await addExperimentByNameWithMemoryPhases(comparison, names[idx], targetCount, recordMem);
+                            await addExperimentByNameWithMemoryPhases(comparison, names[idx], targetCount, recordMem, addLatency);
                         }
                         await recordMem(`after_add_${idx + 1}`);
                     }
-                    await comparison.expectChartVisible();
-                    await comparison.expectCanvasPainted();
+                    const chartReadyStartedAt = Date.now();
+                    const { ms: chartFirstVisibleMs } = await timeStep('chart_first_visible', async () => {
+                        await comparison.expectChartVisible();
+                        await comparison.expectCanvasPainted();
+                    });
+                    latencyBreakdown.chart_first_visible_ms = chartFirstVisibleMs;
                     await recordMem('after_chart_canvas_painted');
                     const legendCount = await comparison.getLegendSeriesCount();
                     expect(legendCount).toBeGreaterThanOrEqual(n);
                     await recordMem('after_chart_visible');
+                    latencyBreakdown.chart_ready_ms = Date.now() - chartReadyStartedAt;
                     await recordMem('after_chart_ready');
                 });
                 console.log(`  [L-CMP-${n}] cmp_ready=${cmpReadyMs} ms`);
 
                 // 5. Measure PDF + XLSX exports.
                 await recordMem('before_report_tab');
-                await cmpReports.switchToReportTab();
-                await cmpReports.expectLoaded();
-                await cmpReports.expectExportButtonsEnabled();
+                const { ms: reportTabOpenMs } = await timeStep('report_tab_open', async () => {
+                    await cmpReports.switchToReportTab();
+                    await cmpReports.expectLoaded();
+                    await cmpReports.expectExportButtonsEnabled();
+                });
+                latencyBreakdown.report_tab_open_ms = reportTabOpenMs;
                 await recordMem('after_report_tab_open');
 
                 let pdfMs: number | null = null;
@@ -1561,12 +1786,15 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     await recordMem('after_second_gc_hint');
                 }
 
+                Object.assign(latencyBreakdown, await readComparisonLatencyRecorder(page));
+
                 measurements.push({
                     n,
                     report_payload: reportPayloadMode,
                     export_save_mode: EXPORT_SAVE_MODE,
                     add5_experiment: ADD5_EXPERIMENT,
                     cmp_ready_ms: cmpReadyMs,
+                    latency: latencyBreakdown,
                     pdf_ms: pdfMs,
                     pdf_bytes: pdfBytes,
                     xlsx_ms: xlsxMs,
