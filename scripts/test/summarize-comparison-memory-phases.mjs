@@ -113,6 +113,26 @@ function summaryPhases(n) {
       `after_add_${i}`,
     );
   }
+  const add5ExperimentPhases = n >= 5
+    ? [
+        'after_add_5_selector_close_only_selector_open',
+        'after_add_5_selector_close_only_selector_search',
+        'before_add_5_selector_close_only',
+        'after_add_5_selector_close_only_click',
+        'after_add_5_selector_close_only_settle_100ms',
+        'after_add_5_selector_close_only_settle_500ms',
+        'before_add_5_commit_without_close',
+        'after_add_5_commit_without_close_click',
+        'after_add_5_commit_without_close_store_update',
+        'after_add_5_commit_without_close_chart_commit',
+        'after_add_5_commit_without_close_settle_500ms',
+        'after_add_5_commit_without_close_selector_closed',
+        'after_add_5_selector_closed',
+        'before_add_5_chart_commit',
+        'after_add_5_chart_commit',
+        'after_add_5_chart_settle_500ms',
+      ]
+    : [];
   return [
     'app_start',
     'before_setup',
@@ -121,6 +141,7 @@ function summaryPhases(n) {
     'before_comparison_open',
     'after_comparison_open',
     ...addPhases,
+    ...add5ExperimentPhases,
     'after_chart_canvas_painted',
     'after_chart_visible',
     'after_chart_ready',
@@ -149,6 +170,7 @@ function parseArgs(argv) {
     writeMarkdown: false,
     json: null,
     exportSaveMode: null,
+    add5Experiment: null,
     onlyOk: false,
   };
 
@@ -170,6 +192,8 @@ function parseArgs(argv) {
       opts.json = argv[++i];
     } else if (arg === '--export-save-mode') {
       opts.exportSaveMode = argv[++i];
+    } else if (arg === '--add5-experiment') {
+      opts.add5Experiment = argv[++i];
     } else if (arg === '--only-ok') {
       opts.onlyOk = true;
     } else if (arg === '--help' || arg === '-h') {
@@ -189,6 +213,9 @@ function parseArgs(argv) {
   if (opts.exportSaveMode && !['download', 'direct'].includes(opts.exportSaveMode)) {
     throw new Error('--export-save-mode must be "download" or "direct"');
   }
+  if (opts.add5Experiment && !['baseline', 'selector-close-only', 'commit-without-close', 'defer-chart-commit'].includes(opts.add5Experiment)) {
+    throw new Error('--add5-experiment must be one of baseline, selector-close-only, commit-without-close, defer-chart-commit');
+  }
   return opts;
 }
 
@@ -207,6 +234,8 @@ Options:
   --json <path>        Write machine-readable summary JSON.
   --export-save-mode <download|direct>
                        Filter sidecars by comparison export save path.
+  --add5-experiment <mode>
+                       Filter sidecars by COMPARISON_SMOKE_ADD5_EXPERIMENT.
   --only-ok            Exclude skipped/error measurements.
 `);
 }
@@ -242,9 +271,12 @@ function stats(values) {
 function loadSidecar(file) {
   const doc = JSON.parse(readFileSync(file, 'utf8'));
   const exportSaveModes = new Set();
+  const add5Experiments = new Set();
   if (doc.export_save_mode) exportSaveModes.add(doc.export_save_mode);
+  if (doc.add5_experiment) add5Experiments.add(doc.add5_experiment);
   for (const measurement of doc.measurements ?? []) {
     if (measurement.export_save_mode) exportSaveModes.add(measurement.export_save_mode);
+    if (measurement.add5_experiment) add5Experiments.add(measurement.add5_experiment);
   }
   return {
     file,
@@ -252,6 +284,7 @@ function loadSidecar(file) {
     generatedAt: doc.generatedAt,
     mode: doc.mode,
     exportSaveModes: [...exportSaveModes],
+    add5Experiments: [...add5Experiments],
     memoryStepsEnabled: Boolean(doc.memory_steps_enabled),
     doc,
   };
@@ -271,10 +304,16 @@ function measurementExportSaveMode(entry, n) {
   return measurement?.export_save_mode ?? entry.doc.export_save_mode ?? null;
 }
 
+function measurementAdd5Experiment(entry, n) {
+  const measurement = measurementFor(entry, n);
+  return measurement?.add5_experiment ?? entry.doc.add5_experiment ?? 'baseline';
+}
+
 function matchesFilters(entry, opts) {
   const measurement = measurementFor(entry, opts.n);
   if (!hasMemoryMeasurement(entry, opts.n)) return false;
   if (opts.exportSaveMode && measurementExportSaveMode(entry, opts.n) !== opts.exportSaveMode) return false;
+  if (opts.add5Experiment && measurementAdd5Experiment(entry, opts.n) !== opts.add5Experiment) return false;
   if (opts.onlyOk && measurement?.skipped) return false;
   return true;
 }
@@ -296,6 +335,7 @@ function phaseStep(entry, n, phase) {
 }
 
 function buildSummary(entries, n) {
+  const add5ExperimentSet = new Set(entries.map((entry) => measurementAdd5Experiment(entry, n)));
   const rows = summaryPhases(n).map((phase) => {
     const row = { phase, metrics: {}, appMetrics: {} };
     for (const [key] of METRICS) {
@@ -314,6 +354,9 @@ function buildSummary(entries, n) {
     const b = p50(to, key);
     return a === null || b === null ? null : round(a - b);
   };
+  const experimentDelta = (mode, from, to, key) => (
+    add5ExperimentSet.has(mode) ? delta(from, to, key) : null
+  );
 
   return {
     n,
@@ -321,6 +364,7 @@ function buildSummary(entries, n) {
     files: entries.map((entry) => entry.file),
     modes: [...new Set(entries.map((entry) => entry.mode).filter(Boolean))],
     exportSaveModes: [...new Set(entries.flatMap((entry) => entry.exportSaveModes).filter(Boolean))],
+    add5Experiments: [...add5ExperimentSet],
     rows,
     deltas: {
       after_add_selector_search_to_click: Object.fromEntries(
@@ -349,6 +393,21 @@ function buildSummary(entries, n) {
       ),
       after_chart_visible_to_after_route_leave: Object.fromEntries(
         METRICS.map(([key]) => [key, delta('after_route_leave', 'after_chart_visible', key)]),
+      ),
+      selector_close_only_click_delta: Object.fromEntries(
+        METRICS.map(([key]) => [key, experimentDelta('selector-close-only', 'after_add_5_selector_close_only_click', 'before_add_5_selector_close_only', key)]),
+      ),
+      commit_without_close_click_delta: Object.fromEntries(
+        METRICS.map(([key]) => [key, experimentDelta('commit-without-close', 'after_add_5_commit_without_close_click', 'before_add_5_commit_without_close', key)]),
+      ),
+      commit_without_close_chart_delta: Object.fromEntries(
+        METRICS.map(([key]) => [key, experimentDelta('commit-without-close', 'after_add_5_commit_without_close_chart_commit', 'after_add_5_commit_without_close_click', key)]),
+      ),
+      defer_chart_commit_click_delta: Object.fromEntries(
+        METRICS.map(([key]) => [key, experimentDelta('defer-chart-commit', 'after_add_5_click', `after_add_${n}_selector_search`, key)]),
+      ),
+      defer_chart_commit_chart_delta: Object.fromEntries(
+        METRICS.map(([key]) => [key, experimentDelta('defer-chart-commit', 'after_add_5_chart_commit', 'before_add_5_chart_commit', key)]),
       ),
     },
   };
@@ -395,6 +454,7 @@ function buildMarkdown(summary) {
   lines.push(`- Runs: ${summary.files.length}`);
   lines.push(`- Modes: ${summary.modes.join(', ') || 'unknown'}`);
   lines.push(`- Export save modes: ${summary.exportSaveModes.join(', ') || 'unknown'}`);
+  lines.push(`- Add5 experiments: ${summary.add5Experiments.join(', ') || 'baseline'}`);
   lines.push('- Source sidecars:');
   for (const file of summary.files) {
     lines.push(`  - \`${file.replaceAll('\\', '/')}\``);
@@ -431,6 +491,11 @@ function buildMarkdown(summary) {
   lines.push(`| after_xlsx - after_export_gc_hint | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.total_rss_mb)} | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.renderer_rss_mb)} | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.gpu_rss_mb)} | ${formatValue(summary.deltas.after_xlsx_to_after_export_gc_hint.tauri_rss_mb)} |`);
   lines.push(`| after_export_gc_hint - after_route_leave | ${formatValue(summary.deltas.after_export_gc_hint_to_after_route_leave.total_rss_mb)} | ${formatValue(summary.deltas.after_export_gc_hint_to_after_route_leave.renderer_rss_mb)} | ${formatValue(summary.deltas.after_export_gc_hint_to_after_route_leave.gpu_rss_mb)} | ${formatValue(summary.deltas.after_export_gc_hint_to_after_route_leave.tauri_rss_mb)} |`);
   lines.push(`| after_route_leave - after_chart_visible | ${formatValue(summary.deltas.after_chart_visible_to_after_route_leave.total_rss_mb)} | ${formatValue(summary.deltas.after_chart_visible_to_after_route_leave.renderer_rss_mb)} | ${formatValue(summary.deltas.after_chart_visible_to_after_route_leave.gpu_rss_mb)} | ${formatValue(summary.deltas.after_chart_visible_to_after_route_leave.tauri_rss_mb)} |`);
+  lines.push(`| selector-close-only before close -> close click | ${formatValue(summary.deltas.selector_close_only_click_delta.total_rss_mb)} | ${formatValue(summary.deltas.selector_close_only_click_delta.renderer_rss_mb)} | ${formatValue(summary.deltas.selector_close_only_click_delta.gpu_rss_mb)} | ${formatValue(summary.deltas.selector_close_only_click_delta.tauri_rss_mb)} |`);
+  lines.push(`| commit-without-close before commit -> commit | ${formatValue(summary.deltas.commit_without_close_click_delta.total_rss_mb)} | ${formatValue(summary.deltas.commit_without_close_click_delta.renderer_rss_mb)} | ${formatValue(summary.deltas.commit_without_close_click_delta.gpu_rss_mb)} | ${formatValue(summary.deltas.commit_without_close_click_delta.tauri_rss_mb)} |`);
+  lines.push(`| commit-without-close commit -> chart commit | ${formatValue(summary.deltas.commit_without_close_chart_delta.total_rss_mb)} | ${formatValue(summary.deltas.commit_without_close_chart_delta.renderer_rss_mb)} | ${formatValue(summary.deltas.commit_without_close_chart_delta.gpu_rss_mb)} | ${formatValue(summary.deltas.commit_without_close_chart_delta.tauri_rss_mb)} |`);
+  lines.push(`| defer-chart-commit selector search -> click | ${formatValue(summary.deltas.defer_chart_commit_click_delta.total_rss_mb)} | ${formatValue(summary.deltas.defer_chart_commit_click_delta.renderer_rss_mb)} | ${formatValue(summary.deltas.defer_chart_commit_click_delta.gpu_rss_mb)} | ${formatValue(summary.deltas.defer_chart_commit_click_delta.tauri_rss_mb)} |`);
+  lines.push(`| defer-chart-commit before chart -> chart commit | ${formatValue(summary.deltas.defer_chart_commit_chart_delta.total_rss_mb)} | ${formatValue(summary.deltas.defer_chart_commit_chart_delta.renderer_rss_mb)} | ${formatValue(summary.deltas.defer_chart_commit_chart_delta.gpu_rss_mb)} | ${formatValue(summary.deltas.defer_chart_commit_chart_delta.tauri_rss_mb)} |`);
   lines.push('');
   lines.push('## Readout');
   lines.push('');

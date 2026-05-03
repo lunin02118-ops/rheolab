@@ -69,6 +69,25 @@ const EXPORT_SAVE_MODE = (
         ? 'download'
         : (process.env.COMPARISON_SMOKE_EXPORT_SAVE_MODE === 'direct' || MEMORY_STEPS_ENABLED ? 'direct' : 'download')
 ) as 'download' | 'direct';
+const ADD5_EXPERIMENT_VALUES = ['baseline', 'selector-close-only', 'commit-without-close', 'defer-chart-commit'] as const;
+type Add5ExperimentMode = typeof ADD5_EXPERIMENT_VALUES[number];
+
+function parseAdd5ExperimentMode(): Add5ExperimentMode {
+    const raw = process.env.COMPARISON_SMOKE_ADD5_EXPERIMENT?.trim();
+    if (ADD5_EXPERIMENT_VALUES.includes(raw as Add5ExperimentMode)) {
+        return raw as Add5ExperimentMode;
+    }
+    return 'baseline';
+}
+
+const ADD5_EXPERIMENT = parseAdd5ExperimentMode();
+const ADD5_CHART_COMMIT_DELAY_MS = (() => {
+    const raw = Number(process.env.COMPARISON_SMOKE_CHART_COMMIT_DELAY_MS);
+    if (Number.isFinite(raw) && raw >= 0) return raw;
+    // Direct RSS snapshots can take roughly two seconds each on this runner.
+    // Keep the test-only chart commit behind all pre-chart markers.
+    return 20_000;
+})();
 
 /**
  * Sizes the spec measures. Each is gated by the runtime license cap. Set
@@ -111,6 +130,7 @@ interface ComparisonSmokeMeasurement {
     n: number;
     report_payload: 'mocked' | 'real';
     export_save_mode: 'download' | 'direct';
+    add5_experiment: Add5ExperimentMode;
     cmp_ready_ms: number | null;
     pdf_ms: number | null;
     pdf_bytes: number | null;
@@ -132,6 +152,7 @@ interface ComparisonSmokeReport {
     license_cap: number;
     memory_steps_enabled: boolean;
     export_save_mode: 'download' | 'direct';
+    add5_experiment: Add5ExperimentMode;
     native_memory_file?: string | null;
     measurements: ComparisonSmokeMeasurement[];
 }
@@ -1045,6 +1066,96 @@ async function waitForComparisonSeriesReady(page: Page, targetCount: number): Pr
     return false;
 }
 
+function experimentSelectorButtonByName(comparison: ComparisonPage, name: string) {
+    return comparison.page
+        .getByTestId('ComparisonSelectorExperimentButton')
+        .filter({ hasText: name })
+        .first();
+}
+
+async function setComparisonChartCommitDelay(page: Page, delayMs: number | null): Promise<void> {
+    await page.evaluate((delay) => {
+        const target = window as unknown as {
+            __rheolab_comparison_chart_commit_delay_ms?: number;
+        };
+        if (delay === null) {
+            delete target.__rheolab_comparison_chart_commit_delay_ms;
+            return;
+        }
+        target.__rheolab_comparison_chart_commit_delay_ms = delay;
+    }, delayMs);
+}
+
+async function addLightweightExperimentByNameViaStore(page: Page, name: string): Promise<void> {
+    await page.evaluate(async (experimentName) => {
+        type ExperimentListItem = {
+            id?: string;
+            name?: string;
+            testDate?: string;
+            fluidType?: string | null;
+            instrumentType?: string | null;
+            fieldName?: string | null;
+            operatorName?: string | null;
+            waterSource?: string | null;
+            userId?: string | null;
+            laboratoryId?: string | null;
+            createdAt?: string;
+            updatedAt?: string;
+            originalFilename?: string;
+        };
+        type ExperimentsListResponse = { experiments?: ExperimentListItem[] };
+        type ComparisonStoreApi = {
+            getState?: () => {
+                addExperiment?: (experiment: Record<string, unknown>) => boolean;
+            };
+        };
+        const invoke = window.__TAURI_INTERNALS__?.invoke ?? window.__TAURI__?.invoke;
+        if (!invoke) throw new Error('Tauri invoke API is unavailable');
+        const response = await invoke<ExperimentsListResponse>('experiments_list', {
+            query: {
+                limit: 50,
+                page: 1,
+                searchQuery: experimentName,
+                sortBy: 'testDate',
+                sortDir: 'desc',
+            },
+        });
+        const experiments = Array.isArray(response?.experiments) ? response.experiments : [];
+        const exp = experiments.find(item => item.name === experimentName)
+            ?? experiments.find(item => typeof item.name === 'string' && item.name.includes(experimentName));
+        if (!exp?.id || !exp.name) {
+            throw new Error(`Experiment not found for commit-without-close: ${experimentName}`);
+        }
+
+        const store = (window as unknown as {
+            __rheolab_comparison_store?: ComparisonStoreApi;
+        }).__rheolab_comparison_store;
+        const addExperiment = store?.getState?.().addExperiment;
+        if (typeof addExperiment !== 'function') {
+            throw new Error('Comparison store addExperiment is unavailable');
+        }
+
+        const added = addExperiment({
+            id: exp.id,
+            name: exp.name,
+            testDate: exp.testDate,
+            fluidType: exp.fluidType,
+            instrumentType: exp.instrumentType ?? null,
+            fieldName: exp.fieldName ?? null,
+            operatorName: exp.operatorName ?? null,
+            waterSource: exp.waterSource ?? null,
+            userId: exp.userId ?? null,
+            laboratoryId: exp.laboratoryId ?? null,
+            createdAt: exp.createdAt,
+            updatedAt: exp.updatedAt,
+            originalFilename: exp.originalFilename,
+            rawPoints: [],
+            columnarData: undefined,
+        });
+        if (!added) throw new Error(`Comparison store rejected experiment: ${experimentName}`);
+    }, name);
+}
+
 async function addExperimentByNameWithMemoryPhases(
     comparison: ComparisonPage,
     name: string,
@@ -1058,10 +1169,7 @@ async function addExperimentByNameWithMemoryPhases(
     await comparison.searchExperiment(name);
     await recordMem(`after_${phasePrefix}_selector_search`);
 
-    const btn = comparison.page
-        .getByTestId('ComparisonSelectorExperimentButton')
-        .filter({ hasText: name })
-        .first();
+    const btn = experimentSelectorButtonByName(comparison, name);
     await expect(btn).toBeVisible({ timeout: 10_000 });
     const lifecycleBeforeClick = await readComparisonUPlotLifecycleStats(comparison.page);
     await recordMem(`before_${phasePrefix}_click`);
@@ -1093,6 +1201,137 @@ async function addExperimentByNameWithMemoryPhases(
     await recordMem(`after_${phasePrefix}_compositor_settle_500ms`);
     await comparison.page.waitForTimeout(300);
     await recordMem(`after_${phasePrefix}_dom_settle`);
+}
+
+async function runSelectorCloseOnlyAdd5Experiment(
+    comparison: ComparisonPage,
+    name: string,
+    recordMem: (phase: string) => Promise<void>,
+): Promise<void> {
+    await comparison.openSelector();
+    await recordMem('after_add_5_selector_close_only_selector_open');
+    await comparison.searchExperiment(name);
+    await recordMem('after_add_5_selector_close_only_selector_search');
+    const btn = experimentSelectorButtonByName(comparison, name);
+    await expect(btn).toBeVisible({ timeout: 10_000 });
+
+    await recordMem('before_add_5_selector_close_only');
+    await comparison.closeSelector();
+    await recordMem('after_add_5_selector_close_only_click');
+    await comparison.page.waitForTimeout(100);
+    await recordMem('after_add_5_selector_close_only_settle_100ms');
+    await comparison.page.waitForTimeout(400);
+    await recordMem('after_add_5_selector_close_only_settle_500ms');
+}
+
+async function addExperimentByNameWithoutClosingSelector(
+    comparison: ComparisonPage,
+    name: string,
+    targetCount: number,
+    recordMem: (phase: string) => Promise<void>,
+): Promise<void> {
+    const phasePrefix = `add_${targetCount}`;
+    await recordMem(`before_${phasePrefix}`);
+    await comparison.openSelector();
+    await recordMem(`after_${phasePrefix}_selector_open`);
+    await comparison.searchExperiment(name);
+    await recordMem(`after_${phasePrefix}_selector_search`);
+    const btn = experimentSelectorButtonByName(comparison, name);
+    await expect(btn).toBeVisible({ timeout: 10_000 });
+
+    const lifecycleBeforeCommit = await readComparisonUPlotLifecycleStats(comparison.page);
+    await recordMem('before_add_5_commit_without_close');
+    await addLightweightExperimentByNameViaStore(comparison.page, name);
+    await recordMem('after_add_5_commit_without_close_click');
+    await waitForComparisonStoreSelectedCount(comparison.page, targetCount);
+    await comparison.expectChipCount(targetCount);
+    await recordMem('after_add_5_commit_without_close_store_update');
+    await recordMem(`after_${phasePrefix}_react_commit`);
+    await recordMem(`after_${phasePrefix}_store_update`);
+
+    const expectedCreateCount = lifecycleBeforeCommit.createCount + 1;
+    const expectedSetDataCount = lifecycleBeforeCommit.setDataCount + 1;
+    const expectedFirstPaintCount = lifecycleBeforeCommit.firstPaintCount + 1;
+    await waitForComparisonUPlotLifecycleCount(comparison.page, 'createCount', expectedCreateCount);
+    await recordMem('after_add_5_commit_without_close_chart_commit');
+    await recordMem(`after_${phasePrefix}_uplot_init`);
+    await waitForComparisonUPlotLifecycleCount(comparison.page, 'setDataCount', expectedSetDataCount);
+    await recordMem(`after_${phasePrefix}_uplot_set_data`);
+    await waitForComparisonUPlotLifecycleCount(comparison.page, 'firstPaintCount', expectedFirstPaintCount);
+    await recordMem(`after_${phasePrefix}_first_canvas_paint`);
+    await waitForComparisonSeriesReady(comparison.page, targetCount);
+    await recordMem(`after_${phasePrefix}_series_ready`);
+
+    await comparison.page.waitForTimeout(500);
+    await recordMem('after_add_5_commit_without_close_settle_500ms');
+    await recordMem(`after_${phasePrefix}_compositor_settle_500ms`);
+    await comparison.closeSelector();
+    await recordMem('after_add_5_commit_without_close_selector_closed');
+    await comparison.page.waitForTimeout(300);
+    await recordMem(`after_${phasePrefix}_dom_settle`);
+}
+
+async function addExperimentByNameWithDeferredChartCommit(
+    comparison: ComparisonPage,
+    name: string,
+    targetCount: number,
+    recordMem: (phase: string) => Promise<void>,
+): Promise<void> {
+    const phasePrefix = `add_${targetCount}`;
+    await recordMem(`before_${phasePrefix}`);
+    await comparison.openSelector();
+    await recordMem(`after_${phasePrefix}_selector_open`);
+    await comparison.searchExperiment(name);
+    await recordMem(`after_${phasePrefix}_selector_search`);
+
+    const btn = experimentSelectorButtonByName(comparison, name);
+    await expect(btn).toBeVisible({ timeout: 10_000 });
+    const lifecycleBeforeClick = await readComparisonUPlotLifecycleStats(comparison.page);
+
+    await setComparisonChartCommitDelay(comparison.page, ADD5_CHART_COMMIT_DELAY_MS);
+    try {
+        await recordMem(`before_${phasePrefix}_click`);
+        await btn.click();
+        await recordMem(`after_${phasePrefix}_click`);
+
+        await comparison.closeSelector();
+        await recordMem('after_add_5_selector_closed');
+        await recordMem(`after_${phasePrefix}_click_before_chart_commit`);
+
+        await waitForComparisonStoreSelectedCount(comparison.page, targetCount);
+        await comparison.expectChipCount(targetCount);
+        await recordMem(`after_${phasePrefix}_react_commit`);
+        await recordMem(`after_${phasePrefix}_store_update`);
+        await recordMem('before_add_5_chart_commit');
+
+        const expectedCreateCount = lifecycleBeforeClick.createCount + 1;
+        const expectedSetDataCount = lifecycleBeforeClick.setDataCount + 1;
+        const expectedFirstPaintCount = lifecycleBeforeClick.firstPaintCount + 1;
+        await waitForComparisonUPlotLifecycleCount(
+            comparison.page,
+            'createCount',
+            expectedCreateCount,
+            ADD5_CHART_COMMIT_DELAY_MS + 8_000,
+        );
+        await recordMem('after_add_5_chart_commit');
+        await recordMem(`after_${phasePrefix}_uplot_init`);
+        await waitForComparisonUPlotLifecycleCount(comparison.page, 'setDataCount', expectedSetDataCount);
+        await recordMem(`after_${phasePrefix}_uplot_set_data`);
+        await waitForComparisonUPlotLifecycleCount(comparison.page, 'firstPaintCount', expectedFirstPaintCount);
+        await recordMem(`after_${phasePrefix}_first_canvas_paint`);
+        await waitForComparisonSeriesReady(comparison.page, targetCount);
+        await recordMem(`after_${phasePrefix}_series_ready`);
+
+        await comparison.page.waitForTimeout(100);
+        await recordMem(`after_${phasePrefix}_compositor_settle_100ms`);
+        await comparison.page.waitForTimeout(400);
+        await recordMem('after_add_5_chart_settle_500ms');
+        await recordMem(`after_${phasePrefix}_compositor_settle_500ms`);
+        await comparison.page.waitForTimeout(300);
+        await recordMem(`after_${phasePrefix}_dom_settle`);
+    } finally {
+        await setComparisonChartCommitDelay(comparison.page, null);
+    }
 }
 
 /**
@@ -1163,6 +1402,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
         console.log(`[CmpSmoke] mode=${mode} cap=${comparisonCap} runId=${runId}`);
         console.log(`[CmpSmoke] target counts=${TARGET_FIXTURE_COUNTS.join(', ')}`);
         console.log(`[CmpSmoke] export_save_mode=${EXPORT_SAVE_MODE}`);
+        console.log(`[CmpSmoke] add5_experiment=${ADD5_EXPERIMENT}`);
         if (MEMORY_STEPS_ENABLED) {
             console.log('[CmpSmoke] direct Win32 memory phase markers enabled');
         }
@@ -1179,6 +1419,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     n,
                     report_payload: reportPayloadMode,
                     export_save_mode: EXPORT_SAVE_MODE,
+                    add5_experiment: ADD5_EXPERIMENT,
                     cmp_ready_ms: null,
                     pdf_ms: null,
                     pdf_bytes: null,
@@ -1217,7 +1458,17 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     });
                     await page.waitForTimeout(300);
                     for (let idx = 0; idx < n; idx++) {
-                        await addExperimentByNameWithMemoryPhases(comparison, names[idx], idx + 1, recordMem);
+                        const targetCount = idx + 1;
+                        if (n === 5 && targetCount === 5 && ADD5_EXPERIMENT === 'selector-close-only') {
+                            await runSelectorCloseOnlyAdd5Experiment(comparison, names[idx], recordMem);
+                            await addExperimentByNameWithMemoryPhases(comparison, names[idx], targetCount, recordMem);
+                        } else if (n === 5 && targetCount === 5 && ADD5_EXPERIMENT === 'commit-without-close') {
+                            await addExperimentByNameWithoutClosingSelector(comparison, names[idx], targetCount, recordMem);
+                        } else if (n === 5 && targetCount === 5 && ADD5_EXPERIMENT === 'defer-chart-commit') {
+                            await addExperimentByNameWithDeferredChartCommit(comparison, names[idx], targetCount, recordMem);
+                        } else {
+                            await addExperimentByNameWithMemoryPhases(comparison, names[idx], targetCount, recordMem);
+                        }
                         await recordMem(`after_add_${idx + 1}`);
                     }
                     await comparison.expectChartVisible();
@@ -1314,6 +1565,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     n,
                     report_payload: reportPayloadMode,
                     export_save_mode: EXPORT_SAVE_MODE,
+                    add5_experiment: ADD5_EXPERIMENT,
                     cmp_ready_ms: cmpReadyMs,
                     pdf_ms: pdfMs,
                     pdf_bytes: pdfBytes,
@@ -1330,6 +1582,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
                     n,
                     report_payload: reportPayloadMode,
                     export_save_mode: EXPORT_SAVE_MODE,
+                    add5_experiment: ADD5_EXPERIMENT,
                     cmp_ready_ms: null,
                     pdf_ms: null,
                     pdf_bytes: null,
@@ -1353,6 +1606,7 @@ test.describe('[CmpSmoke/Tauri] Comparison-export baseline runner', () => {
             license_cap: comparisonCap,
             memory_steps_enabled: MEMORY_STEPS_ENABLED,
             export_save_mode: EXPORT_SAVE_MODE,
+            add5_experiment: ADD5_EXPERIMENT,
             native_memory_file: process.env.TAURI_E2E_NATIVE_MEM_FILE ?? null,
             measurements,
         };

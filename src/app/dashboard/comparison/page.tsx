@@ -23,6 +23,14 @@ const METRICS = [
     { value: 'pressure_bar', label: 'Давление' },
 ];
 
+function comparisonChartCommitDelayMs(): number {
+    if (typeof window === 'undefined') return 0;
+    const delay = Number((window as unknown as {
+        __rheolab_comparison_chart_commit_delay_ms?: unknown;
+    }).__rheolab_comparison_chart_commit_delay_ms);
+    return Number.isFinite(delay) && delay > 0 ? delay : 0;
+}
+
 export default function ComparisonPage() {
     // Fine-grained selectors: each subscription only re-renders when its own
     // slice changes, preventing displaySettings changes from re-rendering the
@@ -47,7 +55,17 @@ export default function ComparisonPage() {
     // Track whether a rehydration IPC call is in flight (shows spinner in chart area)
     const [isRehydrating, setIsRehydrating] = useState(false);
     const [rehydrationFailed, setRehydrationFailed] = useState(false);
+    const chartCommitDelayMs = comparisonChartCommitDelayMs();
+    const [deferredChartExperiments, setDeferredChartExperiments] = useState(experiments);
+    const chartExperiments = chartCommitDelayMs > 0 ? deferredChartExperiments : experiments;
     const canUseBinaryComparisonSeries = isComparisonBinarySeriesEnabled();
+
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            setDeferredChartExperiments(experiments);
+        }, chartCommitDelayMs);
+        return () => window.clearTimeout(timer);
+    }, [chartCommitDelayMs, experiments]);
 
     // Re-hydrate stale experiments only after zustand/persist has finished loading
     // from localStorage. Without this guard, rehydrateIfNeeded() sees experiments=[]
@@ -370,7 +388,7 @@ export default function ComparisonPage() {
                                 <div className="w-full h-full">
                                     <ChartErrorBoundary height={500}>
                                         <ComparisonChart
-                                            experiments={experiments}
+                                            experiments={chartExperiments}
                                             sessionId={sessionId}
                                             primaryMetric={primaryMetric}
                                             leftSecondaryMetric={leftSecondaryMetric}
