@@ -84,6 +84,22 @@ Read:
 - There is no new evidence of app-level comparison state retained after
   navigation, but comparison renderer RSS remains a watch item.
 
+### Comparison GPU/RSS Closeout
+
+The later SPRINT-MEM-GPU track closes the remaining fifth-add attribution
+question. See `docs/performance/COMPARISON-GPU-RSS-CLOSEOUT.md`.
+
+Read:
+
+- Comparison app-owned memory is bounded in the measured N=5 direct-save
+  workflow.
+- The remaining fifth-add burst is concentrated at chart commit and classified
+  as WebView2/GPU compositor allocation.
+- Selector close, warm navigation, Comparison store retention, parse cache,
+  report/export retention, Rust decoded series cache retention, visible metrics
+  and uPlot teardown are not current RAM-refactor targets.
+- Total RSS and GPU RSS remain soft runtime metrics, not hard release claims.
+
 ### N=10 Comparison Policy
 
 PR #25 resolves the previous ambiguity:
@@ -200,7 +216,7 @@ top-of-stack commit and include the release smoke matrix from
 | Memory ownership | GO | Saved chart/analysis/table/report and comparison paths are by-id/binary/page-bounded. |
 | Large IPC | GO | `audit:large-ipc` remains zero violations and zero suppressions. |
 | Library filter latency | GO with watch | Non-text debounce is reduced; remaining cost is UI render/settle. |
-| Comparison memory | GO with watch | Export cleanup reclaim is measured; post-route renderer RSS is near-flat. |
+| Comparison memory | GO with watch | App-owned memory is bounded; the remaining fifth-add movement is classified as WebView2/GPU compositor allocation at chart commit. |
 | N=10 UI smoke | GO | Not applicable under beta cap 8; sentinel skip is validated. |
 | Saved ReportTab by-id artifacts | GO | Real XLSX is parsed structurally and contains expected sheets/sections/water fields. |
 | Runtime queue | GO | Queued gated jobs wait before `spawn_blocking`; targeted scheduler tests pass. |
@@ -211,7 +227,8 @@ top-of-stack commit and include the release smoke matrix from
 
 - Comparison setup latency is still above the aspirational `L-CMP-3`/`L-CMP-5`
   UI-ready budgets.
-- Comparison renderer RSS remains the main memory watch item.
+- Comparison GPU/RSS remains a soft runtime watch item. Do not restart RAM
+  refactors here unless user-visible pressure or new app-owned growth appears.
 - Library filter work should now target render/settle behavior, not SQL.
 - License activation/deactivation, updater alpha smoke, and backup
   restore/import smoke still need final beta-candidate manual confirmation.
@@ -225,8 +242,10 @@ RheoLab beta hardens saved-experiment and comparison workflows so the renderer
 keeps ids, metadata, pages, and bounded chart windows instead of full raw
 scientific arrays. Heavy report, analysis, table, and comparison data now stays
 in Rust/SQLite by default. JS heap remains low in the measured workflows; Total
-RSS is tracked as a soft metric because WebView2/GPU/runtime allocation remains
-outside full app control.
+RSS and GPU RSS are tracked as soft metrics because WebView2/GPU/runtime
+allocation remains outside full app control. The remaining fifth-add Comparison
+RSS movement is classified as chart commit / WebView2 GPU compositor allocation,
+not retained app-owned scientific payload.
 ```
 
 Avoid this wording:

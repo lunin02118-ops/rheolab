@@ -180,6 +180,25 @@ N=10 comparison UI smoke is not a beta release gate while the native
 entry, but the expected result is `skipped: "license-cap"`. See
 `docs/performance/COMPARISON-N10-POLICY.md`.
 
+For future PRs touching Comparison chart layout, uPlot lifecycle, series
+loading, selector/chip layout, or report-tab interaction, keep the N=5
+direct-save memory smoke as the relevant diagnostic guard:
+
+```pwsh
+$env:COMPARISON_SMOKE_MEMORY_STEPS='1'
+$env:COMPARISON_SMOKE_N='5'
+$env:COMPARISON_SMOKE_EXPORT_SAVE_MODE='direct'
+npm run perf:comparison:tauri
+```
+
+For memory-sensitive chart changes, repeat it 3x and summarize latest3 with
+`scripts/test/summarize-comparison-memory-phases.mjs`. See
+`docs/performance/COMPARISON-GPU-RSS-CLOSEOUT.md`.
+
+Release readiness should use app-owned memory invariants as the hard guardrail.
+Total RSS and GPU RSS remain soft WebView2/GPU/runtime metrics, not hard release
+claims.
+
 Почему локально: gate требует Windows + WebView2 + собранный Tauri-бинарник +
 секреты alpha/beta канала. Текущая политика: **прогонять локально** перед
 релизом и фиксировать команды/результаты в PR body или scorecard.
@@ -199,3 +218,5 @@ PR, чтобы “догнать” head commit.
 - `docs/performance/BASELINES.md` — perf-базлайны общие.
 - `docs/performance/BETA-READINESS-SCORECARD.md` — beta go/no-go readout for
   memory hardening, UI latency, comparison RSS, and N=10 policy.
+- `docs/performance/COMPARISON-GPU-RSS-CLOSEOUT.md` — final Comparison
+  GPU/RSS attribution closeout and future chart-memory guard.

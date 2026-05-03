@@ -162,6 +162,10 @@ Do not claim:
 
 ## Next Step
 
+Closeout policy:
+
+- `docs/performance/COMPARISON-GPU-RSS-CLOSEOUT.md`
+
 No immediate memory refactor is justified by this scorecard. The next decision
 should be policy unless there is user-visible pressure:
 
