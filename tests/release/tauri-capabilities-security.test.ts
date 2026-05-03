@@ -29,19 +29,38 @@ function fsScopeAllowList(): string[] {
   return fsScope?.allow ?? [];
 }
 
+const EXPECTED_FS_SCOPE_ALLOW_LIST = [
+  '$APPDATA/com.rheolab.enterprise/**',
+  '$LOCALAPPDATA/com.rheolab.enterprise/**',
+  '$DOWNLOADS/**',
+  '$TEMP/**',
+  '$DESKTOP/**',
+  '$DOCUMENT/**',
+];
+
+const FORBIDDEN_BROAD_FS_SCOPES = [
+  '$HOME/**',
+  '$APPDATA/**',
+  '$LOCALAPPDATA/**',
+  '$PROGRAMDATA/**',
+  '$PROGRAMFILES/**',
+  '$PROGRAMFILESX86/**',
+  '$RESOURCE/**',
+  '/**',
+  'C:/**',
+  'C:\\**',
+];
+
 describe('tauri default capabilities security', () => {
-  it('does not allow broad home-directory filesystem access', () => {
-    expect(fsScopeAllowList()).not.toContain('$HOME/**');
+  it('does not allow broad or sensitive filesystem roots', () => {
+    const allowList = fsScopeAllowList();
+
+    for (const scope of FORBIDDEN_BROAD_FS_SCOPES) {
+      expect(allowList).not.toContain(scope);
+    }
   });
 
-  it('keeps filesystem scope on explicit application/user document roots', () => {
-    expect(fsScopeAllowList()).toEqual(expect.arrayContaining([
-      '$APPDATA/com.rheolab.enterprise/**',
-      '$LOCALAPPDATA/com.rheolab.enterprise/**',
-      '$DOWNLOADS/**',
-      '$TEMP/**',
-      '$DESKTOP/**',
-      '$DOCUMENT/**',
-    ]));
+  it('keeps filesystem scope pinned to the audited allowlist', () => {
+    expect([...fsScopeAllowList()].sort()).toEqual([...EXPECTED_FS_SCOPE_ALLOW_LIST].sort());
   });
 });
