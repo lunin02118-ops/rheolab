@@ -75,6 +75,25 @@ that window starts on 2026-04-17 with `0.2.0-beta.5`.
 | DB/library | Audit identified index/query/projection work | Migrations/indexes/projection/query-plan tests pass | Better scaling path for saved experiment library. |
 | Backup/restore | Restore/import integrity gaps were audited | FK collision rollback, pending restore validation and quarantine covered by tests | Lower risk of corrupting user data. |
 
+## Four-Week Performance Metrics By Refactoring Stage
+
+Detailed numbers are now split into:
+
+- `docs/release/ALPHA-0.2.2-alpha.20-PERFORMANCE-STAGE-METRICS.md`
+
+Compact readout:
+
+| Stage | Main metric result | Interpretation |
+| --- | --- | --- |
+| Soak cleanup | peak heap p95 `15.26 MB -> 8.24 MB`; peak DOM p95 `10,034 -> 1,349` | Old heap/node outliers were removed. |
+| IPC/by-id export RC gate | Total RSS p50 `673.82 MB -> 624.70 MB`; Tauri CPU peak `5.73 s -> 5.44 s`; large IPC `0 violations` | Report/comparison paths became safer without blowing workflow budgets. |
+| Memory hardening | JS heap peak stayed `~9.8 MB`; renderer RSS stayed around `~205-207 MB` | App-owned scientific arrays are bounded; Total RSS remains soft. |
+| Warm navigation | return to 5 old lines `455 ms`; old-line refetches `0`; add 6th `903 ms` with 1 new window request | Warm UX is preserved without retaining raw/columnar store data. |
+| Visible chart metrics | series cache after add-5 `303,040 B -> 265,160 B`; after chart-visible GPU `247.48 MB -> 214.46 MB` | Chart request/cache footprint is smaller. |
+| Chart layout stabilization | add-5 click GPU delta `+84.90 MB -> +61.06 MB` | App-controlled resize component reduced by about `23.84 MB` p50. |
+| GPU/RSS closeout | selector close alone `-12.15 MB GPU`; deferred chart commit moved burst to chart commit `+85.45 MB GPU` | Remaining burst is WebView2/GPU compositor allocation, not store/export/WN. |
+| Current UX latency | N=5 ready p50 `4,302 ms`; selector search p50 `528 ms`; long tasks `0` | Next performance target is selector search latency, not RAM refactor. |
+
 ## Four-Week Work Breakdown
 
 | Area | What changed | Real result | Product/release benefit |
