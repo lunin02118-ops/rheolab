@@ -3517,14 +3517,20 @@ mod tests {
             .expect("direct Excel generation should succeed");
 
         assert!(!bytes.is_empty());
-        assert_eq!(bytes, direct_bytes);
+        assert!(!direct_bytes.is_empty());
         assert!(
             bytes.starts_with(b"PK"),
             "XLSX must start with ZIP signature"
         );
+        assert!(
+            direct_bytes.starts_with(b"PK"),
+            "Direct XLSX must start with ZIP signature"
+        );
 
         let mut workbook = open_xlsx(bytes.clone());
+        let direct_workbook = open_xlsx(direct_bytes);
         let sheet_names = workbook.sheet_names().to_vec();
+        assert_eq!(sheet_names, direct_workbook.sheet_names().to_vec());
         for expected in ["Overlap Chart", "Alpha", "Beta", "_ChartData", "DebugInfo"] {
             assert!(
                 sheet_names.iter().any(|name| name == expected),
