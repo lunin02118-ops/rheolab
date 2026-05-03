@@ -206,11 +206,6 @@ option {
   100% { transform: translateX(200%); }
 }
 
-@keyframes pingSlow {
-  0% { opacity: 0.6; transform: scale(1); }
-  75%, 100% { opacity: 0; transform: scale(1.04); }
-}
-
 @keyframes bounceGentle {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
@@ -226,10 +221,6 @@ option {
 
 .animate-shimmer {
   animation: shimmer 1.8s ease-in-out infinite;
-}
-
-.animate-ping-slow {
-  animation: pingSlow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 .animate-bounce-gentle {

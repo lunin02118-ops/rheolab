@@ -86,9 +86,10 @@ describe('FileUpload', () => {
     // ── external success state ─────────────────────────────────────────────
 
     it('shows success state when loadedFileName is provided', () => {
-        render(<FileUpload {...defaultProps} loadedFileName="demo.xlsx" />);
+        const { container } = render(<FileUpload {...defaultProps} loadedFileName="demo.xlsx" />);
         expect(screen.getByTestId('UploadCardSuccessState')).toBeDefined();
         expect(screen.getByTestId('UploadCardSuccessFileName').textContent).toBe('demo.xlsx');
+        expect(container.querySelector('.animate-ping-slow')).toBeNull();
     });
 
     // ── reset from success ─────────────────────────────────────────────────

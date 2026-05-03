@@ -174,9 +174,10 @@ export function FileUpload({ onFileProcessed, onError, isLoading, loadedFileName
                 </div>
             )}
 
-            {/* Success pulse ring */}
+            {/* Success state must stay static after the one-shot entry animation.
+                A persistent ping ring keeps WebView2's compositor busy while idle. */}
             {uploadState === 'success' && (
-                <div className="absolute inset-0 rounded-xl border-2 border-emerald-400/30 animate-ping-slow pointer-events-none" />
+                <div className="absolute inset-0 rounded-xl border-2 border-emerald-400/30 pointer-events-none" />
             )}
             {isDragging && <span data-testid="UploadCardDragOverState" className="sr-only">drag-over</span>}
 
