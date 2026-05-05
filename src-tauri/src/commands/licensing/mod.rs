@@ -439,6 +439,34 @@ pub async fn licensing_activate_full(
     engine.activate(&key, &state.db_pool).await
 }
 
+/// Generate an offline Enterprise activation request code for support.
+#[tauri::command]
+pub async fn licensing_offline_activation_request(
+    state: State<'_, AppState>,
+    license_key: Option<String>,
+) -> Result<types::OfflineActivationRequestInfo> {
+    let engine = state
+        .license_engine
+        .as_ref()
+        .ok_or("License engine not initialized")?;
+    engine.generate_offline_activation_request(license_key)
+}
+
+/// Activate an Enterprise license using a signed offline activation code.
+#[tauri::command]
+pub async fn licensing_activate_offline(
+    state: State<'_, AppState>,
+    activation_code: String,
+) -> Result<types::LicenseCheckResult> {
+    let engine = state
+        .license_engine
+        .as_ref()
+        .ok_or("License engine not initialized")?;
+    engine
+        .activate_offline(&activation_code, &state.db_pool)
+        .await
+}
+
 /// Deactivate the current license via the engine.
 #[tauri::command]
 pub async fn licensing_deactivate(state: State<'_, AppState>) -> Result<types::LicenseCheckResult> {

@@ -18,7 +18,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Key, CheckCircle, XCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Key, CheckCircle, XCircle, Copy } from 'lucide-react';
 import { DevModeSection } from './DevModeSection';
 import { isProduction } from '@/lib/env';
 
@@ -35,10 +36,14 @@ export function LicenseActivationDialog({
     forceBlock = false,
     blockMessage,
 }: LicenseActivationDialogProps) {
-    const { activate, result } = useLicense();
+    const { activate, activateOffline, createOfflineActivationRequest, result } = useLicense();
 
     const [licenseKey, setLicenseKey] = useState('');
+    const [activationMode, setActivationMode] = useState<'online' | 'offline'>('online');
+    const [offlineRequestCode, setOfflineRequestCode] = useState('');
+    const [offlineActivationCode, setOfflineActivationCode] = useState('');
     const [isActivating, setIsActivating] = useState(false);
+    const [isGeneratingOfflineRequest, setIsGeneratingOfflineRequest] = useState(false);
     const [activationResult, setActivationResult] = useState<{
         success: boolean;
         message: string;
@@ -66,6 +71,9 @@ export function LicenseActivationDialog({
         setPrevOpen(open);
         if (open) {
             setLicenseKey('');
+            setActivationMode('online');
+            setOfflineRequestCode('');
+            setOfflineActivationCode('');
             setActivationResult(null);
         }
     }
@@ -124,10 +132,65 @@ export function LicenseActivationDialog({
         }
     };
 
+    const handleGenerateOfflineRequest = async () => {
+        setIsGeneratingOfflineRequest(true);
+        setActivationResult(null);
+        try {
+            const request = await createOfflineActivationRequest(licenseKey || undefined);
+            setOfflineRequestCode(request.requestCode);
+        } catch (_e) {
+            setActivationResult({
+                success: false,
+                message: 'Не удалось сформировать код запроса.',
+            });
+        } finally {
+            setIsGeneratingOfflineRequest(false);
+        }
+    };
+
+    const handleCopyOfflineRequest = async () => {
+        if (!offlineRequestCode) return;
+        try {
+            await navigator.clipboard.writeText(offlineRequestCode);
+            setActivationResult({ success: true, message: 'Код запроса скопирован' });
+        } catch (_e) {
+            setActivationResult({ success: false, message: 'Не удалось скопировать код' });
+        }
+    };
+
+    const handleActivateOffline = async () => {
+        if (!offlineActivationCode.trim()) {
+            setActivationResult({
+                success: false,
+                message: 'Вставьте офлайн-ключ активации.',
+            });
+            return;
+        }
+
+        setIsActivating(true);
+        setActivationResult(null);
+        try {
+            const result = await activateOffline(offlineActivationCode.trim());
+            setActivationResult(result);
+            if (result.success) {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
+        } catch (_e) {
+            setActivationResult({
+                success: false,
+                message: 'Ошибка офлайн-активации.',
+            });
+        } finally {
+            setIsActivating(false);
+        }
+    };
+
     return (
         <>
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Key className="h-5 w-5" />
@@ -211,22 +274,76 @@ export function LicenseActivationDialog({
                                 </div>
                             )}
 
-                            {/* Поле ввода ключа */}
-                            <div className="space-y-2">
-                                <Label htmlFor="license-key">Ключ лицензии</Label>
-                                <Input
-                                    id="license-key"
-                                    placeholder="XXXX-XXXX-XXXX-XXXX"
-                                    value={licenseKey}
-                                    onChange={handleKeyChange}
-                                    className="font-mono text-center tracking-wider"
-                                    disabled={isActivating}
-                                />
-                                {/* Display Machine ID */}
-                                <div className="text-xs text-center text-muted-foreground pt-1">
-                                    ID устройства: <span className="font-mono select-all text-foreground/70">{machineId || 'загрузка...'}</span>
-                                </div>
-                            </div>
+                            <Tabs value={activationMode} onValueChange={value => setActivationMode(value as 'online' | 'offline')}>
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="online">Онлайн</TabsTrigger>
+                                    <TabsTrigger value="offline">Офлайн Enterprise</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="online" className="space-y-2 pt-2">
+                                    <Label htmlFor="license-key">Ключ лицензии</Label>
+                                    <Input
+                                        id="license-key"
+                                        placeholder="XXXX-XXXX-XXXX-XXXX"
+                                        value={licenseKey}
+                                        onChange={handleKeyChange}
+                                        className="font-mono text-center tracking-wider"
+                                        disabled={isActivating}
+                                    />
+                                    <div className="text-xs text-center text-muted-foreground pt-1">
+                                        ID устройства: <span className="font-mono select-all text-foreground/70">{machineId || 'загрузка...'}</span>
+                                    </div>
+                                </TabsContent>
+                                <TabsContent value="offline" className="space-y-3 pt-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="offline-license-key">Ключ или номер договора</Label>
+                                        <Input
+                                            id="offline-license-key"
+                                            placeholder="опционально"
+                                            value={licenseKey}
+                                            onChange={e => setLicenseKey(e.target.value)}
+                                            disabled={isActivating || isGeneratingOfflineRequest}
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleGenerateOfflineRequest}
+                                            disabled={isGeneratingOfflineRequest}
+                                        >
+                                            {isGeneratingOfflineRequest && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Сформировать код
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={handleCopyOfflineRequest}
+                                            disabled={!offlineRequestCode}
+                                            title="Скопировать код запроса"
+                                        >
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <textarea
+                                        readOnly
+                                        value={offlineRequestCode}
+                                        placeholder="Код запроса появится здесь"
+                                        className="min-h-[88px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-xs text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    />
+                                    <div className="space-y-2">
+                                        <Label htmlFor="offline-activation-code">Офлайн-ключ активации</Label>
+                                        <textarea
+                                            id="offline-activation-code"
+                                            value={offlineActivationCode}
+                                            onChange={e => setOfflineActivationCode(e.target.value)}
+                                            placeholder="RHEOLAB-OFFLINE-ACT-v1:..."
+                                            className="min-h-[96px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-xs text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                            disabled={isActivating}
+                                        />
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
                         </>
                     )}
 
@@ -260,7 +377,7 @@ export function LicenseActivationDialog({
                             {result?.status === 'active' ? 'Закрыть' : 'Отмена'}
                         </Button>
                     )}
-                    {result?.status !== 'active' && (
+                    {result?.status !== 'active' && activationMode === 'online' && (
                         <Button
                             onClick={handleActivate}
                             disabled={isActivating || licenseKey.length < 19}
@@ -272,6 +389,21 @@ export function LicenseActivationDialog({
                                 </>
                             ) : (
                                 'Активировать'
+                            )}
+                        </Button>
+                    )}
+                    {result?.status !== 'active' && activationMode === 'offline' && (
+                        <Button
+                            onClick={handleActivateOffline}
+                            disabled={isActivating || !offlineActivationCode.trim()}
+                        >
+                            {isActivating ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Активация...
+                                </>
+                            ) : (
+                                'Активировать офлайн'
                             )}
                         </Button>
                     )}

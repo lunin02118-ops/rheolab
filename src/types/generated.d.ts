@@ -356,6 +356,11 @@ imported: number;
  */
 skipped: number }
 
+/**
+ * Request code shown to an Enterprise customer for offline activation.
+ */
+export type OfflineActivationRequestInfo = { requestCode: string; requestId: string; machineId: string; legacyMachineIds: string[]; createdAt: string }
+
 export type OperatorDeleteResponse = { success: boolean; error?: string | null }
 
 export type OperatorMutationResponse = { success: boolean; operator?: StoredOperator | null; error?: string | null }

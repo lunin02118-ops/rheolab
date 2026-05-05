@@ -59,6 +59,7 @@ pub struct LicenseEngine {
     app_data_dir: PathBuf,
 }
 
+mod offline;
 mod operations;
 mod verification;
 

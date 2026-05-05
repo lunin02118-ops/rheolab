@@ -13,6 +13,7 @@ use super::super::types::{
     LicenseCheckResult, LicenseSource, LicenseStatus, LicenseType, DB_KEY_LICENSE,
     DB_KEY_WAS_LICENSED, DEFAULT_GRACE_PERIOD_DAYS,
 };
+use super::offline::{is_offline_enterprise_license, offline_machine_matches};
 use super::{build_invalid, compute_days_remaining, mask_key, LicenseEngine, CHECK_CACHE_TTL_SECS};
 use crate::db::DbPool;
 use crate::error::{AppError, Result};
@@ -167,14 +168,34 @@ impl LicenseEngine {
                     .as_i64()
                     .unwrap_or(DEFAULT_GRACE_PERIOD_DAYS);
                 let customer_name = data["customerName"].as_str().map(|s| s.to_string());
-                self.build_expiry_result(
-                    key,
-                    license_type_str,
-                    license_type,
-                    customer_name,
-                    expires_at,
-                    grace_days,
-                )
+                if is_offline_enterprise_license(&data)
+                    && !offline_machine_matches(&self.app_data_dir, &data)
+                {
+                    LicenseCheckResult {
+                        status: LicenseStatus::Invalid,
+                        source: LicenseSource::Key,
+                        features: super::super::features::expired_features(),
+                        key: Some(mask_key(key)),
+                        license_type: Some(license_type_str.to_string()),
+                        customer_name,
+                        expires_at: expires_at.map(|s| s.to_string()),
+                        days_remaining: None,
+                        experiments_remaining: None,
+                        message: Some(
+                            "Офлайн-лицензия выпущена для другого устройства".to_string(),
+                        ),
+                        show_warning: true,
+                    }
+                } else {
+                    self.build_expiry_result(
+                        key,
+                        license_type_str,
+                        license_type,
+                        customer_name,
+                        expires_at,
+                        grace_days,
+                    )
+                }
             }
             None => {
                 // No verified license — tentatively enter demo mode.

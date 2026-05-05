@@ -206,6 +206,17 @@ pub struct LicenseCheckResult {
     pub show_warning: bool,
 }
 
+/// Request code shown to an Enterprise customer for offline activation.
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct OfflineActivationRequestInfo {
+    pub request_code: String,
+    pub request_id: String,
+    pub machine_id: String,
+    pub legacy_machine_ids: Vec<String>,
+    pub created_at: String,
+}
+
 // ── Startup key assertion ──────────────────────────────────────────────
 
 /// Called once at startup.

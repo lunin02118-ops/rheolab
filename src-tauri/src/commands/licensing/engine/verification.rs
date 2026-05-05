@@ -13,6 +13,7 @@ use super::super::types::{
     LicenseCheckResult, LicenseSource, LicenseStatus, LicenseType, DB_KEY_LICENSE,
     DEFAULT_GRACE_PERIOD_DAYS,
 };
+use super::offline::{is_offline_enterprise_license, offline_machine_matches};
 use super::{compute_days_remaining, mask_key, parse_expiry, LicenseEngine};
 use crate::db::DbPool;
 
@@ -152,6 +153,24 @@ impl LicenseEngine {
             .as_i64()
             .unwrap_or(DEFAULT_GRACE_PERIOD_DAYS);
         let customer_name = data["customerName"].as_str().map(|s| s.to_string());
+        let is_offline_enterprise = is_offline_enterprise_license(&data);
+
+        if is_offline_enterprise && !offline_machine_matches(&self.app_data_dir, &data) {
+            tracing::warn!("Offline Enterprise license machine binding mismatch");
+            return LicenseCheckResult {
+                status: LicenseStatus::Invalid,
+                source: LicenseSource::Key,
+                features: expired_features(),
+                key: Some(mask_key(key)),
+                license_type: Some(license_type_str.to_string()),
+                customer_name,
+                expires_at: expires_at.map(|s| s.to_string()),
+                days_remaining: None,
+                experiments_remaining: None,
+                message: Some("Офлайн-лицензия выпущена для другого устройства".to_string()),
+                show_warning: true,
+            };
+        }
 
         // Security checks
         if is_clock_tampered(&self.app_data_dir) {
@@ -177,17 +196,18 @@ impl LicenseEngine {
         // Online validation — throttled to at most once per ONLINE_CHECK_INTERVAL_SECS.
         // `is_online_check_due` returns true on the first call this session so the
         // background task (spawned in lib.rs after setup) always gets a fresh result.
-        let online_result = if !key.is_empty() && self.is_online_check_due().await {
-            let result = validate_online(key, &self.app_data_dir).await;
-            if result.server_reached {
-                // Any server response (active, revoked, expired) resets the throttle
-                // so that subsequent restarts within the hour skip the HTTP call.
-                self.mark_online_check_done().await;
-            }
-            Some(result)
-        } else {
-            None
-        };
+        let online_result =
+            if !is_offline_enterprise && !key.is_empty() && self.is_online_check_due().await {
+                let result = validate_online(key, &self.app_data_dir).await;
+                if result.server_reached {
+                    // Any server response (active, revoked, expired) resets the throttle
+                    // so that subsequent restarts within the hour skip the HTTP call.
+                    self.mark_online_check_done().await;
+                }
+                Some(result)
+            } else {
+                None
+            };
 
         // Handle online result
         if let Some(ref online) = online_result {
@@ -387,7 +407,7 @@ impl LicenseEngine {
         }
 
         // Offline path: use locally stored data
-        if is_offline_overdue(&self.app_data_dir) {
+        if !is_offline_enterprise && is_offline_overdue(&self.app_data_dir) {
             return LicenseCheckResult {
                 status: LicenseStatus::Invalid,
                 source: LicenseSource::Key,

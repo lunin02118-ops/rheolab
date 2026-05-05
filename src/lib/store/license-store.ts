@@ -41,6 +41,14 @@ interface RustLicenseCheckResult {
     showWarning: boolean;
 }
 
+interface OfflineActivationRequestInfo {
+    requestCode: string;
+    requestId: string;
+    machineId: string;
+    legacyMachineIds: string[];
+    createdAt: string;
+}
+
 /**
  * Adapt the flat Rust result into the legacy nested `LicenseResult` shape
  * so that all existing consumers (useLicense hook, components) continue to work.
@@ -93,6 +101,8 @@ export interface LicenseState {
     refresh: () => Promise<void>;
     refreshExperimentsCount: () => Promise<void>;
     activate: (key: string) => Promise<{ success: boolean; message: string }>;
+    createOfflineActivationRequest: (licenseKey?: string) => Promise<OfflineActivationRequestInfo>;
+    activateOffline: (activationCode: string) => Promise<{ success: boolean; message: string }>;
     deactivate: () => Promise<void>;
     canSaveExperiment: () => { allowed: boolean; message?: string };
     isWatermarkRequired: () => boolean;
@@ -217,6 +227,33 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
             const result = adaptResult(rustResult);
             set({ result, ...deriveFromResult(result) });
             return { success: true, message: result.message || 'Лицензия активирована' };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            return { success: false, message };
+        }
+    },
+
+    // ── createOfflineActivationRequest ───────────────────────────────────────
+    createOfflineActivationRequest: async (licenseKey?: string) => {
+        return invoke<OfflineActivationRequestInfo>(
+            'licensing_offline_activation_request',
+            { licenseKey: licenseKey?.trim() || null },
+        );
+    },
+
+    // ── activateOffline ──────────────────────────────────────────────────────
+    activateOffline: async (activationCode: string) => {
+        try {
+            const rustResult = await invoke<RustLicenseCheckResult>(
+                'licensing_activate_offline',
+                { activationCode },
+            );
+            const result = adaptResult(rustResult);
+            set({ result, ...deriveFromResult(result) });
+            return {
+                success: true,
+                message: result.message || 'Enterprise лицензия активирована офлайн',
+            };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             return { success: false, message };

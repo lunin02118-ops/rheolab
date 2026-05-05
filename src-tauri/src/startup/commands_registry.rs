@@ -117,6 +117,8 @@ macro_rules! register_tauri_commands {
             $crate::commands::licensing::licensing_check,
             $crate::commands::licensing::licensing_get_status,
             $crate::commands::licensing::licensing_activate_full,
+            $crate::commands::licensing::licensing_offline_activation_request,
+            $crate::commands::licensing::licensing_activate_offline,
             $crate::commands::licensing::licensing_deactivate,
             $crate::commands::licensing::licensing_can_save,
             $crate::commands::licensing::licensing_register_experiment,

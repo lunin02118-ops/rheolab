@@ -28,6 +28,8 @@ export const useLicense = () =>
             refresh: s.refresh,
             refreshExperimentsCount: s.refreshExperimentsCount,
             activate: s.activate,
+            createOfflineActivationRequest: s.createOfflineActivationRequest,
+            activateOffline: s.activateOffline,
             deactivate: s.deactivate,
             canSaveExperiment: s.canSaveExperiment,
             isWatermarkRequired: s.isWatermarkRequired,
