@@ -100,6 +100,7 @@ license-server/.phpunit.result.cache
 /runtime/qa/
 /playwright-report/
 /test-results/
+/website/outputs/
 
 # Report files
 lint_report*.txt

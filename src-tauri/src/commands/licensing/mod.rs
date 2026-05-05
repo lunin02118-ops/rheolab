@@ -556,31 +556,44 @@ pub async fn get_update_channel(state: State<'_, AppState>) -> Result<UpdateChan
     }
 }
 
-/// Returns `true` when the application is running in an E2E test environment.
+#[cfg(any(debug_assertions, test))]
+fn debug_env_flag(name: &str) -> bool {
+    std::env::var(name).as_deref() == Ok("1")
+}
+
+/// Returns `true` when the application is running with the license-gate E2E bypass.
 ///
 /// Detection is based on the `RHEOLAB_E2E_SKIP_LICENSE_GATE=1` environment
 /// variable, which is already the standard marker the test harness sets for
-/// other E2E-only behaviours (license-gate bypass, demo-counter no-op).
-///
-/// The frontend uses this to suppress side-effects that would otherwise
-/// destabilise Playwright tests — most importantly, the Tauri auto-updater
-/// (which can trigger a WebView2 navigation to `edge://downloads/hub` mid-run
-/// and break CDP-based test fixtures).
+/// license-gate bypass and demo-counter no-op.
 ///
 /// **Audit-v2 E2E-001:** the env-driven detection is gated to
 /// `cfg(any(debug_assertions, test))`.  In a `cargo build --release`
 /// binary this command **always** returns `false`, even if the user
 /// (or a malicious launcher) sets `RHEOLAB_E2E_SKIP_LICENSE_GATE=1` in
-/// their environment.  This prevents the auto-updater suppression path
-/// from being toggled on a production install via a process env var,
-/// which would let an attacker freeze the install at a known-vulnerable
-/// version.  The IPC remains exposed (the Specta-generated bindings
-/// require it) but its release-mode body is a constant `false`.
+/// their environment.
 #[tauri::command]
 pub fn is_e2e_mode() -> bool {
     #[cfg(any(debug_assertions, test))]
     {
-        std::env::var("RHEOLAB_E2E_SKIP_LICENSE_GATE").as_deref() == Ok("1")
+        debug_env_flag("RHEOLAB_E2E_SKIP_LICENSE_GATE")
+    }
+    #[cfg(not(any(debug_assertions, test)))]
+    {
+        false
+    }
+}
+
+/// Returns `true` when E2E should suppress the auto-updater.
+///
+/// Kept separate from [`is_e2e_mode`] so Playwright can test updater behaviour
+/// without also opening the license gate.  Release builds ignore the env var and
+/// always return `false`, preserving the updater as a security delivery path.
+#[tauri::command]
+pub fn is_updater_disabled() -> bool {
+    #[cfg(any(debug_assertions, test))]
+    {
+        debug_env_flag("RHEOLAB_E2E_DISABLE_UPDATER")
     }
     #[cfg(not(any(debug_assertions, test)))]
     {

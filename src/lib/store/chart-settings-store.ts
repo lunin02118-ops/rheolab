@@ -199,13 +199,13 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                             },
                         });
                     } else {
-                        console.error('Invalid chart settings format');
+                        logger.error('Invalid chart settings format');
                         return false;
                     }
                     
                     return true;
                 } catch (e) {
-                    console.error('Failed to import chart settings:', e);
+                    logger.error('Failed to import chart settings:', e);
                     return false;
                 }
             },

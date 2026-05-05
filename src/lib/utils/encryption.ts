@@ -9,6 +9,7 @@
  */
 
 import { isDevelopment, isTest } from '@/lib/env';
+import { logger } from '@/lib/logger';
 
 // Check if we're on server or client
 const isServer = typeof window === 'undefined';
@@ -30,7 +31,7 @@ function getServerEncryptionKey(): string {
 
     if (!key) {
         if (isDevelopment || isTest) {
-            console.warn('[Encryption] LICENSE_ENCRYPTION_KEY missing, using dev fallback');
+            logger.warn('[Encryption] LICENSE_ENCRYPTION_KEY missing, using dev fallback');
             return 'development-server-only-key-32!';
         }
         throw new Error('[Encryption] LICENSE_ENCRYPTION_KEY is required in production');
@@ -76,7 +77,7 @@ function serverDecrypt(text: string): string {
         decrypted = Buffer.concat([decrypted, decipher.final()]);
         return decrypted.toString();
     } catch (error) {
-        console.error('[Encryption] Server decryption failed:', error);
+        logger.error('[Encryption] Server decryption failed:', error);
         return 'DECRYPTION_ERROR';
     }
 }
@@ -155,7 +156,7 @@ function clientDeobfuscate(encoded: string): string {
 
         return bytesToString(result);
     } catch (error) {
-        console.error('[Encryption] Client deobfuscation failed:', error);
+        logger.error('[Encryption] Client deobfuscation failed:', error);
         return 'DECRYPTION_ERROR';
     }
 }
@@ -190,6 +191,6 @@ export function decrypt(text: string): string {
         return clientDeobfuscate(text);
     }
     // Legacy encrypted data - can't decrypt on client anymore
-    console.warn('[Encryption] Legacy encrypted data detected, returning as-is');
+    logger.warn('[Encryption] Legacy encrypted data detected, returning as-is');
     return text;
 }

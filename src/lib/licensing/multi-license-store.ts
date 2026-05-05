@@ -65,7 +65,7 @@ function loadMultiLicenseState(): MultiLicenseState | null {
 
         return state;
     } catch (error) {
-        console.error('[MultiLicenseStore] Failed to load state:', error);
+        logger.error('[MultiLicenseStore] Failed to load state:', error);
         return null;
     }
 }
@@ -80,7 +80,7 @@ function saveMultiLicenseState(state: MultiLicenseState): void {
         localStorage.setItem(STORAGE_KEY, encrypted);
         logger.debug('[MultiLicenseStore] State saved, slots:', state.slots.length);
     } catch (error) {
-        console.error('[MultiLicenseStore] Failed to save state:', error);
+        logger.error('[MultiLicenseStore] Failed to save state:', error);
     }
 }
 
@@ -226,7 +226,7 @@ export function isDevModeEnabled(): boolean {
  */
 export function setDevMode(enabled: boolean): void {
     if (isProduction) {
-        console.warn('[MultiLicenseStore] Dev mode cannot be enabled in production');
+        logger.warn('[MultiLicenseStore] Dev mode cannot be enabled in production');
         return;
     }
 
@@ -239,7 +239,7 @@ export function setDevMode(enabled: boolean): void {
             logger.debug('[MultiLicenseStore] Dev mode DISABLED');
         }
     } catch (error) {
-        console.error('[MultiLicenseStore] Failed to set dev mode:', error);
+        logger.error('[MultiLicenseStore] Failed to set dev mode:', error);
     }
 }
 
@@ -252,6 +252,6 @@ export function clearMultiLicenseData(): void {
         localStorage.removeItem(DEV_MODE_KEY);
         logger.debug('[MultiLicenseStore] All multi-license data cleared');
     } catch (error) {
-        console.error('[MultiLicenseStore] Failed to clear multi-license data:', error);
+        logger.error('[MultiLicenseStore] Failed to clear multi-license data:', error);
     }
 }

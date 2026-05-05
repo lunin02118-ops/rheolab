@@ -1,122 +1,98 @@
 ---
+const capabilities = [
+  {
+    index: '01',
+    title: 'Распознавание файлов',
+    text: 'Открывает лабораторные выгрузки разных реометров, распознаёт структуру таблицы и приводит ряды, единицы и названия показателей к единой схеме.',
+    facts: ['.xls / .xlsx', '.csv / .txt / .dat', 'Grace, Chandler, Fann, OFITE, BSL-R1, Brookfield'],
+    tone: 'cyan',
+  },
+  {
+    index: '02',
+    title: 'Локальная база данных',
+    text: 'Сохраняет результаты экспериментов в библиотеку на рабочей станции, чтобы опыты можно было искать, повторно открывать и не собирать заново из файлов.',
+    facts: ['локальное хранение', 'поиск по библиотеке', 'история экспериментов'],
+    tone: 'green',
+  },
+  {
+    index: '03',
+    title: 'Сравнение анализов',
+    text: 'Накладывает несколько экспериментов на общие графики по вязкости, температуре, давлению, скорости, скорости и напряжению сдвига.',
+    facts: ['единые оси', 'несколько серий', 'быстрый визуальный контроль'],
+    tone: 'blue',
+  },
+  {
+    index: '04',
+    title: 'Расчёты по единой методике',
+    text: 'Считает параметры на сырых данных по унифицированной логике, чтобы сравнение не зависело от внутренних настроек и расчётов конкретного реометра.',
+    facts: ['сырые данные', 'циклы эксперимента', 'единая методика'],
+    tone: 'orange',
+  },
+];
+
+const workflow = [
+  'Импортируйте файл',
+  'Проверьте график и расчёты',
+  'Сохраните опыт в базу',
+  'Сравните серии или выгрузите отчёт',
+];
 ---
+
 <section id="features" class="site-features">
   <div class="site-container site-features-content">
     <div class="site-section-header">
-      <h2>От загрузки файла до рабочего документа</h2>
-      <p>Один рабочий контур для импорта, расчётов, хранения и сравнения результатов</p>
+      <span class="site-section-kicker">Возможности</span>
+      <h2>Один рабочий контур для реологических данных</h2>
+      <p>
+        От распознавания файла до сравнения экспериментов: данные разных приборов
+        приводятся к единому виду и рассчитываются по общей методике.
+      </p>
     </div>
 
-    <!-- Z-pattern: Block 1 -->
-    <div class="site-feature-row">
-      <div class="site-feature-text">
-        <span class="site-feature-num">01</span>
-        <h3>Загрузка файлов и разбор структуры</h3>
-        <p>RheoLab открывает лабораторные выгрузки в форматах .xls, .xlsx, .csv, .txt и .dat, распознаёт структуру таблицы и приводит основные показатели к единому виду.</p>
-        <p>Если файл нестандартный, для отдельных сценариев можно использовать разбор с помощью ИИ, а дальше сохранить результат в библиотеку как обычный эксперимент.</p>
-        <ul class="site-check-list">
-          <li>Grace M5600</li>
-          <li>Chandler 5500/5550</li>
-          <li>Fann 50</li>
-          <li>Ofite 1100</li>
-          <li>BSL R1 и Brookfield</li>
-          <li>Разбор нестандартных таблиц</li>
-        </ul>
-      </div>
-      <div class="site-feature-visual site-surface-box site-mock-import">
-        <!-- Абстрактная иллюстрация импорта -->
-        <div class="mock-file mock-xls">.xls</div>
-        <div class="mock-file mock-csv">.csv</div>
-        <div class="mock-file mock-dat">.dat</div>
-        <svg viewBox="0 0 100 20" class="mock-arrows"><path d="M10 10 L90 10 M80 5 L90 10 L80 15" stroke="var(--site-accent)" fill="none" stroke-width="2"/></svg>
-        <div class="mock-db">Единая База</div>
-      </div>
+    <div class="site-capability-grid">
+      {capabilities.map((item) => (
+        <article class={`site-capability-card tone-${item.tone}`}>
+          <div class="site-capability-topline">
+            <span>{item.index}</span>
+            <div class="site-capability-rule"></div>
+          </div>
+          <h3>{item.title}</h3>
+          <p>{item.text}</p>
+          <ul>
+            {item.facts.map((fact) => (
+              <li>{fact}</li>
+            ))}
+          </ul>
+        </article>
+      ))}
     </div>
 
-    <!-- Z-pattern: Block 2 (Reversed) -->
-    <div class="site-feature-row site-row-reversed">
-      <div class="site-feature-visual site-surface-box site-mock-models-new">
-        <div class="mock-calc-header">
-          <div class="calc-tab active">Оствальда-де Ваале</div>
-          <div class="calc-tab">Бингама</div>
-        </div>
-        <div class="mock-calc-grid">
-          <div class="calc-item b-blue">
-            <span class="c-label">Пластич. вязкость (PV)</span>
-            <div class="c-val-row"><strong class="c-value">32.4</strong><span class="c-unit">cP</span></div>
-          </div>
-          <div class="calc-item b-purple">
-            <span class="c-label">ДНС (YP)</span>
-            <div class="c-val-row"><strong class="c-value">18.5</strong><span class="c-unit">lb/100ft²</span></div>
-          </div>
-          <div class="calc-item b-green">
-            <span class="c-label">Индекс течения (n)</span>
-            <div class="c-val-row"><strong class="c-value">0.724</strong><span class="c-unit">—</span></div>
-          </div>
-          <div class="calc-item b-green">
-            <span class="c-label">Показ. консист. (K)</span>
-            <div class="c-val-row"><strong class="c-value">1.492</strong><span class="c-unit">eq cp</span></div>
-          </div>
-          <div class="calc-item b-orange">
-            <span class="c-label">n' (обобщ.)</span>
-            <div class="c-val-row"><strong class="c-value">0.686</strong><span class="c-unit">—</span></div>
-          </div>
-          <div class="calc-item b-orange">
-            <span class="c-label">K' (обобщ.)</span>
-            <div class="c-val-row"><strong class="c-value">1.821</strong><span class="c-unit">eq cp</span></div>
-          </div>
-        </div>
+    <div class="site-workflow-panel" aria-label="Рабочий сценарий">
+      <div class="site-workflow-copy">
+        <span class="site-section-kicker">Как это выглядит в работе</span>
+        <h3>Минимум ручной сборки, максимум повторяемости</h3>
+        <p>
+          Лаборант или инженер проходит один и тот же маршрут независимо от прибора:
+          загрузка, проверка, сохранение, сравнение и отчёт.
+        </p>
       </div>
-      <div class="site-feature-text">
-        <span class="site-feature-num">02</span>
-        <h3>Автоматический расчёт по циклам</h3>
-        <p>Программа выделяет шаги и циклы эксперимента, рассчитывает показатели для каждого цикла и показывает качество аппроксимации по коэффициенту достоверности.</p>
-        <p>В расчётах доступны параметры степенной модели и дополнительные показатели для инженерной интерпретации. В расширенном режиме можно вручную исключить шумные шаги и сразу пересчитать результат.</p>
-      </div>
-    </div>
 
-    <!-- Z-pattern: Block 3 -->
-    <div class="site-feature-row">
-      <div class="site-feature-text">
-        <span class="site-feature-num">03</span>
-        <h3>Сравнение серий и оформление отчётов</h3>
-        <p>Сохранённые эксперименты можно сравнивать на одних графиках по вязкости, температуре, давлению, скорости, скорости сдвига и напряжению сдвига.</p>
-        <p>Отчёт настраивается под вашу организацию: язык, система единиц, логотип, состав разделов, параметры графика и выгрузка в PDF или Excel.</p>
-      </div>
-      <div class="site-feature-visual site-surface-box site-mock-report-new">
-        <div class="mock-report-sheet">
-          <div class="r-head">
-            <div class="r-logo">RheoLab</div>
-            <div class="r-title-block">
-              <div class="r-title">Отчёт об исследовании №441</div>
-              <div class="r-subtitle">Проект: Скважина 74-бис, Заказчик: ГазНефть</div>
-            </div>
-          </div>
-          <div class="r-body">
-             <div class="r-table-mock">
-                <div class="r-table-row r-table-hdr"><span>Параметр</span><span>Показатель</span></div>
-                <div class="r-table-row"><span>PV (Plastic Viscosity)</span><span>35.0 cP</span></div>
-                <div class="r-table-row"><span>YP (Yield Point)</span><span>14.2 lb/100ft²</span></div>
-                <div class="r-table-row"><span>Гель 10 сек / 10 мин</span><span>6 / 12 lb/100ft²</span></div>
-             </div>
-             <div class="r-chart-mock">
-                <svg viewBox="0 0 200 60" style="width: 100%; height: 100%;">
-                  <path d="M5 50 Q40 10 100 20 T195 5" stroke="#3b82f6" fill="none" stroke-width="2.5" stroke-linecap="round"/>
-                  <path d="M5 55 Q50 5 120 30 T195 15" stroke="#a855f7" fill="none" stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
-             </div>
-          </div>
-        </div>
-        <div class="m-btn-overlay-3d">Экспорт в PDF</div>
-      </div>
+      <ol class="site-workflow-steps">
+        {workflow.map((step, index) => (
+          <li>
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{step}</strong>
+          </li>
+        ))}
+      </ol>
     </div>
-
   </div>
 </section>
 
 <style>
   .site-features {
-    padding: 9rem 0;
+    padding: 8.5rem 0;
+    scroll-margin-top: 7rem;
     background:
       radial-gradient(circle at 82% 12%, rgba(37, 99, 235, 0.07), transparent 24%),
       var(--site-bg);
@@ -130,344 +106,252 @@
   }
 
   .site-section-header {
+    max-width: 920px;
+    margin: 0 auto 4.5rem;
     text-align: center;
-    margin-bottom: 6.5rem;
+  }
+
+  .site-section-kicker {
+    display: inline-flex;
+    margin-bottom: 1rem;
+    color: #60a5fa;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .site-section-header h2 {
-    font-size: clamp(2.5rem, 4.2vw, 3.15rem);
+    font-size: clamp(2.35rem, 4vw, 3.1rem);
     color: var(--site-text-main);
     margin-bottom: 1rem;
     font-weight: 700;
+    line-height: 1.12;
   }
 
   .site-section-header p {
-    font-size: 1.22rem;
-    color: var(--site-text-muted);
-  }
-
-  .site-feature-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6rem;
-    align-items: center;
-    margin-bottom: 8rem;
-  }
-
-  .site-feature-row:last-child {
-    margin-bottom: 0;
-  }
-
-  .site-row-reversed .site-feature-text {
-    order: 2; /* Меняем порядок для Z-паттерна */
-  }
-  .site-row-reversed .site-feature-visual {
-    order: 1;
-  }
-
-  .site-feature-num {
-    display: inline-block;
-    color: var(--site-accent);
-    font-family: var(--font-mono);
-    font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: 1.1rem;
-  }
-
-  .site-feature-text h3 {
-    font-size: 2.15rem;
-    margin-bottom: 1.35rem;
-    color: var(--site-text-main);
-    line-height: 1.2;
-  }
-
-  .site-feature-text p {
-    color: var(--site-text-muted);
+    max-width: 760px;
+    margin: 0 auto;
     font-size: 1.18rem;
-    margin-bottom: 1.35rem;
-    line-height: 1.68;
-  }
-
-  .site-check-list {
-    list-style: none;
-    padding: 0;
-    margin-top: 1.75rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.9rem;
-  }
-
-  .site-check-list li {
-    position: relative;
-    padding-left: 1.45rem;
     color: var(--site-text-muted);
-    font-size: 1.04rem;
+    line-height: 1.65;
   }
 
-  .site-check-list li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 6px;
-    width: 6px;
-    height: 6px;
-    border-right: 2px solid var(--site-accent);
-    border-bottom: 2px solid var(--site-accent);
-    transform: rotate(45deg);
+  .site-capability-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.35rem;
+    margin-bottom: 4.25rem;
   }
 
-  /* Визуальные заглушки */
-  .site-surface-box {
-    background: var(--site-surface);
+  .site-capability-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 24rem;
+    padding: 1.75rem;
+    background: linear-gradient(180deg, rgba(19, 27, 44, 0.96), rgba(10, 16, 28, 0.96));
     border: 1px solid var(--site-border);
-    border-radius: 10px;
-    height: 400px;
-    position: relative;
-    overflow: hidden;
+    border-radius: 8px;
     contain: paint;
   }
 
-  /* Мок Импорта */
-  .site-mock-import {
+  .site-capability-topline {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 2rem;
-  }
-  .mock-file, .mock-db {
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    padding: 0.9rem 1.35rem;
-    border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 1rem;
-    color: var(--site-text-muted);
-  }
-  .mock-file { width: 82px; text-align: center; }
-  .mock-file:nth-child(1) { transform: translateY(-20px); border-bottom-color: #10b981; }
-  .mock-file:nth-child(2) { border-bottom-color: #3b82f6; }
-  .mock-file:nth-child(3) { transform: translateY(20px); border-bottom-color: #f59e0b; }
-  .mock-db { background: rgba(37, 99, 235, 0.1); color: #60a5fa; border-color: rgba(37, 99, 235, 0.3); font-weight: 600; padding: 1.7rem; }
-  .mock-arrows { width: 72px; }
-
-  /* Мок Моделей (Новый дизайн) */
-  .site-mock-models-new {
-    display: flex;
-    flex-direction: column;
-    padding: 1.85rem;
-    background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.05), transparent 70%);
-  }
-  .mock-calc-header {
-    display: flex;
-    gap: 1.75rem;
-    margin-bottom: 1.75rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    padding-bottom: 0.6rem;
-  }
-  .calc-tab {
-    font-size: 1rem;
-    color: var(--site-text-muted);
-    cursor: default;
-    transition: color 0.2s;
-  }
-  .calc-tab.active {
-    color: #fff;
-    border-bottom: 2px solid var(--site-accent);
-    padding-bottom: 0.55rem;
-    margin-bottom: -0.7rem;
-    font-weight: 600;
-  }
-  .mock-calc-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.9rem;
-    position: relative;
-  }
-  .calc-item {
-    background: linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.8));
-    border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 8px;
-    padding: 1rem 1.1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.02);
-    transition: transform 0.2s, background 0.2s;
-  }
-  .calc-item:hover {
-    transform: translateY(-2px);
-    background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.9));
-  }
-  .calc-item .c-label {
-    font-size: 0.82rem;
-    color: var(--site-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .c-val-row {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-  }
-  .calc-item .c-value {
-    font-size: 1.82rem;
-    font-family: var(--font-mono);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    text-shadow: 0 0 12px currentColor;
-  }
-  .calc-item .c-unit {
-    font-size: 0.88rem;
-    color: rgba(148, 163, 184, 0.5);
-    font-weight: 400;
-  }
-  
-  .calc-item.b-blue { border-left: 3px solid #3b82f6; }
-  .calc-item.b-blue .c-value { color: #93c5fd; }
-  .calc-item.b-purple { border-left: 3px solid #a855f7; }
-  .calc-item.b-purple .c-value { color: #d8b4fe; }
-  .calc-item.b-green { border-left: 3px solid #10b981; }
-  .calc-item.b-green .c-value { color: #6ee7b7; }
-  .calc-item.b-orange { border-left: 3px solid #f97316; }
-  .calc-item.b-orange .c-value { color: #fdba74; }
-
-
-  /* Мок Отчёта (Новый дизайн) */
-  .site-mock-report-new {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at center, rgba(37, 99, 235, 0.1), transparent 70%);
-  }
-  .mock-report-sheet {
-    width: 370px;
-    background: #fdfdfd;
-    border-radius: 2px;
-    padding: 1.75rem 1.45rem;
-    box-shadow: 
-      -20px 30px 45px rgba(0,0,0,0.5),
-      -1px 1px 2px rgba(255,255,255,0.8) inset;
-    transform: rotate(-1.5deg);
-    position: relative;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    font-family: 'Inter', sans-serif;
-  }
-  .mock-report-sheet:hover {
-    transform: translateY(-2px) rotate(-1deg);
-  }
-  .r-head {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 0.85rem;
+    gap: 0.8rem;
     margin-bottom: 1.35rem;
   }
-  .r-logo {
-    background: #1e40af;
-    color: #fff;
-    font-weight: 800;
-    font-size: 0.68rem;
-    padding: 0.35rem 0.55rem;
-    border-radius: 3px;
-    letter-spacing: 0.05em;
-  }
-  .r-title {
+
+  .site-capability-topline span {
+    font-family: var(--font-mono);
     font-size: 0.92rem;
     font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 0.2rem;
   }
-  .r-subtitle {
-    font-size: 0.62rem;
-    color: #475569;
-    font-family: var(--font-mono);
+
+  .site-capability-rule {
+    height: 1px;
+    flex: 1;
+    background: currentColor;
+    opacity: 0.28;
   }
-  .r-body {
-    display: flex;
-    flex-direction: column;
-    gap: 1.4rem;
+
+  .site-capability-card h3 {
+    min-height: 3.4rem;
+    color: var(--site-text-main);
+    font-size: 1.42rem;
+    line-height: 1.25;
+    margin-bottom: 1rem;
   }
-  .r-table-mock {
-    border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    overflow: hidden;
+
+  .site-capability-card p {
+    color: var(--site-text-muted);
+    font-size: 1.02rem;
+    line-height: 1.62;
+    margin: 0 0 1.4rem;
   }
-  .r-table-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.48rem 0.68rem;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.68rem;
-    color: #334155;
+
+  .site-capability-card ul {
+    display: grid;
+    gap: 0.65rem;
+    margin: auto 0 0;
+    padding: 0;
+    list-style: none;
   }
-  .r-table-row:last-child {
-    border-bottom: none;
+
+  .site-capability-card li {
+    position: relative;
+    padding-left: 1.1rem;
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    line-height: 1.45;
   }
-  .r-table-hdr {
-    background: #f8fafc;
-    font-weight: 700;
-    color: #0f172a;
-    font-size: 0.62rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .r-chart-mock {
-    height: 82px;
-    border: 1px solid #e2e8f0;
-    border-radius: 4px;
-    padding: 0.45rem;
-    background: #f8fafc;
-  }
-  .r-footer-mock {
-    font-size: 0.5rem;
-    color: #94a3b8;
-    margin-top: 1rem;
-    text-align: right;
-    font-family: var(--font-mono);
-  }
-  .m-btn-overlay-3d {
+
+  .site-capability-card li::before {
+    content: '';
     position: absolute;
-    bottom: 24px;
-    right: 24px;
-    background: var(--site-accent);
-    color: #fff;
-    font-size: 0.98rem;
-    padding: 0.75rem 1.4rem;
-    border-radius: 6px;
-    box-shadow: 0 10px 25px rgba(37,99,235,0.4);
-    font-weight: 600;
+    left: 0;
+    top: 0.58em;
+    width: 0.38rem;
+    height: 0.38rem;
+    border-radius: 999px;
+    background: currentColor;
+  }
+
+  .tone-cyan {
+    color: #67e8f9;
+  }
+
+  .tone-green {
+    color: #6ee7b7;
+  }
+
+  .tone-blue {
+    color: #93c5fd;
+  }
+
+  .tone-orange {
+    color: #fdba74;
+  }
+
+  .site-workflow-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 2.5rem;
+    align-items: center;
+    padding: 2.25rem;
+    background: rgba(19, 27, 44, 0.72);
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+  }
+
+  .site-workflow-copy h3 {
+    color: var(--site-text-main);
+    font-size: 1.8rem;
+    line-height: 1.18;
+    margin-bottom: 1rem;
+  }
+
+  .site-workflow-copy p {
+    color: var(--site-text-muted);
+    font-size: 1.05rem;
+    line-height: 1.65;
+  }
+
+  .site-workflow-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .site-workflow-steps li {
+    min-height: 9.25rem;
+    padding: 1.1rem;
+    background: rgba(11, 15, 25, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.13);
+    border-radius: 8px;
+  }
+
+  .site-workflow-steps span {
+    display: block;
+    margin-bottom: 1.1rem;
+    color: #60a5fa;
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+
+  .site-workflow-steps strong {
+    display: block;
+    color: var(--site-text-main);
+    font-size: 1rem;
+    line-height: 1.4;
   }
 
   @media (min-width: 1280px) {
-    .site-feature-row {
-      gap: 6.75rem;
+    .site-capability-grid {
+      gap: 1.5rem;
     }
 
-    .site-surface-box {
-      height: 430px;
-    }
-
-    .site-mock-import {
-      gap: 2.3rem;
-    }
-
-    .site-mock-models-new {
+    .site-capability-card {
+      min-height: 25.5rem;
       padding: 2rem;
     }
 
-    .mock-report-sheet {
-      width: 392px;
+    .site-capability-card h3 {
+      font-size: 1.52rem;
     }
   }
 
-  @media (max-width: 900px) {
-    .site-feature-row, .site-row-reversed {
-      grid-template-columns: 1fr;
-      gap: 2.5rem;
+  @media (max-width: 1160px) {
+    .site-capability-grid,
+    .site-workflow-steps {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .site-row-reversed .site-feature-text { order: 1; }
-    .site-row-reversed .site-feature-visual { order: 2; }
-    .site-surface-box { height: 300px; }
+
+    .site-workflow-panel {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .site-features {
+      padding: 6.25rem 0;
+    }
+
+    .site-section-header {
+      margin-bottom: 3rem;
+      text-align: left;
+    }
+
+    .site-section-header h2 {
+      font-size: 2.05rem;
+    }
+
+    .site-section-header p {
+      font-size: 1.05rem;
+    }
+
+    .site-capability-grid,
+    .site-workflow-steps {
+      grid-template-columns: 1fr;
+    }
+
+    .site-capability-card {
+      min-height: auto;
+      padding: 1.45rem;
+    }
+
+    .site-capability-card h3 {
+      min-height: 0;
+      font-size: 1.35rem;
+    }
+
+    .site-workflow-panel {
+      padding: 1.45rem;
+    }
   }
 </style>

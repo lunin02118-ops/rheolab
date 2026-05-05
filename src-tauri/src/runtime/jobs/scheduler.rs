@@ -6,11 +6,9 @@ use super::types::{
 use crate::error::{AppError, Result};
 use crate::utils::time::now_rfc3339;
 use chrono::{DateTime, Utc};
-use std::cell::UnsafeCell;
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
 #[cfg(not(test))]
 use tauri::AppHandle;
@@ -32,55 +30,21 @@ const MAX_FINISHED_JOBS: usize = 100;
 const FINISHED_JOB_TTL_SECONDS: i64 = 60 * 60;
 
 #[derive(Debug)]
-struct SpinMutex<T> {
-    locked: AtomicBool,
-    value: UnsafeCell<T>,
-}
+struct JobMutex<T>(Mutex<T>);
 
-unsafe impl<T: Send> Send for SpinMutex<T> {}
-unsafe impl<T: Send> Sync for SpinMutex<T> {}
-
-impl<T> SpinMutex<T> {
+impl<T> JobMutex<T> {
     fn new(value: T) -> Self {
-        Self {
-            locked: AtomicBool::new(false),
-            value: UnsafeCell::new(value),
+        Self(Mutex::new(value))
+    }
+
+    fn lock(&self) -> MutexGuard<'_, T> {
+        match self.0.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                tracing::warn!("job scheduler mutex was poisoned; recovering inner state");
+                poisoned.into_inner()
+            }
         }
-    }
-
-    fn lock(&self) -> SpinMutexGuard<'_, T> {
-        while self
-            .locked
-            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-            .is_err()
-        {
-            std::hint::spin_loop();
-        }
-        SpinMutexGuard { lock: self }
-    }
-}
-
-struct SpinMutexGuard<'a, T> {
-    lock: &'a SpinMutex<T>,
-}
-
-impl<T> Deref for SpinMutexGuard<'_, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*self.lock.value.get() }
-    }
-}
-
-impl<T> DerefMut for SpinMutexGuard<'_, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.lock.value.get() }
-    }
-}
-
-impl<T> Drop for SpinMutexGuard<'_, T> {
-    fn drop(&mut self) {
-        self.lock.locked.store(false, Ordering::Release);
     }
 }
 
@@ -203,8 +167,8 @@ impl JobMetricState {
 
 #[derive(Debug)]
 pub struct JobScheduler {
-    registry: SpinMutex<HashMap<String, JobRecord>>,
-    cancellation: SpinMutex<HashMap<String, JobCancellationToken>>,
+    registry: JobMutex<HashMap<String, JobRecord>>,
+    cancellation: JobMutex<HashMap<String, JobCancellationToken>>,
     comparison_reports: Arc<JobGate>,
     imports: Arc<JobGate>,
     maintenance: Arc<JobGate>,
@@ -219,8 +183,8 @@ impl Default for JobScheduler {
 impl JobScheduler {
     pub fn new() -> Self {
         Self {
-            registry: SpinMutex::new(HashMap::new()),
-            cancellation: SpinMutex::new(HashMap::new()),
+            registry: JobMutex::new(HashMap::new()),
+            cancellation: JobMutex::new(HashMap::new()),
             comparison_reports: Arc::new(JobGate::new()),
             imports: Arc::new(JobGate::new()),
             maintenance: Arc::new(JobGate::new()),

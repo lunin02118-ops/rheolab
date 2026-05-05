@@ -85,7 +85,7 @@ export async function checkUpdateNow(): Promise<void> {
 
 export function UpdateChecker(): null {
     const hasStarted = useRef(false);
-    const isE2ERef = useRef(false);
+    const updaterDisabledRef = useRef(false);
 
     useEffect(() => {
         // Only run inside the actual Tauri desktop app, not in browser/tests.
@@ -99,7 +99,7 @@ export function UpdateChecker(): null {
 
         async function runCheck(): Promise<void> {
             // Hard stop in E2E — avoid any network / WebView navigation side-effects.
-            if (isE2ERef.current) return;
+            if (updaterDisabledRef.current) return;
             const store = useUpdateStore.getState();
             // Skip if an update is already pending or being installed.
             if (store.status !== 'idle') return;
@@ -128,22 +128,21 @@ export function UpdateChecker(): null {
             }
         }
 
-        // Resolve E2E flag first so we can skip side-effects entirely in tests.
+        // Resolve updater suppression first so we can skip side-effects entirely in tests.
         // Then register the startup_completed listener and schedule the timer.
         void (async () => {
-            // Suppress the auto-updater entirely in E2E test environments.
+            // Suppress the auto-updater in E2E test environments that opt in.
             // The updater can trigger a WebView2 navigation to `edge://downloads/hub`
-            // mid-run, which breaks CDP-based Playwright fixtures. The Rust
-            // backend flags E2E mode via `RHEOLAB_E2E_SKIP_LICENSE_GATE=1`.
+            // mid-run, which breaks CDP-based Playwright fixtures.
             try {
-                isE2ERef.current = await invoke<boolean>('is_e2e_mode');
+                updaterDisabledRef.current = await invoke<boolean>('is_updater_disabled');
             } catch {
-                isE2ERef.current = false;
+                updaterDisabledRef.current = false;
             }
             if (cancelled) return;
 
-            if (isE2ERef.current) {
-                logger.info('[UpdateChecker] E2E mode detected — auto-updater disabled');
+            if (updaterDisabledRef.current) {
+                logger.info('[UpdateChecker] Auto-updater disabled by E2E flag');
                 // Still register the startup_completed listener: tests may assert on it.
             }
 
@@ -169,7 +168,7 @@ export function UpdateChecker(): null {
             }
 
             // In E2E mode stop here — no background timer.
-            if (isE2ERef.current) return;
+            if (updaterDisabledRef.current) return;
 
             initialTimer = setTimeout(() => {
                 void runCheck();

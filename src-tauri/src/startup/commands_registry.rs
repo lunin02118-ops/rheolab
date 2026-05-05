@@ -122,6 +122,7 @@ macro_rules! register_tauri_commands {
             $crate::commands::licensing::licensing_register_experiment,
             $crate::commands::licensing::get_update_channel,
             $crate::commands::licensing::is_e2e_mode,
+            $crate::commands::licensing::is_updater_disabled,
             // V2 data flow commands — RISK: MEDIUM (writes sync/artifact data)
             $crate::commands::data_flows::import_batches_list,
             $crate::commands::data_flows::import_batches_get,

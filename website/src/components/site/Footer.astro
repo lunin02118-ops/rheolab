@@ -3,10 +3,13 @@
 <footer class="site-footer">
   <div class="site-container site-footer-grid">
     <div class="site-footer-brand">
-      <div class="site-logo-text">
-        <strong>RheoLab</strong>
-        <span>Enterprise</span>
-      </div>
+      <a href="/" class="site-footer-logo" aria-label="RheoLab Enterprise">
+        <img src="/brand/rheolab-logo.svg" alt="" class="site-footer-logo-mark" width="64" height="64" decoding="async" />
+        <div class="site-logo-text">
+          <strong>RheoLab</strong>
+          <span>Enterprise</span>
+        </div>
+      </a>
       <p class="site-footer-desc">
         Профессиональный инструмент для анализа реологических данных. Разработано командой создателей первого российского лабораторного реометра BSL-R1.
       </p>
@@ -15,18 +18,22 @@
       <div>
         <h4>Продукт</h4>
         <a href="/#features">Возможности</a>
-        <a href="/faq">Вопросы и ответы</a>
         <a href="/download/latest">Скачать Windows</a>
+        <a href="/#contact">Контакты</a>
       </div>
       <div>
-        <h4>О компании</h4>
+        <h4>Справка</h4>
+        <a href="/faq">Вопросы и ответы</a>
+        <a href="/docs">Документация</a>
+        <a href="/#videos">Видеоматериалы</a>
+      </div>
+      <div>
+        <h4>RheoLab</h4>
         <a href="/about">О RheoLab</a>
         <a href="/team">Команда</a>
-        <a href="/docs">Документация</a>
       </div>
       <div>
         <h4>Связь</h4>
-        <a href="/#contact">Форма и контакты</a>
         <a href="mailto:info@rheolab.site">info@rheolab.site</a>
         <a href="mailto:support@rheolab.site">support@rheolab.site</a>
       </div>
@@ -56,11 +63,32 @@
     margin-bottom: 4.5rem;
   }
 
+  .site-footer-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--site-text-main);
+    text-decoration: none;
+    margin-bottom: 1.7rem;
+  }
+
+  .site-footer-logo:hover {
+    color: var(--site-text-main);
+  }
+
+  .site-footer-logo-mark {
+    width: 4rem;
+    height: 4rem;
+    display: block;
+    object-fit: contain;
+    filter: drop-shadow(0 0 14px rgba(8, 108, 191, 0.2));
+  }
+
   .site-logo-text {
     color: var(--site-text-main);
     display: flex;
     flex-direction: column;
-    margin-bottom: 1.7rem;
+    line-height: 1.08;
   }
   .site-logo-text strong { font-size: 1.45rem; font-weight: 700; }
   .site-logo-text span { font-size: 0.85rem; color: var(--site-text-muted); font-family: var(--font-mono); }

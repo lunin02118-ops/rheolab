@@ -141,8 +141,18 @@ function needsRebuild() {
     if (!fs.existsSync(BINARY_PATH)) return true;
     const binMtime = fs.statSync(BINARY_PATH).mtimeMs;
     const srcMtime = maxMtime(path.join(ROOT, 'src-tauri', 'src'), ['.rs']);
+    const capabilitiesMtime = maxMtime(path.join(ROOT, 'src-tauri', 'capabilities'), ['.json']);
+    const tauriConfigMtime = Math.max(
+        fs.statSync(path.join(ROOT, 'src-tauri', 'tauri.conf.json')).mtimeMs,
+        fs.statSync(path.join(ROOT, 'src-tauri', 'tauri.e2e.conf.json')).mtimeMs,
+    );
     const distMtime = maxMtime(DIST_DIR, ['.js', '.html', '.css']);
-    return srcMtime > binMtime || distMtime > binMtime;
+    return (
+        srcMtime > binMtime ||
+        capabilitiesMtime > binMtime ||
+        tauriConfigMtime > binMtime ||
+        distMtime > binMtime
+    );
 }
 
 module.exports = async function globalSetup() {
@@ -261,6 +271,9 @@ module.exports = async function globalSetup() {
         // E2E bypass: skip native Rust license gate so experiments_save works
         // without a real license in the test DB.
         RHEOLAB_E2E_SKIP_LICENSE_GATE: '1',
+        // E2E isolation: suppress background updater side-effects independently
+        // from the license bypass so updater behaviour can be tested explicitly.
+        RHEOLAB_E2E_DISABLE_UPDATER: '1',
         // DB isolation — see the long comment above the spawn block.
         RHEOLAB_E2E_DB_PATH: process.env.RHEOLAB_E2E_DB_PATH,
     };

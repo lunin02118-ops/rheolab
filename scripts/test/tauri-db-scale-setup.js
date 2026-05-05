@@ -197,6 +197,7 @@ module.exports = async function globalSetup() {
             WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${CDP_PORT}`,
             RHEOLAB_E2E_MOCK_REPORTS: '1',
             RHEOLAB_E2E_SKIP_LICENSE_GATE: '1',
+            RHEOLAB_E2E_DISABLE_UPDATER: '1',
             RHEOLAB_E2E_DB_PATH: dbPath,
         },
         detached: false,

@@ -132,7 +132,7 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
             logger.debug('[LicenseStore] Updated experiments count from storage:', count);
             set({ experimentsInDB: count });
         } catch (error) {
-            console.error('[LicenseStore] Error fetching experiments count:', error);
+            logger.error('[LicenseStore] Error fetching experiments count:', error);
         }
     },
 
@@ -150,7 +150,7 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
             const result = adaptResult(payload);
             set({ result, ...deriveFromResult(result) });
         }).catch((err) => {
-            console.warn('[LicenseStore] Failed to register license_status_updated listener:', err);
+            logger.warn('[LicenseStore] Failed to register license_status_updated listener:', err);
         });
 
         try {
@@ -178,7 +178,7 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
                 ...deriveFromResult(result),
             });
         } catch (error) {
-            console.error('[LicenseStore] Init error:', error);
+            logger.error('[LicenseStore] Init error:', error);
             // Mark initialized even on failure — otherwise LicenseGuard stays
             // in loading state forever and the user sees a blank screen.
             set({
@@ -232,7 +232,7 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
             // Cross-store: notify subscribers that the license was deactivated
             licenseEvents.emit('license-deactivated');
         } catch (error) {
-            console.error('[LicenseStore] Deactivate error:', error);
+            logger.error('[LicenseStore] Deactivate error:', error);
         }
     },
 
