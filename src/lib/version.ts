@@ -8,4 +8,4 @@
 
 export const APP_VERSION = '0.2.2-alpha.23';
 export const BUILD_DATE = '2026-05-06';
-export const COMMIT_HASH = 'd50d4b9';
+export const COMMIT_HASH = '318ab54';
