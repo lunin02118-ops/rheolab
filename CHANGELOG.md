@@ -6,6 +6,21 @@
 
 ---
 
+## [0.2.2-alpha.23] — 2026-05-06
+
+> Alpha-hotfix для импорта БД из старой beta в свежую alpha: ссылки на реагенты больше не ломают merge при совпадении каталога по имени.
+
+### Исправлено
+- **DB import beta → alpha**: `ExperimentReagent.reagentId` теперь ремапится на уже существующий `ReagentCatalog` по имени, если старая БД содержит тот же реагент с другим `id`.
+- **FK fail-closed сохранён**: импорт по-прежнему откатывается при настоящих нарушениях целостности, но больше не падает на штатной несовместимости seeded catalog между версиями.
+
+### Проверки
+- `cargo test --manifest-path src-tauri\Cargo.toml backup::restore --lib` — 30 passed.
+- `cargo test --manifest-path src-tauri\Cargo.toml --lib` — 460 passed, 2 ignored.
+- `npm run version:validate`, `git diff --check` — passed.
+
+---
+
 ## [0.2.2-alpha.19] — 2026-05-01
 
 > Alpha-hotfix для Comparison: после удаления экспериментов график снова автоматически подгоняет X-шкалу под оставшиеся линии.

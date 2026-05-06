@@ -6,6 +6,6 @@
  * Run `npm run version:sync` to regenerate this file.
  */
 
-export const APP_VERSION = '0.2.2-alpha.22';
-export const BUILD_DATE = '2026-05-04';
-export const COMMIT_HASH = 'c8bc52b';
+export const APP_VERSION = '0.2.2-alpha.23';
+export const BUILD_DATE = '2026-05-06';
+export const COMMIT_HASH = 'd50d4b9';
