@@ -248,7 +248,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
     const qaCount = [filters.batchNumber].filter(Boolean).length + filters.reagentNames.length;
 
     return (
-        <div data-testid="ExperimentFiltersPanel" className="bg-secondary/50 rounded-xl border border-border p-3 sticky top-24 overflow-y-auto max-h-[calc(100vh-7rem)] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700">
+        <div data-testid="ExperimentFiltersPanel" className="bg-secondary/50 rounded-xl border border-border p-3 lg:sticky lg:top-24 overflow-visible">
             {metadataError && (
                 <div className="mb-3 px-2 py-1.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs flex items-center gap-1.5">
                     <span>⚠</span> {metadataError}
@@ -514,6 +514,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                         value=""
                         onChange={v => { if (v) addReagent(v); }}
                         placeholder={filters.reagentNames.length > 0 ? 'Добавить ещё...' : 'Выберите реагент...'}
+                        dropdownLayout="inline"
                     />
                 </div>
             </FilterGroup>

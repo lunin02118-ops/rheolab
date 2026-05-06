@@ -16,6 +16,7 @@ interface ReagentAutocompleteProps {
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
+    dropdownLayout?: 'overlay' | 'inline';
 }
 
 // Group reagents by category
@@ -56,7 +57,12 @@ const countryLabels: Record<string, string> = {
     'Canada': 'Канада',
 };
 
-export function ReagentAutocomplete({ value, onChange, placeholder = 'Выберите реагент...' }: ReagentAutocompleteProps) {
+export function ReagentAutocomplete({
+    value,
+    onChange,
+    placeholder = 'Выберите реагент...',
+    dropdownLayout = 'overlay',
+}: ReagentAutocompleteProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const reagents = useCatalogStore(s => s.reagents);
@@ -108,6 +114,10 @@ export function ReagentAutocomplete({ value, onChange, placeholder = 'Выбер
         if (!isOpen) setIsOpen(true);
     };
 
+    const dropdownClassName = dropdownLayout === 'inline'
+        ? 'relative z-10 w-full mt-2 bg-card border border-border rounded-lg shadow-xl max-h-80 overflow-y-auto'
+        : 'absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl max-h-80 overflow-y-auto';
+
     return (
         <div ref={containerRef} className="relative">
             {/* Input Field */}
@@ -149,7 +159,7 @@ export function ReagentAutocomplete({ value, onChange, placeholder = 'Выбер
 
             {/* Dropdown */}
             {isOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl max-h-80 overflow-y-auto">
+                <div className={dropdownClassName}>
                     {isLoading ? (
                         <div className="p-4 text-center text-muted-foreground text-sm">
                             Загрузка...
