@@ -333,6 +333,114 @@ fn get_common_columns(conn: &rusqlite::Connection, table: &str) -> Vec<String> {
         .collect()
 }
 
+fn table_exists(conn: &rusqlite::Connection, schema: &str, table: &str) -> bool {
+    conn.query_row(
+        &format!("SELECT COUNT(*) > 0 FROM {schema}.sqlite_master WHERE type='table' AND name=?1"),
+        [table],
+        |row| row.get(0),
+    )
+    .unwrap_or(false)
+}
+
+fn merge_experiment_reagents(tx: &rusqlite::Transaction<'_>) -> Result<()> {
+    let common_cols = get_common_columns(tx, "ExperimentReagent");
+    let required = ["id", "experimentId", "concentration", "unit"];
+    if required
+        .iter()
+        .any(|col| !common_cols.iter().any(|common| common == col))
+    {
+        tracing::warn!(
+            "Merge table ExperimentReagent skipped: missing required common columns ({:?})",
+            common_cols
+        );
+        return Ok(());
+    }
+
+    let has_src_reagent_id = common_cols.iter().any(|col| col == "reagentId");
+    let has_src_reagent_name = common_cols.iter().any(|col| col == "reagentName");
+    let has_src_category = common_cols.iter().any(|col| col == "category");
+    let has_src_catalog = table_exists(tx, "src", "ReagentCatalog");
+
+    let src_reagent_id = if has_src_reagent_id {
+        "er.reagentId"
+    } else {
+        "NULL"
+    };
+    let src_reagent_name = if has_src_reagent_name {
+        "er.reagentName"
+    } else {
+        "NULL"
+    };
+    let src_category = if has_src_category {
+        "er.category"
+    } else {
+        "NULL"
+    };
+    let src_batch_number = if common_cols.iter().any(|col| col == "batchNumber") {
+        "er.batchNumber"
+    } else {
+        "NULL"
+    };
+    let src_production_date = if common_cols.iter().any(|col| col == "productionDate") {
+        "er.productionDate"
+    } else {
+        "NULL"
+    };
+
+    let catalog_join = if has_src_catalog && has_src_reagent_id {
+        "LEFT JOIN src.ReagentCatalog src_rc ON src_rc.id = er.reagentId"
+    } else {
+        ""
+    };
+    let catalog_name = if has_src_catalog && has_src_reagent_id {
+        "src_rc.name"
+    } else {
+        "NULL"
+    };
+    let sql = format!(
+        r#"
+        INSERT OR IGNORE INTO main.ExperimentReagent
+            (id, experimentId, reagentId, reagentName, category, concentration, unit, batchNumber, productionDate)
+        SELECT
+            er.id,
+            er.experimentId,
+            CASE
+                WHEN {src_reagent_id} IS NULL OR TRIM({src_reagent_id}) = '' THEN NULL
+                WHEN EXISTS (
+                    SELECT 1 FROM main.ReagentCatalog main_rc
+                    WHERE main_rc.id = {src_reagent_id}
+                ) THEN {src_reagent_id}
+                WHEN {catalog_name} IS NOT NULL THEN (
+                    SELECT main_rc.id
+                    FROM main.ReagentCatalog main_rc
+                    WHERE main_rc.name = {catalog_name} COLLATE NOCASE
+                    ORDER BY main_rc.id
+                    LIMIT 1
+                )
+                WHEN {src_reagent_name} IS NOT NULL THEN (
+                    SELECT main_rc.id
+                    FROM main.ReagentCatalog main_rc
+                    WHERE main_rc.name = {src_reagent_name} COLLATE NOCASE
+                    ORDER BY main_rc.id
+                    LIMIT 1
+                )
+                ELSE NULL
+            END,
+            {src_reagent_name},
+            {src_category},
+            er.concentration,
+            er.unit,
+            {src_batch_number},
+            {src_production_date}
+        FROM src.ExperimentReagent er
+        {catalog_join}
+        "#
+    );
+
+    tx.execute_batch(&sql)?;
+    Ok(())
+}
+
 /// Tables to merge in FK-safe order (parents before children).
 const MERGE_TABLES: &[&str] = &[
     "Laboratory",
@@ -363,15 +471,12 @@ fn merge_attached_databases(conn: &rusqlite::Connection, has_fts: bool) -> Resul
     let tx = conn.unchecked_transaction()?;
 
     for table in MERGE_TABLES {
-        let exists: bool = tx
-            .query_row(
-                "SELECT COUNT(*) > 0 FROM src.sqlite_master WHERE type='table' AND name=?1",
-                [table],
-                |row| row.get(0),
-            )
-            .unwrap_or(false);
+        if !table_exists(&tx, "src", table) {
+            continue;
+        }
 
-        if !exists {
+        if *table == "ExperimentReagent" {
+            merge_experiment_reagents(&tx)?;
             continue;
         }
 

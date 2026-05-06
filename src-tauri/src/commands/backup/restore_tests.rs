@@ -621,6 +621,70 @@ fn merge_with_reagents_and_calibration() {
 }
 
 #[test]
+fn merge_remaps_reagent_links_when_catalog_name_collides() {
+    // A fresh newer install may already contain seeded reagent catalog rows.
+    // Older beta backups can contain the same reagent names with different ids.
+    // Generic INSERT OR IGNORE skips the old catalog row on UNIQUE(name), so
+    // ExperimentReagent must remap its source reagentId to the existing main id.
+    let (conn, dir) = setup_merge(MAIN_SCHEMA, MAIN_SCHEMA);
+
+    conn.execute(
+        "INSERT INTO ReagentCatalog (id, name, category) VALUES ('seed_cmc_hv', 'CMC HV', 'polymer')",
+        [],
+    )
+    .unwrap();
+
+    {
+        let src = Connection::open(dir.join("source.db")).unwrap();
+        src.execute_batch("PRAGMA foreign_keys = OFF").unwrap();
+
+        src.execute(
+            "INSERT INTO ReagentCatalog (id, name, category) VALUES ('legacy-cmc-hv', 'CMC HV', 'polymer')",
+            [],
+        )
+        .unwrap();
+        insert_experiment(
+            &src,
+            "exp-legacy-rc",
+            "user-legacy-rc",
+            "Legacy Reagent Link",
+        );
+        src.execute(
+            "INSERT INTO ExperimentReagent (id, experimentId, reagentId, reagentName, category, concentration, unit)
+             VALUES ('er-legacy', 'exp-legacy-rc', 'legacy-cmc-hv', 'CMC HV', 'polymer', 0.5, 'g/L')",
+            [],
+        )
+        .unwrap();
+    }
+
+    reattach(&conn, &dir);
+    let (imported, _) = merge_attached_databases(&conn, false).unwrap();
+    assert_eq!(imported, 1);
+
+    let reagent_id: Option<String> = conn
+        .query_row(
+            "SELECT reagentId FROM ExperimentReagent WHERE id = 'er-legacy'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        reagent_id.as_deref(),
+        Some("seed_cmc_hv"),
+        "ExperimentReagent must point at the already-present catalog row"
+    );
+
+    let violations = check_foreign_key_violations(&conn);
+    assert!(
+        violations.is_empty(),
+        "reagent remap should leave no FK violations, got {:?}",
+        violations
+    );
+
+    cleanup(&dir);
+}
+
+#[test]
 fn merge_idempotent() {
     let (conn, dir) = setup_merge(MAIN_SCHEMA, MAIN_SCHEMA);
 
