@@ -6,6 +6,23 @@
 
 ---
 
+## [0.2.2-alpha.24] — 2026-05-08
+
+> Alpha-hotfix для старых импортированных БД: фоновое обновление служебных расчётов больше не должно грузить CPU минутами и теперь видно пользователю как тихий статус.
+
+### Исправлено
+- **Startup DB backfill throttling**: догоняющий расчёт touch-point precompute после импорта старой БД ограничен маленькими batch'ами, лимитом итераций и коротким time budget.
+- **No long hidden CPU churn**: вместо обработки до 100 000 legacy rows за один запуск startup теперь берёт ограниченный объём и продолжает догонять данные постепенно.
+- **Ненавязчивый статус обновления БД**: во время фонового обновления справа сверху показывается компактное уведомление “Обновление базы данных”; оно не блокирует работу и исчезает после завершения.
+- **Backfill diagnostics**: backend пишет `processed/skipped/has_more/elapsed_ms` и отправляет события `started/progress/complete`.
+
+### Проверки
+- `npm run typecheck`, `npm run lint` — passed.
+- `cargo test --manifest-path src-tauri\Cargo.toml --lib` — 461 passed, 2 ignored.
+- `npm run release:prepare -- --skip-qa` — signed installer built, release gate passed.
+
+---
+
 ## [0.2.2-alpha.23] — 2026-05-06
 
 > Alpha-hotfix для импорта БД из старой beta в свежую alpha: ссылки на реагенты больше не ломают merge при совпадении каталога по имени.
