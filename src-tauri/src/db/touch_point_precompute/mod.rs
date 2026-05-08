@@ -66,7 +66,7 @@ mod tests;
 // write.rs`, `commands/experiments/list/dynamic.rs`, several test
 // modules) compile without touching their `use` statements.
 
-pub use backfill::{run_touch_point_backfill, BackfillStats};
+pub use backfill::{run_touch_point_backfill, run_touch_point_backfill_with_limit, BackfillStats};
 pub use compute::{compute_from_inputs, compute_from_inputs_with_threshold};
 pub use inputs::{to_touch_inputs, to_touch_inputs_from_columns};
 pub use types::{

@@ -247,3 +247,57 @@ fn backfill_reprocesses_rows_with_outdated_precompute_version() {
         "after re-precompute, curve that decisively crosses 50 cP must be flagged"
     );
 }
+
+#[test]
+fn backfill_with_limit_processes_only_requested_rows() {
+    use crate::db::migration::run_migrations;
+
+    let conn = Connection::open_in_memory().unwrap();
+    run_migrations(&conn).unwrap();
+
+    conn.execute(
+        "INSERT INTO User (id, name, email, role, isActive, createdAt, updatedAt) \
+         VALUES ('test-user', 'Test User', 'test@example.com', 'admin', 1, \
+                 '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+
+    let raw_points = synthetic_crossing_points();
+    let blob = crate::db::columnar::encode(&raw_points).unwrap();
+    for id in ["exp_limit_1", "exp_limit_2", "exp_limit_3"] {
+        conn.execute(
+            "INSERT INTO Experiment \
+               (id, createdAt, updatedAt, originalFilename, testDate, instrumentType, \
+                waterSource, fluidType, testGroup, name, rawPoints, metrics, userId, \
+                touchPrecomputeVersion, touchHasCrossing) \
+             VALUES (?1, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z', \
+                     'tp_limit.csv', '2024-01-01', 'BSL R1', \
+                     'Well', 'Linear', 'Rheology', ?1, '[]', '{}', 'test-user', \
+                     NULL, NULL)",
+            params![id],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO ExperimentData \
+               (experimentId, dataBlob, encoding, pointCount, createdAt, updatedAt) \
+             VALUES (?1, ?2, 'columnar-v1-zstd', ?3, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')",
+            params![id, blob, raw_points.len() as i64],
+        )
+        .unwrap();
+    }
+
+    let first = run_touch_point_backfill_with_limit(&conn, 2).unwrap();
+    assert_eq!(first.processed, 2);
+    assert!(
+        first.has_more,
+        "full limited batch must report remaining work"
+    );
+
+    let second = run_touch_point_backfill_with_limit(&conn, 2).unwrap();
+    assert_eq!(second.processed, 1);
+    assert!(
+        !second.has_more,
+        "partial limited batch means the queue caught up"
+    );
+}

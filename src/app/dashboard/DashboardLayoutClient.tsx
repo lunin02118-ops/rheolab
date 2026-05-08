@@ -9,6 +9,7 @@ import { useLicenseStore } from '@/lib/store/license-store';
 import { useComparisonStore } from '@/lib/store/comparison-store';
 import { clearAnalysisCache } from '@/hooks/analysisCache';
 import { UpdateBanner } from '@/components/shared/UpdateBanner';
+import { DatabaseMaintenanceNotice } from '@/components/shared/DatabaseMaintenanceNotice';
 
 // Lazy-load licensing UI that is only shown conditionally (trial / activation)
 const TrialBanner = lazy(() => import('@/components/licensing/TrialBanner').then(m => ({ default: m.TrialBanner })));
@@ -137,6 +138,7 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
 
                 {/* Global Toast Notifications */}
                 <ToastContainer />
+                <DatabaseMaintenanceNotice />
 
                 {/* Blocking Guard */}
                 <LicenseGuard />

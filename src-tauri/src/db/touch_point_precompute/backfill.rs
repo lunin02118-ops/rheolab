@@ -9,10 +9,9 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 /// Maximum number of rows processed per backfill invocation.
 ///
-/// Chosen to keep the startup latency below ~2 seconds on a typical
-/// developer machine.  The next startup will pick up where the previous
-/// one left off because rows with `touchPrecomputeVersion` already set
-/// are filtered out by the scan query.
+/// This is the upper safety bound for explicit catch-up calls. Startup
+/// uses a smaller caller-provided limit so legacy imports cannot keep CPU
+/// busy for minutes on first launch.
 const BACKFILL_BATCH_LIMIT: usize = 500;
 
 /// Outcome of one backfill invocation.
@@ -46,6 +45,19 @@ pub struct BackfillStats {
 /// logged at `WARN` and counted as `skipped` so the scan always moves
 /// forward; only a catastrophic connection failure bubbles up.
 pub fn run_touch_point_backfill(conn: &Connection) -> rusqlite::Result<BackfillStats> {
+    run_touch_point_backfill_with_limit(conn, BACKFILL_BATCH_LIMIT)
+}
+
+/// Run one backfill batch with a caller-provided row cap.
+///
+/// The default batch stays intentionally large for explicit maintenance
+/// calls/tests, but startup uses a smaller cap so legacy imports cannot
+/// monopolize CPU for minutes on first launch.
+pub fn run_touch_point_backfill_with_limit(
+    conn: &Connection,
+    batch_limit: usize,
+) -> rusqlite::Result<BackfillStats> {
+    let batch_limit = batch_limit.clamp(1, BACKFILL_BATCH_LIMIT);
     let pending: Vec<String> = {
         let expected_count = LIBRARY_TOUCH_THRESHOLDS_CP.len() as i64;
         // The GROUP BY below does the heavy lifting:
@@ -63,11 +75,7 @@ pub fn run_touch_point_backfill(conn: &Connection) -> rusqlite::Result<BackfillS
              LIMIT ?3",
         )?;
         let rows = stmt.query_map(
-            params![
-                expected_count,
-                TOUCH_PRECOMPUTE_VERSION,
-                BACKFILL_BATCH_LIMIT as i64
-            ],
+            params![expected_count, TOUCH_PRECOMPUTE_VERSION, batch_limit as i64],
             |row| row.get(0),
         )?;
         rows.collect::<rusqlite::Result<Vec<_>>>()?
@@ -94,7 +102,7 @@ pub fn run_touch_point_backfill(conn: &Connection) -> rusqlite::Result<BackfillS
     }
 
     // If we filled the whole batch, there may still be more pending rows.
-    stats.has_more = pending.len() == BACKFILL_BATCH_LIMIT;
+    stats.has_more = pending.len() == batch_limit;
     Ok(stats)
 }
 

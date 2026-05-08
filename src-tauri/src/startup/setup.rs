@@ -126,12 +126,14 @@ pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
             //
             // Runs on a background thread (via `spawn_blocking` — the
             // work is CPU/IO-bound, not async) so a large library never
-            // blocks the `.setup()` callback.  Processes up to ~500
-            // rows per iteration and loops until no more pending rows
-            // remain or a soft-cap is hit.
+            // blocks the `.setup()` callback.  Startup intentionally uses
+            // small batches and a short time budget; old imported DBs may
+            // need several launches or an explicit maintenance action to
+            // fully catch up, but the app should stay responsive.
             {
                 let bg_handle = app.handle().clone();
                 let emit_handle = app.handle().clone();
+                let progress_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
                     // Let the window's first paint finish first so the
                     // initial frame is never delayed by DB work.
@@ -140,13 +142,25 @@ pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                     let result = tauri::async_runtime::spawn_blocking(move || {
                         let state = bg_handle.state::<AppState>();
 
+                        let started = std::time::Instant::now();
                         let mut total_processed = 0usize;
                         let mut total_skipped = 0usize;
+                        let mut has_more = false;
+                        let mut announced = false;
                         // Soft-cap on iterations so a corrupted DB can
                         // never keep the background thread busy forever.
                         let mut iterations = 0u32;
-                        const MAX_ITERATIONS: u32 = 200;
+                        const STARTUP_BACKFILL_BATCH_LIMIT: usize = 50;
+                        const MAX_ITERATIONS: u32 = 8;
+                        const MAX_ELAPSED: std::time::Duration =
+                            std::time::Duration::from_secs(8);
+                        const BATCH_PAUSE: std::time::Duration =
+                            std::time::Duration::from_millis(200);
                         loop {
+                            if iterations > 0 && started.elapsed() >= MAX_ELAPSED {
+                                has_more = true;
+                                break;
+                            }
                             iterations += 1;
                             // Acquire a fresh connection per iteration and
                             // release it before the next round.  The old
@@ -164,12 +178,39 @@ pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                                     break;
                                 }
                             };
-                            match crate::db::touch_point_precompute::run_touch_point_backfill(
+                            match crate::db::touch_point_precompute::run_touch_point_backfill_with_limit(
                                 &conn,
+                                STARTUP_BACKFILL_BATCH_LIMIT,
                             ) {
                                 Ok(stats) => {
                                     total_processed += stats.processed;
                                     total_skipped += stats.skipped;
+                                    has_more = stats.has_more;
+                                    if stats.processed + stats.skipped > 0 {
+                                        use tauri::Emitter as _;
+                                        let event_name = if announced {
+                                            "touch_point_backfill_progress"
+                                        } else {
+                                            announced = true;
+                                            "touch_point_backfill_started"
+                                        };
+                                        if let Err(e) = progress_handle.emit(
+                                            event_name,
+                                            serde_json::json!({
+                                                "processed": total_processed,
+                                                "skipped": total_skipped,
+                                                "iterations": iterations,
+                                                "hasMore": has_more,
+                                                "elapsedMs": started.elapsed().as_millis(),
+                                            }),
+                                        ) {
+                                            tracing::warn!(
+                                                "touch-point backfill: failed to emit {} event: {}",
+                                                event_name,
+                                                e,
+                                            );
+                                        }
+                                    }
                                     if !stats.has_more || iterations >= MAX_ITERATIONS {
                                         break;
                                     }
@@ -188,20 +229,34 @@ pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                             drop(conn);
                             // Brief pause between batches to let pending
                             // read queries go through without WAL pressure.
-                            std::thread::sleep(std::time::Duration::from_millis(50));
+                            std::thread::sleep(BATCH_PAUSE);
                         }
-                        (total_processed, total_skipped, iterations)
+                        (
+                            total_processed,
+                            total_skipped,
+                            iterations,
+                            has_more,
+                            started.elapsed().as_millis(),
+                        )
                     })
                     .await;
 
                     match result {
-                        Ok((processed, skipped, iterations)) if processed + skipped > 0 => {
+                        Ok((processed, skipped, iterations, has_more, elapsed_ms))
+                            if processed + skipped > 0 =>
+                        {
                             tracing::info!(
-                                "touch-point backfill: processed={} skipped={} iterations={}",
+                                "touch-point backfill: processed={} skipped={} iterations={} has_more={} elapsed_ms={}",
                                 processed,
                                 skipped,
                                 iterations,
+                                has_more,
+                                elapsed_ms,
                             );
+                            log_to_file(&format!(
+                                "touch-point backfill: processed={} skipped={} iterations={} has_more={} elapsed_ms={}",
+                                processed, skipped, iterations, has_more, elapsed_ms
+                            ));
                             // Tell the frontend to refresh the library so
                             // the user sees updated touch-point filter data.
                             use tauri::Emitter as _;
@@ -210,6 +265,8 @@ pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                                 serde_json::json!({
                                     "processed": processed,
                                     "skipped": skipped,
+                                    "hasMore": has_more,
+                                    "elapsedMs": elapsed_ms,
                                 }),
                             ) {
                                 tracing::warn!(
