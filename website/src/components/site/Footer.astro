@@ -53,15 +53,15 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
 <style>
   .site-footer {
     border-top: 1px solid var(--site-border);
-    padding: 6rem 0 2.5rem;
+    padding: 5.5rem 0 2.5rem;
     background: #060a13;
   }
 
   .site-footer-grid {
     display: grid;
-    grid-template-columns: 1.1fr 2fr;
-    gap: 5rem;
-    margin-bottom: 4.5rem;
+    grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 2.1fr);
+    gap: clamp(3rem, 6vw, 5.5rem);
+    margin-bottom: 4.25rem;
   }
 
   .site-footer-logo {
@@ -102,9 +102,15 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
   }
 
   .site-footer-links {
-    display: flex;
-    justify-content: space-between;
-    gap: 2.5rem;
+    display: grid;
+    grid-template-columns:
+      minmax(7.5rem, 0.82fr)
+      minmax(8.5rem, 0.92fr)
+      minmax(7.5rem, 0.72fr)
+      minmax(10rem, 1fr)
+      minmax(13rem, 1.25fr);
+    gap: clamp(1.75rem, 3vw, 3rem);
+    align-items: start;
   }
 
   .site-footer-links h4 {
@@ -118,10 +124,15 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
     color: var(--site-text-muted);
     text-decoration: none;
     font-size: 0.98rem;
+    line-height: 1.45;
     margin-bottom: 0.9rem;
     transition: color 0.2s;
   }
   .site-footer-links a:hover { color: var(--site-accent); }
+
+  .site-footer-links a[href="/about"] {
+    white-space: nowrap;
+  }
 
   .site-footer-bottom {
     border-top: 1px solid var(--site-border);
@@ -131,12 +142,19 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
     font-size: 0.9rem;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1180px) {
     .site-footer-grid {
       grid-template-columns: 1fr;
     }
+
     .site-footer-links {
-      flex-direction: column;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 768px) {
+    .site-footer-links {
+      grid-template-columns: 1fr;
     }
   }
 </style>

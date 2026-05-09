@@ -1,7 +1,7 @@
 ---
-import Layout from './Layout.astro';
-import Navbar from '../components/Navbar.astro';
-import Footer from '../components/Footer.astro';
+import SiteLayout from './SiteLayout.astro';
+import Navbar from '../components/site/Navbar.astro';
+import Footer from '../components/site/Footer.astro';
 import 'katex/dist/katex.min.css';
 
 const { frontmatter } = Astro.props;
@@ -26,8 +26,8 @@ const links = [
 
 const intro =
   pathname === '/docs'
-    ? 'Короткая текстовая справка по программе. Здесь можно быстро понять первый шаг, открыть частые вопросы и не потеряться на пути обратно на сайт.'
-    : 'Если нужно разобраться глубже, используйте эту страницу как спокойную справку: быстро прочитать, закрыть вопрос и вернуться к работе.';
+    ? 'Короткая практическая справка по программе: первый запуск, библиотека, сравнение, отчёты и ответы на частые вопросы.'
+    : 'Практическая справка по разделу: быстро найти нужное действие, закрыть вопрос и вернуться к работе.';
 
 const breadcrumbItems = [
   { name: 'Главная', item: new URL('/', Astro.site).toString() },
@@ -133,7 +133,7 @@ const docsFaqSchema =
     : null;
 ---
 
-<Layout
+<SiteLayout
   title={frontmatter.title ? `${frontmatter.title} — Документация` : 'Документация — RheoLab Enterprise'}
   description={intro}
   ogType="article"
@@ -143,59 +143,47 @@ const docsFaqSchema =
 
   <main id="main-content" class="docs-page">
     <section class="docs-hero">
-      <div class="container">
-        <div class="docs-breadcrumbs">
-          <a href="/">На главную</a>
+      <div class="site-bg-grid"></div>
+      <div class="site-container docs-hero-inner">
+        <nav class="docs-breadcrumbs" aria-label="Навигационная цепочка">
+          <a href="/">Главная</a>
           <span>/</span>
-          <a href="/docs">Справка</a>
-        </div>
+          <a href="/docs">Документация</a>
+        </nav>
 
         <div class="docs-hero-grid">
           <div class="docs-heading">
-            <span class="section-kicker">Справка по программе</span>
+            <span class="docs-kicker">Справка RheoLab Enterprise</span>
             <h1>{frontmatter.title}</h1>
             <p>{intro}</p>
-            <p class="docs-updated">Обновлено: {lastUpdatedLabel}</p>
+            <span class="docs-updated">Обновлено: {lastUpdatedLabel}</span>
           </div>
 
-          <aside class="docs-shortcut panel">
-            <strong>Нужен самый короткий путь?</strong>
-            <p>Обычно достаточно открыть быстрый старт или частые вопросы. Остальное можно читать уже по необходимости.</p>
-            <div class="docs-shortcut-links">
+          <aside class="docs-start-card" aria-label="Быстрые действия">
+            <span>Быстрый маршрут</span>
+            <p>Откройте нужный раздел, проверьте рабочий шаг и возвращайтесь к программе без лишнего чтения.</p>
+            <div>
               <a href="/docs/quick-start">Быстрый старт</a>
               <a href="/docs/faq">Частые вопросы</a>
               <a href="/#contact">Связаться с нами</a>
             </div>
           </aside>
         </div>
-
-        <nav class="docs-links" aria-label="Разделы справки">
-          {links.map((link) => (
-            <a href={link.href} aria-current={pathname === link.href ? 'page' : undefined}>{link.label}</a>
-          ))}
-        </nav>
       </div>
     </section>
 
-    <section class="docs-content-section">
-      <div class="container docs-content-grid">
-        <aside class="docs-side">
-          <div class="side-card panel">
-            <strong>Помощь без лишнего шума</strong>
-            <p>Справка нужна для короткого ответа по делу: открыть нужный раздел, закрыть вопрос и вернуться к работе.</p>
-          </div>
-
-          <div class="side-card panel">
-            <strong>Быстрый выход</strong>
-            <div class="side-links">
-              <a href="/">Вернуться на главную</a>
-              <a href="/#download">Скачать программу</a>
-              <a href="mailto:support@rheolab.site">support@rheolab.site</a>
-            </div>
-          </div>
+    <section class="docs-body">
+      <div class="site-container docs-shell">
+        <aside class="docs-nav-card" aria-label="Разделы документации">
+          <span>Разделы справки</span>
+          <nav>
+            {links.map((link) => (
+              <a href={link.href} aria-current={pathname === link.href ? 'page' : undefined}>{link.label}</a>
+            ))}
+          </nav>
         </aside>
 
-        <article class="content-wrapper">
+        <article class="docs-article">
           <slot />
         </article>
       </div>
@@ -203,199 +191,301 @@ const docsFaqSchema =
   </main>
 
   <Footer />
-</Layout>
+</SiteLayout>
 
 <style>
   .docs-page {
-    padding-top: 5.75rem;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 82% 8%, rgba(37, 99, 235, 0.08), transparent 24%),
+      linear-gradient(180deg, rgba(11, 15, 25, 0.98), rgba(6, 10, 19, 1));
   }
 
   .docs-hero {
-    padding: 2.5rem 0 2rem;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--site-border);
+    padding: clamp(3.5rem, 7vw, 5.5rem) 0 2.4rem;
+  }
+
+  .docs-hero-inner {
+    position: relative;
+    z-index: 1;
   }
 
   .docs-breadcrumbs {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
     gap: 0.55rem;
-    margin-bottom: 1.15rem;
-    color: var(--text-muted);
-    font-size: 1rem;
+    margin-bottom: 2rem;
+    color: var(--site-text-muted);
+    font-size: 0.98rem;
   }
 
   .docs-breadcrumbs a {
-    color: var(--text-muted);
+    color: var(--site-text-muted);
+    text-decoration: none;
   }
 
   .docs-breadcrumbs a:hover {
-    color: var(--text-secondary);
+    color: var(--site-text-main);
   }
 
   .docs-hero-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
-    gap: 1.25rem;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.38fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: end;
+  }
+
+  .docs-kicker {
+    display: inline-flex;
+    align-items: center;
+    color: #60a5fa;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1.05rem;
   }
 
   .docs-heading h1 {
-    margin: 1rem 0;
+    max-width: 12ch;
+    color: var(--site-text-main);
+    font-size: clamp(3.1rem, 6vw, 4.75rem);
+    line-height: 1.03;
+    margin: 0 0 1.3rem;
   }
 
   .docs-heading p {
-    max-width: 44rem;
-    font-size: 1.12rem;
+    max-width: 48rem;
+    color: #bfdbfe;
+    font-size: 1.16rem;
+    line-height: 1.7;
+    margin: 0 0 1rem;
   }
 
   .docs-updated {
-    margin-top: 0.85rem;
-    font-size: 0.98rem;
-    color: var(--text-muted);
-  }
-
-  .docs-shortcut {
-    padding: 1.35rem;
-  }
-
-  .docs-shortcut strong {
-    display: block;
-    margin-bottom: 0.55rem;
-    font-size: 1.12rem;
-  }
-
-  .docs-shortcut-links {
-    display: grid;
-    gap: 0.6rem;
-    margin-top: 1rem;
-  }
-
-  .docs-shortcut-links a {
-    font-weight: 600;
-  }
-
-  .docs-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8rem;
-    margin-top: 1.6rem;
-  }
-
-  .docs-links a {
     display: inline-flex;
-    padding: 0.82rem 1.08rem;
-    border-radius: 999px;
-    background: rgba(15, 23, 42, 0.74);
-    border: 1px solid rgba(148, 163, 184, 0.1);
-    color: var(--text-secondary);
+    color: var(--site-text-muted);
     font-size: 0.98rem;
   }
 
-  .docs-links a:hover,
-  .docs-links a[aria-current='page'] {
-    color: var(--text-primary);
-    border-color: rgba(96, 165, 250, 0.24);
-    background: rgba(15, 23, 42, 0.92);
+  .docs-start-card {
+    padding: 1.5rem;
+    background: rgba(8, 17, 32, 0.78);
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
   }
 
-  .docs-content-section {
-    padding: 0 0 var(--section-padding);
+  .docs-start-card span {
+    display: block;
+    color: var(--site-text-main);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
   }
 
-  .docs-content-grid {
+  .docs-start-card p {
+    color: var(--site-text-muted);
+    font-size: 0.98rem;
+    line-height: 1.65;
+    margin: 0 0 1rem;
+  }
+
+  .docs-start-card div {
     display: grid;
-    grid-template-columns: minmax(0, 0.28fr) minmax(0, 0.72fr);
-    gap: 1.25rem;
+    gap: 0.55rem;
+  }
+
+  .docs-start-card a {
+    color: #93c5fd;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .docs-start-card a:hover {
+    color: var(--site-text-main);
+  }
+
+  .docs-body {
+    padding: 3rem 0 6rem;
+  }
+
+  .docs-shell {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.26fr) minmax(0, 0.74fr);
+    gap: 1.5rem;
     align-items: start;
   }
 
-  .docs-side {
-    display: grid;
-    gap: 1rem;
+  .docs-nav-card {
     position: sticky;
-    top: 6.2rem;
+    top: 7rem;
+    padding: 1rem;
+    background: rgba(19, 27, 44, 0.72);
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
   }
 
-  .side-card {
-    padding: 1.15rem;
-  }
-
-  .side-card strong {
+  .docs-nav-card > span {
     display: block;
+    margin: 0 0 0.75rem 0.75rem;
+    color: var(--site-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .docs-nav-card nav {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .docs-nav-card a {
+    display: flex;
+    align-items: center;
+    min-height: 2.55rem;
+    padding: 0.62rem 0.75rem;
+    color: var(--site-text-muted);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.96rem;
+    line-height: 1.25;
+  }
+
+  .docs-nav-card a:hover,
+  .docs-nav-card a[aria-current='page'] {
+    color: var(--site-text-main);
+    background: rgba(37, 99, 235, 0.16);
+  }
+
+  .docs-article {
+    padding: clamp(1.6rem, 3.5vw, 2.75rem);
+    background: rgba(8, 17, 32, 0.7);
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+  }
+
+  .docs-article :global(*) {
+    max-width: 74ch;
+  }
+
+  .docs-article :global(h2) {
+    color: var(--site-text-main);
+    font-size: clamp(1.65rem, 3vw, 2.05rem);
+    line-height: 1.2;
+    margin: 2.2rem 0 1rem;
+  }
+
+  .docs-article :global(h2:first-child) {
+    margin-top: 0;
+  }
+
+  .docs-article :global(h3) {
+    color: var(--site-text-main);
+    font-size: 1.28rem;
+    line-height: 1.25;
+    margin: 1.65rem 0 0.7rem;
+  }
+
+  .docs-article :global(p) {
+    color: #cbd5e1;
+    font-size: 1.06rem;
+    line-height: 1.8;
+    margin: 0 0 1rem;
+  }
+
+  .docs-article :global(a) {
+    color: #93c5fd;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .docs-article :global(a:hover) {
+    color: var(--site-text-main);
+  }
+
+  .docs-article :global(ul),
+  .docs-article :global(ol) {
+    color: #cbd5e1;
+    padding-left: 1.35rem;
+    margin: 0 0 1.2rem;
+  }
+
+  .docs-article :global(li) {
+    font-size: 1.04rem;
+    line-height: 1.75;
     margin-bottom: 0.45rem;
   }
 
-  .side-links {
-    display: grid;
-    gap: 0.5rem;
-    margin-top: 0.8rem;
-  }
-
-  .content-wrapper {
-    padding: clamp(1.45rem, 3vw, 2.2rem);
-    border-radius: var(--radius-2xl);
-    background: rgba(8, 17, 32, 0.76);
-    border: 1px solid rgba(148, 163, 184, 0.1);
-  }
-
-  .content-wrapper :global(h2) {
-    margin: 2rem 0 1rem;
-    font-size: 1.85rem;
-  }
-
-  .content-wrapper :global(h3) {
-    margin: 1.5rem 0 0.8rem;
-    font-size: 1.3rem;
-  }
-
-  .content-wrapper :global(p) {
-    margin-bottom: 1rem;
-    font-size: 1.05rem;
-    line-height: 1.8;
-    color: var(--text-secondary);
-  }
-
-  .content-wrapper :global(ul),
-  .content-wrapper :global(ol) {
-    margin: 0 0 1rem;
-    padding-left: 1.35rem;
-    color: var(--text-secondary);
-  }
-
-  .content-wrapper :global(li) {
-    margin-bottom: 0.5rem;
-    line-height: 1.7;
-  }
-
-  .content-wrapper :global(code) {
-    background: rgba(15, 23, 42, 0.92);
-    padding: 0.2em 0.4em;
-    border-radius: 0.35rem;
+  .docs-article :global(code) {
+    background: rgba(15, 23, 42, 0.94);
+    color: #93c5fd;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 6px;
+    padding: 0.15em 0.4em;
     font-size: 0.9em;
-    color: var(--color-primary-300);
   }
 
-  .content-wrapper :global(pre) {
+  .docs-article :global(pre) {
     overflow-x: auto;
-    margin-bottom: 1rem;
+    max-width: 100%;
+    margin: 1rem 0 1.35rem;
     padding: 1rem;
-    border-radius: var(--radius-xl);
-    background: rgba(2, 8, 23, 0.95);
-    border: 1px solid rgba(148, 163, 184, 0.1);
+    background: rgba(2, 8, 23, 0.94);
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
   }
 
-  .content-wrapper :global(pre code) {
+  .docs-article :global(pre code) {
     background: transparent;
+    border: 0;
     padding: 0;
+  }
+
+  .docs-article :global(blockquote) {
+    margin: 1.25rem 0;
+    padding: 1rem 1.2rem;
+    border-left: 3px solid #60a5fa;
+    background: rgba(37, 99, 235, 0.08);
+    border-radius: 0 8px 8px 0;
   }
 
   @media (max-width: 1040px) {
     .docs-hero-grid,
-    .docs-content-grid {
+    .docs-shell {
       grid-template-columns: 1fr;
     }
 
-    .docs-side {
+    .docs-heading h1 {
+      max-width: 14ch;
+    }
+
+    .docs-nav-card {
       position: static;
+    }
+
+    .docs-nav-card nav {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    .docs-hero {
+      padding-top: 2.8rem;
+    }
+
+    .docs-heading h1 {
+      font-size: 2.65rem;
+    }
+
+    .docs-nav-card nav {
+      grid-template-columns: 1fr;
     }
   }
 </style>

@@ -6,9 +6,11 @@ interface Props {
   description?: string;
   schema?: Record<string, unknown> | Array<Record<string, unknown>>;
   includeSoftwareSchema?: boolean;
+  robots?: string;
+  ogType?: 'website' | 'article';
 }
 
-const { title, description, schema, includeSoftwareSchema } = Astro.props;
+const { title, description, schema, includeSoftwareSchema, robots, ogType } = Astro.props;
 const updateManifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows-x86_64/stable.json';
 ---
 
@@ -17,6 +19,8 @@ const updateManifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows
   description={description}
   schema={schema}
   includeSoftwareSchema={includeSoftwareSchema}
+  robots={robots}
+  ogType={ogType}
 >
   <div class="site-theme">
     <slot />
