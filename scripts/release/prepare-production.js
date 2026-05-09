@@ -269,7 +269,10 @@ function listInstallerArtifacts(version) {
     .readdirSync(nsisDir)
     .filter((name) => name.toLowerCase().endsWith('.exe') && !name.toLowerCase().includes('uninstall'));
 
-  const versioned = version ? all.filter((name) => name.includes(version)) : all;
+  const exactVersionSegment = version ? `_${version}_` : null;
+  const versioned = exactVersionSegment
+    ? all.filter((name) => name.includes(exactVersionSegment))
+    : all;
   if (versioned.length === 0) {
     throw new Error(
       `No installer matching version "${version}" found in:\n  ${nsisDir}\n` +

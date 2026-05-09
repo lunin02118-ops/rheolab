@@ -367,9 +367,12 @@ function runPostBuildSign() {
   let installer;
   try {
     const entries = fs.readdirSync(nsisDir);
-    // prefer exact version match; fall back to newest .exe if version is unknown
+    // Prefer an exact filename version segment. A stable version like "0.2.2"
+    // is also a substring of prerelease installers such as "0.2.2-alpha.10",
+    // so a loose includes(version) check can sign the wrong artifact.
+    const exactVersionSegment = `_${version}_`;
     const match = entries.find(
-      (f) => f.endsWith('.exe') && !f.toLowerCase().includes('uninstall') && f.includes(version),
+      (f) => f.endsWith('.exe') && !f.toLowerCase().includes('uninstall') && f.includes(exactVersionSegment),
     );
     const fallback = entries
       .filter((f) => f.endsWith('.exe') && !f.toLowerCase().includes('uninstall'))

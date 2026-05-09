@@ -140,7 +140,10 @@ if (FROM_MANIFEST) {
         process.exit(1);
     }
 
-    const matched = allExe.filter(f => f.includes(version));
+    // Match the exact filename version segment. A stable version like "0.2.2"
+    // is a substring of prerelease artifacts such as "0.2.2-alpha.24".
+    const exactVersionSegment = `_${version}_`;
+    const matched = allExe.filter(f => f.includes(exactVersionSegment));
     if (matched.length === 0) {
         console.error(`\n\u274C  No installer matching version ${version} found in ${nsisDir}`);
         console.error(`    Found: ${allExe.length > 0 ? allExe.join(', ') : '(none)'}`);
@@ -218,7 +221,7 @@ if (!FROM_MANIFEST) {
 
     const validationErrors = [];
 
-    if (!exeName.includes(version)) {
+    if (!exeName.includes(`_${version}_`)) {
         validationErrors.push(`Installer filename does not contain version ${version}: ${exeName}`);
     }
     if (exeSize < MIN_EXE_SIZE || exeSize > MAX_EXE_SIZE) {

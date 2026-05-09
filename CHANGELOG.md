@@ -6,9 +6,9 @@
 
 ---
 
-## [0.2.2-alpha.24] — 2026-05-08
+## [0.2.2] — 2026-05-09
 
-> Alpha-hotfix для старых импортированных БД: фоновое обновление служебных расчётов больше не должно грузить CPU минутами и теперь видно пользователю как тихий статус.
+> Stable release, promoted from `0.2.2-alpha.24` after validation. The startup DB backfill throttling and user-visible DB update status from the alpha line are now the public default.
 
 ### Исправлено
 - **Startup DB backfill throttling**: догоняющий расчёт touch-point precompute после импорта старой БД ограничен маленькими batch'ами, лимитом итераций и коротким time budget.
