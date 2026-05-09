@@ -23,6 +23,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const organizationId = new URL('/#organization', Astro.site).toString();
 const websiteId = new URL('/#website', Astro.site).toString();
 const softwareId = new URL('/#software', Astro.site).toString();
+const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/RheoLab%20Enterprise_0.2.2_x64-setup.exe';
 const normalizedSchema = Array.isArray(schema) ? schema : [schema];
 
 const organizationSchema = {
@@ -77,7 +78,7 @@ const softwareApplicationSchema = {
   operatingSystem: 'Windows 10, Windows 11',
   description,
   url: canonicalUrl,
-  downloadUrl: new URL('/download/latest/', Astro.site).toString(),
+  downloadUrl: latestInstallerUrl,
   inLanguage: 'ru-RU',
   publisher: {
     '@id': organizationId,

@@ -9,6 +9,7 @@ interface Props {
 }
 
 const { title, description, schema, includeSoftwareSchema } = Astro.props;
+const updateManifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows-x86_64/stable.json';
 ---
 
 <Layout
@@ -19,6 +20,35 @@ const { title, description, schema, includeSoftwareSchema } = Astro.props;
 >
   <div class="site-theme">
     <slot />
+    <script is:inline define:vars={{ updateManifestUrl }}>
+      const downloadLinks = document.querySelectorAll('[data-download-latest]');
+
+      if (downloadLinks.length > 0) {
+        fetch(updateManifestUrl, { cache: 'no-store' })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Update manifest request failed: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((manifest) => {
+            const installerUrl =
+              manifest?.platforms?.['windows-x86_64']?.url ||
+              manifest?.platforms?.['windows-x86_64']?.browser_download_url;
+
+            if (typeof installerUrl !== 'string' || installerUrl.length === 0) {
+              return;
+            }
+
+            downloadLinks.forEach((link) => {
+              link.setAttribute('href', installerUrl);
+            });
+          })
+          .catch(() => {
+            // Keep the baked fallback URL. The click still downloads directly.
+          });
+      }
+    </script>
   </div>
 </Layout>
 

@@ -15,9 +15,9 @@ const contactCards = [
 ];
 ---
 
-<section id="contact" class="site-contact">
+<section class="site-contact">
   <div class="site-container">
-    <div class="site-section-header site-contact-header">
+    <div id="contact" class="site-section-header site-contact-header site-anchor-target">
       <h2>Связаться с командой</h2>
       <p>
         Если хотите быстро понять, как RheoLab ляжет на ваш процесс,
@@ -53,7 +53,6 @@ const contactCards = [
 <style>
   .site-contact {
     padding: 8rem 0 7rem;
-    scroll-margin-top: 7rem;
     border-top: 1px solid var(--site-border);
     background:
       radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.1), transparent 28%),
@@ -64,6 +63,10 @@ const contactCards = [
     text-align: center;
     max-width: 860px;
     margin: 0 auto 3.75rem;
+  }
+
+  .site-anchor-target {
+    scroll-margin-top: 6.6rem;
   }
 
   .site-contact-header h2 {

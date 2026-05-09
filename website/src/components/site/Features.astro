@@ -38,9 +38,9 @@ const workflow = [
 ];
 ---
 
-<section id="features" class="site-features">
+<section class="site-features">
   <div class="site-container site-features-content">
-    <div class="site-section-header">
+    <div id="features" class="site-section-header site-anchor-target">
       <span class="site-section-kicker">Возможности</span>
       <h2>Один рабочий контур для реологических данных</h2>
       <p>
@@ -92,7 +92,6 @@ const workflow = [
 <style>
   .site-features {
     padding: 8.5rem 0;
-    scroll-margin-top: 7rem;
     background:
       radial-gradient(circle at 82% 12%, rgba(37, 99, 235, 0.07), transparent 24%),
       var(--site-bg);
@@ -109,6 +108,10 @@ const workflow = [
     max-width: 920px;
     margin: 0 auto 4.5rem;
     text-align: center;
+  }
+
+  .site-anchor-target {
+    scroll-margin-top: 6.6rem;
   }
 
   .site-section-kicker {
