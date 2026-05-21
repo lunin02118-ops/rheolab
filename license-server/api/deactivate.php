@@ -37,6 +37,11 @@ if (!$license) {
     jsonError('Ключ не найден', 404);
 }
 
+if (normalizeLicenseType($license['license_type'] ?? null) === 'corporate') {
+    logAction($db, $license['id'], $machineId, 'deactivate', false, 'Corporate license is hardware-bound');
+    jsonError('Корпоративная лицензия постоянно привязана к устройству. Сброс возможен только администратором.', 403);
+}
+
 // Проверить, что деактивирует та же машина
 if ($license['machine_id'] !== $machineId) {
     logAction($db, $license['id'], $machineId, 'deactivate', false, 'Несоответствие машины');

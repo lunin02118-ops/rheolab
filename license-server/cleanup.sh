@@ -3,7 +3,7 @@ set -euo pipefail
 
 BACKUP_ROOT="/var/backups/license-server"
 LOG_FILE="/var/log/license-backup.log"
-RETENTION_DAYS=30
+RETENTION_DAYS=7
 MAX_LOG_SIZE_BYTES=$((20 * 1024 * 1024))
 TMP_PREFIX="license-server-"
 

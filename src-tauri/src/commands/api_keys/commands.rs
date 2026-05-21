@@ -531,8 +531,20 @@ mod sec003_tests {
         let app_data = std::env::temp_dir().join("rheolab_sec003_test_dir2");
         let _ = std::fs::create_dir_all(&app_data);
 
-        insert_raw(&conn, "id-active-broken", "Broken Active", "AESGCM:00/ff", true);
-        insert_raw(&conn, "id-inactive", "Inactive Other", "AESGCM:00/ff", false);
+        insert_raw(
+            &conn,
+            "id-active-broken",
+            "Broken Active",
+            "AESGCM:00/ff",
+            true,
+        );
+        insert_raw(
+            &conn,
+            "id-inactive",
+            "Inactive Other",
+            "AESGCM:00/ff",
+            false,
+        );
 
         list_keys_with_decryptable_flag(&conn, &app_data).unwrap();
 

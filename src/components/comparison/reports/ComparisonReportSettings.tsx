@@ -23,6 +23,7 @@ export interface ComparisonReportSettingsProps {
     setShowWaterAnalysis: (v: boolean) => void;
     showRheology: boolean;
     setShowRheology: (v: boolean) => void;
+    canUseCalibration: boolean;
 
     isExporting: boolean;
     isExcelExporting: boolean;
@@ -42,6 +43,7 @@ export function ComparisonReportSettings({
     showRecipe, setShowRecipe,
     showWaterAnalysis, setShowWaterAnalysis,
     showRheology, setShowRheology,
+    canUseCalibration,
     isExporting, isExcelExporting,
     exportError, onClearError,
     onDownloadPdf, onDownloadExcel,
@@ -96,12 +98,14 @@ export function ComparisonReportSettings({
                             {language === 'ru' ? 'Разделы отчёта' : 'Report sections'}
                         </label>
 
-                        <ToggleRow
-                            label={language === 'ru' ? 'Данные калибровки' : 'Calibration data'}
-                            value={showCalibration}
-                            onChange={setShowCalibration}
-                            testId="ComparisonReportCalibrationToggle"
-                        />
+                        {canUseCalibration && (
+                            <ToggleRow
+                                label={language === 'ru' ? 'Данные калибровки' : 'Calibration data'}
+                                value={showCalibration}
+                                onChange={setShowCalibration}
+                                testId="ComparisonReportCalibrationToggle"
+                            />
+                        )}
                         <ToggleRow
                             label={language === 'ru' ? 'Сырые данные' : 'Raw data'}
                             value={showRawData}

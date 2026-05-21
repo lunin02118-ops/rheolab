@@ -112,15 +112,17 @@ fn insert_analysis_experiment(pool: &crate::db::DbPool, experiment_id: &str, cou
     .unwrap();
     let points = make_test_points(count)
         .into_iter()
-        .map(|p| serde_json::json!({
-            "time_sec": p.time_sec,
-            "viscosity_cp": p.viscosity_cp,
-            "temperature_c": p.temperature_c,
-            "shear_rate_s1": p.shear_rate,
-            "shear_stress_pa": p.shear_stress,
-            "pressure_bar": p.pressure_bar,
-            "speed_rpm": p.rpm,
-        }))
+        .map(|p| {
+            serde_json::json!({
+                "time_sec": p.time_sec,
+                "viscosity_cp": p.viscosity_cp,
+                "temperature_c": p.temperature_c,
+                "shear_rate_s1": p.shear_rate,
+                "shear_stress_pa": p.shear_stress,
+                "pressure_bar": p.pressure_bar,
+                "speed_rpm": p.rpm,
+            })
+        })
         .collect::<Vec<_>>();
     let blob = crate::db::columnar::encode(&points).unwrap();
     conn.execute(
@@ -162,7 +164,9 @@ fn analyze_experiment_by_id_uses_columnar_blob_and_persists_cache() {
 
     let conn = pool.get().unwrap();
     let artifact_count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM AnalysisArtifact", [], |row| row.get(0))
+        .query_row("SELECT COUNT(*) FROM AnalysisArtifact", [], |row| {
+            row.get(0)
+        })
         .unwrap();
     assert_eq!(artifact_count, 1);
 }

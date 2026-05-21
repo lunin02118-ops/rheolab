@@ -222,7 +222,7 @@ export function useReportExportById(options: UseReportExportByIdOptions) {
                 showBathTemperature: options.chartSettings.lines.bathTemperature.visible,
                 shearRateAxis: options.chartSettings.lines.shearRate.axis,
                 pressureAxis: options.chartSettings.lines.pressure.axis,
-                showAdvancedStats: options.isExpert,
+                showAdvancedStats: true,
                 reportViscosityRates,
                 rheologyUnits: {
                     viscosity: options.chartSettings.rheologyUnits.viscosity,

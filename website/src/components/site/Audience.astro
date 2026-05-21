@@ -153,8 +153,51 @@
   }
 
   @media (max-width: 720px) {
+    .site-audience {
+      padding: 4.75rem 0;
+    }
+
+    .site-section-header {
+      margin-bottom: 2.25rem;
+      text-align: left;
+    }
+
+    .site-section-header h2 {
+      font-size: clamp(1.85rem, 8.6vw, 2.25rem);
+    }
+
     .site-bento-grid {
       grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .site-bento-card {
+      padding: 1.35rem;
+    }
+
+    .site-bento-card:hover {
+      transform: none;
+    }
+
+    .site-card-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1.15rem;
+    }
+
+    .icon-svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .site-bento-card h3 {
+      font-size: 1.18rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .site-bento-card p {
+      font-size: 0.96rem;
+      line-height: 1.55;
     }
   }
 </style>

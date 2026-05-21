@@ -6,12 +6,18 @@ vi.mock('@/lib/tauri/bridge', () => ({
 
 vi.mock('@/lib/analysis/report-types/converters', () => ({
   convertReportInputToWasm: vi.fn((input: unknown) => ({ converted: input })),
+  convertComparisonReportInputToWasm: vi.fn((input: unknown) => ({ convertedComparison: input })),
 }));
 
 import { getBridge } from '@/lib/tauri/bridge';
-import { convertReportInputToWasm } from '@/lib/analysis/report-types/converters';
 import {
+  convertComparisonReportInputToWasm,
+  convertReportInputToWasm,
+} from '@/lib/analysis/report-types/converters';
+import {
+  generateComparisonExcelReportBlob,
   generateComparisonExcelReportByIdsBlob,
+  generateComparisonPdfReportBlob,
   generateComparisonPdfReportByIdsBlob,
   generateExcelReportBlob,
   generatePdfReportBlob,
@@ -29,6 +35,8 @@ describe('reports client', () => {
           generateExcel: ReturnType<typeof vi.fn>;
           generatePdfById: ReturnType<typeof vi.fn>;
           generateExcelById: ReturnType<typeof vi.fn>;
+          generateComparisonPdf: ReturnType<typeof vi.fn>;
+          generateComparisonExcel: ReturnType<typeof vi.fn>;
           generateComparisonPdfByIds: ReturnType<typeof vi.fn>;
           generateComparisonExcelByIds: ReturnType<typeof vi.fn>;
         }
@@ -45,6 +53,8 @@ describe('reports client', () => {
       generateExcel: vi.fn().mockResolvedValue(new Uint8Array([80, 75, 3, 4])),
       generatePdfById: vi.fn().mockResolvedValue(new Uint8Array([37, 80, 68, 70])),
       generateExcelById: vi.fn().mockResolvedValue(new Uint8Array([80, 75, 3, 4])),
+      generateComparisonPdf: vi.fn().mockResolvedValue(new Uint8Array([37, 80, 68, 70])),
+      generateComparisonExcel: vi.fn().mockResolvedValue(new Uint8Array([80, 75, 3, 4])),
       generateComparisonPdfByIds: vi.fn().mockResolvedValue(new Uint8Array([37, 80, 68, 70])),
       generateComparisonExcelByIds: vi.fn().mockResolvedValue(new Uint8Array([80, 75, 3, 4])),
     };
@@ -75,6 +85,8 @@ describe('reports client', () => {
       generateExcel: vi.fn(),
       generatePdfById: vi.fn(),
       generateExcelById: vi.fn(),
+      generateComparisonPdf: vi.fn(),
+      generateComparisonExcel: vi.fn(),
       generateComparisonPdfByIds: vi.fn(),
       generateComparisonExcelByIds: vi.fn(),
     };
@@ -97,6 +109,8 @@ describe('reports client', () => {
       generateExcel: vi.fn(),
       generatePdfById: vi.fn(),
       generateExcelById: vi.fn(),
+      generateComparisonPdf: vi.fn(),
+      generateComparisonExcel: vi.fn(),
       generateComparisonPdfByIds: vi.fn(),
       generateComparisonExcelByIds: vi.fn(),
     };
@@ -131,6 +145,8 @@ describe('reports client', () => {
     bridge.reports = {
       generatePdf: vi.fn(),
       generateExcel: vi.fn(),
+      generateComparisonPdf: vi.fn(),
+      generateComparisonExcel: vi.fn(),
       generateComparisonPdfByIds: vi.fn(),
       generateComparisonExcelByIds: vi.fn(),
     } as any;
@@ -162,12 +178,31 @@ describe('reports client', () => {
     expect(bridge.reports!.generateComparisonExcelByIds).toHaveBeenCalledWith(request);
   });
 
+  it('generates direct comparison PDF via native Tauri IPC', async () => {
+    const input = { language: 'ru', experiments: [] } as any;
+    const blob = await generateComparisonPdfReportBlob(input);
+
+    expect(blob.type).toBe('application/pdf');
+    expect(bridge.reports!.generateComparisonPdf).toHaveBeenCalledWith({ convertedComparison: input });
+    expect(convertComparisonReportInputToWasm).toHaveBeenCalledWith(input);
+  });
+
+  it('generates direct comparison Excel via native Tauri IPC', async () => {
+    const input = { language: 'ru', experiments: [] } as any;
+    const blob = await generateComparisonExcelReportBlob(input);
+
+    expect(blob.type).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    expect(bridge.reports!.generateComparisonExcel).toHaveBeenCalledWith({ convertedComparison: input });
+  });
+
   it('retries comparison PDF on transient Tauri runtime error then succeeds', async () => {
     bridge.reports = {
       generatePdf: vi.fn(),
       generateExcel: vi.fn(),
       generatePdfById: vi.fn(),
       generateExcelById: vi.fn(),
+      generateComparisonPdf: vi.fn(),
+      generateComparisonExcel: vi.fn(),
       generateComparisonPdfByIds: vi
         .fn()
         .mockRejectedValueOnce(new Error('window is not defined'))
@@ -198,6 +233,8 @@ describe('reports client', () => {
       generateExcel: vi.fn(),
       generatePdfById: vi.fn(),
       generateExcelById: vi.fn(),
+      generateComparisonPdf: vi.fn(),
+      generateComparisonExcel: vi.fn(),
       generateComparisonPdfByIds: vi.fn().mockRejectedValue(new Error('License expired')),
       generateComparisonExcelByIds: vi.fn(),
     };

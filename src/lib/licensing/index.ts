@@ -15,9 +15,6 @@ export type {
     LicenseFeatures,
 } from './types';
 
-// Constants
-export { DEMO_LIMITS } from './types';
-
 // Note: multi-license-store APIs are imported directly by
 // `components/licensing/DevModeSection.tsx` (single consumer);
 // no need to re-export them through this barrel.

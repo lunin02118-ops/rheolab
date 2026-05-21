@@ -1,25 +1,29 @@
 -- ============================================================
--- Migration: add 'superuser' to the license_type ENUM
+-- Migration: legacy compatibility shim for 'superuser'
 -- ============================================================
 --
--- Introduces the Superuser tier — the top-privilege licence used by
--- the project owner's personal machines. Clients holding this tier
--- get the alpha update channel (see docs/LICENSING_CHANNELS.md and
--- src-tauri/src/commands/licensing/types.rs:LicenseType::Superuser).
+-- Kept for older deploy scripts. The current canonical migration is
+-- migrations/normalize_license_types.sql and the current product model is:
+-- trial, corporate, developer, superuser.
 --
--- The client enum has always known about `Superuser` but the DB and
--- admin allowlist did not — attempting to issue a superuser key
--- silently fell through to `standard`, which defeated the whole
--- point of the alpha channel. This migration closes that gap.
---
--- Safe to re-run: MODIFY COLUMN is idempotent, the identity of the
--- ENUM set does not change on repeated application.
+-- Safe to re-run: converges legacy paid tiers to corporate before
+-- tightening the ENUM.
 -- ============================================================
 
 ALTER TABLE license_keys
     MODIFY COLUMN license_type
-        ENUM('trial', 'standard', 'professional', 'enterprise', 'developer', 'superuser')
-        NOT NULL DEFAULT 'standard';
+        ENUM('trial', 'standard', 'professional', 'enterprise', 'corporate', 'developer', 'superuser')
+        NOT NULL DEFAULT 'corporate',
+    MODIFY COLUMN expires_at DATETIME NULL;
+
+UPDATE license_keys
+SET license_type = 'corporate'
+WHERE license_type IN ('standard', 'professional', 'enterprise');
+
+ALTER TABLE license_keys
+    MODIFY COLUMN license_type
+        ENUM('trial', 'corporate', 'developer', 'superuser')
+        NOT NULL DEFAULT 'corporate';
 
 -- Verification query (the caller should SELECT this to confirm):
 --   SHOW COLUMNS FROM license_keys WHERE Field = 'license_type';

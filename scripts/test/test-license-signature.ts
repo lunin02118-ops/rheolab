@@ -28,11 +28,13 @@ try {
     // Test license data
     const licenseData = {
         id: 'LIC-TEST-001',
-        type: 'standard',
+        type: 'corporate',
         customerName: 'Тестовый Пользователь',
         email: 'test@example.com',
         machineId: 'abc123def456',
-        expiresAt: '2025-12-31T23:59:59Z',
+        expiresAt: null,
+        hardwareBound: true,
+        permanent: true,
         features: {
             exportPdf: true,
             exportExcel: true,

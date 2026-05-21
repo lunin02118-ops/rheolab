@@ -5,7 +5,7 @@
 //! cannot reintroduce a `LOWER()` wrapper that bypasses the
 //! `idx_reagent_name_nocase` index — see Phase 4 DB deep-dive, finding F1).
 
-use super::{is_duplicate_name, exists_by_id};
+use super::{exists_by_id, is_duplicate_name};
 use crate::db::migration::run_migrations;
 use rusqlite::{params, Connection};
 

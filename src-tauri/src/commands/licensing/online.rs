@@ -311,54 +311,6 @@ pub(super) async fn find_by_machine_online(
     Ok(Some(data))
 }
 
-/// Register this machine's demo period with the license server and return the
-/// server's authoritative `first_seen_at` date (YYYY-MM-DD).
-///
-/// ## How it works
-/// - **First call**: the server inserts a new row in `demo_users` and returns
-///   today's date.
-/// - **Subsequent calls**: the server returns the *original* `first_seen_at` date,
-///   regardless of local clock or DB state.
-///
-/// This creates a tamper-resistant anchor: even if the user deletes the local
-/// SQLite DB, reinstalls the app, or manually edits `first_launch_date`, the
-/// next online check will fetch the real start date from the server and
-/// correct the local state.
-///
-/// Returns `None` if the server is unreachable (caller falls back to local state).
-pub(super) async fn register_demo_online(app_data_dir: &std::path::Path) -> Option<String> {
-    let machine_id = get_or_create_machine_id(app_data_dir);
-    let client = http_client().ok()?;
-
-    let body = json!({ "machineId": machine_id });
-
-    let resp = client
-        .post(format!("{}/api/register_demo.php", LICENSE_SERVER_URL))
-        .json(&body)
-        .send()
-        .await
-        .ok()?;
-
-    if !resp.status().is_success() {
-        tracing::debug!(
-            "register_demo_online: server returned HTTP {}",
-            resp.status()
-        );
-        return None;
-    }
-
-    let data: Value = resp.json().await.ok()?;
-
-    if data["success"].as_bool() != Some(true) {
-        return None;
-    }
-
-    // Take only the date part (first 10 chars) from the ISO datetime/date string.
-    data["firstSeenAt"]
-        .as_str()
-        .map(|s| s.get(..10).unwrap_or(s).to_string())
-}
-
 /// Deactivate (unbind) a license from this machine.
 ///
 /// **Audit-v2 LIC-004 — strict success contract:**
@@ -603,8 +555,7 @@ mod tests {
     /// not panic on missing fields.
     #[test]
     fn interpret_deactivate_response_handles_empty_body() {
-        let result =
-            interpret_deactivate_response(reqwest::StatusCode::BAD_GATEWAY, json!({}));
+        let result = interpret_deactivate_response(reqwest::StatusCode::BAD_GATEWAY, json!({}));
         assert!(result.is_err());
         let msg = result.unwrap_err().to_string();
         assert!(msg.contains("HTTP 502"));

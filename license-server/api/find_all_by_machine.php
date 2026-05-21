@@ -32,6 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonError('Method not allowed', 405);
 }
 
+// This endpoint is useful during field diagnostics, but it leaks license
+// history for a machine fingerprint. Keep it closed unless explicitly
+// enabled on the server for a short maintenance window.
+if (getenv('RHEOLAB_ENABLE_DISCOVERY_AUDIT') !== '1') {
+    jsonResponse(['success' => false, 'error' => 'not_found'], 404);
+}
+
 $db = getDB();
 enforceRateLimit($db, 'discovery_all', 5, 600);
 
@@ -58,7 +65,8 @@ $rows = $stmt->fetchAll();
 
 $now = time();
 $licenses = array_map(function ($r) use ($now) {
-    $expired = strtotime($r['expires_at']) < $now;
+    $expiresAt = licenseExpiresAt($r);
+    $expired = $expiresAt !== null && strtotime($expiresAt) < $now;
     $status  = $r['is_revoked']    ? 'revoked'
              : (!$r['is_active']   ? 'inactive'
              : ($expired           ? 'expired'
@@ -67,12 +75,12 @@ $licenses = array_map(function ($r) use ($now) {
         // Key prefix only — never leak the full key without auth
         'keyPrefix'     => substr($r['license_key'], 0, 4) . '-****-****-' . substr($r['license_key'], -4),
         'id'            => (int) $r['id'],
-        'type'          => $r['license_type'],
+        'type'          => normalizeLicenseType($r['license_type']) ?? $r['license_type'],
         'status'        => $status,
         'revokedReason' => $r['revoked_reason'],
         'issuedAt'      => $r['created_at'],
         'activatedAt'   => $r['activated_at'],
-        'expiresAt'     => $r['expires_at'],
+        'expiresAt'     => $expiresAt,
         'lastCheckAt'   => $r['last_check_at'],
     ];
 }, $rows);

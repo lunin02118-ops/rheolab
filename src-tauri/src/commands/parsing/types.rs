@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::commands::experiments::types::RheologyParameterRow;
+
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ParseRequest {
@@ -182,6 +184,8 @@ pub struct ParseFileResponse {
     pub success: bool,
     pub source: String,
     pub data: Vec<ParsedPoint>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub instrument_rheology: Vec<RheologyParameterRow>,
     pub metadata: ParseMetadata,
     pub summary: ParseSummary,
 }

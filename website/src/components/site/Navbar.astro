@@ -1,5 +1,11 @@
 ---
 const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/RheoLab%20Enterprise_0.2.2_x64-setup.exe';
+const navLinks = [
+  { href: '/#program', label: 'О программе' },
+  { href: '/#features', label: 'Возможности' },
+  { href: '/#videos', label: 'Видео' },
+  { href: '/#contact', label: 'Контакты' },
+];
 ---
 <header class="site-header">
   <div class="site-container site-nav-wrapper">
@@ -11,9 +17,10 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
       </div>
     </a>
 
-    <nav class="site-nav-links">
-      <a href="/#features">Возможности</a>
-      <a href="/#contact">Контакты</a>
+    <nav class="site-nav-links" aria-label="Основная навигация">
+      {navLinks.map((link) => (
+        <a href={link.href}>{link.label}</a>
+      ))}
     </nav>
 
     <div class="site-nav-actions">
@@ -21,8 +28,79 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
         Скачать
       </a>
     </div>
+
+    <button
+      class="site-mobile-menu-toggle"
+      type="button"
+      aria-controls="site-mobile-menu"
+      aria-expanded="false"
+      aria-label="Открыть меню"
+      data-site-menu-toggle
+    >
+      <svg class="site-menu-icon site-menu-icon-open" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <svg class="site-menu-icon site-menu-icon-close" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="site-mobile-menu" id="site-mobile-menu" hidden data-site-menu>
+    <div class="site-container site-mobile-menu-inner">
+      <nav class="site-mobile-nav-links" aria-label="Мобильная навигация">
+        {navLinks.map((link) => (
+          <a href={link.href}>{link.label}</a>
+        ))}
+        <a href={latestInstallerUrl} data-download-latest>Скачать</a>
+      </nav>
+    </div>
   </div>
 </header>
+
+<script>
+  const setupSiteMobileMenu = () => {
+    const toggle = document.querySelector('[data-site-menu-toggle]');
+    const menu = document.querySelector('[data-site-menu]');
+
+    if (!(toggle instanceof HTMLButtonElement) || !(menu instanceof HTMLElement)) {
+      return;
+    }
+
+    const setOpen = (open: boolean) => {
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
+      menu.hidden = !open;
+      document.documentElement.classList.toggle('site-menu-open', open);
+    };
+
+    toggle.addEventListener('click', () => {
+      setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+
+    menu.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => setOpen(false));
+    });
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 900) {
+        setOpen(false);
+      }
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupSiteMobileMenu, { once: true });
+  } else {
+    setupSiteMobileMenu();
+  }
+</script>
 
 <style>
   .site-header {
@@ -31,6 +109,7 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
     z-index: 100;
     background: rgba(11, 15, 25, 0.96);
     border-bottom: 1px solid var(--site-border);
+    backdrop-filter: blur(18px);
   }
 
   .site-nav-wrapper {
@@ -38,14 +117,15 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 1.25rem;
   }
 
   .site-logo {
     display: flex;
     align-items: center;
     gap: 1.15rem;
-    text-decoration: none;
     color: var(--site-text-main);
+    text-decoration: none;
   }
 
   .site-logo-icon {
@@ -68,23 +148,23 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
   }
 
   .site-logo-text span {
-    font-size: 0.82rem;
-    font-family: var(--font-mono);
     color: var(--site-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
 
   .site-nav-links {
     display: flex;
-    gap: 3rem;
+    gap: 2.15rem;
   }
 
   .site-nav-links a {
     color: var(--site-text-muted);
-    text-decoration: none;
     font-size: 1.05rem;
     font-weight: 600;
+    text-decoration: none;
     transition: color 0.2s;
   }
 
@@ -92,10 +172,117 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
     color: var(--site-text-main);
   }
 
-  @media (max-width: 768px) {
+  .site-nav-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .site-mobile-menu-toggle {
+    display: none;
+    width: 2.75rem;
+    height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--site-text-main);
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .site-menu-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .site-menu-icon-close {
+    display: none;
+  }
+
+  .site-mobile-menu-toggle[aria-expanded='true'] .site-menu-icon-open {
+    display: none;
+  }
+
+  .site-mobile-menu-toggle[aria-expanded='true'] .site-menu-icon-close {
+    display: block;
+  }
+
+  .site-mobile-menu {
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(6, 10, 19, 0.98);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.32);
+  }
+
+  .site-mobile-menu-inner {
+    display: grid;
+    gap: 1rem;
+    padding-top: 1rem;
+    padding-bottom: 1.1rem;
+  }
+
+  .site-mobile-nav-links {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .site-mobile-nav-links a {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    color: var(--site-text-main);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  @media (max-width: 900px) {
+    .site-nav-wrapper {
+      height: 4.75rem;
+    }
+
     .site-nav-links {
+      display: none;
+    }
+
+    .site-nav-actions {
+      display: none;
+    }
+
+    .site-mobile-menu-toggle {
+      display: inline-flex;
+    }
+
+    .site-logo {
+      min-width: 0;
+      gap: 0.8rem;
+    }
+
+    .site-logo-icon {
+      width: 3.1rem;
+      height: 3.1rem;
+    }
+
+    .site-logo-text strong {
+      font-size: 1.22rem;
+    }
+
+    .site-logo-text span {
+      font-size: 0.72rem;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .site-nav-wrapper {
+      gap: 0.6rem;
+    }
+  }
+
+  @media (max-width: 350px) {
+    .site-logo-text {
       display: none;
     }
   }
 </style>
-

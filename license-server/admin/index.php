@@ -6,7 +6,6 @@
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/rate_limiter.php';
-require_once __DIR__ . '/demo-users.php';
 
 // F-10B.1: Harden session cookie before session_start
 session_set_cookie_params([
@@ -27,6 +26,194 @@ function generateCSRFToken(): string {
 function validateCSRFToken(): bool {
     $token = $_POST['csrf_token'] ?? '';
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+const OFFLINE_REQUEST_PREFIX = 'RL-REQ1:';
+const OFFLINE_ACTIVATION_PREFIX = 'RL-ACT1:';
+
+function base64UrlDecode(string $value): string|false {
+    $padded = strtr($value, '-_', '+/');
+    $padding = strlen($padded) % 4;
+    if ($padding > 0) {
+        $padded .= str_repeat('=', 4 - $padding);
+    }
+    return base64_decode($padded, true);
+}
+
+function base64UrlEncode(string $value): string {
+    return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+}
+
+function decodeOfflineRequestCode(string $requestCode): array {
+    $compact = preg_replace('/\s+/', '', trim($requestCode));
+    if (!str_starts_with($compact, OFFLINE_REQUEST_PREFIX)) {
+        throw new InvalidArgumentException(
+            'Код запроса должен начинаться с ' . OFFLINE_REQUEST_PREFIX
+        );
+    }
+    $encoded = substr($compact, strlen(OFFLINE_REQUEST_PREFIX));
+    $json = base64UrlDecode($encoded);
+    if ($json === false) {
+        throw new InvalidArgumentException('Код запроса повреждён: не удалось декодировать base64url.');
+    }
+
+    $payload = json_decode($json, true);
+    if (!is_array($payload)) {
+        throw new InvalidArgumentException('Код запроса повреждён: внутри нет корректного JSON.');
+    }
+
+    $machineId = trim((string) ($payload['machineId'] ?? ''));
+    if ($machineId === '' || strlen($machineId) > 128) {
+        throw new InvalidArgumentException('В коде запроса нет корректного Machine ID.');
+    }
+
+    if (($payload['requestType'] ?? '') !== 'corporate_offline_activation') {
+        throw new InvalidArgumentException('Код запроса не является запросом корпоративной офлайн-активации.');
+    }
+
+    return $payload;
+}
+
+function findExistingOfflineLicense(PDO $db, string $machineId): ?array {
+    $stmt = $db->prepare('
+        SELECT *
+        FROM license_keys
+        WHERE machine_id = ?
+          AND license_type = "corporate"
+          AND is_active = 1
+          AND is_revoked = 0
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+    ');
+    $stmt->execute([$machineId]);
+    $license = $stmt->fetch();
+
+    return $license ?: null;
+}
+
+function createOfflineCorporateLicense(PDO $db, string $machineId, string $platform, string $appVersion): array {
+    $customerName = 'Offline Corporate ' . substr($machineId, 0, 8);
+    $notes = 'Автоматически создана при офлайн-активации из RL-REQ1.';
+
+    for ($attempt = 0; $attempt < 5; $attempt++) {
+        $licenseKey = generateLicenseKey();
+
+        try {
+            $stmt = $db->prepare('
+                INSERT INTO license_keys (
+                    license_key,
+                    customer_name,
+                    customer_email,
+                    organization,
+                    license_type,
+                    max_activations,
+                    current_activations,
+                    machine_id,
+                    platform,
+                    app_version,
+                    activated_at,
+                    expires_at,
+                    last_check_at,
+                    is_active,
+                    is_revoked,
+                    notes
+                )
+                VALUES (?, ?, NULL, NULL, "corporate", 1, 1, ?, ?, ?, NOW(), NULL, NOW(), 1, 0, ?)
+            ');
+            $stmt->execute([$licenseKey, $customerName, $machineId, $platform, $appVersion, $notes]);
+            $licenseId = (int) $db->lastInsertId();
+
+            $stmt = $db->prepare('SELECT * FROM license_keys WHERE id = ?');
+            $stmt->execute([$licenseId]);
+            $license = $stmt->fetch();
+            if (!$license) {
+                throw new RuntimeException('Не удалось перечитать автоматически созданную лицензию.');
+            }
+
+            return $license;
+        } catch (PDOException $e) {
+            if (str_contains($e->getMessage(), 'Duplicate') && $attempt < 4) {
+                continue;
+            }
+            throw $e;
+        }
+    }
+
+    throw new RuntimeException('Не удалось создать уникальный корпоративный ключ.');
+}
+
+function buildOfflineActivationCode(array $license, array $request): string {
+    $machineId = (string) $request['machineId'];
+    $payload = buildSignedLicensePayload($license, $machineId);
+    $payload['activationMode'] = 'offline';
+    $payload['offlineAllowed'] = true;
+    $payload['fingerprintVersion'] = $request['fingerprintVersion'] ?? 2;
+
+    $signed = signLicense($payload);
+    $envelope = json_encode([
+        'payload' => $signed['signedPayload'],
+        'signature' => $signed['signature'],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    if (!is_string($envelope)) {
+        throw new RuntimeException('Не удалось собрать envelope офлайн-активации.');
+    }
+
+    return OFFLINE_ACTIVATION_PREFIX . base64UrlEncode($envelope);
+}
+
+function issueOfflineActivation(PDO $db, string $requestCode): array {
+    $request = decodeOfflineRequestCode($requestCode);
+    $machineId = (string) $request['machineId'];
+    $platform = substr(trim((string) ($request['platform'] ?? 'offline')), 0, 20);
+    $appVersion = substr(trim((string) ($request['appVersion'] ?? '')), 0, 20);
+
+    $license = findExistingOfflineLicense($db, $machineId);
+    if ($license) {
+        $licenseId = (int) $license['id'];
+        $stmt = $db->prepare('
+            UPDATE license_keys
+            SET platform = ?,
+                app_version = ?,
+                last_check_at = NOW()
+            WHERE id = ?
+        ');
+        $stmt->execute([$platform, $appVersion, $licenseId]);
+
+        $stmt = $db->prepare('SELECT * FROM license_keys WHERE id = ?');
+        $stmt->execute([$licenseId]);
+        $license = $stmt->fetch();
+        if (!$license) {
+            throw new RuntimeException('Не удалось перечитать обновлённую лицензию.');
+        }
+    } else {
+        $license = createOfflineCorporateLicense($db, $machineId, $platform, $appVersion);
+        $licenseId = (int) $license['id'];
+    }
+
+    $activationCode = buildOfflineActivationCode($license, $request);
+    logAction($db, $licenseId, $machineId, 'activate', true);
+
+    return [
+        'activationCode' => $activationCode,
+        'machineId' => $machineId,
+        'license' => $license,
+    ];
+}
+
+function deleteRevokedLicenses(PDO $db, ?int $licenseId = null): int {
+    if ($licenseId !== null) {
+        if ($licenseId <= 0) {
+            return 0;
+        }
+        $stmt = $db->prepare('DELETE FROM license_keys WHERE id = ? AND is_revoked = 1');
+        $stmt->execute([$licenseId]);
+        return $stmt->rowCount();
+    }
+
+    $stmt = $db->prepare('DELETE FROM license_keys WHERE is_revoked = 1');
+    $stmt->execute();
+    return $stmt->rowCount();
 }
 
 // F-09: DB-backed rate limiting by IP (replaces session-based counter that
@@ -207,6 +394,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_backup'])) {
     }
 }
 
+// State for the offline activation form.
+$offlineActivationCode = '';
+$offlineActivationMachineId = '';
+$offlineActivationRequestCode = '';
+
 // Создание нового ключа
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_key'])) {
     if (!validateCSRFToken()) { die('CSRF token validation failed'); }
@@ -214,25 +406,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_key'])) {
     $customerName = trim($_POST['customer_name'] ?? '');
     $customerEmail = trim($_POST['customer_email'] ?? '');
     $organization = trim($_POST['organization'] ?? '');
-    $licenseType = $_POST['license_type'] ?? 'standard';
+    $licenseType = $_POST['license_type'] ?? 'corporate';
     // F-10B.4: allowlist validation — reject unexpected values.
     // 'superuser' is the top-tier personal licence used by the project owner
     // (alpha update channel). Keep this list in sync with the DB ENUM in
-    // database.sql and migrations/add_superuser_type.sql.
-    $allowedLicenseTypes = ['trial', 'standard', 'developer', 'enterprise', 'superuser'];
+    // database.sql and migrations/normalize_license_types.sql.
+    $allowedLicenseTypes = ['trial', 'corporate', 'developer', 'superuser'];
     if (!in_array($licenseType, $allowedLicenseTypes, true)) {
-        $licenseType = 'standard';
+        $licenseType = 'corporate';
     }
-    $maxActivations = (int) ($_POST['max_activations'] ?? 1);
+    $maxActivations = 1;
 
-    // Trial всегда 1 месяц, остальные по выбору
+    // Trial всегда 1 месяц, corporate бессрочная, developer/superuser — по выбору.
     if ($licenseType === 'trial') {
         $expiresMonths = 1;
+        $expiresAt = date('Y-m-d H:i:s', strtotime("+{$expiresMonths} months"));
+    } elseif ($licenseType === 'corporate') {
+        $expiresAt = null;
     } else {
         $expiresMonths = (int) ($_POST['expires_months'] ?? 12);
+        $expiresAt = date('Y-m-d H:i:s', strtotime("+{$expiresMonths} months"));
     }
-
-    $expiresAt = date('Y-m-d H:i:s', strtotime("+{$expiresMonths} months"));
 
     $stmt = $db->prepare('
         INSERT INTO license_keys (license_key, customer_name, customer_email, organization, license_type, expires_at, max_activations)
@@ -243,28 +437,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_key'])) {
     $successMessage = "Ключ создан: <strong>" . htmlspecialchars($newKey) . "</strong>";
 }
 
+// Выдача офлайн-активации для корпоративного клиента без интернета
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_offline_activation'])) {
+    if (!validateCSRFToken()) { die('CSRF token validation failed'); }
+
+    $offlineActivationRequestCode = trim($_POST['offline_request_code'] ?? '');
+
+    try {
+        $offlineResult = issueOfflineActivation($db, $offlineActivationRequestCode);
+        $offlineActivationCode = $offlineResult['activationCode'];
+        $offlineActivationMachineId = $offlineResult['machineId'];
+        $successMessage = 'Офлайн-код активации сформирован для ключа <strong>'
+            . htmlspecialchars($offlineResult['license']['license_key'])
+            . '</strong> и Machine ID: <strong>'
+            . htmlspecialchars($offlineActivationMachineId)
+            . '</strong>';
+    } catch (Throwable $e) {
+        $errorMessage = htmlspecialchars($e->getMessage());
+    }
+}
+
 // Отзыв ключа (POST + CSRF)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['revoke'])) {
     if (!validateCSRFToken()) { die('CSRF token validation failed'); }
     $revokeId = (int) $_POST['revoke'];
-    $stmt = $db->prepare('UPDATE license_keys SET is_revoked = 1, revoked_reason = "Отозван администратором" WHERE id = ?');
+    $stmt = $db->prepare('SELECT * FROM license_keys WHERE id = ?');
     $stmt->execute([$revokeId]);
-    header('Location: index.php');
-    exit;
+    $license = $stmt->fetch();
+    if (!$license) {
+        $errorMessage = 'Ключ не найден.';
+    } elseif (normalizeLicenseType($license['license_type'] ?? null) === 'corporate') {
+        $errorMessage = 'Корпоративная офлайн-лицензия не отзывается удалённо: уже выданный RL-ACT1 остаётся рабочим на привязанном железе.';
+    } else {
+        $stmt = $db->prepare('UPDATE license_keys SET is_revoked = 1, revoked_reason = "Отозван администратором" WHERE id = ?');
+        $stmt->execute([$revokeId]);
+        header('Location: index.php');
+        exit;
+    }
+}
+
+// Удаление отозванных ключей (POST + CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_revoked_id'])) {
+    if (!validateCSRFToken()) { die('CSRF token validation failed'); }
+    $deleteRevokedId = (int) $_POST['delete_revoked_id'];
+    $deleted = deleteRevokedLicenses($db, $deleteRevokedId);
+    if ($deleted > 0) {
+        $successMessage = 'Отозванный ключ удалён.';
+    } else {
+        $errorMessage = 'Ключ не найден или он не находится в статусе revoked.';
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all_revoked'])) {
+    if (!validateCSRFToken()) { die('CSRF token validation failed'); }
+    $deleted = deleteRevokedLicenses($db);
+    $successMessage = $deleted > 0
+        ? 'Удалено отозванных ключей: <strong>' . $deleted . '</strong>'
+        : 'Отозванных ключей для удаления нет.';
 }
 
 // Сброс привязки (POST + CSRF)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset'])) {
     if (!validateCSRFToken()) { die('CSRF token validation failed'); }
     $resetId = (int) $_POST['reset'];
-    $stmt = $db->prepare('UPDATE license_keys SET machine_id = NULL, platform = NULL, app_version = NULL, current_activations = GREATEST(current_activations - 1, 0) WHERE id = ?');
+    $stmt = $db->prepare('SELECT * FROM license_keys WHERE id = ?');
     $stmt->execute([$resetId]);
-    header('Location: index.php');
-    exit;
+    $license = $stmt->fetch();
+    if (!$license) {
+        $errorMessage = 'Ключ не найден.';
+    } elseif (normalizeLicenseType($license['license_type'] ?? null) === 'corporate') {
+        $errorMessage = 'Сброс привязки не применяется к корпоративной офлайн-лицензии: старый RL-ACT1 всё равно останется рабочим на старом железе.';
+    } else {
+        $stmt = $db->prepare('UPDATE license_keys SET machine_id = NULL, platform = NULL, app_version = NULL, current_activations = GREATEST(current_activations - 1, 0) WHERE id = ?');
+        $stmt->execute([$resetId]);
+        header('Location: index.php');
+        exit;
+    }
 }
 
 // Получить все ключи
 $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->fetchAll();
+$revokedLicenseCount = count(array_filter(
+    $licenses,
+    static fn(array $license): bool => (int) ($license['is_revoked'] ?? 0) === 1
+));
 
 ?>
 <!DOCTYPE html>
@@ -373,7 +629,8 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
         }
 
         input,
-        select {
+        select,
+        textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #0f3460;
@@ -381,6 +638,25 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
             background: #0f3460;
             color: #fff;
             font-size: 14px;
+        }
+
+        textarea {
+            min-height: 96px;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+            line-height: 1.4;
+        }
+
+        .activation-code {
+            min-height: 140px;
+        }
+
+        .instructions {
+            margin: 8px 0 12px;
+            padding-left: 18px;
+            color: #a9b3c7;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
         button {
@@ -447,13 +723,13 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
             color: #fff;
         }
 
-        .badge-standard {
-            background: #3498db;
+        .badge-corporate {
+            background: #1abc9c;
             color: #fff;
         }
 
-        .badge-enterprise {
-            background: #1abc9c;
+        .badge-superuser {
+            background: #e84393;
             color: #fff;
         }
 
@@ -470,6 +746,31 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
 
         .actions a.danger {
             color: #ff6b6b;
+        }
+
+        .card-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-header-row h2 {
+            margin-bottom: 0;
+        }
+
+        .card-header-row form {
+            margin: 0;
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #ff6b6b, #c0392b);
+        }
+
+        button.danger:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
         }
 
         .btn-link {
@@ -553,8 +854,7 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
                         <label>Тип лицензии</label>
                         <select name="license_type" id="license_type" onchange="toggleExpires()">
                             <option value="trial">Пробная (30 дней)</option>
-                            <option value="standard" selected>Стандартная</option>
-                            <option value="enterprise">Enterprise</option>
+                            <option value="corporate" selected>Корпоративная (бессрочная)</option>
                             <option value="developer">Разработчик (beta)</option>
                             <option value="superuser">Суперпользователь (alpha)</option>
                         </select>
@@ -570,13 +870,45 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
                             <option value="120">10 лет (бессрочно)</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Макс. активаций</label>
-                        <input type="number" name="max_activations" value="1" min="1" max="100">
-                    </div>
                 </div>
                 <button type="submit" name="create_key">🔐 Создать ключ</button>
             </form>
+        </div>
+
+        <div class="card">
+            <h2>📡 Офлайн-активация Corporate</h2>
+            <ol class="instructions">
+                <li>На компьютере клиента: Активация лицензии → Офлайн Corporate → «Сформировать код».</li>
+                <li>Клиент передаёт вам код запроса любым способом: USB, телефон, мессенджер с другого устройства.</li>
+                <li>Здесь вставьте код запроса. Сервер сам создаст корпоративную лицензию, привяжет её к Machine ID клиента и выдаст офлайн-код активации.</li>
+                <li>Клиент вставляет офлайн-код в программу и нажимает «Активировать офлайн». Интернет на клиентской машине не нужен.</li>
+            </ol>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCSRFToken()) ?>">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Код запроса клиента *</label>
+                        <textarea
+                            name="offline_request_code"
+                            placeholder="RL-REQ1:..."
+                            required
+                        ><?= htmlspecialchars($offlineActivationRequestCode) ?></textarea>
+                    </div>
+                </div>
+                <button type="submit" name="generate_offline_activation">🔏 Сформировать офлайн-код</button>
+            </form>
+
+            <?php if ($offlineActivationCode): ?>
+                <div style="margin-top:16px">
+                    <label>Офлайн-код активации для клиента</label>
+                    <textarea id="offline_activation_code" class="activation-code" readonly><?= htmlspecialchars($offlineActivationCode) ?></textarea>
+                    <button type="button" onclick="copyOfflineActivationCode('offline_activation_code')">Скопировать офлайн-код</button>
+                    <p class="small">
+                        Этот код работает только на машине с Machine ID:
+                        <span class="key-code"><?= htmlspecialchars($offlineActivationMachineId) ?></span>
+                    </p>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="card">
@@ -604,7 +936,15 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
         </div>
 
         <div class="card">
-            <h2>📋 Все лицензии (<?= count($licenses) ?>)</h2>
+            <div class="card-header-row">
+                <h2>📋 Все лицензии (<?= count($licenses) ?>)</h2>
+                <form method="post" onsubmit="return confirm('Удалить все отозванные ключи? Записи и связанные логи будут удалены из базы.')">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCSRFToken()) ?>">
+                    <button type="submit" name="delete_all_revoked" class="danger" <?= $revokedLicenseCount === 0 ? 'disabled' : '' ?>>
+                        Удалить revoked (<?= $revokedLicenseCount ?>)
+                    </button>
+                </form>
+            </div>
             <table>
                 <thead>
                     <tr>
@@ -619,11 +959,18 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
                 </thead>
                 <tbody>
                     <?php foreach ($licenses as $lic):
-                        $isExpired = strtotime($lic['expires_at']) < time();
+                        $type = normalizeLicenseType($lic['license_type']) ?? $lic['license_type'];
+                        $isCorporateOffline = $type === 'corporate';
+                        $badgeClass = preg_replace('/[^a-z0-9_-]/', '', strtolower($type));
+                        $expiresAt = licenseExpiresAt($lic);
+                        $isExpired = isLicenseExpired($lic);
                         $status = 'active';
                         $statusClass = 'badge-active';
                         if ($lic['is_revoked']) {
                             $status = 'revoked';
+                            $statusClass = 'badge-revoked';
+                        } elseif (!$lic['is_active']) {
+                            $status = 'inactive';
                             $statusClass = 'badge-revoked';
                         } elseif ($isExpired) {
                             $status = 'expired';
@@ -633,13 +980,11 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
                         // Локализация типа лицензии
                         $typeLabels = [
                             'trial' => 'Пробная',
-                            'standard' => 'Стандартная',
+                            'corporate' => 'Корпоративная',
                             'developer' => 'Разработчик',
-                            'professional' => 'Professional',
-                            'enterprise' => 'Enterprise',
                             'superuser' => 'Суперпользователь'
                         ];
-                        $typeLabel = $typeLabels[$lic['license_type']] ?? $lic['license_type'];
+                        $typeLabel = $typeLabels[$type] ?? $type;
                         ?>
                         <tr>
                             <td><span class="key-code"><?= htmlspecialchars($lic['license_key']) ?></span></td>
@@ -649,7 +994,7 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
                                     <br><span class="small"><?= htmlspecialchars($lic['organization']) ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td><span class="badge badge-<?= $lic['license_type'] ?>"><?= $typeLabel ?></span>
+                            <td><span class="badge badge-<?= htmlspecialchars($badgeClass) ?>"><?= htmlspecialchars($typeLabel) ?></span>
                             </td>
                             <td><span class="badge <?= $statusClass ?>"><?= $status ?></span></td>
                             <td>
@@ -661,21 +1006,33 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?= date('d.m.Y', strtotime($lic['expires_at'])) ?>
-                                <?php if (!$isExpired): ?>
-                                    <br><span class="small"><?= ceil((strtotime($lic['expires_at']) - time()) / 86400) ?>
+                                <?php if ($expiresAt === null): ?>
+                                    Бессрочно
+                                <?php else: ?>
+                                    <?= date('d.m.Y', strtotime($expiresAt)) ?>
+                                <?php endif; ?>
+                                <?php if (!$isExpired && $expiresAt !== null): ?>
+                                    <br><span class="small"><?= licenseDaysRemaining($lic) ?>
                                         дней</span>
                                 <?php endif; ?>
                             </td>
                             <td class="actions">
-                                <?php if ($lic['machine_id']): ?>
+                                <?php if ($isCorporateOffline): ?>
+                                    <span class="small">Офлайн: код уже выдан</span>
+                                <?php elseif ($lic['machine_id']): ?>
                                     <form method="post" style="display:inline" onsubmit="return confirm('Сбросить привязку?')">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCSRFToken()) ?>">
                                         <input type="hidden" name="reset" value="<?= $lic['id'] ?>">
                                         <button type="submit" class="btn-link">Сбросить</button>
                                     </form>
                                 <?php endif; ?>
-                                <?php if (!$lic['is_revoked']): ?>
+                                <?php if ($lic['is_revoked']): ?>
+                                    <form method="post" style="display:inline" onsubmit="return confirm('Удалить отозванный ключ из базы?')">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCSRFToken()) ?>">
+                                        <input type="hidden" name="delete_revoked_id" value="<?= $lic['id'] ?>">
+                                        <button type="submit" class="btn-link danger">Удалить</button>
+                                    </form>
+                                <?php elseif (!$isCorporateOffline): ?>
                                     <form method="post" style="display:inline" onsubmit="return confirm('Отозвать ключ?')">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCSRFToken()) ?>">
                                         <input type="hidden" name="revoke" value="<?= $lic['id'] ?>">
@@ -688,8 +1045,6 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
                 </tbody>
             </table>
         </div>
-
-        <?php renderDemoUsersPanel($db); ?>
     </div>
 
     <script>
@@ -697,7 +1052,7 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
             const licenseType = document.getElementById('license_type').value;
             const expiresGroup = document.getElementById('expires_group');
 
-            if (licenseType === 'trial') {
+            if (licenseType === 'trial' || licenseType === 'corporate') {
                 expiresGroup.classList.add('hidden');
             } else {
                 expiresGroup.classList.remove('hidden');
@@ -706,6 +1061,18 @@ $licenses = $db->query('SELECT * FROM license_keys ORDER BY created_at DESC')->f
 
         // Initial state
         toggleExpires();
+
+        async function copyOfflineActivationCode(id = 'offline_activation_code') {
+            const textarea = document.getElementById(id);
+            if (!textarea) return;
+            try {
+                await navigator.clipboard.writeText(textarea.value);
+            } catch (_e) {
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+            }
+        }
     </script>
 </body>
 

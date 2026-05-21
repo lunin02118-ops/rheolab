@@ -142,19 +142,66 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
     font-size: 0.9rem;
   }
 
-  @media (max-width: 1180px) {
+  @media (max-width: 1380px) {
     .site-footer-grid {
       grid-template-columns: 1fr;
     }
+  }
 
+  @media (max-width: 1180px) {
     .site-footer-links {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
   @media (max-width: 768px) {
+    .site-footer {
+      padding: 4rem 0 2rem;
+    }
+
+    .site-footer-grid {
+      gap: 2.5rem;
+      margin-bottom: 2.75rem;
+    }
+
+    .site-footer-logo {
+      margin-bottom: 1.25rem;
+    }
+
+    .site-footer-logo-mark {
+      width: 3.25rem;
+      height: 3.25rem;
+    }
+
+    .site-logo-text strong {
+      font-size: 1.25rem;
+    }
+
+    .site-logo-text span {
+      font-size: 0.76rem;
+    }
+
+    .site-footer-desc {
+      max-width: none;
+      font-size: 0.96rem;
+    }
+
     .site-footer-links {
       grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+
+    .site-footer-links h4 {
+      margin-bottom: 0.75rem;
+    }
+
+    .site-footer-links a {
+      margin-bottom: 0.65rem;
+    }
+
+    .site-footer-bottom {
+      padding-top: 1.5rem;
+      text-align: left;
     }
   }
 </style>

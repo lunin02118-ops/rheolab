@@ -1763,6 +1763,88 @@ async fn test_heuristic_grace_no_regression() {
 }
 
 #[tokio::test]
+async fn test_instrument_rheology_grace_power_law_table() {
+    let r = parse_heuristic("Отчёт Grace.xlsx").await;
+    let row = r
+        .instrument_rheology
+        .iter()
+        .find(|row| {
+            row.n_prime.is_some()
+                && row.kv_pasn.is_some()
+                && row.k_prime_pasn.is_some()
+                && row.k_slot_pasn.is_some()
+                && row.r2.is_some()
+                && row.viscosities.contains_key("40")
+                && row.viscosities.contains_key("100")
+                && row.viscosities.contains_key("170")
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "Grace should expose instrument rheology with n', Kv, K', K' Slot, R² and Visc@40/100/170; got {:?}",
+                r.instrument_rheology
+            )
+        });
+
+    assert_eq!(
+        row.source,
+        rheolab_enterprise::commands::experiments::types::RheologyParameterSource::Instrument
+    );
+    assert!(row.source_row.unwrap_or_default() > 0);
+    assert!(row.kv_pasn.unwrap_or_default() > 0.0);
+    assert!(row.k_prime_pasn.unwrap_or_default() > 0.0);
+    assert!(row.k_slot_pasn.unwrap_or_default() > 0.0);
+}
+
+#[tokio::test]
+async fn test_instrument_rheology_bsl_power_law_sheets() {
+    let r = parse_heuristic("Отчёт BSL.xlsx").await;
+    assert!(
+        r.instrument_rheology.iter().any(|row| {
+            row.n_prime.is_some()
+                && (row.k_prime_pasn.is_some() || row.kv_pasn.is_some())
+                && row.source_sheet.as_deref().is_some_and(|sheet| {
+                    sheet.contains("Степенной закон") || sheet.contains("Power Law Data")
+                })
+        }),
+        "BSL should expose instrument rows from 'Степенной закон' and/or 'Power Law Data'; got {:?}",
+        r.instrument_rheology
+    );
+}
+
+#[tokio::test]
+async fn test_instrument_rheology_chandler_power_law_and_bingham() {
+    let r = parse_heuristic("Отчёт Chandler.xls").await;
+    assert!(
+        r.instrument_rheology
+            .iter()
+            .any(|row| row.n_prime.is_some() && row.r2.is_some() && !row.viscosities.is_empty()),
+        "Chandler should expose instrument Power Law rows; got {:?}",
+        r.instrument_rheology
+    );
+    assert!(
+        r.instrument_rheology
+            .iter()
+            .any(|row| { row.bingham_pv_pas.is_some() && row.bingham_yp_pa.is_some() }),
+        "Chandler should expose instrument Bingham PV/YP rows; got {:?}",
+        r.instrument_rheology
+    );
+}
+
+#[tokio::test]
+async fn test_instrument_rheology_brookfield_power_law_data() {
+    let r = parse_heuristic("Отчёт brookfild.xls").await;
+    assert!(
+        r.instrument_rheology.iter().any(|row| {
+            row.n_prime.is_some()
+                && row.k_prime_pasn.is_some()
+                && row.source_sheet.as_deref() == Some("Power Law Data")
+        }),
+        "Brookfield should expose instrument rows from Power Law Data; got {:?}",
+        r.instrument_rheology
+    );
+}
+
+#[tokio::test]
 async fn test_heuristic_bsl_562_time_fix() {
     let r = parse_heuristic("562@60C.xlsx").await;
     assert!(r.success);

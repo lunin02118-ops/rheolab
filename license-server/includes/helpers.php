@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/license_payload.php';
 
 /**
  * Отправить JSON ответ

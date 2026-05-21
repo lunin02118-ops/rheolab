@@ -2,6 +2,7 @@ use super::*;
 use crate::db::migration::run_migrations;
 use rusqlite::Connection;
 use serde_json::json;
+use std::collections::BTreeMap;
 
 // ── Fixture builders ─────────────────────────────────────────────────────
 
@@ -50,6 +51,8 @@ fn make_experiment(id: &str) -> StoredExperiment {
         viscosity_min: Some(35.0),
         pressure_max: Some(200.0),
         extra_fields: Some(json!({ "customField": "value1" })),
+        rheology_source: RheologyParameterSource::Program,
+        rheology_parameters: vec![],
         test_category: None,
         test_type: None,
         dominant_pattern: None,
@@ -63,7 +66,96 @@ fn open_db() -> Connection {
     conn
 }
 
+fn make_save_payload() -> ExperimentSavePayload {
+    ExperimentSavePayload {
+        name: "Test BSL 63°C".to_string(),
+        field_name: None,
+        operator_name: None,
+        well_number: None,
+        test_id: None,
+        original_filename: "bsl_63c.xlsx".to_string(),
+        test_date: "2024-01-01".to_string(),
+        instrument_type: "BSL R1".to_string(),
+        geometry: Some("R1B5".to_string()),
+        geometry_source: Some("manual".to_string()),
+        water_source: "Lake 274".to_string(),
+        water_params: None,
+        fluid_type: "Crosslinked".to_string(),
+        test_group: "Completion".to_string(),
+        test_sub_group: None,
+        test_category: None,
+        test_type: None,
+        dominant_pattern: None,
+        metrics: json!({ "maxViscosity": 850 }),
+        raw_points: vec![json!({ "time_sec": 0, "viscosity_cp": 850 })],
+        calibration: Some(json!({ "status": "valid" })),
+        reagents: Vec::new(),
+        overwrite: None,
+        laboratory_id: None,
+        parsed_by: None,
+        parse_source: None,
+        time_range_min: None,
+        time_range_max: None,
+        viscosity_min: None,
+        pressure_max: None,
+        extra_fields: None,
+        rheology_source: RheologyParameterSource::Program,
+        rheology_parameters: vec![],
+    }
+}
+
+fn make_rheology_row(
+    source: RheologyParameterSource,
+    cycle_no: i32,
+    n_prime: f64,
+) -> RheologyParameterRow {
+    let mut viscosities = BTreeMap::new();
+    viscosities.insert("40".to_string(), 1200.0 + cycle_no as f64);
+    viscosities.insert("100".to_string(), 800.0 + cycle_no as f64);
+
+    let mut units = BTreeMap::new();
+    units.insert("kPrime".to_string(), "Pa*s^n".to_string());
+    units.insert("viscosity".to_string(), "cP".to_string());
+
+    RheologyParameterRow {
+        source,
+        cycle_no,
+        time_min: Some(cycle_no as f64 * 10.0),
+        end_time_min: Some(cycle_no as f64 * 10.0 + 1.0),
+        temp_c: Some(80.0),
+        pressure_bar: Some(12.5),
+        n_prime: Some(n_prime),
+        kv_pasn: Some(0.21),
+        k_prime_pasn: Some(0.22),
+        k_slot_pasn: Some(0.23),
+        k_pipe_pasn: Some(0.24),
+        r2: Some(0.99),
+        viscosities,
+        bingham_pv_pas: Some(0.3),
+        bingham_yp_pa: Some(4.5),
+        bingham_r2: Some(0.98),
+        calc_points: Some(30),
+        source_sheet: Some("Power Law Data".to_string()),
+        source_row: Some(42),
+        units,
+    }
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────
+
+#[test]
+fn save_payload_strips_calibration_without_feature() {
+    let mut payload = make_save_payload();
+    strip_payload_calibration_unless_allowed(&mut payload, false);
+    assert!(payload.calibration.is_none());
+}
+
+#[test]
+fn save_payload_keeps_calibration_for_developer_tiers() {
+    let mut payload = make_save_payload();
+    strip_payload_calibration_unless_allowed(&mut payload, true);
+    assert!(payload.calibration.is_some());
+}
 
 /// Full field roundtrip: every field written by persist_experiment must
 /// be readable back through load_experiment_by_id without data loss.
@@ -126,6 +218,73 @@ fn roundtrip_all_fields() {
         "extra_fields must round-trip"
     );
     assert_eq!(loaded.extra_fields.unwrap()["customField"], json!("value1"));
+}
+
+#[test]
+fn roundtrip_rheology_parameters_for_both_sources() {
+    let conn = open_db();
+    let mut exp = make_experiment("rheo_001");
+    exp.rheology_source = RheologyParameterSource::Instrument;
+    exp.rheology_parameters = vec![
+        make_rheology_row(RheologyParameterSource::Instrument, 1, 0.61),
+        make_rheology_row(RheologyParameterSource::Program, 1, 0.62),
+    ];
+
+    persist_experiment(&conn, &exp).unwrap();
+    let loaded = load_experiment_by_id(&conn, "rheo_001").unwrap().unwrap();
+
+    assert_eq!(loaded.rheology_source, RheologyParameterSource::Instrument);
+    assert_eq!(loaded.rheology_parameters.len(), 2);
+    assert!(loaded.rheology_parameters.iter().any(|row| {
+        row.source == RheologyParameterSource::Instrument
+            && row.cycle_no == 1
+            && row.n_prime == Some(0.61)
+            && row.k_prime_pasn == Some(0.22)
+            && row.viscosities.get("40") == Some(&1201.0)
+            && row.source_sheet.as_deref() == Some("Power Law Data")
+    }));
+    assert!(loaded.rheology_parameters.iter().any(|row| {
+        row.source == RheologyParameterSource::Program && row.n_prime == Some(0.62)
+    }));
+}
+
+#[test]
+fn upsert_replaces_rheology_parameters_atomically_with_experiment() {
+    let conn = open_db();
+    let mut exp = make_experiment("rheo_replace_001");
+    exp.rheology_source = RheologyParameterSource::Instrument;
+    exp.rheology_parameters = vec![
+        make_rheology_row(RheologyParameterSource::Instrument, 1, 0.51),
+        make_rheology_row(RheologyParameterSource::Program, 1, 0.52),
+    ];
+    persist_experiment(&conn, &exp).unwrap();
+
+    let mut updated = exp.clone();
+    updated.rheology_source = RheologyParameterSource::Program;
+    updated.rheology_parameters =
+        vec![make_rheology_row(RheologyParameterSource::Program, 2, 0.72)];
+    persist_experiment(&conn, &updated).unwrap();
+
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM ExperimentRheologyParameter WHERE experimentId = 'rheo_replace_001'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 1);
+
+    let loaded = load_experiment_by_id(&conn, "rheo_replace_001")
+        .unwrap()
+        .unwrap();
+    assert_eq!(loaded.rheology_source, RheologyParameterSource::Program);
+    assert_eq!(loaded.rheology_parameters.len(), 1);
+    assert_eq!(
+        loaded.rheology_parameters[0].source,
+        RheologyParameterSource::Program
+    );
+    assert_eq!(loaded.rheology_parameters[0].cycle_no, 2);
+    assert_eq!(loaded.rheology_parameters[0].n_prime, Some(0.72));
 }
 
 /// CRITICAL-1: upsert must PRESERVE the original createdAt timestamp.
@@ -408,8 +567,14 @@ fn detail_meta_excludes_raw_points_and_keeps_summary() {
     assert_eq!(meta.reagents.len(), 1);
 
     let json = serde_json::to_value(&meta).unwrap();
-    assert!(json.get("rawPoints").is_none(), "rawPoints must not serialize");
-    assert!(json.get("raw_points").is_none(), "raw_points must not serialize");
+    assert!(
+        json.get("rawPoints").is_none(),
+        "rawPoints must not serialize"
+    );
+    assert!(
+        json.get("raw_points").is_none(),
+        "raw_points must not serialize"
+    );
 }
 
 /// MEM-3: saved-experiment raw table reads should page rows by id instead of

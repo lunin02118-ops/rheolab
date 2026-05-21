@@ -4,7 +4,7 @@
 //! and exposes the authoritative `check_license()` method that combines:
 //! - DB-stored license data (HMAC-verified)
 //! - Online validation (revocation, expiry)
-//! - Demo period logic
+//! - Unlicensed blocking state
 //! - Clock tamper / offline-overdue detection
 //! - Feature flag computation
 //!
@@ -157,10 +157,7 @@ impl LicenseEngine {
     /// Whether the current cached status allows write operations (save, export).
     pub async fn can_write(&self) -> bool {
         match self.cached().await {
-            Some(r) => matches!(
-                r.status,
-                LicenseStatus::Active | LicenseStatus::Grace | LicenseStatus::Demo
-            ),
+            Some(r) => matches!(r.status, LicenseStatus::Active | LicenseStatus::Grace),
             None => false,
         }
     }
@@ -193,6 +190,7 @@ impl LicenseEngine {
     /// status reflects the new DB state instead of the stale cached
     /// one.  The cached *value* is preserved so a UI listener does not
     /// flicker to "loading…" — only the TTL marker is cleared.
+    #[cfg(test)]
     pub(super) async fn invalidate_cache_time(&self) {
         let mut t = self.cache_time.write().await;
         *t = None;
@@ -214,7 +212,7 @@ impl LicenseEngine {
 pub(super) fn build_invalid(message: &str) -> LicenseCheckResult {
     LicenseCheckResult {
         status: LicenseStatus::Invalid,
-        source: LicenseSource::Demo,
+        source: LicenseSource::Unlicensed,
         features: expired_features(),
         key: None,
         license_type: None,

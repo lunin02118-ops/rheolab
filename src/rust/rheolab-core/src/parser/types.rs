@@ -66,10 +66,35 @@ pub struct AiMappingResponse {
 pub struct ParsingResult {
     pub data: Vec<crate::types::RheoPoint>,
     pub metadata: ParsingMetadata,
+    #[serde(default)]
+    pub instrument_rheology: Vec<RheologyParameterRow>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ColumnarParsingResult {
     pub data: crate::types::ColumnarData,
     pub metadata: ParsingMetadata,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
+pub struct RheologyParameterRow {
+    pub cycle_no: i32,
+    pub time_min: Option<f64>,
+    pub end_time_min: Option<f64>,
+    pub temp_c: Option<f64>,
+    pub pressure_bar: Option<f64>,
+    pub n_prime: Option<f64>,
+    pub kv_pasn: Option<f64>,
+    pub k_prime_pasn: Option<f64>,
+    pub k_slot_pasn: Option<f64>,
+    pub k_pipe_pasn: Option<f64>,
+    pub r2: Option<f64>,
+    pub viscosities: BTreeMap<String, f64>,
+    pub bingham_pv_pas: Option<f64>,
+    pub bingham_yp_pa: Option<f64>,
+    pub bingham_r2: Option<f64>,
+    pub calc_points: Option<i32>,
+    pub source_sheet: Option<String>,
+    pub source_row: Option<i32>,
+    pub units: BTreeMap<String, String>,
 }

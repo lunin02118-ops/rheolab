@@ -1,13 +1,13 @@
 use crate::commands::experiments::types::{
-    ExperimentDetailMeta, ExperimentDetailSummary, RawTablePage, RawTableRow, StoredExperiment,
-    StoredExperimentLaboratory, StoredExperimentReagent, StoredExperimentUser,
-    StoredReagentDescriptor,
+    ExperimentDetailMeta, ExperimentDetailSummary, RawTablePage, RawTableRow, RheologyParameterRow,
+    RheologyParameterSource, StoredExperiment, StoredExperimentLaboratory, StoredExperimentReagent,
+    StoredExperimentUser, StoredReagentDescriptor,
 };
 use crate::error::Result;
 use rusqlite::{params, OptionalExtension};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// Load a single experiment by primary key, including reagents and columnar data.
 /// This was previously `crud::load_experiment_by_id`.
@@ -25,7 +25,8 @@ pub(crate) fn load_experiment_by_id(
                     u.name, u.email, l.id, l.name,
                     e.parsedBy, e.parseSource, e.timeRangeMin, e.timeRangeMax,
                     e.viscosityMin, e.pressureMax, e.extraFields,
-                    e.testCategory, e.testType, e.dominantPattern
+                    e.testCategory, e.testType, e.dominantPattern,
+                    COALESCE(e.rheologySource, 'program')
              FROM Experiment e
              LEFT JOIN User u ON e.userId = u.id
              LEFT JOIN Laboratory l ON e.laboratoryId = l.id
@@ -121,6 +122,10 @@ pub(crate) fn load_experiment_by_id(
                     test_category: row.get(36)?,
                     test_type: row.get(37)?,
                     dominant_pattern: row.get(38)?,
+                    rheology_source: RheologyParameterSource::from_db(
+                        row.get::<_, String>(39)?.as_str(),
+                    ),
+                    rheology_parameters: Vec::new(),
                 })
             },
         )
@@ -196,6 +201,7 @@ pub(crate) fn load_experiment_by_id(
         // the `if let Some(ref exp) = row` guard above.
         if let Some(mut exp) = row {
             exp.reagents = reagents;
+            exp.rheology_parameters = load_rheology_parameters_for_experiment(conn, &exp.id)?;
             if let Some(pts) = columnar_raw_points {
                 exp.raw_points = pts;
             }
@@ -224,6 +230,7 @@ pub(crate) fn load_experiment_detail_meta_by_id(
                     e.parsedBy, e.parseSource, e.timeRangeMin, e.timeRangeMax,
                     e.viscosityMin, e.pressureMax, e.extraFields,
                     e.testCategory, e.testType, e.dominantPattern,
+                    COALESCE(e.rheologySource, 'program'),
                     COALESCE(ed.pointCount, 0)
              FROM Experiment e
              LEFT JOIN User u ON e.userId = u.id
@@ -272,7 +279,7 @@ pub(crate) fn load_experiment_detail_meta_by_id(
                     }
                 });
 
-                let point_count = row.get::<_, i64>(38)?.max(0) as usize;
+                let point_count = row.get::<_, i64>(39)?.max(0) as usize;
                 let time_range_min = row.get(30)?;
                 let time_range_max = row.get(31)?;
                 let viscosity_min = row.get(32)?;
@@ -319,6 +326,9 @@ pub(crate) fn load_experiment_detail_meta_by_id(
                     parsed_by: row.get(28)?,
                     parse_source: row.get(29)?,
                     extra_fields,
+                    rheology_source: RheologyParameterSource::from_db(
+                        row.get::<_, String>(38)?.as_str(),
+                    ),
                 })
             },
         )
@@ -374,12 +384,10 @@ pub(crate) fn load_raw_table_page_by_id(
     let total_pages = total_rows.div_ceil(page_size).max(1);
     let start = page.saturating_sub(1).saturating_mul(page_size);
     let end = (start + page_size).min(total_rows);
-    let has_bath_temperature = first_present_column(
-        &columns,
-        &["bath_temperature_c", "bathTemperatureC"],
-    )
-    .map(|values| values.iter().any(|value| value.is_some_and(f64::is_finite)))
-    .unwrap_or(false);
+    let has_bath_temperature =
+        first_present_column(&columns, &["bath_temperature_c", "bathTemperatureC"])
+            .map(|values| values.iter().any(|value| value.is_some_and(f64::is_finite)))
+            .unwrap_or(false);
 
     let mut rows = Vec::with_capacity(end.saturating_sub(start));
     for idx in start..end {
@@ -463,7 +471,9 @@ pub(crate) fn load_experiments_batch(
                 e.calibration, e.maxViscosity, e.avgViscosity, e.userId, e.laboratoryId, \
                 u.name, u.email, l.id, l.name, \
                 e.parsedBy, e.parseSource, e.timeRangeMin, e.timeRangeMax, \
-                e.viscosityMin, e.pressureMax, e.extraFields \
+                e.viscosityMin, e.pressureMax, e.extraFields, \
+                e.testCategory, e.testType, e.dominantPattern, \
+                COALESCE(e.rheologySource, 'program') \
          FROM Experiment e \
          LEFT JOIN User u ON e.userId = u.id \
          LEFT JOIN Laboratory l ON e.laboratoryId = l.id \
@@ -563,9 +573,13 @@ pub(crate) fn load_experiments_batch(
                     viscosity_min: row.get(33)?,
                     pressure_max: row.get(34)?,
                     extra_fields,
-                    test_category: None,
-                    test_type: None,
-                    dominant_pattern: None,
+                    test_category: row.get(36)?,
+                    test_type: row.get(37)?,
+                    dominant_pattern: row.get(38)?,
+                    rheology_source: RheologyParameterSource::from_db(
+                        row.get::<_, String>(39)?.as_str(),
+                    ),
+                    rheology_parameters: Vec::new(),
                 },
             ))
         })
@@ -650,6 +664,13 @@ pub(crate) fn load_experiments_batch(
         }
     }
 
+    let rheology_rows = load_rheology_parameters_batch(conn, ids)?;
+    for (exp_id, rows) in rheology_rows {
+        if let Some(exp) = experiments.get_mut(&exp_id) {
+            exp.rheology_parameters = rows;
+        }
+    }
+
     // Return in the same order as `ids`, omitting not-found entries.
     Ok(ids.iter().filter_map(|id| experiments.remove(id)).collect())
 }
@@ -702,13 +723,117 @@ fn load_reagents_for_experiment(
     Ok(reagents)
 }
 
+pub(crate) fn load_rheology_parameters_for_experiment(
+    conn: &rusqlite::Connection,
+    experiment_id: &str,
+) -> Result<Vec<RheologyParameterRow>> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT source, cycleNo, timeMin, endTimeMin, tempC, pressureBar, \
+                    nPrime, kvPaSn, kPrimePaSn, kSlotPaSn, kPipePaSn, r2, \
+                    viscositiesJson, binghamPvPaS, binghamYpPa, binghamR2, \
+                    calcPoints, sourceSheet, sourceRow, unitsJson \
+             FROM ExperimentRheologyParameter \
+             WHERE experimentId = ?1 \
+             ORDER BY source, cycleNo",
+        )
+        .map_err(|e| format!("SQL error (rheology parameter prepare): {}", e))?;
+
+    let rows = stmt
+        .query_map(params![experiment_id], rheology_row_from_sql)?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| format!("SQL error (rheology parameter row): {}", e).into());
+    rows
+}
+
+fn load_rheology_parameters_batch(
+    conn: &rusqlite::Connection,
+    ids: &[String],
+) -> Result<HashMap<String, Vec<RheologyParameterRow>>> {
+    if ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let ph = std::iter::repeat("?")
+        .take(ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
+    let sql = format!(
+        "SELECT experimentId, source, cycleNo, timeMin, endTimeMin, tempC, pressureBar, \
+                nPrime, kvPaSn, kPrimePaSn, kSlotPaSn, kPipePaSn, r2, \
+                viscositiesJson, binghamPvPaS, binghamYpPa, binghamR2, \
+                calcPoints, sourceSheet, sourceRow, unitsJson \
+         FROM ExperimentRheologyParameter \
+         WHERE experimentId IN ({ph}) \
+         ORDER BY experimentId, source, cycleNo"
+    );
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|e| format!("SQL error (rheology batch prepare): {}", e))?;
+    let rows = stmt
+        .query_map(rusqlite::params_from_iter(ids.iter()), |row| {
+            let experiment_id: String = row.get(0)?;
+            Ok((experiment_id, rheology_row_from_sql_offset(row, 1)?))
+        })
+        .map_err(|e| format!("SQL error (rheology batch): {}", e))?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| format!("SQL error (rheology batch row): {}", e))?;
+
+    let mut out: HashMap<String, Vec<RheologyParameterRow>> = HashMap::new();
+    for (experiment_id, row) in rows {
+        out.entry(experiment_id).or_default().push(row);
+    }
+    Ok(out)
+}
+
+fn rheology_row_from_sql(row: &rusqlite::Row<'_>) -> rusqlite::Result<RheologyParameterRow> {
+    rheology_row_from_sql_offset(row, 0)
+}
+
+fn rheology_row_from_sql_offset(
+    row: &rusqlite::Row<'_>,
+    offset: usize,
+) -> rusqlite::Result<RheologyParameterRow> {
+    let source: String = row.get(offset)?;
+    let viscosities_json: String = row.get(offset + 12)?;
+    let units_json: String = row.get(offset + 19)?;
+    let viscosities =
+        serde_json::from_str::<BTreeMap<String, f64>>(&viscosities_json).unwrap_or_default();
+    let units = serde_json::from_str::<BTreeMap<String, String>>(&units_json).unwrap_or_default();
+
+    Ok(RheologyParameterRow {
+        source: RheologyParameterSource::from_db(&source),
+        cycle_no: row.get(offset + 1)?,
+        time_min: row.get(offset + 2)?,
+        end_time_min: row.get(offset + 3)?,
+        temp_c: row.get(offset + 4)?,
+        pressure_bar: row.get(offset + 5)?,
+        n_prime: row.get(offset + 6)?,
+        kv_pasn: row.get(offset + 7)?,
+        k_prime_pasn: row.get(offset + 8)?,
+        k_slot_pasn: row.get(offset + 9)?,
+        k_pipe_pasn: row.get(offset + 10)?,
+        r2: row.get(offset + 11)?,
+        viscosities,
+        bingham_pv_pas: row.get(offset + 13)?,
+        bingham_yp_pa: row.get(offset + 14)?,
+        bingham_r2: row.get(offset + 15)?,
+        calc_points: row.get(offset + 16)?,
+        source_sheet: row.get(offset + 17)?,
+        source_row: row.get(offset + 18)?,
+        units,
+    })
+}
+
 fn raw_points_json_to_columns(raw_points: &str) -> Result<HashMap<String, Vec<Option<f64>>>> {
     let values: Vec<Value> = serde_json::from_str(raw_points)?;
     let mut columns: HashMap<String, Vec<Option<f64>>> = HashMap::new();
     for (idx, value) in values.iter().enumerate() {
         if let Value::Object(map) = value {
             for key in map.keys() {
-                columns.entry(key.clone()).or_insert_with(|| vec![None; idx]);
+                columns
+                    .entry(key.clone())
+                    .or_insert_with(|| vec![None; idx]);
             }
             for column in columns.values_mut() {
                 column.push(None);

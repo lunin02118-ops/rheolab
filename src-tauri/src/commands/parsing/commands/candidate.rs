@@ -13,6 +13,8 @@ use rheolab_core::parser::validator::{
     build_candidate_validation_report, CandidateValidationReport,
 };
 
+use crate::commands::experiments::types::{RheologyParameterRow, RheologyParameterSource};
+
 use super::super::helpers::{
     build_summary, map_filename_metadata, normalize_date_string, normalize_optional_date,
 };
@@ -152,6 +154,12 @@ pub(super) fn finalize_candidate_response(
         success: true,
         source: candidate.source.to_string(),
         data: points,
+        instrument_rheology: candidate
+            .parsed
+            .instrument_rheology
+            .into_iter()
+            .map(core_rheology_row_to_ipc)
+            .collect(),
         metadata: ParseMetadata {
             filename: filename.to_string(),
             instrument_type: candidate.parsed.metadata.instrument_type,
@@ -165,4 +173,31 @@ pub(super) fn finalize_candidate_response(
         },
         summary,
     })
+}
+
+fn core_rheology_row_to_ipc(
+    row: rheolab_core::parser::types::RheologyParameterRow,
+) -> RheologyParameterRow {
+    RheologyParameterRow {
+        source: RheologyParameterSource::Instrument,
+        cycle_no: row.cycle_no,
+        time_min: row.time_min,
+        end_time_min: row.end_time_min,
+        temp_c: row.temp_c,
+        pressure_bar: row.pressure_bar,
+        n_prime: row.n_prime,
+        kv_pasn: row.kv_pasn,
+        k_prime_pasn: row.k_prime_pasn,
+        k_slot_pasn: row.k_slot_pasn,
+        k_pipe_pasn: row.k_pipe_pasn,
+        r2: row.r2,
+        viscosities: row.viscosities,
+        bingham_pv_pas: row.bingham_pv_pas,
+        bingham_yp_pa: row.bingham_yp_pa,
+        bingham_r2: row.bingham_r2,
+        calc_points: row.calc_points,
+        source_sheet: row.source_sheet,
+        source_row: row.source_row,
+        units: row.units,
+    }
 }

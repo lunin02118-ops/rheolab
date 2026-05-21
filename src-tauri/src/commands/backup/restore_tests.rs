@@ -776,6 +776,7 @@ fn merge_tables_ordering() {
     assert!(pos("Laboratory") < pos("Experiment"));
     assert!(pos("User") < pos("Experiment"));
     assert!(pos("Experiment") < pos("ExperimentData"));
+    assert!(pos("Experiment") < pos("ExperimentRheologyParameter"));
     assert!(pos("Experiment") < pos("ExperimentReagent"));
     assert!(pos("Experiment") < pos("Calibration"));
     assert!(pos("ReagentCatalog") < pos("ExperimentReagent"));
@@ -918,7 +919,10 @@ fn pre_startup_restore_rejects_non_sqlite_junk_and_quarantines() {
         "non-SQLite junk must be refused — got Ok({:?})",
         result.ok()
     );
-    assert!(!pending.exists(), "bad pending file must be moved out of place");
+    assert!(
+        !pending.exists(),
+        "bad pending file must be moved out of place"
+    );
     let post_count = {
         let c = Connection::open(&main).unwrap();
         count_experiments(&c)

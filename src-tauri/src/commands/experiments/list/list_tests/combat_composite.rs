@@ -11,8 +11,8 @@
 //!   4. Assert that only experiments inside the window survive.
 //!   5. Assert that fast-path and slow-path (+0.1 cP) agree.
 
-use super::*;
 use super::fixtures::*;
+use super::*;
 use crate::commands::experiments::crud::persist_experiment;
 use serde_json::json;
 

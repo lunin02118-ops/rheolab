@@ -12,7 +12,7 @@ INSERT INTO license_keys (
     'Test User',
     'test@example.com',
     'Test Organization',
-    'standard',
+    'trial',
     DATE_ADD(NOW(), INTERVAL 1 YEAR),
     'Тестовый ключ — ТОЛЬКО ДЛЯ РАЗРАБОТКИ'
 );

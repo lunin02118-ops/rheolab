@@ -97,11 +97,9 @@ if ($license['machine_id'] && $license['machine_id'] !== $machineId) {
     }
 }
 
-// Проверить срок
-$expiresAt = strtotime($license['expires_at']);
-$now = time();
-$isExpired = $expiresAt < $now;
-$daysRemaining = max(0, ceil(($expiresAt - $now) / 86400));
+// Проверить срок. Corporate licenses are permanent and carry `expiresAt: null`.
+$isExpired = isLicenseExpired($license);
+$daysRemaining = licenseDaysRemaining($license);
 
 // Обновить время проверки
 $stmt = $db->prepare('UPDATE license_keys SET last_check_at = NOW() WHERE id = ?');
@@ -110,15 +108,18 @@ $stmt->execute([$license['id']]);
 // Логируем
 logAction($db, $license['id'], $machineId, 'validate', true);
 
-// Формируем ответ
-$licenseData = [
-    'id' => $license['id'],
-    'type' => $license['license_type'],
-    'customerName' => $license['customer_name'],
-    'organization' => $license['organization'],
-    'expiresAt' => $license['expires_at'],
-    'machineId' => $machineId
-];
+// Формируем ответ from the same signed payload shape as activate/recovery.
+try {
+    $licenseData = buildSignedLicensePayload($license, $machineId);
+} catch (InvalidArgumentException $e) {
+    logAction($db, $license['id'], $machineId, 'validate', false, 'Unsupported license type');
+    jsonResponse([
+        'success' => false,
+        'valid' => false,
+        'reason' => 'unsupported_type',
+        'message' => 'Тип лицензии не поддерживается'
+    ], 500);
+}
 
 $signed = signLicense($licenseData);
 

@@ -1,48 +1,100 @@
 ---
-// Video placeholder section — ready for real iframe embeds later
+const promoVideo = {
+  id: 'program',
+  title: 'О программе RheoLab Enterprise',
+  description:
+    'Короткий обзор: от файла прибора до графика, локальной базы, сравнения испытаний и отчёта.',
+  embedUrl: 'https://kinescope.io/embed/viextwt6M9DKLHqRZ5rdUD',
+};
+
 const videos = [
   {
     id: 'setup',
     title: 'Настройка программы',
-    description: 'Первый запуск, основные параметры и короткий маршрут до первого результата.',
+    description: 'Первый запуск, параметры, лицензия и короткий маршрут до первого результата.',
+    embedUrl: 'https://kinescope.io/embed/6GQdZ5hsedBDzCdxBDWxfL',
+  },
+  {
+    id: 'analysis',
+    title: 'Вкладка «Анализ»',
+    description: 'Загрузка файла, проверка графика, таблица сырых данных, рецептура и отчёт.',
+    embedUrl: 'https://kinescope.io/embed/oMRp4834CFMGUmUvyjkeC9',
   },
   {
     id: 'library',
     title: 'Работа с базой данных',
-    description: 'Как устроена библиотека опытов, поиск и повторное открытие результатов.',
+    description: 'Библиотека опытов, поиск, фильтры, повторное открытие и каталог реагентов.',
+    embedUrl: 'https://kinescope.io/embed/6Nocozaz55ozeeD23jK41B',
   },
   {
     id: 'compare',
     title: 'Вкладка «Сравнение»',
-    description: 'Сравнение нескольких опытов на единых осях для наглядного анализа рецептур.',
-  },
-  {
-    id: 'reports',
-    title: 'Выгрузка отчетов',
-    description: 'Как получить PDF или Excel с графиком и ключевыми значениями в один клик.',
+    description: 'Несколько опытов на общих осях для оценки рецептур, партий и режимов.',
+    embedUrl: 'https://kinescope.io/embed/kb5mJuTakZ8GWw8qGyUXez',
   },
 ];
 ---
 
-<section class="site-videos" id="videos">
+<section class="site-videos" id="videos" aria-labelledby="videos-title">
   <div class="site-container">
     <div class="site-section-header">
-      <h2>Посмотрите, как это работает</h2>
-      <p>Короткие ролики по основным сценариям — без лишних слов, только нужные шаги.</p>
+      <span class="site-section-kicker">Видеоматериалы</span>
+      <h2 id="videos-title">Посмотрите, как это работает</h2>
+      <p>Сначала общий обзор программы, затем короткие ролики по отдельным рабочим сценариям.</p>
+    </div>
+
+    <article class="site-video-featured site-anchor-target" id={promoVideo.id}>
+      <div class="site-video-frame site-video-frame-featured">
+        <iframe
+          src={promoVideo.embedUrl}
+          title={promoVideo.title}
+          allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
+          allowfullscreen
+          webkitallowfullscreen
+          mozallowfullscreen
+          frameborder="0"
+          loading="lazy"
+        ></iframe>
+      </div>
+      <div class="site-video-featured-copy">
+        <span class="site-video-label">Проморолик</span>
+        <h3>{promoVideo.title}</h3>
+        <p>{promoVideo.description}</p>
+      </div>
+    </article>
+
+    <div class="site-video-list-head">
+      <h3>Обучающие ролики</h3>
+      <p>Раздел будет пополняться по мере готовности следующих видео.</p>
     </div>
 
     <div class="site-videos-grid">
       {videos.map((video) => (
         <article class="site-video-card" data-video-id={video.id}>
-          <div class="site-video-thumb" aria-hidden="true">
-            <div class="site-video-play-icon">
-              <svg viewBox="0 0 48 48" fill="none">
-                <circle cx="24" cy="24" r="23" stroke="currentColor" stroke-width="2" opacity="0.4"/>
-                <path d="M19 16l14 8-14 8V16z" fill="currentColor" opacity="0.8"/>
-              </svg>
+          {video.embedUrl ? (
+            <div class="site-video-frame">
+              <iframe
+                src={video.embedUrl}
+                title={video.title}
+                allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
+                allowfullscreen
+                webkitallowfullscreen
+                mozallowfullscreen
+                frameborder="0"
+                loading="lazy"
+              ></iframe>
             </div>
-            <span class="site-video-soon">Скоро</span>
-          </div>
+          ) : (
+            <div class="site-video-thumb" aria-hidden="true">
+              <div class="site-video-play-icon">
+                <svg viewBox="0 0 48 48" fill="none">
+                  <circle cx="24" cy="24" r="23" stroke="currentColor" stroke-width="2" opacity="0.4" />
+                  <path d="M19 16l14 8-14 8V16z" fill="currentColor" opacity="0.8" />
+                </svg>
+              </div>
+              <span class="site-video-soon">Скоро</span>
+            </div>
+          )}
           <div class="site-video-meta">
             <strong>{video.title}</strong>
             <p>{video.description}</p>
@@ -58,49 +110,164 @@ const videos = [
     position: relative;
     padding: 7.25rem 0;
     z-index: 1;
+    scroll-margin-top: 7rem;
     background: var(--site-bg);
+  }
+
+  .site-anchor-target {
+    scroll-margin-top: 7rem;
   }
 
   .site-section-header {
     text-align: center;
-    margin-bottom: 4.5rem;
+    margin-bottom: 4rem;
+  }
+
+  .site-section-kicker,
+  .site-video-label {
+    display: inline-flex;
+    width: fit-content;
+    color: #60a5fa;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 
   .site-section-header h2 {
     font-size: clamp(2.45rem, 4vw, 3rem);
     color: var(--site-text-main);
-    margin-bottom: 1rem;
+    margin: 0.75rem 0 1rem;
     font-weight: 700;
   }
 
   .site-section-header p {
     font-size: 1.18rem;
     color: var(--site-text-muted);
-    max-width: 720px;
+    max-width: 760px;
     margin: 0 auto;
+    line-height: 1.65;
+  }
+
+  .site-video-featured {
+    display: grid;
+    grid-template-columns: minmax(0, 1.68fr) minmax(20rem, 0.72fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+    align-items: center;
+    margin-bottom: 4.25rem;
+    padding: clamp(1rem, 1.8vw, 1.35rem);
+    background: linear-gradient(135deg, rgba(19, 27, 44, 0.96), rgba(10, 16, 28, 0.98));
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  }
+
+  .site-video-featured-copy {
+    padding: 0 clamp(0.4rem, 2vw, 1.2rem);
+  }
+
+  .site-video-featured-copy h3 {
+    margin: 1rem 0 0.9rem;
+    color: var(--site-text-main);
+    font-size: clamp(1.8rem, 3vw, 2.55rem);
+    line-height: 1.12;
+    font-weight: 700;
+  }
+
+  .site-video-featured-copy p,
+  .site-video-list-head p {
+    color: var(--site-text-muted);
+    font-size: 1.08rem;
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  .site-video-frame {
+    --site-video-radius: 8px;
+    isolation: isolate;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    clip-path: inset(0 round var(--site-video-radius));
+    background: #050914;
+    border: 0;
+    border-radius: var(--site-video-radius);
+  }
+
+  .site-video-frame iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .site-video-frame:fullscreen,
+  .site-video-frame:fullscreen iframe,
+  .site-video-frame iframe:fullscreen {
+    border-radius: 0 !important;
+    clip-path: none !important;
+  }
+
+  .site-video-frame:-webkit-full-screen,
+  .site-video-frame:-webkit-full-screen iframe,
+  .site-video-frame iframe:-webkit-full-screen {
+    border-radius: 0 !important;
+    clip-path: none !important;
+  }
+
+  .site-video-frame iframe:fullscreen {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .site-video-frame-featured {
+    min-height: 22rem;
+  }
+
+  .site-video-list-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 2rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .site-video-list-head h3 {
+    margin: 0;
+    color: var(--site-text-main);
+    font-size: clamp(1.55rem, 2.4vw, 2rem);
+    line-height: 1.15;
+    font-weight: 700;
   }
 
   .site-videos-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1.75rem;
+    gap: 1.5rem;
   }
 
   .site-video-card {
+    --site-card-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 0;
     overflow: hidden;
     background: var(--site-surface);
     border: 1px solid var(--site-border);
-    border-radius: 10px;
+    border-radius: var(--site-card-radius);
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    cursor: default;
     contain: paint;
   }
 
+  .site-video-card .site-video-frame {
+    --site-video-radius: var(--site-card-radius) var(--site-card-radius) 0 0;
+  }
+
   .site-video-card:hover {
-    border-color: var(--site-accent);
+    border-color: rgba(96, 165, 250, 0.65);
     transform: translateY(-2px);
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(37, 99, 235, 0.1);
   }
@@ -108,10 +275,11 @@ const videos = [
   .site-video-thumb {
     position: relative;
     aspect-ratio: 16 / 9;
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8)),
+    background:
+      linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8)),
       repeating-linear-gradient(
         45deg,
-        rgba(255, 255, 255, 0.02) 0px,
+        rgba(255, 255, 255, 0.02) 0,
         rgba(255, 255, 255, 0.02) 1px,
         transparent 1px,
         transparent 12px
@@ -120,7 +288,6 @@ const videos = [
     align-items: center;
     justify-content: center;
     border-bottom: 1px solid var(--site-border);
-    border-radius: 10px 10px 0 0;
   }
 
   .site-video-play-icon {
@@ -131,7 +298,7 @@ const videos = [
   }
 
   .site-video-card:hover .site-video-play-icon {
-    transform: scale(1.1);
+    transform: scale(1.08);
     color: #60a5fa;
   }
 
@@ -142,8 +309,8 @@ const videos = [
 
   .site-video-soon {
     position: absolute;
-    top: 0.95rem;
-    right: 0.95rem;
+    top: 0.9rem;
+    right: 0.9rem;
     padding: 0.26rem 0.72rem;
     border-radius: 999px;
     background: rgba(15, 23, 42, 0.9);
@@ -154,68 +321,102 @@ const videos = [
   }
 
   .site-video-meta {
-    padding: 1.45rem;
+    padding: 1.35rem;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.55rem;
   }
 
   .site-video-meta strong {
-    font-size: 1.18rem;
+    font-size: 1.12rem;
     color: var(--site-text-main);
-    line-height: 1.3;
+    line-height: 1.28;
     font-weight: 600;
   }
 
   .site-video-meta p {
-    font-size: 0.98rem;
+    font-size: 0.96rem;
     color: var(--site-text-muted);
     line-height: 1.5;
     margin: 0;
   }
 
-  @media (min-width: 1280px) {
+  @media (max-width: 1180px) {
+    .site-video-featured {
+      grid-template-columns: 1fr;
+    }
+
+    .site-video-frame-featured {
+      min-height: 0;
+    }
+
     .site-videos-grid {
-      gap: 2rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 720px) {
+    .site-videos {
+      padding: 4.75rem 0;
     }
 
-    .site-video-card {
-      min-height: 21rem;
+    .site-section-header {
+      margin-bottom: 2.25rem;
+      text-align: left;
     }
 
-    .site-video-play-icon {
-      width: 4.7rem;
-      height: 4.7rem;
+    .site-section-header h2 {
+      font-size: clamp(1.85rem, 8.6vw, 2.25rem);
+    }
+
+    .site-section-header p {
+      font-size: 1rem;
+      line-height: 1.58;
+    }
+
+    .site-video-featured {
+      gap: 1.15rem;
+      margin-bottom: 2.75rem;
+      padding: 0.75rem;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+    }
+
+    .site-video-featured-copy {
+      padding: 0.35rem 0.25rem 0.45rem;
+    }
+
+    .site-video-featured-copy h3 {
+      margin: 0.75rem 0 0.65rem;
+      font-size: 1.5rem;
+    }
+
+    .site-video-featured-copy p,
+    .site-video-list-head p {
+      font-size: 0.96rem;
+      line-height: 1.55;
+    }
+
+    .site-video-list-head {
+      align-items: start;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .site-videos-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
     }
 
     .site-video-meta {
-      padding: 1.65rem;
+      padding: 1rem;
     }
 
     .site-video-meta strong {
-      font-size: 1.24rem;
+      font-size: 1.02rem;
     }
 
     .site-video-meta p {
-      font-size: 1.03rem;
-      line-height: 1.58;
-    }
-  }
-
-  @media (max-width: 1080px) {
-    .site-videos-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1.5rem;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .site-videos-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .site-section-header h2 {
-      font-size: 2rem;
+      font-size: 0.92rem;
     }
   }
 </style>

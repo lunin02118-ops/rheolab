@@ -19,7 +19,7 @@ import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import type { RecipeComponent } from '@/lib/parsing/types';
 import type { ReportBuildContext } from '@/lib/reports/report-builders';
 import { mapRawData, mapCycleResults } from '@/lib/reports/report-builders';
-import { columnarToRawPoints } from '@/lib/utils/columnar';
+import { columnarToRawPoints, tauriRawRecordsToColumnar } from '@/lib/utils/columnar';
 import { analyzeData } from '@/lib/analysis/client';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import type { RheoPointsColumnar } from '@/types/tauri';
@@ -146,8 +146,16 @@ function safeRecord(value: unknown): Record<string, unknown> {
 }
 
 function extractColumnarData(exp: Experiment): ColumnarData | null {
-    const col = (exp as Record<string, unknown>).columnarData as ColumnarData | undefined;
-    return col && col.timeSec && col.timeSec.length > 0 ? col : null;
+    const record = exp as Record<string, unknown>;
+    const col = record.columnarData as ColumnarData | undefined;
+    if (col && col.timeSec && col.timeSec.length > 0) return col;
+
+    const rawPoints = record.rawPoints;
+    if (Array.isArray(rawPoints) && rawPoints.length > 0) {
+        return tauriRawRecordsToColumnar(rawPoints as Array<Record<string, unknown>>);
+    }
+
+    return null;
 }
 
 function mapStoredReagentToRecipeComponent(r: StoredReagentLite): RecipeComponent {

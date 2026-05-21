@@ -78,7 +78,7 @@ $stmt = $db->prepare('
     WHERE machine_id   = :mid
       AND is_revoked   = 0
       AND is_active    = 1
-      AND expires_at   > NOW()
+      AND (expires_at IS NULL OR expires_at > NOW())
     ORDER BY activated_at DESC, id DESC
     LIMIT 1
 ');
@@ -122,17 +122,14 @@ $updateStmt->execute([$license['id']]);
 // Build the license payload in EXACTLY the same shape as activate.php so the
 // client's db_record construction in engine/operations.rs::activate works
 // verbatim for the recovery path too.
-$licenseData = [
-    'id'           => $license['id'],
-    'type'         => $license['license_type'],
-    'customerName' => $license['customer_name'],
-    'organization' => $license['organization'],
-    'email'        => $license['customer_email'],
-    'issuedAt'     => $license['created_at'],
-    'expiresAt'    => $license['expires_at'],
-    'activatedAt'  => $license['activated_at'] ?: date('Y-m-d H:i:s'),
-    'machineId'    => $machineId,
-];
+try {
+    $licenseData = buildSignedLicensePayload($license, $machineId);
+} catch (InvalidArgumentException $e) {
+    if (defined('DEBUG') && DEBUG) {
+        error_log('discovery: unsupported license type: ' . ($license['license_type'] ?? ''));
+    }
+    jsonResponse(['success' => false, 'error' => 'not_found'], 404);
+}
 
 // RSA-sign the payload (same signer used by activate.php).
 try {

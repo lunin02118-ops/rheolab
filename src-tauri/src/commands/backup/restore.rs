@@ -450,6 +450,7 @@ const MERGE_TABLES: &[&str] = &[
     "Settings",
     "Experiment",
     "ExperimentData",
+    "ExperimentRheologyParameter",
     "ExperimentReagent",
     "Calibration",
     "ImportBatch",
@@ -591,10 +592,7 @@ pub fn pre_startup_restore(
     // file rename.  See the function-level note above for the threat
     // model this closes.
     if let Err(e) = verify_pending_db(&pending_path) {
-        tracing::error!(
-            "pre_startup_restore: REFUSING to swap unverified DB: {}",
-            e
-        );
+        tracing::error!("pre_startup_restore: REFUSING to swap unverified DB: {}", e);
 
         // Quarantine the bad file so we don't retry the same broken
         // file on every subsequent boot.  Best-effort: if the rename

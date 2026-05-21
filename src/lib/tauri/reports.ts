@@ -62,6 +62,16 @@ export const reports = {
     return toUint8Array(buffer);
   },
 
+  async generateComparisonPdf(input: unknown): Promise<Uint8Array> {
+    const buffer = await invoke<BinaryResponse>('reports_generate_comparison_pdf', { input });
+    return toUint8Array(buffer);
+  },
+
+  async generateComparisonExcel(input: unknown): Promise<Uint8Array> {
+    const buffer = await invoke<BinaryResponse>('reports_generate_comparison_excel', { input });
+    return toUint8Array(buffer);
+  },
+
   async generateComparisonPdfByIds(request: ComparisonReportByIdsRequest): Promise<Uint8Array> {
     const buffer = await invoke<BinaryResponse>('reports_generate_comparison_pdf_by_ids', { request });
     return toUint8Array(buffer);

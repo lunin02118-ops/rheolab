@@ -5,8 +5,8 @@
 //! through the fast path.  This is the "реальный боевой тест" — if ANY
 //! real-world fixture trips a consistency bug, it surfaces here.
 
-use super::*;
 use super::fixtures::*;
+use super::*;
 use crate::commands::experiments::crud::persist_experiment;
 use serde_json::json;
 

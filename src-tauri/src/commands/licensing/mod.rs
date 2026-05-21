@@ -7,6 +7,7 @@
 //! activate, deactivate, can-save, register-experiment).
 
 pub(super) mod crypto;
+#[cfg(test)]
 pub(super) mod demo;
 pub mod engine;
 pub(super) mod features;
@@ -27,11 +28,11 @@ use serde_json::{json, Value};
 use tauri::State;
 
 use self::crypto::{get_system_state, verify_signature};
-use self::types::{LicenseStatus, SimpleResult, DB_KEY_WAS_LICENSED, LOCAL_USER_ID};
+use self::types::{SimpleResult, DB_KEY_WAS_LICENSED, LOCAL_USER_ID};
 
 // ── Async write-capability check (shared by all write/export commands) ──────
 
-/// Returns `true` if the current license state allows writes (Active, Grace, or Demo).
+/// Returns `true` if the current license state allows writes (Active or Grace).
 ///
 /// **Must be called BEFORE acquiring a `rusqlite::Connection`** because
 /// `Connection` is `!Send` and cannot be held across an `.await` point.
@@ -71,11 +72,9 @@ pub(crate) async fn require_write_license(state: &AppState) -> Result<()> {
 /// Returns the [`LicenseFeatures`] currently in effect for this process.
 ///
 /// **Audit-v2 REP-001:** the report-generation IPCs used to gate solely
-/// on `can_write_via_engine` (which says "Active OR Grace OR Demo, fine"),
+/// on `can_write_via_engine` (which says "Active OR Grace, fine"),
 /// but never inspected the per-feature flags or per-feature limits.  A
-/// Demo licence (`export_pdf=true, max_comparison_experiments=3`) and a
-/// Standard licence (`export_pdf=true, max_comparison_experiments=8`)
-/// were treated identically, and a malicious or buggy frontend could
+/// Trial and corporate licences have different limits; a malicious or buggy frontend could
 /// hand the native PDF engine an unbounded comparison list and watch
 /// memory go through the roof.
 ///
@@ -89,8 +88,8 @@ pub(crate) async fn require_write_license(state: &AppState) -> Result<()> {
 ///   `can_write_via_engine` honours for Playwright fixtures.  Release
 ///   builds do **not** honour this env var, matching audit-v2 LIC-001.
 /// * If the engine has produced a cached `LicenseCheckResult` → returns
-///   that result's `features` (already correct for Active / Grace / Demo
-///   / Expired / Revoked).
+///   that result's `features` (already correct for Active / Grace / Expired
+///   / Revoked).
 /// * Otherwise (engine not yet attached, cache empty before first
 ///   `check()` call) → returns [`features::expired_features`] which
 ///   denies everything.  Fail-closed by default.
@@ -133,29 +132,12 @@ fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
         }
     }
     match get_system_state(conn, DB_KEY_LICENSE) {
-        Ok(None) => {
-            // No stored license — fall through to demo check
-            let demo_result = demo::check_demo(conn, None);
-            if matches!(demo_result.status, LicenseStatus::Demo) {
-                Ok(())
-            } else {
-                Err(AppError::License("required".into()))
-            }
-        }
+        Ok(None) => Err(AppError::License("required".into())),
         Err(e) => Err(AppError::License(format!("DB error: {e}"))),
         Ok(Some((value, signature))) => {
             if !verify_signature(&value, &signature) {
-                // HMAC mismatch — treat as absent and fall through to demo,
-                // exactly as LicenseEngine::load_verified_license() does.
-                // This prevents a key-rotation or tampered record from permanently
-                // blocking saves when the app is legitimately running in demo mode.
-                tracing::warn!("[check_license_gate] License HMAC mismatch — treating as absent, falling through to demo check");
-                let demo_result = demo::check_demo(conn, None);
-                return if matches!(demo_result.status, LicenseStatus::Demo) {
-                    Ok(())
-                } else {
-                    Err(AppError::License("required".into()))
-                };
+                tracing::warn!("[check_license_gate] License HMAC mismatch — rejecting");
+                return Err(AppError::License("required".into()));
             }
 
             let data: Value = serde_json::from_str(&value).unwrap_or(json!({}));
@@ -169,24 +151,22 @@ fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
                 let payload = data["signedPayload"].as_str().unwrap_or("");
                 let server_sig = data["serverSignature"].as_str().unwrap_or("");
                 if !verify_server_signature(payload, server_sig) {
-                    tracing::warn!("[check_license_gate] RSA server-signature failed — treating as absent, falling through to demo check");
-                    let demo_result = demo::check_demo(conn, None);
-                    return if matches!(demo_result.status, LicenseStatus::Demo) {
-                        Ok(())
-                    } else {
-                        Err(AppError::License("required".into()))
-                    };
+                    tracing::warn!("[check_license_gate] RSA server-signature failed — rejecting");
+                    return Err(AppError::License("required".into()));
                 }
             } else {
                 // No signedPayload/serverSignature — legacy HMAC-only record.
                 // Grace period closed (S-2): require RSA for all licenses.
                 tracing::warn!("[check_license_gate] Legacy HMAC-only record — RSA required. Re-activate to continue.");
-                let demo_result = demo::check_demo(conn, None);
-                return if matches!(demo_result.status, LicenseStatus::Demo) {
-                    Ok(())
-                } else {
-                    Err(AppError::License("required".into()))
-                };
+                return Err(AppError::License("required".into()));
+            }
+            let license_type = data["type"].as_str().unwrap_or("");
+            if types::LicenseType::from_str_supported(license_type).is_none() {
+                tracing::warn!(
+                    "[check_license_gate] Unsupported license type '{}' — rejecting",
+                    license_type
+                );
+                return Err(AppError::License("required".into()));
             }
             let expires_at_str = data["expiresAt"].as_str().unwrap_or("");
             let grace_days = data["gracePeriodDays"].as_i64().unwrap_or(30);
@@ -218,36 +198,13 @@ fn check_license_gate(conn: &rusqlite::Connection) -> Result<()> {
 
 // ── Demo counter (F-04) ────────────────────────────────────────────────
 
-/// Atomically increment the demo experiment counter **if** the current
-/// license status is Demo.  In licensed mode this is a no-op.
+/// Legacy compatibility hook for the old demo experiment counter.
 ///
-/// Call this inside the same transaction that persists a NEW experiment
-/// so that the counter and the experiment commit or roll back together.
-///
-/// In E2E mode (`RHEOLAB_E2E_SKIP_LICENSE_GATE=1`) the counter is **not**
-/// incremented even if the current status is Demo — otherwise repeated E2E
-/// runs accumulate saves and trip `demo_expired` for subsequent launches,
-/// which breaks the startup license dialog. The skip-gate already permits
-/// saves without a license, so incrementing would be inconsistent anyway.
-///
-/// **Release safety (audit-v2 LIC-001)**: the env-var bypass is only
-/// honoured in `debug_assertions` builds, mirroring `can_write_via_engine`
-/// and `check_license_gate`.  Previously this function read the env var
-/// in all builds, which let a release binary launched with that env
-/// preserve demo quota — effectively skipping the experiment-count limit.
+/// The product no longer has a demo license mode, but save flows still call
+/// this function from older code paths. Keep it as a no-op rather than
+/// touching the surrounding transaction code.
 pub(crate) fn maybe_increment_demo_save(conn: &rusqlite::Connection) {
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("RHEOLAB_E2E_SKIP_LICENSE_GATE").as_deref() == Ok("1") {
-            return;
-        }
-    }
-    let result = demo::check_demo(conn, None);
-    if matches!(result.status, LicenseStatus::Demo) {
-        if let Err(e) = demo::increment_demo_experiments(conn) {
-            tracing::warn!("Failed to increment demo counter: {}", e);
-        }
-    }
+    let _ = conn;
 }
 
 // ── Tauri commands ─────────────────────────────────────────────────────
@@ -439,20 +396,19 @@ pub async fn licensing_activate_full(
     engine.activate(&key, &state.db_pool).await
 }
 
-/// Generate an offline Enterprise activation request code for support.
+/// Generate an offline Corporate activation request code for support.
 #[tauri::command]
 pub async fn licensing_offline_activation_request(
     state: State<'_, AppState>,
-    license_key: Option<String>,
 ) -> Result<types::OfflineActivationRequestInfo> {
     let engine = state
         .license_engine
         .as_ref()
         .ok_or("License engine not initialized")?;
-    engine.generate_offline_activation_request(license_key)
+    engine.generate_offline_activation_request()
 }
 
-/// Activate an Enterprise license using a signed offline activation code.
+/// Activate a Corporate license using a signed offline activation code.
 #[tauri::command]
 pub async fn licensing_activate_offline(
     state: State<'_, AppState>,
@@ -509,7 +465,7 @@ pub async fn licensing_register_experiment(
 ///
 /// - `"alpha"`  — Superuser licence (project owner's personal tier)
 /// - `"beta"`   — Developer licence (internal team pre-release builds)
-/// - `"stable"` — everything else (Standard, Enterprise, Trial, Demo, unlicensed)
+/// - `"stable"` — everything else (Trial, Corporate, unlicensed)
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct UpdateChannelInfo {
     pub channel: String,

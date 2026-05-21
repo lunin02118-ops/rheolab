@@ -5,12 +5,14 @@
 //! No I/O, no side-effects.
 
 #[cfg(test)]
+use super::types::DEMO_MAX_EXPERIMENTS;
+#[cfg(test)]
 use super::types::{LicenseCheckResult, LicenseStatus};
-use super::types::{LicenseFeatures, LicenseType, DEMO_MAX_EXPERIMENTS};
+use super::types::{LicenseFeatures, LicenseType};
 
 // ── Feature presets ────────────────────────────────────────────────────
 
-/// Standard (paid) license: full features except calibration.
+/// Corporate license: full production feature set except calibration tooling.
 pub(super) fn full_features() -> LicenseFeatures {
     LicenseFeatures {
         max_experiments: -1,
@@ -75,6 +77,7 @@ pub(super) fn superuser_features() -> LicenseFeatures {
 }
 
 /// Demo (unregistered / trial period): limited experiments, watermark.
+#[cfg(test)]
 pub(super) fn demo_features() -> LicenseFeatures {
     LicenseFeatures {
         max_experiments: DEMO_MAX_EXPERIMENTS,
@@ -116,8 +119,7 @@ pub(super) fn features_for_type(license_type: LicenseType) -> LicenseFeatures {
         LicenseType::Superuser => superuser_features(),
         LicenseType::Developer => developer_features(),
         LicenseType::Trial => trial_features(),
-        LicenseType::Demo => demo_features(),
-        _ => full_features(),
+        LicenseType::Corporate => full_features(),
     }
 }
 
@@ -151,11 +153,12 @@ mod tests {
     use crate::commands::licensing::types::LicenseSource;
 
     #[test]
-    fn full_features_no_watermark() {
+    fn corporate_features_no_watermark() {
         let f = full_features();
         assert!(!f.watermark);
         assert_eq!(f.max_experiments, -1);
         assert!(!f.calibration_analysis);
+        assert!(!f.calibration_parsing);
     }
 
     #[test]
@@ -217,6 +220,16 @@ mod tests {
         let f = features_for_type(LicenseType::Trial);
         assert_eq!(f.max_experiments, 50);
         assert!(f.watermark);
+    }
+
+    #[test]
+    fn features_for_type_corporate() {
+        let f = features_for_type(LicenseType::Corporate);
+        assert_eq!(f.max_experiments, -1);
+        assert!(!f.watermark);
+        assert!(f.comparison);
+        assert!(!f.calibration_analysis);
+        assert!(!f.calibration_parsing);
     }
 
     #[test]

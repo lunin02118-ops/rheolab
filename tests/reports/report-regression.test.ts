@@ -336,17 +336,17 @@ describe('Report Regression: builder completeness', () => {
     });
 
     /**
-     * Regression: 580d6c7 — show_advanced_stats must be tied to isExpert.
-     * When isExpert=false (beginner mode), PV/YP/R²B columns should be omitted.
+     * Basic mode still shows all rheology parameters in exports: PV/YP/R²B
+     * are no longer hidden behind expert mode.
      */
-    it('showAdvancedStats follows isExpert flag', () => {
+    it('showAdvancedStats stays enabled for rheology exports in both modes', () => {
         const ctxExpert = makeReportBuildContext({ isExpert: true });
         const ctxBeginner = makeReportBuildContext({ isExpert: false });
 
         expect(buildPdfReportInput(ctxExpert).settings.showAdvancedStats).toBe(true);
-        expect(buildPdfReportInput(ctxBeginner).settings.showAdvancedStats).toBe(false);
+        expect(buildPdfReportInput(ctxBeginner).settings.showAdvancedStats).toBe(true);
         expect(buildExcelReportInput(ctxExpert).settings.showAdvancedStats).toBe(true);
-        expect(buildExcelReportInput(ctxBeginner).settings.showAdvancedStats).toBe(false);
+        expect(buildExcelReportInput(ctxBeginner).settings.showAdvancedStats).toBe(true);
     });
 
     it('axisMode comes from chartSettings.comparisonAxisMode', () => {
@@ -447,14 +447,14 @@ describe('Report Regression: end-to-end builder→converter pipeline', () => {
 
         const rates = wasm.settings.viscosity_shear_rates;
         const advStats = wasm.settings.show_advanced_stats;
-        expect(advStats).toBe(false);
+        expect(advStats).toBe(true);
 
-        // Expected: 7 + 3 + 0 = 10 cols → width = 110 + 9*75 = 785
+        // Expected: 7 + 3 + 3 = 13 cols → width = 110 + 12*75 = 1010
         const binghamCols = advStats ? 3 : 0;
         const colCount = 7 + rates.length + binghamCols;
         const expectedWidth = 110 + (colCount - 1) * 75;
-        expect(colCount).toBe(10);
-        expect(expectedWidth).toBe(785);
+        expect(colCount).toBe(13);
+        expect(expectedWidth).toBe(1010);
     });
 
     /**
@@ -589,9 +589,9 @@ describe('Report Regression: settings independence', () => {
         expect(pdf1.settings.showPressure).toBe(pdf2.settings.showPressure);
         expect(pdf1.settings.showBathTemperature).toBe(pdf2.settings.showBathTemperature);
 
-        // Only showAdvancedStats should differ
+        // Rheology advanced stats are always available in exports now.
         expect(pdf1.settings.showAdvancedStats).toBe(true);
-        expect(pdf2.settings.showAdvancedStats).toBe(false);
+        expect(pdf2.settings.showAdvancedStats).toBe(true);
     });
 
     it('changing axis_mode does not affect show_advanced_stats', () => {
@@ -637,20 +637,21 @@ describe('Report Regression: settings independence', () => {
 describe('Report Regression: specific commit regressions', () => {
     /**
      * Regression: 622a0c9 — chart width must match stats table width.
-     * The formula must use show_advanced_stats to conditionally include bingham cols.
+     * The formula includes Bingham columns because rheology exports always
+     * enable advanced stats, including in basic mode.
      */
-    it('[622a0c9] chart width formula: bingham columns conditional on show_advanced_stats', () => {
+    it('[622a0c9] chart width formula: bingham columns are included in both modes', () => {
         // Expert: 7 fixed + 3 visc + 3 bingham = 13 columns
         const ctxExpert = makeReportBuildContext({ isExpert: true, reportViscosityRates: [40, 100, 170] });
         const expertWasm = convertReportInputToWasm(buildExcelReportInput(ctxExpert)) as any;
         const expertCols = 7 + expertWasm.settings.viscosity_shear_rates.length + (expertWasm.settings.show_advanced_stats ? 3 : 0);
         expect(expertCols).toBe(13);
 
-        // Beginner: 7 fixed + 3 visc + 0 bingham = 10 columns
+        // Beginner: 7 fixed + 3 visc + 3 bingham = 13 columns
         const ctxBeginner = makeReportBuildContext({ isExpert: false, reportViscosityRates: [40, 100, 170] });
         const beginnerWasm = convertReportInputToWasm(buildExcelReportInput(ctxBeginner)) as any;
         const beginnerCols = 7 + beginnerWasm.settings.viscosity_shear_rates.length + (beginnerWasm.settings.show_advanced_stats ? 3 : 0);
-        expect(beginnerCols).toBe(10);
+        expect(beginnerCols).toBe(13);
     });
 
     /**

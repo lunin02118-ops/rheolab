@@ -19,7 +19,7 @@ export interface LicenseSlot {
     signature: string;           // Подпись сервера
     rawData: string;             // Сырые данные для проверки подписи
     activatedAt: Date;           // Дата активации
-    label?: string;              // Метка для удобства ("Standard Test", "Enterprise")
+    label?: string;              // Метка для удобства ("Trial", "Corporate")
 }
 
 export interface MultiLicenseState {
@@ -59,7 +59,7 @@ function loadMultiLicenseState(): MultiLicenseState | null {
             license: {
                 ...slot.license,
                 issuedAt: new Date(slot.license.issuedAt),
-                expiresAt: new Date(slot.license.expiresAt),
+                expiresAt: slot.license.expiresAt ? new Date(slot.license.expiresAt) : undefined,
             }
         }));
 

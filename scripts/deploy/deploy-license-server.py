@@ -36,18 +36,43 @@ def deploy_file(ssh, local_path, remote_path):
     exec_checked(ssh, f"chmod 644 {shlex.quote(remote_path)}")
 
 
-def run_sql(ssh, sql_file):
-    if not DB_PASS:
-        print("Warning: LICENSE_DB_PASS not set, skipping SQL execution")
-        return
+def remote_db_name(ssh):
+    return exec_checked(
+        ssh,
+        "php -r \"require '/var/www/license-server/config.php'; echo DB_NAME;\"",
+        print_command=False,
+        print_output=False,
+    ).strip()
 
+
+def run_sql(ssh, sql_file, *, required=False):
     sql = Path(sql_file).read_text(encoding="utf-8")
     print(f"Running SQL: {sql_file}")
+    if DB_PASS:
+        exec_checked(
+            ssh,
+            f"mysql --user={shlex.quote(DB_USER)} --password={shlex.quote(DB_PASS)} {shlex.quote(DB_NAME)}",
+            stdin_data=sql,
+            print_command=False,
+        )
+        return
+
+    # DDL migrations need ALTER privileges. In the normal VPS layout the app
+    # DB user is deliberately least-privilege, so fall back to the local
+    # Debian maintenance account instead of requiring secrets in .env.server.
+    db_name = remote_db_name(ssh)
+    if not db_name:
+        message = "Unable to resolve DB_NAME from remote config.php"
+        if required:
+            raise RuntimeError(message)
+        print(f"Warning: {message}")
+        return
     exec_checked(
         ssh,
-        f"mysql --user={shlex.quote(DB_USER)} --password={shlex.quote(DB_PASS)} {shlex.quote(DB_NAME)}",
+        f"mysql --defaults-file=/etc/mysql/debian.cnf {shlex.quote(db_name)}",
         stdin_data=sql,
         print_command=False,
+        print_output=False,
     )
 
 
@@ -55,6 +80,14 @@ def main():
     ssh = None
     try:
         ssh = connect_license_server()
+
+        include_files = [
+            ("license-server/includes/db.php", "/var/www/license-server/includes/db.php"),
+            ("license-server/includes/helpers.php", "/var/www/license-server/includes/helpers.php"),
+            ("license-server/includes/license_payload.php", "/var/www/license-server/includes/license_payload.php"),
+            ("license-server/includes/rate_limiter.php", "/var/www/license-server/includes/rate_limiter.php"),
+            ("license-server/includes/sign_rsa.php", "/var/www/license-server/includes/sign_rsa.php"),
+        ]
 
         api_files = [
             ("license-server/api/activate.php", "/var/www/license-server/api/activate.php"),
@@ -65,14 +98,24 @@ def main():
             ("license-server/api/find_all_by_machine.php", "/var/www/license-server/api/find_all_by_machine.php"),
             ("license-server/api/migrate_machine.php", "/var/www/license-server/api/migrate_machine.php"),
             ("license-server/api/deactivate.php", "/var/www/license-server/api/deactivate.php"),
+            ("license-server/api/update-channel.php", "/var/www/license-server/api/update-channel.php"),
         ]
 
-        for local, remote in api_files:
+        admin_files = [
+            ("license-server/admin/index.php", "/var/www/license-server/admin/index.php"),
+        ]
+
+        root_files = [
+            ("license-server/.htaccess", "/var/www/license-server/.htaccess"),
+        ]
+
+        run_sql(ssh, "license-server/migrations/normalize_license_types.sql", required=True)
+
+        for local, remote in root_files + include_files + api_files + admin_files:
             if os.path.exists(local):
                 deploy_file(ssh, local, remote)
 
-        if os.path.exists("server_update/admin_index.php"):
-            deploy_file(ssh, "server_update/admin_index.php", "/var/www/license-server/admin/index.php")
+        exec_checked(ssh, "rm -f /var/www/license-server/admin/demo-users.php")
 
         print("Deployment complete!")
     finally:

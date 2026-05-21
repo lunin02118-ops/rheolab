@@ -66,6 +66,8 @@ pub(super) fn minimal_experiment(id: &str, field: Option<&str>, water: &str) -> 
         viscosity_min: None,
         pressure_max: None,
         extra_fields: None,
+        rheology_source: RheologyParameterSource::Program,
+        rheology_parameters: vec![],
         test_category: None,
         test_type: None,
         dominant_pattern: None,

@@ -6,16 +6,18 @@ async function test() {
     const testKey = 'TEST-1234-5678-ABCD'; // From database.sql
     console.log(`Testing with MachineID: ${machineId}`);
 
-    // 1. Test Demo Registration
-    console.log('\n1. Testing Demo Registration...');
+    // 1. Test legacy demo endpoint is disabled
+    console.log('\n1. Testing legacy demo endpoint is disabled...');
     const res1 = await fetch(`${BASE_URL}/register_demo.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ machineId })
     });
     const data1 = await res1.json();
-    console.log('Demo Response:', data1);
-    if (!data1.success) throw new Error('Demo registration failed');
+    console.log('Demo Tombstone Response:', res1.status, data1);
+    if (res1.status !== 410 || data1.error !== 'demo_removed') {
+        throw new Error('Legacy demo endpoint must be disabled');
+    }
 
     // 2. Test Discovery (Should fail initially)
     console.log('\n2. Testing Discovery (expecting failure)...');
@@ -62,7 +64,9 @@ async function test() {
     const data4 = await res4.json();
     console.log('Discovery Response (Success):', data4);
     if (!data4.success) throw new Error('Discovery failed after activation');
-    if (data4.license?.key !== testKey) throw new Error(`Discovery returned wrong key: ${data4.license?.key}`);
+    if ((data4.key ?? data4.license?.key) !== testKey) {
+        throw new Error(`Discovery returned wrong key: ${data4.key ?? data4.license?.key}`);
+    }
 
     // 5. Test Validation
     console.log('\n5. Testing Validation...');

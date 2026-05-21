@@ -2,8 +2,8 @@
 import { readFileSync } from 'node:fs';
 import { sign, randomUUID } from 'node:crypto';
 
-const REQUEST_PREFIX = 'RHEOLAB-OFFLINE-REQ-v1:';
-const ACTIVATION_PREFIX = 'RHEOLAB-OFFLINE-ACT-v1:';
+const REQUEST_PREFIX = 'RL-REQ1:';
+const ACTIVATION_PREFIX = 'RL-ACT1:';
 
 function usage() {
   console.error(`Usage:
@@ -16,10 +16,10 @@ function usage() {
 Options:
   --request <code>          Offline request code pasted inline
   --request-file <path>     File containing the request code
-  --license-key <key>       Enterprise license/order key stored in the activation payload
+  --license-key <key>       Required Corporate license/order key stored in the activation payload
   --customer <name>         Customer/company name
   --email <email>           Optional customer email
-  --expires-at <iso|null>   Optional ISO expiry; omit or pass null for perpetual
+  --expires-at <null>       Backward-compatible option; Corporate offline licenses are perpetual
   --private-key <path>      RSA private key PEM. Alternatively set RHEOLAB_LICENSE_PRIVATE_KEY_PEM.
 `);
 }
@@ -69,32 +69,32 @@ function main() {
   }
 
   const request = decodeRequest(readRequestCode());
-  const licenseKey = arg('--license-key') || request.licenseKey;
+  const licenseKey = arg('--license-key');
   const customerName = arg('--customer');
   if (!licenseKey) throw new Error('Missing --license-key');
   if (!customerName) throw new Error('Missing --customer');
 
   const expiresAtArg = arg('--expires-at');
-  const expiresAt = expiresAtArg && expiresAtArg.toLowerCase() !== 'null'
-    ? expiresAtArg
-    : null;
+  if (expiresAtArg && expiresAtArg.toLowerCase() !== 'null') {
+    throw new Error('Corporate offline licenses are perpetual; omit --expires-at or pass null');
+  }
 
   const payloadObject = {
     id: `offline-${randomUUID()}`,
-    type: 'enterprise',
+    type: 'corporate',
     customerName,
     email: arg('--email') || null,
     issuedAt: new Date().toISOString(),
-    expiresAt,
+    expiresAt: null,
     gracePeriodDays: 30,
     machineId: request.machineId,
+    hardwareBound: true,
+    permanent: true,
     seats: 1,
     key: licenseKey,
     activationMode: 'offline',
     offlineAllowed: true,
-    offlineRequestId: request.requestId,
     fingerprintVersion: request.fingerprintVersion || 2,
-    requestCreatedAt: request.createdAt,
   };
 
   const payload = JSON.stringify(payloadObject);

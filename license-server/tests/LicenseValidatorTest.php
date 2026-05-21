@@ -237,10 +237,12 @@ class LicenseValidatorTest extends TestCase
         }
         $licenseData = [
             'id'           => 1,
-            'type'         => 'standard',
+            'type'         => 'corporate',
             'customerName' => 'Test Corp',
             'organization' => null,
-            'expiresAt'    => '2030-12-31 00:00:00',
+            'expiresAt'    => null,
+            'hardwareBound' => true,
+            'permanent'    => true,
             'machineId'    => 'machine-abc',
         ];
         $signed = signLicense($licenseData);

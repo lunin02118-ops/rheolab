@@ -116,6 +116,31 @@ export const CalibrationSchema = z.object({
     issues: z.array(z.string()).optional().nullable(), // JSON array of issues
 });
 
+const RheologyParameterSourceSchema = z.enum(['instrument', 'program']);
+
+const RheologyParameterRowSchema = z.object({
+    source: RheologyParameterSourceSchema.default('program'),
+    cycleNo: z.number().int(),
+    timeMin: z.number().finite().optional().nullable(),
+    endTimeMin: z.number().finite().optional().nullable(),
+    tempC: z.number().finite().optional().nullable(),
+    pressureBar: z.number().finite().optional().nullable(),
+    nPrime: z.number().finite().optional().nullable(),
+    kvPaSn: z.number().finite().optional().nullable(),
+    kPrimePaSn: z.number().finite().optional().nullable(),
+    kSlotPaSn: z.number().finite().optional().nullable(),
+    kPipePaSn: z.number().finite().optional().nullable(),
+    r2: z.number().finite().optional().nullable(),
+    viscosities: z.record(z.string(), z.number().finite()).optional().default({}),
+    binghamPvPaS: z.number().finite().optional().nullable(),
+    binghamYpPa: z.number().finite().optional().nullable(),
+    binghamR2: z.number().finite().optional().nullable(),
+    calcPoints: z.number().int().optional().nullable(),
+    sourceSheet: z.string().optional().nullable(),
+    sourceRow: z.number().int().optional().nullable(),
+    units: z.record(z.string(), z.string()).optional().default({}),
+});
+
 /**
  * Experiment save payload - main API validation schema
  */
@@ -169,6 +194,8 @@ export const ExperimentSavePayloadSchema = z.object({
     pressureMax:   z.number().optional().nullable(),
     extraFields:   z.record(z.string(), z.unknown()).optional().nullable(),
     dominantPattern: z.string().optional().nullable(),
+    rheologySource: RheologyParameterSourceSchema.optional().default('program'),
+    rheologyParameters: z.array(RheologyParameterRowSchema).optional().default([]),
 });
 
 // ============================================

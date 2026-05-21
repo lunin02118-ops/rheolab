@@ -8,7 +8,86 @@ use super::super::row_mapper::map_row;
 use super::super::date_detector::detect_date;
 use super::super::instrument_detector::detect_instrument;
 use super::super::geometry_verifier::{detect_geometry, physics_geometry};
-use super::{merge_mappings, build_row_mapper_config, calculate_sheet_score};
+use super::{instrument_rheology, merge_mappings, build_row_mapper_config, calculate_sheet_score};
+
+fn rows_from_range(range: &calamine::Range<calamine::DataType>) -> Vec<Vec<String>> {
+    range
+        .rows()
+        .map(|row| {
+            row.iter()
+                .map(|c| match c {
+                    calamine::DataType::String(v) => v.clone(),
+                    calamine::DataType::Int(v) => v.to_string(),
+                    calamine::DataType::Float(v) => v.to_string(),
+                    calamine::DataType::Bool(v) => v.to_string(),
+                    calamine::DataType::Error(e) => format!("{:?}", e),
+                    calamine::DataType::DateTime(v) => v.to_string(),
+                    _ => "".to_string(),
+                })
+                .collect::<Vec<String>>()
+        })
+        .collect()
+}
+
+fn select_best_instrument_rheology(
+    candidates: Vec<(i32, Vec<super::super::types::RheologyParameterRow>)>,
+) -> Vec<super::super::types::RheologyParameterRow> {
+    let mut best_by_cycle =
+        std::collections::BTreeMap::<i32, (i32, i32, super::super::types::RheologyParameterRow)>::new();
+
+    for (priority, rows) in candidates {
+        for row in rows {
+            let quality = instrument_rheology_quality(&row);
+            if quality < 4 {
+                continue;
+            }
+            match best_by_cycle.get(&row.cycle_no) {
+                Some((best_quality, best_priority, _))
+                    if *best_quality > quality
+                        || (*best_quality == quality && *best_priority <= priority) => {}
+                _ => {
+                    best_by_cycle.insert(row.cycle_no, (quality, priority, row));
+                }
+            }
+        }
+    }
+
+    best_by_cycle
+        .into_values()
+        .map(|(_, _, row)| row)
+        .collect()
+}
+
+fn instrument_rheology_quality(row: &super::super::types::RheologyParameterRow) -> i32 {
+    let mut score = 0;
+    if row.n_prime.is_some() {
+        score += 2;
+    }
+    for value in [
+        row.kv_pasn,
+        row.k_prime_pasn,
+        row.k_slot_pasn,
+        row.k_pipe_pasn,
+    ] {
+        if value.is_some_and(|v| v.is_finite() && v > 0.0) {
+            score += 2;
+        }
+    }
+    if row.r2.is_some() {
+        score += 1;
+    }
+    score += row.viscosities.len().min(3) as i32;
+    if row.bingham_pv_pas.is_some_and(|v| v.is_finite() && v > 0.0) {
+        score += 2;
+    }
+    if row.bingham_yp_pa.is_some_and(|v| v.is_finite() && v > 0.0) {
+        score += 2;
+    }
+    if row.bingham_r2.is_some() {
+        score += 1;
+    }
+    score
+}
 
 pub(super) fn parse_workbook_with_override<R: Read + Seek>(
     workbook: &mut impl Reader<R>,
@@ -19,12 +98,21 @@ pub(super) fn parse_workbook_with_override<R: Read + Seek>(
 ) -> Result<ParsingResult, String> {
     let sheet_names = workbook.sheet_names().to_owned();
     let mut best_candidate: Option<(f64, ParsingResult)> = None;
+    let mut rheology_candidates = Vec::new();
 
     for sheet_name in sheet_names {
         if source_sheet.is_some() && source_sheet != Some(sheet_name.as_str()) {
             continue;
         }
         if let Some(Ok(range)) = workbook.worksheet_range(&sheet_name) {
+            let rows = rows_from_range(&range);
+            let instrument_rows = instrument_rheology::extract_from_sheet(&rows, &sheet_name);
+            if !instrument_rows.is_empty() {
+                rheology_candidates.push((
+                    instrument_rheology::sheet_priority(&sheet_name),
+                    instrument_rows,
+                ));
+            }
             if let Some(result) = process_sheet_with_override(
                 &range,
                 filename,
@@ -45,7 +133,10 @@ pub(super) fn parse_workbook_with_override<R: Read + Seek>(
     }
 
     best_candidate
-        .map(|(_, res)| res)
+        .map(|(_, mut res)| {
+            res.instrument_rheology = select_best_instrument_rheology(rheology_candidates);
+            res
+        })
         .ok_or("No valid data found in workbook".to_string())
 }
 
@@ -223,6 +314,7 @@ fn process_sheet_with_override(
             geometry_source,
             used_ai: false,
         },
+        instrument_rheology: Vec::new(),
     })
 }
 
@@ -232,6 +324,7 @@ pub(super) fn parse_workbook<R: Read + Seek>(
 ) -> Result<ParsingResult, String> {
     let sheet_names = workbook.sheet_names().to_owned();
     let mut best_candidate: Option<(f64, ParsingResult)> = None;
+    let mut rheology_candidates = Vec::new();
 
     // First pass: scan ALL sheets for geometry context (metadata sheets may have it)
     let mut global_geometry: Option<String> = None;
@@ -260,6 +353,14 @@ pub(super) fn parse_workbook<R: Read + Seek>(
 
     for sheet_name in sheet_names {
         if let Some(Ok(range)) = workbook.worksheet_range(&sheet_name) {
+            let rows = rows_from_range(&range);
+            let instrument_rows = instrument_rheology::extract_from_sheet(&rows, &sheet_name);
+            if !instrument_rows.is_empty() {
+                rheology_candidates.push((
+                    instrument_rheology::sheet_priority(&sheet_name),
+                    instrument_rows,
+                ));
+            }
             if let Some(mut result) = process_sheet(&range, filename, &sheet_name) {
                 if result.metadata.geometry.is_none() {
                     if let Some(ref geo) = global_geometry {
@@ -283,7 +384,10 @@ pub(super) fn parse_workbook<R: Read + Seek>(
     }
 
     best_candidate
-        .map(|(_, res)| res)
+        .map(|(_, mut res)| {
+            res.instrument_rheology = select_best_instrument_rheology(rheology_candidates);
+            res
+        })
         .ok_or("No valid data found in workbook".to_string())
 }
 
@@ -431,5 +535,6 @@ fn process_sheet(
             geometry_source,
             used_ai: false,
         },
+        instrument_rheology: Vec::new(),
     })
 }

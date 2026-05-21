@@ -107,22 +107,17 @@ export const CycleRow = memo(function CycleRow({
                             </td>
                         );
                     })}
-                    {/* Expert mode: Bingham model columns */}
-                    {isExpert && (
-                        <>
-                            <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
-                                {result.bingham_PV_PaS != null ? result.bingham_PV_PaS.toFixed(4) : '—'}
-                            </td>
-                            <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
-                                {result.bingham_YP_Pa != null ? result.bingham_YP_Pa.toFixed(2) : '—'}
-                            </td>
-                            <td className="py-3 px-3 text-center">
-                                <span className={`font-data ${(result.bingham_r2 ?? 0) > 0.9 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                                    {result.bingham_r2 != null ? result.bingham_r2.toFixed(4) : '—'}
-                                </span>
-                            </td>
-                        </>
-                    )}
+                    <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
+                        {result.bingham_PV_PaS != null ? result.bingham_PV_PaS.toFixed(4) : '—'}
+                    </td>
+                    <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
+                        {result.bingham_YP_Pa != null ? result.bingham_YP_Pa.toFixed(2) : '—'}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                        <span className={`font-data ${(result.bingham_r2 ?? 0) > 0.9 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                            {result.bingham_r2 != null ? result.bingham_r2.toFixed(4) : '—'}
+                        </span>
+                    </td>
                     {/* Edit button (Expert mode) */}
                     {isExpert && onEdit && (
                         <td className="py-3 px-2 text-center">
@@ -142,9 +137,9 @@ export const CycleRow = memo(function CycleRow({
                 </>
             ) : (
                 <>
-                    {/* Spans: n'(1)+K'(1)+Ks(1)+Kp(1)+R²(1)+viscosities+bingham?+edit? */}
+                    {/* Spans: n'(1)+K'(1)+Ks(1)+Kp(1)+R²(1)+viscosities+Bingham(3)+edit? */}
                     <td className="py-3 px-2 text-center text-muted-foreground"
-                        colSpan={viscosityRates.length + 5 + (isExpert ? 3 : 0) + (isExpert && !!onEdit ? 1 : 0)}>
+                        colSpan={viscosityRates.length + 8 + (isExpert && !!onEdit ? 1 : 0)}>
                         <div className="flex items-center justify-center gap-1.5 text-red-600 dark:text-red-400">
                             <AlertCircle className="w-4 h-4" />
                             <span className="text-xs font-medium">Недостаточно данных</span>

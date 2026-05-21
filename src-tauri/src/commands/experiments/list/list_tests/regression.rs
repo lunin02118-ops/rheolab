@@ -1,8 +1,8 @@
 //! Production-fixture regression tests (smaller scope; combat tests live
 //! in `combat_thresholds.rs` and `combat_composite.rs`).
 
-use super::*;
 use super::fixtures::*;
+use super::*;
 use crate::commands::experiments::crud::persist_experiment;
 use serde_json::json;
 

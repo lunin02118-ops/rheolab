@@ -6,8 +6,8 @@ What it does, in order:
   1. (Optional) Deploy the updated admin/index.php + migration SQL to the
      license server. Harmless on re-run: migration is idempotent, admin
      file is just a copy.
-  2. Apply the DB migration — expands license_type ENUM to include
-     'superuser'. Safe to re-run (MODIFY COLUMN is idempotent).
+  2. Apply the DB migration — normalizes license_type to
+     trial/corporate/developer/superuser. Safe to re-run.
   3. Compute the machine_id of the current Windows host using the same
      v2 algorithm as the Tauri client
      (src-tauri/src/commands/licensing/hardware/machine_id.rs).
@@ -18,7 +18,7 @@ What it does, in order:
         - expires_at = +10 years (long-lived personal key)
      The key is printed to stdout for the owner to enter into the client.
   5. Remind the owner how to activate:
-        - install RheoLab Enterprise 0.2.0-beta.8
+        - install the current RheoLab build
         - enter the key in the licence dialog
         - the app's activate flow sees the pre-bound machine_id and
           stamps activated_at without consuming an activation slot
@@ -283,9 +283,9 @@ def _shquote(value: str) -> str:
 
 
 def apply_migration(ssh, dry_run: bool) -> None:
-    """Apply migrations/add_superuser_type.sql. Idempotent."""
-    print("\n── Apply superuser ENUM migration ────────────────────────")
-    local_path = REPO_ROOT / "license-server" / "migrations" / "add_superuser_type.sql"
+    """Apply migrations/normalize_license_types.sql. Idempotent."""
+    print("\n── Apply license type normalization migration ────────────")
+    local_path = REPO_ROOT / "license-server" / "migrations" / "normalize_license_types.sql"
     if not local_path.exists():
         raise RuntimeError(f"migration file missing: {local_path}")
 
@@ -308,7 +308,7 @@ def apply_migration(ssh, dry_run: bool) -> None:
     # lacks them. Use debian-sys-maint via /etc/mysql/debian.cnf.
     _mysql_exec_admin(ssh, payload)
 
-    # Verify the ENUM now includes 'superuser'. SHOW COLUMNS is a read,
+    # Verify the ENUM now includes 'corporate' and 'superuser'. SHOW COLUMNS is a read,
     # so the app user works — but we reuse the admin channel to keep
     # the dry-run/real-run code paths symmetrical.
     column_def = _mysql_exec_admin(
@@ -316,12 +316,13 @@ def apply_migration(ssh, dry_run: bool) -> None:
         "SHOW COLUMNS FROM license_keys WHERE Field = 'license_type';",
         want_output=True,
     )
-    if "superuser" not in column_def.lower():
+    lower_column_def = column_def.lower()
+    if "corporate" not in lower_column_def or "superuser" not in lower_column_def:
         raise RuntimeError(
             "Migration ran without error but the ENUM does not contain "
-            "'superuser'. Raw column definition:\n" + column_def
+            "'corporate' and 'superuser'. Raw column definition:\n" + column_def
         )
-    print("  ✓ license_type ENUM now accepts 'superuser'")
+    print("  ✓ license_type ENUM now accepts current license types")
 
 
 def upload_admin_ui(ssh, dry_run: bool) -> None:
@@ -508,7 +509,7 @@ def main() -> int:
         )
 
         print("\n── Next steps ────────────────────────────────────────────")
-        print(f"  1. Install RheoLab Enterprise 0.2.0-beta.8 on THIS machine.")
+        print(f"  1. Install the current RheoLab build on THIS machine.")
         print(f"  2. Open the licence dialog and enter the key below:")
         print(f"        {key}")
         print(f"  3. The activation request will find the pre-bound machine_id")

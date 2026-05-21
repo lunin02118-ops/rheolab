@@ -1183,7 +1183,9 @@ struct ProjectionRow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::experiments::types::{StoredExperiment, LOCAL_USER_ID};
+    use crate::commands::experiments::types::{
+        RheologyParameterSource, StoredExperiment, LOCAL_USER_ID,
+    };
     use crate::db::migration::run_migrations;
     use crate::db::repositories::experiments::persist_experiment;
     use rusqlite::Connection;
@@ -1242,6 +1244,8 @@ mod tests {
             viscosity_min: None,
             pressure_max: None,
             extra_fields: None,
+            rheology_source: RheologyParameterSource::Program,
+            rheology_parameters: vec![],
         }
     }
 

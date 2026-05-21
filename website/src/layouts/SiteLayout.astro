@@ -75,6 +75,7 @@ const updateManifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows
     --site-btn-padding-x: 1.85rem;
 
     min-height: 100vh;
+    overflow-x: clip;
     background-color: var(--site-bg);
     color: var(--site-text-main);
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
@@ -90,6 +91,22 @@ const updateManifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows
     max-width: var(--site-shell-max-width);
     margin: 0 auto;
     padding: 0 var(--site-shell-padding);
+  }
+
+  .site-theme h1,
+  .site-theme h2,
+  .site-theme h3,
+  .site-theme p,
+  .site-theme li,
+  .site-theme a {
+    overflow-wrap: break-word;
+  }
+
+  .site-theme img,
+  .site-theme svg,
+  .site-theme iframe,
+  .site-theme video {
+    max-width: 100%;
   }
 
   .site-btn-primary {
@@ -156,7 +173,17 @@ const updateManifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows
     }
 
     .site-container {
-      padding: 0 var(--site-shell-padding);
+      padding-right: max(var(--site-shell-padding), env(safe-area-inset-right));
+      padding-left: max(var(--site-shell-padding), env(safe-area-inset-left));
+    }
+  }
+
+  @media (max-width: 480px) {
+    .site-theme {
+      --site-shell-padding: 1rem;
+      --site-btn-font-size: 0.96rem;
+      --site-btn-padding-y: 0.78rem;
+      --site-btn-padding-x: 1rem;
     }
   }
 </style>

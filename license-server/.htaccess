@@ -9,10 +9,21 @@ RewriteEngine On
     Deny from all
 </FilesMatch>
 
-# Защита includes
+# Защита внутренних директорий
 <IfModule mod_alias.c>
     RedirectMatch 403 ^/includes/
+    RedirectMatch 403 ^/keys/
+    RedirectMatch 403 ^/migrations/
+    RedirectMatch 403 ^/tests/
+    RedirectMatch 403 ^/vendor/
+    RedirectMatch 403 ^/docs/
 </IfModule>
+
+# Защита служебных файлов, если Apache обходит RedirectMatch.
+<FilesMatch "(\.sql|\.sh|\.env|\.md|composer\.(json|lock)|phpunit\.xml)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
 
 # Защита от листинга директорий
 Options -Indexes

@@ -1,9 +1,11 @@
 import { getBridge } from '@/lib/tauri/bridge';
 import {
   convertReportInputToWasm,
+  convertComparisonReportInputToWasm,
   type ExcelReportInput,
   type PdfReportInput,
 } from '@/lib/analysis/report-types/converters';
+import type { ComparisonReportInput } from '@/lib/analysis/report-types/comparison-report-inputs';
 import type { ComparisonReportByIdsRequest, ExperimentReportByIdRequest } from '@/types/tauri';
 
 const TAURI_REPORT_RETRY_DELAY_MS = 150;
@@ -162,6 +164,16 @@ async function tryGenerateComparisonPdfByIdsNative(
   return await bridge.reports.generateComparisonPdfByIds(request);
 }
 
+async function tryGenerateComparisonPdfNative(
+  input: ComparisonReportInput,
+): Promise<Uint8Array> {
+  const bridge = getBridge();
+  if (!bridge.reports?.generateComparisonPdf) {
+    throw new Error('Unknown IPC command reports_generate_comparison_pdf');
+  }
+  return await bridge.reports.generateComparisonPdf(convertComparisonReportInputToWasm(input));
+}
+
 async function tryGenerateComparisonExcelByIdsNative(
   request: ComparisonReportByIdsRequest,
 ): Promise<Uint8Array> {
@@ -170,6 +182,44 @@ async function tryGenerateComparisonExcelByIdsNative(
     throw new Error('Unknown IPC command reports_generate_comparison_excel_by_ids');
   }
   return await bridge.reports.generateComparisonExcelByIds(request);
+}
+
+async function tryGenerateComparisonExcelNative(
+  input: ComparisonReportInput,
+): Promise<Uint8Array> {
+  const bridge = getBridge();
+  if (!bridge.reports?.generateComparisonExcel) {
+    throw new Error('Unknown IPC command reports_generate_comparison_excel');
+  }
+  return await bridge.reports.generateComparisonExcel(convertComparisonReportInputToWasm(input));
+}
+
+export async function generateComparisonPdfReportBytes(
+  input: ComparisonReportInput,
+): Promise<Uint8Array> {
+  try {
+    return await tryGenerateComparisonPdfNative(input);
+  } catch (error) {
+    if (isTauriRuntimeUnavailable(error)) {
+      await delay(TAURI_REPORT_RETRY_DELAY_MS);
+      return await tryGenerateComparisonPdfNative(input);
+    }
+    throw error;
+  }
+}
+
+export async function generateComparisonExcelReportBytes(
+  input: ComparisonReportInput,
+): Promise<Uint8Array> {
+  try {
+    return await tryGenerateComparisonExcelNative(input);
+  } catch (error) {
+    if (isTauriRuntimeUnavailable(error)) {
+      await delay(TAURI_REPORT_RETRY_DELAY_MS);
+      return await tryGenerateComparisonExcelNative(input);
+    }
+    throw error;
+  }
 }
 
 export async function generateComparisonPdfReportByIdsBytes(
@@ -207,10 +257,26 @@ export async function generateComparisonPdfReportByIdsBlob(
   return new Blob([toArrayBuffer(bytes)], { type: 'application/pdf' });
 }
 
+export async function generateComparisonPdfReportBlob(
+  input: ComparisonReportInput,
+): Promise<Blob> {
+  const bytes = await generateComparisonPdfReportBytes(input);
+  return new Blob([toArrayBuffer(bytes)], { type: 'application/pdf' });
+}
+
 export async function generateComparisonExcelReportByIdsBlob(
   request: ComparisonReportByIdsRequest,
 ): Promise<Blob> {
   const bytes = await generateComparisonExcelReportByIdsBytes(request);
+  return new Blob([toArrayBuffer(bytes)], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+}
+
+export async function generateComparisonExcelReportBlob(
+  input: ComparisonReportInput,
+): Promise<Blob> {
+  const bytes = await generateComparisonExcelReportBytes(input);
   return new Blob([toArrayBuffer(bytes)], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });

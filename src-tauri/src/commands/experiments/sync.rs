@@ -153,6 +153,12 @@ fn import_experiments_blocking(db_pool: DbPool, experiments: Vec<Value>) -> Resu
             viscosity_min: None,
             pressure_max: None,
             extra_fields: None,
+            rheology_source: RheologyParameterSource::from_db(
+                string_from_path(&exp, &["rheologySource"])
+                    .unwrap_or_else(|| "program".to_string())
+                    .as_str(),
+            ),
+            rheology_parameters: Vec::new(),
             test_category: string_from_path(&exp, &["testCategory"]),
             test_type: string_from_path(&exp, &["testType"]),
             dominant_pattern: None,

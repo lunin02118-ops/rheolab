@@ -13,7 +13,10 @@ use super::super::types::{
     LicenseCheckResult, LicenseSource, LicenseStatus, LicenseType, DB_KEY_LICENSE,
     DEFAULT_GRACE_PERIOD_DAYS,
 };
-use super::offline::{is_offline_enterprise_license, offline_machine_matches};
+use super::offline::{
+    is_local_permanent_license, supported_payload_license_type, trusted_license_payload,
+    validate_supported_license_payload,
+};
 use super::{compute_days_remaining, mask_key, parse_expiry, LicenseEngine};
 use crate::db::DbPool;
 
@@ -145,18 +148,53 @@ impl LicenseEngine {
     ) -> LicenseCheckResult {
         let data: Value = serde_json::from_str(license_json).unwrap_or(serde_json::json!({}));
 
-        let key = data["key"].as_str().unwrap_or("");
-        let license_type_str = data["type"].as_str().unwrap_or("standard");
-        let license_type = LicenseType::from_str_loose(license_type_str);
-        let expires_at = data["expiresAt"].as_str();
+        let trusted = trusted_license_payload(&data);
+        let key = data["key"]
+            .as_str()
+            .or_else(|| trusted["key"].as_str())
+            .unwrap_or("");
+        let license_type_str = trusted["type"]
+            .as_str()
+            .or_else(|| data["type"].as_str())
+            .unwrap_or("");
+        let Some(license_type) = supported_payload_license_type(&trusted) else {
+            return LicenseCheckResult {
+                status: LicenseStatus::Invalid,
+                source: LicenseSource::Key,
+                features: expired_features(),
+                key: (!key.is_empty()).then(|| mask_key(key)),
+                license_type: Some(license_type_str.to_string()),
+                customer_name: trusted["customerName"]
+                    .as_str()
+                    .or_else(|| data["customerName"].as_str())
+                    .map(|s| s.to_string()),
+                expires_at: trusted["expiresAt"]
+                    .as_str()
+                    .or_else(|| data["expiresAt"].as_str())
+                    .map(|s| s.to_string()),
+                days_remaining: None,
+                experiments_remaining: None,
+                message: Some(
+                    "Тип лицензии не поддерживается. Активируйте trial или corporate лицензию."
+                        .to_string(),
+                ),
+                show_warning: true,
+            };
+        };
+        let expires_at = trusted["expiresAt"]
+            .as_str()
+            .or_else(|| data["expiresAt"].as_str());
         let grace_days = data["gracePeriodDays"]
             .as_i64()
             .unwrap_or(DEFAULT_GRACE_PERIOD_DAYS);
-        let customer_name = data["customerName"].as_str().map(|s| s.to_string());
-        let is_offline_enterprise = is_offline_enterprise_license(&data);
+        let customer_name = trusted["customerName"]
+            .as_str()
+            .or_else(|| data["customerName"].as_str())
+            .map(|s| s.to_string());
+        let is_local_permanent = is_local_permanent_license(&trusted);
 
-        if is_offline_enterprise && !offline_machine_matches(&self.app_data_dir, &data) {
-            tracing::warn!("Offline Enterprise license machine binding mismatch");
+        if let Err(e) = validate_supported_license_payload(&self.app_data_dir, &trusted) {
+            tracing::warn!("License payload rejected: {}", e);
             return LicenseCheckResult {
                 status: LicenseStatus::Invalid,
                 source: LicenseSource::Key,
@@ -167,7 +205,7 @@ impl LicenseEngine {
                 expires_at: expires_at.map(|s| s.to_string()),
                 days_remaining: None,
                 experiments_remaining: None,
-                message: Some("Офлайн-лицензия выпущена для другого устройства".to_string()),
+                message: Some(e.to_string()),
                 show_warning: true,
             };
         }
@@ -197,7 +235,7 @@ impl LicenseEngine {
         // `is_online_check_due` returns true on the first call this session so the
         // background task (spawned in lib.rs after setup) always gets a fresh result.
         let online_result =
-            if !is_offline_enterprise && !key.is_empty() && self.is_online_check_due().await {
+            if !is_local_permanent && !key.is_empty() && self.is_online_check_due().await {
                 let result = validate_online(key, &self.app_data_dir).await;
                 if result.server_reached {
                     // Any server response (active, revoked, expired) resets the throttle
@@ -407,7 +445,7 @@ impl LicenseEngine {
         }
 
         // Offline path: use locally stored data
-        if !is_offline_enterprise && is_offline_overdue(&self.app_data_dir) {
+        if !is_local_permanent && is_offline_overdue(&self.app_data_dir) {
             return LicenseCheckResult {
                 status: LicenseStatus::Invalid,
                 source: LicenseSource::Key,

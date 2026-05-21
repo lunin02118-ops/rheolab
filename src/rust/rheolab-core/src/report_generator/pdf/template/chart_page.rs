@@ -30,7 +30,7 @@ pub(super) fn build_chart_page(
     let Some(config) = chart_config else {
         // Chart present but no config — fall back to the simple centred SVG.
         return r##"
-#page(paper: "a4", flipped: true)[
+#page(paper: "a4", flipped: true, margin: (top: 3.5cm, bottom: 2cm, x: 1cm))[
     #align(center + horizon)[
         #image("chart.svg", width: 90%)
     ]
@@ -352,7 +352,7 @@ pub(super) fn build_chart_page(
     }
 
     format!(r##"
-#page(paper: "a4", flipped: true, margin: (top: 2.5cm, bottom: 1.2cm, left: {left_page_margin}pt, right: {right_page_margin}pt))[
+#page(paper: "a4", flipped: true, margin: (top: 3.5cm, bottom: 2cm, left: {left_page_margin}pt, right: {right_page_margin}pt))[
     #set par(spacing: 0pt)
     #set block(spacing: 0pt)
     // Chart SVG with side labels and ticks

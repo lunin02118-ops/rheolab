@@ -19,7 +19,7 @@ pub(super) fn load_experiment_batch_no_raw(
                 e.geometry, e.geometrySource, e.waterSource, e.waterParams,
                 e.fluidType, e.testGroup, e.testSubGroup, e.metrics,
                 e.calibration, e.maxViscosity, e.avgViscosity, e.userId, e.laboratoryId,
-                u.name, u.email, l.id, l.name
+                u.name, u.email, l.id, l.name, COALESCE(e.rheologySource, 'program')
          FROM Experiment e
          LEFT JOIN User u ON e.userId = u.id
          LEFT JOIN Laboratory l ON e.laboratoryId = l.id
@@ -91,6 +91,10 @@ pub(super) fn load_experiment_batch_no_raw(
                 viscosity_min: None,
                 pressure_max: None,
                 extra_fields: None,
+                rheology_source: RheologyParameterSource::from_db(
+                    row.get::<_, String>(28)?.as_str(),
+                ),
+                rheology_parameters: vec![],
                 test_category: None,
                 test_type: None,
                 dominant_pattern: None,

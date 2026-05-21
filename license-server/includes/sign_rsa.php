@@ -6,7 +6,9 @@
  */
 
 // Путь к приватному ключу (относительно includes/)
-define('PRIVATE_KEY_PATH', __DIR__ . '/../keys/license_private.pem');
+if (!defined('PRIVATE_KEY_PATH')) {
+    define('PRIVATE_KEY_PATH', __DIR__ . '/../keys/license_private.pem');
+}
 
 /**
  * Загрузить приватный ключ

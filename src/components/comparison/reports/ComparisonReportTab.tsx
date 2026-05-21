@@ -7,7 +7,7 @@
  * @module comparison/reports/ComparisonReportTab
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { FileText, Layers } from 'lucide-react';
 
@@ -22,6 +22,7 @@ import { useBrandingStore } from '@/lib/store/branding-store';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
+import { useLicense } from '@/hooks/useLicense';
 
 export function ComparisonReportTab() {
     const experiments = useComparisonStore(s => s.experiments);
@@ -48,6 +49,14 @@ export function ComparisonReportTab() {
     const [showRecipe, setShowRecipe] = useState(true);
     const [showWaterAnalysis, setShowWaterAnalysis] = useState(false);
     const [showRheology, setShowRheology] = useState(true);
+    const { isInitialized, result } = useLicense();
+    const canUseCalibration = isInitialized && (result?.license?.features?.calibrationAnalysis ?? false);
+
+    useEffect(() => {
+        if (!canUseCalibration && showCalibration) {
+            setShowCalibration(false);
+        }
+    }, [canUseCalibration, showCalibration]);
 
     // Unit system derived the same way as in single-exp ReportsPanel.
     const unitSystem: 'SI' | 'SI_Pas' | 'Imperial' = useMemo(() => {
@@ -79,7 +88,7 @@ export function ComparisonReportTab() {
         unitSystem,
         companyName,
         companyLogo,
-        showCalibration,
+        showCalibration: showCalibration && canUseCalibration,
         showRawData,
         showRecipe,
         showWaterAnalysis,
@@ -107,6 +116,7 @@ export function ComparisonReportTab() {
                 setShowWaterAnalysis={setShowWaterAnalysis}
                 showRheology={showRheology}
                 setShowRheology={setShowRheology}
+                canUseCalibration={canUseCalibration}
                 isExporting={isExporting}
                 isExcelExporting={isExcelExporting}
                 exportError={exportError}

@@ -495,11 +495,11 @@ fn check_local_startup_keeps_key_path_value_only() {
     let engine = LicenseEngine::new(app_dir.path().to_path_buf());
 
     let signed_payload =
-        r#"{"id":1,"type":"standard","customerName":"Startup","expiresAt":"2099-01-01"}"#;
+        r#"{"id":1,"type":"trial","customerName":"Startup","expiresAt":"2099-01-01"}"#;
     let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
     let db_record = serde_json::json!({
         "id": 1,
-        "type": "standard",
+        "type": "trial",
         "customerName": "Startup",
         "expiresAt": "2099-01-01T00:00:00Z",
         "gracePeriodDays": 30,
@@ -527,6 +527,112 @@ fn check_local_startup_keeps_key_path_value_only() {
     assert_eq!(cached.status, LicenseStatus::Active);
 }
 
+#[test]
+fn check_local_startup_accepts_corporate_permanent_current_machine() {
+    let (_db_dir, pool) = setup_test_pool();
+    let app_dir = tempfile::tempdir().unwrap();
+    let engine = LicenseEngine::new(app_dir.path().to_path_buf());
+    let machine_id = crate::commands::licensing::get_or_create_machine_id(app_dir.path());
+
+    let payload = serde_json::json!({
+        "id": 77,
+        "type": "corporate",
+        "customerName": "ACME Corporate",
+        "expiresAt": null,
+        "hardwareBound": true,
+        "permanent": true,
+        "machineId": machine_id,
+        "key": "RHEO-CORP-PERM-TEST"
+    });
+    let signed_payload = serde_json::to_string(&payload).unwrap();
+    let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
+    let db_record = serde_json::json!({
+        "id": 77,
+        "type": "corporate",
+        "customerName": "ACME Corporate",
+        "expiresAt": null,
+        "gracePeriodDays": 30,
+        "machineId": payload["machineId"],
+        "hardwareBound": true,
+        "permanent": true,
+        "key": "RHEO-CORP-PERM-TEST",
+        "serverSignature": server_sig,
+        "signedPayload": signed_payload,
+    });
+    {
+        let conn = pool.get().unwrap();
+        upsert_system_state(
+            &conn,
+            DB_KEY_LICENSE,
+            &serde_json::to_string(&db_record).unwrap(),
+        )
+        .unwrap();
+    }
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let result = rt.block_on(engine.check_local_startup(&pool));
+
+    assert_eq!(result.status, LicenseStatus::Active);
+    assert_eq!(result.license_type.as_deref(), Some("corporate"));
+    assert_eq!(result.days_remaining, None);
+}
+
+#[test]
+fn check_local_startup_rejects_corporate_wrong_machine() {
+    let (_db_dir, pool) = setup_test_pool();
+    let app_dir = tempfile::tempdir().unwrap();
+    let engine = LicenseEngine::new(app_dir.path().to_path_buf());
+
+    let payload = serde_json::json!({
+        "id": 78,
+        "type": "corporate",
+        "customerName": "ACME Corporate",
+        "expiresAt": null,
+        "hardwareBound": true,
+        "permanent": true,
+        "machineId": "definitely-not-this-machine",
+        "key": "RHEO-CORP-WRNG-TEST"
+    });
+    let signed_payload = serde_json::to_string(&payload).unwrap();
+    let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
+    let db_record = serde_json::json!({
+        "id": 78,
+        "type": "corporate",
+        "customerName": "ACME Corporate",
+        "expiresAt": null,
+        "gracePeriodDays": 30,
+        "machineId": "definitely-not-this-machine",
+        "hardwareBound": true,
+        "permanent": true,
+        "key": "RHEO-CORP-WRNG-TEST",
+        "serverSignature": server_sig,
+        "signedPayload": signed_payload,
+    });
+    {
+        let conn = pool.get().unwrap();
+        upsert_system_state(
+            &conn,
+            DB_KEY_LICENSE,
+            &serde_json::to_string(&db_record).unwrap(),
+        )
+        .unwrap();
+    }
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let result = rt.block_on(engine.check_local_startup(&pool));
+
+    assert_eq!(result.status, LicenseStatus::Invalid);
+    assert!(
+        result
+            .message
+            .as_deref()
+            .unwrap_or_default()
+            .contains("другого устройства"),
+        "unexpected message: {:?}",
+        result.message
+    );
+}
+
 /// Regression guard: `check_local_startup()` must complete without any
 /// network I/O.  If someone accidentally adds an HTTP call (validate_online,
 /// find_by_machine_online, register_demo_online, etc.) the 15 s reqwest
@@ -534,7 +640,7 @@ fn check_local_startup_keeps_key_path_value_only() {
 ///
 /// Both code paths are exercised:
 ///   - **Key path** (stored license in DB)
-///   - **Demo path** (no license → `check_demo`)
+///   - **Unlicensed path** (no license → invalid)
 #[test]
 fn check_local_startup_is_strictly_local_no_http() {
     // ── Key path ─────────────────────────────────────────────────────
@@ -544,11 +650,11 @@ fn check_local_startup_is_strictly_local_no_http() {
         let engine = LicenseEngine::new(app_dir.path().to_path_buf());
 
         let signed_payload =
-            r#"{"id":99,"type":"standard","customerName":"NoHTTP","expiresAt":"2099-06-01"}"#;
+            r#"{"id":99,"type":"trial","customerName":"NoHTTP","expiresAt":"2099-06-01"}"#;
         let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
         let db_record = serde_json::json!({
             "id": 99,
-            "type": "standard",
+            "type": "trial",
             "customerName": "NoHTTP",
             "expiresAt": "2099-06-01T00:00:00Z",
             "gracePeriodDays": 30,
@@ -579,7 +685,7 @@ fn check_local_startup_is_strictly_local_no_http() {
         );
     }
 
-    // ── Demo path (no stored license) ────────────────────────────────
+    // ── Unlicensed path (no stored license) ──────────────────────────
     {
         let (_db_dir, pool) = setup_test_pool();
         let app_dir = tempfile::tempdir().unwrap();
@@ -590,17 +696,10 @@ fn check_local_startup_is_strictly_local_no_http() {
         let result = rt.block_on(engine.check_local_startup(&pool));
         let elapsed = start.elapsed();
 
-        assert!(
-            matches!(
-                result.status,
-                LicenseStatus::Demo | LicenseStatus::DemoExpired
-            ),
-            "Demo path should produce Demo or DemoExpired, got {:?}",
-            result.status
-        );
+        assert_eq!(result.status, LicenseStatus::Invalid);
         assert!(
             elapsed.as_secs() < 2,
-            "Demo path took {} ms — likely made an HTTP call (budget: <2 s)",
+            "Unlicensed path took {} ms — likely made an HTTP call (budget: <2 s)",
             elapsed.as_millis()
         );
     }

@@ -33,7 +33,7 @@ class SignRsaTest extends TestCase
     public function test_sign_returns_required_keys(): void
     {
         $this->requireKeys();
-        $result = signLicenseRSA(['id' => 1, 'type' => 'standard']);
+        $result = signLicenseRSA(['id' => 1, 'type' => 'trial']);
         $this->assertArrayHasKey('signature', $result);
         $this->assertArrayHasKey('signedPayload', $result);
         $this->assertArrayHasKey('data', $result);
@@ -42,7 +42,7 @@ class SignRsaTest extends TestCase
     public function test_signed_payload_is_valid_json(): void
     {
         $this->requireKeys();
-        $data   = ['id' => 42, 'type' => 'enterprise', 'expiresAt' => '2030-01-01'];
+        $data   = ['id' => 42, 'type' => 'developer', 'expiresAt' => '2030-01-01'];
         $result = signLicenseRSA($data);
 
         $decoded = json_decode($result['signedPayload'], true);
@@ -63,7 +63,7 @@ class SignRsaTest extends TestCase
     public function test_data_field_matches_input(): void
     {
         $this->requireKeys();
-        $input  = ['id' => 7, 'type' => 'standard', 'customerName' => 'Acme Corp'];
+        $input  = ['id' => 7, 'type' => 'trial', 'customerName' => 'Acme Corp'];
         $result = signLicenseRSA($input);
         $this->assertSame($input, $result['data']);
     }
@@ -73,7 +73,7 @@ class SignRsaTest extends TestCase
     public function test_signature_verifies_with_dev_public_key(): void
     {
         $this->requireKeys();
-        $data   = ['id' => 1, 'type' => 'standard', 'expiresAt' => '2030-12-31'];
+        $data   = ['id' => 1, 'type' => 'trial', 'expiresAt' => '2030-12-31'];
         $result = signLicenseRSA($data);
 
         $pubKey         = openssl_pkey_get_public(file_get_contents(self::$publicKeyPath));
@@ -86,11 +86,11 @@ class SignRsaTest extends TestCase
     public function test_tampered_payload_fails_verification(): void
     {
         $this->requireKeys();
-        $data   = ['id' => 1, 'type' => 'standard'];
+        $data   = ['id' => 1, 'type' => 'trial'];
         $result = signLicenseRSA($data);
 
-        // Tamper: change type to 'enterprise' in the payload
-        $tampered  = str_replace('"standard"', '"enterprise"', $result['signedPayload']);
+        // Tamper: change type to 'developer' in the payload
+        $tampered  = str_replace('"trial"', '"developer"', $result['signedPayload']);
         $pubKey    = openssl_pkey_get_public(file_get_contents(self::$publicKeyPath));
         $rawSig    = base64_decode($result['signature']);
         $verifyResult = openssl_verify($tampered, $rawSig, $pubKey, OPENSSL_ALGO_SHA256);
@@ -101,7 +101,7 @@ class SignRsaTest extends TestCase
     public function test_wrong_signature_fails_verification(): void
     {
         $this->requireKeys();
-        $data   = ['id' => 1, 'type' => 'standard'];
+        $data   = ['id' => 1, 'type' => 'trial'];
         $result = signLicenseRSA($data);
 
         // Corrupt the signature by flipping the last few bytes
@@ -118,7 +118,7 @@ class SignRsaTest extends TestCase
     public function test_sign_license_wrapper_returns_same_result(): void
     {
         $this->requireKeys();
-        $data   = ['id' => 99, 'type' => 'standard'];
+        $data   = ['id' => 99, 'type' => 'trial'];
         $via    = signLicense($data);           // high-level wrapper in helpers.php
         $direct = signLicenseRSA($data);
 
@@ -135,7 +135,7 @@ class SignRsaTest extends TestCase
     public function test_unicode_customer_name_round_trips_correctly(): void
     {
         $this->requireKeys();
-        $data   = ['id' => 5, 'customerName' => 'Виталий Тест', 'type' => 'standard'];
+        $data   = ['id' => 5, 'customerName' => 'Виталий Тест', 'type' => 'trial'];
         $result = signLicenseRSA($data);
 
         $decoded = json_decode($result['signedPayload'], true);

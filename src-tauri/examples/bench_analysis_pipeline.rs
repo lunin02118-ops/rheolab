@@ -116,7 +116,9 @@ impl Args {
         while let Some(arg) = iter.next() {
             match arg.as_str() {
                 "--n" => args.n = parse_required::<usize>(&mut iter, "--n"),
-                "--iterations" => args.iterations = parse_required::<usize>(&mut iter, "--iterations"),
+                "--iterations" => {
+                    args.iterations = parse_required::<usize>(&mut iter, "--iterations")
+                }
                 "--duration-hours" => {
                     args.duration_hours = parse_required::<f64>(&mut iter, "--duration-hours")
                 }
@@ -126,8 +128,7 @@ impl Args {
                     args.load_fixture = Some(require_str(&mut iter, "--load-fixture"))
                 }
                 "--experiment-index" => {
-                    args.experiment_index =
-                        parse_required::<usize>(&mut iter, "--experiment-index")
+                    args.experiment_index = parse_required::<usize>(&mut iter, "--experiment-index")
                 }
                 "--all-experiments" => args.all_experiments = true,
                 "--quiet" => args.quiet = true,
@@ -165,16 +166,11 @@ impl Args {
     }
 }
 
-fn parse_required<T: std::str::FromStr>(
-    iter: &mut impl Iterator<Item = String>,
-    name: &str,
-) -> T {
-    iter.next()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or_else(|| {
-            eprintln!("{} requires a valid value", name);
-            process::exit(2);
-        })
+fn parse_required<T: std::str::FromStr>(iter: &mut impl Iterator<Item = String>, name: &str) -> T {
+    iter.next().and_then(|v| v.parse().ok()).unwrap_or_else(|| {
+        eprintln!("{} requires a valid value", name);
+        process::exit(2);
+    })
 }
 
 fn require_str(iter: &mut impl Iterator<Item = String>, name: &str) -> String {
@@ -217,18 +213,17 @@ fn print_help() {
 // non-trivial regression work to do — otherwise the Power-Law fit
 // degenerates to a flat line and the bench understates real CPU cost.
 
-const STEP_DURATION_SEC: f64 = 60.0;            // 1 min per step (typical API)
-const STEPS_PER_CYCLE: usize = 8;               // mixing, 100,75,50,25,25,50,75,100 mixing
-const SAMPLING_HZ: f64 = 1.0;                   // 1 Hz raw point rate (typical)
-const N_PRIME: f64 = 0.8;                       // Power-law exponent
-const K_PASN: f64 = 0.5;                        // Power-law consistency (Pa·sⁿ)
-const PAS_TO_CP: f64 = 1000.0;                  // Pa·s → cP
+const STEP_DURATION_SEC: f64 = 60.0; // 1 min per step (typical API)
+const STEPS_PER_CYCLE: usize = 8; // mixing, 100,75,50,25,25,50,75,100 mixing
+const SAMPLING_HZ: f64 = 1.0; // 1 Hz raw point rate (typical)
+const N_PRIME: f64 = 0.8; // Power-law exponent
+const K_PASN: f64 = 0.5; // Power-law consistency (Pa·sⁿ)
+const PAS_TO_CP: f64 = 1000.0; // Pa·s → cP
 
 /// Shear-rate schedule, one entry per step within one cycle.
 /// Mimics API RP 39 ramp-down + ramp-up with mixing at ends.
-const SHEAR_RATE_PROFILE: [f64; STEPS_PER_CYCLE] = [
-    100.0, 75.0, 50.0, 25.0, 25.0, 50.0, 75.0, 100.0,
-];
+const SHEAR_RATE_PROFILE: [f64; STEPS_PER_CYCLE] =
+    [100.0, 75.0, 50.0, 25.0, 25.0, 50.0, 75.0, 100.0];
 
 // ── Fixture loader ──────────────────────────────────────────────────────────
 //
@@ -335,8 +330,8 @@ fn try_load_experiment_at(
         )
         .map_err(|e| format!("read ExperimentData for '{}': {}", exp_id, e))?;
 
-    let typed = decode_typed(&blob)
-        .map_err(|e| format!("columnar decode for '{}': {}", exp_id, e))?;
+    let typed =
+        decode_typed(&blob).map_err(|e| format!("columnar decode for '{}': {}", exp_id, e))?;
 
     let n_points = typed.get("time_sec").map(|v| v.len()).unwrap_or(0);
     if n_points == 0 {
@@ -389,10 +384,7 @@ fn try_load_experiment_at(
 /// row that fails to load with a stderr warning so a single broken
 /// experiment doesn't take down the whole sweep.  Fatal only if the
 /// DB itself is unreadable or has 0 valid experiments after the loop.
-fn load_all_fixture_traces(
-    db_path: &str,
-    quiet: bool,
-) -> Vec<(Vec<RheoPoint>, FixtureMeta)> {
+fn load_all_fixture_traces(db_path: &str, quiet: bool) -> Vec<(Vec<RheoPoint>, FixtureMeta)> {
     let conn = open_fixture_db(db_path);
     let total = count_experiments(&conn);
     let mut traces: Vec<(Vec<RheoPoint>, FixtureMeta)> = Vec::with_capacity(total as usize);
@@ -500,13 +492,7 @@ fn run_pipeline(
     geometry_key: &str,
 ) -> (usize, usize, usize) {
     let n_points = points.len();
-    let output = run_full_analysis_kernel(
-        points,
-        geometry_key,
-        settings,
-        detection_settings,
-        &[],
-    );
+    let output = run_full_analysis_kernel(points, geometry_key, settings, detection_settings, &[]);
     (output.cycles.len(), output.results.len(), n_points)
 }
 
@@ -667,8 +653,7 @@ fn run_all_experiments_mode(args: &Args) {
 
     // ── Corpus aggregate ────────────────────────────────────────────
     let n_exp = measurements.len();
-    let mut all_samples: Vec<f64> =
-        Vec::with_capacity(n_exp.saturating_mul(args.iterations));
+    let mut all_samples: Vec<f64> = Vec::with_capacity(n_exp.saturating_mul(args.iterations));
     for m in &measurements {
         all_samples.extend_from_slice(&m.samples_ms);
     }
@@ -700,8 +685,12 @@ fn run_all_experiments_mode(args: &Args) {
     println!("**Experiments measured:** {}  ", n_exp);
     println!("**Iterations per experiment:** {}", args.iterations);
     println!();
-    println!("| idx | experiment | instr | geom | points | cycles | mean ms | p50 | p95 | min | max |");
-    println!("|----:|------------|-------|------|------:|-------:|--------:|----:|----:|----:|----:|");
+    println!(
+        "| idx | experiment | instr | geom | points | cycles | mean ms | p50 | p95 | min | max |"
+    );
+    println!(
+        "|----:|------------|-------|------|------:|-------:|--------:|----:|----:|----:|----:|"
+    );
     for (i, m) in measurements.iter().enumerate() {
         let name_short: String = m.meta.experiment_name.chars().take(35).collect();
         let instr_short: String = m.meta.instrument_type.chars().take(20).collect();
@@ -732,7 +721,10 @@ fn run_all_experiments_mode(args: &Args) {
     println!("| pooled wall_ms p95          | {:.2} |", pooled_p95);
     println!("| pooled wall_ms mean         | {:.2} |", pooled_mean);
     println!("| median of per-exp means     | {:.2} |", median_of_means);
-    println!("| total wall_ms per full pass | {:.2} |", total_per_iter_mean);
+    println!(
+        "| total wall_ms per full pass | {:.2} |",
+        total_per_iter_mean
+    );
 
     // ── JSON sidecar ────────────────────────────────────────────────
     if let Some(json_path) = &args.json_output {
@@ -1035,9 +1027,17 @@ fn main() {
   ]
 }}
 "#,
-            mode = if fixture_meta.is_some() { "fixture" } else { "synthetic" },
+            mode = if fixture_meta.is_some() {
+                "fixture"
+            } else {
+                "synthetic"
+            },
             n = args.n,
-            dh = if fixture_meta.is_some() { 0.0 } else { args.duration_hours },
+            dh = if fixture_meta.is_some() {
+                0.0
+            } else {
+                args.duration_hours
+            },
             tp = total_points,
             cyc = n_cycles_per_trace,
             it = wall_ms_samples.len(),

@@ -14,6 +14,66 @@ pub(crate) mod template;
 // 1.D (lands the helpers) and 1.E (starts consuming them).
 #[allow(unused_imports)]
 pub(crate) use template::{build_typst_globals, build_single_experiment_body};
+
+fn split_data_uri_payload(value: &str) -> (Option<&str>, &str) {
+    let trimmed = value.trim();
+    if let Some((header, payload)) = trimmed.split_once(',') {
+        if header.trim_start().to_ascii_lowercase().starts_with("data:") {
+            return (Some(header), payload.trim());
+        }
+    }
+    (None, trimmed)
+}
+
+fn sniff_logo_file_name(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.starts_with(b"\x89PNG\r\n\x1A\n") {
+        return Some("logo.png");
+    }
+    if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+        return Some("logo.jpg");
+    }
+    if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
+        return Some("logo.gif");
+    }
+
+    if let Ok(text) = std::str::from_utf8(bytes) {
+        let trimmed = text.trim_start_matches('\u{feff}').trim_start();
+        if trimmed.starts_with("<svg") || (trimmed.starts_with("<?xml") && trimmed.contains("<svg")) {
+            return Some("logo.svg");
+        }
+    }
+
+    None
+}
+
+fn logo_file_name_from_header(header: &str) -> Option<&'static str> {
+    let lower = header.to_ascii_lowercase();
+    if lower.contains("image/svg+xml") {
+        Some("logo.svg")
+    } else if lower.contains("image/png") {
+        Some("logo.png")
+    } else if lower.contains("image/jpeg") || lower.contains("image/jpg") {
+        Some("logo.jpg")
+    } else if lower.contains("image/gif") {
+        Some("logo.gif")
+    } else {
+        None
+    }
+}
+
+pub(crate) fn decode_company_logo_asset(value: &str) -> Option<(&'static str, Vec<u8>)> {
+    let (header, payload) = split_data_uri_payload(value);
+    let bytes = BASE64_STANDARD.decode(payload).ok()?;
+    let file_name = header
+        .and_then(logo_file_name_from_header)
+        .or_else(|| sniff_logo_file_name(&bytes))?;
+    Some((file_name, bytes))
+}
+
+pub(crate) fn company_logo_asset_name(value: &str) -> Option<&'static str> {
+    decode_company_logo_asset(value).map(|(file_name, _)| file_name)
+}
+
 pub fn generate_pdf_report(input_json: &str) -> Result<Vec<u8>, String> {
     let input: ReportInput = serde_json::from_str(input_json).map_err(|e| e.to_string())?;
     generate_pdf_from_input(&input)
@@ -25,14 +85,8 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
 
     // Decode Logo
     if let Some(logo_b64) = &input.metadata.company_logo_base64 {
-        let b64_clean = if let Some(idx) = logo_b64.find(',') {
-            &logo_b64[idx + 1..]
-        } else {
-            logo_b64
-        };
-        
-        if let Ok(bytes) = BASE64_STANDARD.decode(b64_clean) {
-             files.insert("logo.png".to_string(), bytes);
+        if let Some((file_name, bytes)) = decode_company_logo_asset(logo_b64) {
+            files.insert(file_name.to_string(), bytes);
         }
     }
 
@@ -146,10 +200,7 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
         //   where n_extra = max(n_left_axes-1, n_right_axes-1)  for individual mode
         //                 = 0                                    for shared mode
         const SVG_W: f64 = 1040.0;
-        const CHART_BODY_TARGET_PT: f64 = 422.0; // chart render height target (legend inset=3pt, size=8pt saves ~4pt vs before)
-        // A4 landscape body = 595 - top(2.5cm=71pt) - bottom(1.2cm=34pt) = 490pt
-        // Non-chart (axis label + legend + v(4pt)+v(2pt)) ≈ 35pt; #set block/par spacing:0pt
-        // → 422 target leaves 33pt buffer
+        const CHART_BODY_TARGET_PT: f64 = 395.0;
         const AXIS_SPACING_PT: f64 = 60.0; // Must match chart_generator::AXIS_SPACING_PX
         const PAGE_BASE_MARGIN_PT: f64 = 28.0; // ~1 cm from page edge
         const A4_LANDSCAPE_W_PT: f64 = 842.0;
@@ -253,4 +304,87 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
     // Compile Typst
     let typst_src = template::generate_typst_template(&input, &files, has_chart, config_out.as_ref(), ranges_out.as_ref());
     compile_to_pdf(&typst_src, files)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn svg_logo_data_uri() -> String {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="#0F172A"/></svg>"##;
+        format!("data:image/svg+xml;base64,{}", BASE64_STANDARD.encode(svg))
+    }
+
+    fn minimal_input(company_logo_base64: Option<String>) -> ReportInput {
+        ReportInput {
+            raw_data: vec![],
+            metadata: ReportMetadata {
+                filename: "logo-test".to_string(),
+                company_name: Some("RheoLab".to_string()),
+                company_logo_base64,
+                ..Default::default()
+            },
+            cycle_results: vec![],
+            recipe: vec![],
+            water_params: None,
+            cycles: vec![],
+            settings: ReportSettings::default(),
+            chart_image_base64: None,
+            axis_values: None,
+        }
+    }
+
+    fn minimal_chart_config() -> ChartConfig {
+        ChartConfig {
+            show_temperature: false,
+            show_shear_rate: false,
+            show_pressure: false,
+            show_bath_temperature: false,
+            shear_rate_axis: "right".to_string(),
+            pressure_axis: "right".to_string(),
+            axis_mode: "shared".to_string(),
+            width: 1040,
+            height: 617,
+            label_left: "Viscosity".to_string(),
+            label_right: String::new(),
+            label_bottom: "Time (min)".to_string(),
+            name_viscosity: "Viscosity".to_string(),
+            name_temperature: "Temperature".to_string(),
+            name_shear_rate: "Shear rate".to_string(),
+            name_pressure: "Pressure".to_string(),
+            name_bath_temperature: "Bath temperature".to_string(),
+            touch_points: vec![],
+            viscosity_threshold: None,
+            line_styles: None,
+            skip_downsample: true,
+            time_format: "minutes".to_string(),
+        }
+    }
+
+    #[test]
+    fn detects_svg_logo_data_uri() {
+        assert_eq!(company_logo_asset_name(&svg_logo_data_uri()), Some("logo.svg"));
+    }
+
+    #[test]
+    fn pdf_compiles_with_svg_company_logo() {
+        let input = minimal_input(Some(svg_logo_data_uri()));
+        let pdf = generate_pdf_from_input(&input).expect("PDF should compile with SVG logo");
+        assert!(pdf.starts_with(b"%PDF-"));
+    }
+
+    #[test]
+    fn single_report_chart_page_matches_experiment_header_margins() {
+        let input = minimal_input(None);
+        let files = HashMap::new();
+        let chart_config = minimal_chart_config();
+        let src = template::generate_typst_template(&input, &files, true, Some(&chart_config), None);
+
+        assert!(src.contains("margin: (top: 3.5cm, bottom: 2cm, x: 1cm)"),
+            "global experiment page margins must remain the baseline");
+        assert!(src.contains("flipped: true, margin: (top: 3.5cm, bottom: 2cm"),
+            "single-report chart page must align header height with experiment pages");
+        assert!(!src.contains("top: 2.5cm"));
+        assert!(!src.contains("bottom: 1.2cm"));
+    }
 }

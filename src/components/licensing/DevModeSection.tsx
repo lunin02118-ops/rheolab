@@ -100,7 +100,7 @@ export function DevModeSection({
 
     const getLicenseIcon = (type: string) => {
         switch (type) {
-            case 'enterprise': return <ShieldCheck className="w-4 h-4 text-purple-400" />;
+            case 'corporate': return <ShieldCheck className="w-4 h-4 text-purple-400" />;
             case 'developer': return <Bug className="w-4 h-4 text-orange-400" />;
             default: return <Shield className="w-4 h-4 text-blue-400" />;
         }

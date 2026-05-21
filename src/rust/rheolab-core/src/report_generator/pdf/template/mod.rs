@@ -23,6 +23,7 @@ mod tests;
 use super::super::types::*;
 use super::super::formatters::{format_date, format_number, build_ramp_string};
 use super::super::chart_generator::{ChartConfig, ChartRanges};
+use super::company_logo_asset_name;
 use std::collections::HashMap;
 
 use helpers::escape_typst;
@@ -73,11 +74,13 @@ pub(crate) fn build_typst_globals(
     let f_generated = if is_ru { "Сгенерировано:" } else { "Generated:" };
     let f_page = if is_ru { "Страница" } else { "Page" };
 
-    let logo_block = if input.metadata.company_logo_base64.is_some() {
-        r#"image("logo.png", width: 40pt)"#.to_string()
-    } else {
-        "none".to_string()
-    };
+    let logo_block = input
+        .metadata
+        .company_logo_base64
+        .as_deref()
+        .and_then(company_logo_asset_name)
+        .map(|file_name| format!(r#"image("{file_name}", width: 40pt)"#))
+        .unwrap_or_else(|| "none".to_string());
 
     format!(r##"
 #set page(paper: "a4", margin: (x: 28pt, y: 30pt))

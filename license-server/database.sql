@@ -2,7 +2,7 @@
 -- MySQL 5.7+ / MariaDB 10.3+
 -- 
 -- This is the CANONICAL schema — all migrations are consolidated here.
--- Last updated: 2026-02-28
+-- Last updated: 2026-05-20
 
 CREATE DATABASE IF NOT EXISTS rheolab_license 
 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -19,11 +19,12 @@ CREATE TABLE IF NOT EXISTS schema_version (
 INSERT IGNORE INTO schema_version (version, description) VALUES
 (1, 'Initial schema: license_keys, activation_log, admins'),
 (2, 'Add rate_limits table'),
-(3, 'Add demo_users table'),
+(3, 'Legacy demo_users table removed from canonical schema'),
 (4, 'Add developer license type'),
-(5, 'Add discovery/demo/migrate_machine to activation_log ENUM'),
+(5, 'Add discovery/migrate_machine to activation_log ENUM'),
 (6, 'Add user_agent to activation_log'),
-(7, 'Allow NULL license_id on activation_log for discovery miss audit');
+(7, 'Allow NULL license_id on activation_log for discovery miss audit'),
+(8, 'Normalize license types to trial/corporate/developer/superuser and allow permanent corporate licenses');
 
 -- ─── Лицензионные ключи ──────────────────────────────────────
 CREATE TABLE IF NOT EXISTS license_keys (
@@ -36,9 +37,9 @@ CREATE TABLE IF NOT EXISTS license_keys (
     organization VARCHAR(255),
     phone VARCHAR(50),
     
-    -- Тип лицензии. See migrations/add_superuser_type.sql — kept in sync
-    -- with src-tauri/src/commands/licensing/types.rs::LicenseType.
-    license_type ENUM('trial', 'standard', 'professional', 'enterprise', 'developer', 'superuser') DEFAULT 'standard',
+    -- Тип лицензии. Kept in sync with
+    -- src-tauri/src/commands/licensing/types.rs::LicenseType.
+    license_type ENUM('trial', 'corporate', 'developer', 'superuser') DEFAULT 'corporate',
     
     -- Лимиты
     max_activations INT DEFAULT 1,
@@ -52,7 +53,7 @@ CREATE TABLE IF NOT EXISTS license_keys (
     -- Даты
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     activated_at DATETIME,
-    expires_at DATETIME NOT NULL,
+    expires_at DATETIME NULL,
     last_check_at DATETIME,
     
     -- Статус
@@ -76,7 +77,7 @@ CREATE TABLE IF NOT EXISTS activation_log (
     license_id INT NULL,
     machine_id VARCHAR(64),
     ip_address VARCHAR(45),
-    action ENUM('activate', 'validate', 'deactivate', 'check', 'discovery', 'demo', 'migrate_machine') NOT NULL,
+    action ENUM('activate', 'validate', 'deactivate', 'check', 'discovery', 'migrate_machine') NOT NULL,
     success BOOLEAN DEFAULT TRUE,
     error_message VARCHAR(255),
     user_agent VARCHAR(255),
@@ -106,16 +107,6 @@ CREATE TABLE IF NOT EXISTS rate_limits (
     expires_at DATETIME NOT NULL,
     INDEX idx_rate_key (rate_key),
     INDEX idx_expires (expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ─── Демо-пользователи ──────────────────────────────────────
-CREATE TABLE IF NOT EXISTS demo_users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    machine_id VARCHAR(64) UNIQUE NOT NULL,
-    first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    ip_address VARCHAR(45),
-    INDEX idx_machine_id (machine_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Администратор должен быть создан через install.sh с уникальным паролем.

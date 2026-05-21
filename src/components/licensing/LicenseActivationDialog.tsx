@@ -30,6 +30,21 @@ interface LicenseActivationDialogProps {
     blockMessage?: string;
 }
 
+function formatLicenseType(type: string) {
+    switch (type) {
+        case 'corporate':
+            return 'Корпоративная';
+        case 'trial':
+            return 'Пробная';
+        case 'developer':
+            return 'Developer';
+        case 'superuser':
+            return 'Superuser';
+        default:
+            return type;
+    }
+}
+
 export function LicenseActivationDialog({
     open,
     onOpenChange,
@@ -136,7 +151,7 @@ export function LicenseActivationDialog({
         setIsGeneratingOfflineRequest(true);
         setActivationResult(null);
         try {
-            const request = await createOfflineActivationRequest(licenseKey || undefined);
+            const request = await createOfflineActivationRequest();
             setOfflineRequestCode(request.requestCode);
         } catch (_e) {
             setActivationResult({
@@ -197,7 +212,7 @@ export function LicenseActivationDialog({
                         Активация лицензии
                     </DialogTitle>
                     <DialogDescription>
-                        Введите ключ лицензии для активации полной версии RheoLab Enterprise
+                        Введите ключ лицензии для активации RheoLab
                     </DialogDescription>
                 </DialogHeader>
 
@@ -217,15 +232,16 @@ export function LicenseActivationDialog({
 
                                     <span className="text-muted-foreground">Тип:</span>
                                     <span className="font-medium">
-                                        {result.license.type === 'standard' ? 'Стандартная' :
-                                            result.license.type === 'enterprise' ? 'Enterprise' : result.license.type}
+                                        {formatLicenseType(result.license.type)}
                                     </span>
 
-                                    <span className="text-muted-foreground">Истекает:</span>
+                                    <span className="text-muted-foreground">Срок:</span>
                                     <span className="font-medium">
-                                        {new Date(result.license.expiresAt).toLocaleDateString('ru-RU', {
-                                            day: 'numeric', month: 'long', year: 'numeric'
-                                        })}
+                                        {result.license.expiresAt
+                                            ? result.license.expiresAt.toLocaleDateString('ru-RU', {
+                                                day: 'numeric', month: 'long', year: 'numeric'
+                                            })
+                                            : 'Постоянная'}
                                     </span>
 
                                     {result.key && (
@@ -261,7 +277,7 @@ export function LicenseActivationDialog({
                         </div>
                     ) : (
                         <>
-                            {/* Текущий статус (для Demo/Expired/Invalid) */}
+                            {/* Текущий статус */}
                             {(result || blockMessage) && (
                                 <div className={`p-3 rounded-md text-sm mb-4 ${(result?.status === 'invalid' || result?.status === 'demo_expired' || blockMessage)
                                     ? 'bg-destructive/15 text-destructive border border-destructive/20'
@@ -277,7 +293,7 @@ export function LicenseActivationDialog({
                             <Tabs value={activationMode} onValueChange={value => setActivationMode(value as 'online' | 'offline')}>
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="online">Онлайн</TabsTrigger>
-                                    <TabsTrigger value="offline">Офлайн Enterprise</TabsTrigger>
+                                    <TabsTrigger value="offline">Офлайн Corporate</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="online" className="space-y-2 pt-2">
                                     <Label htmlFor="license-key">Ключ лицензии</Label>
@@ -294,16 +310,6 @@ export function LicenseActivationDialog({
                                     </div>
                                 </TabsContent>
                                 <TabsContent value="offline" className="space-y-3 pt-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="offline-license-key">Ключ или номер договора</Label>
-                                        <Input
-                                            id="offline-license-key"
-                                            placeholder="опционально"
-                                            value={licenseKey}
-                                            onChange={e => setLicenseKey(e.target.value)}
-                                            disabled={isActivating || isGeneratingOfflineRequest}
-                                        />
-                                    </div>
                                     <div className="flex items-center gap-2">
                                         <Button
                                             type="button"
@@ -337,7 +343,7 @@ export function LicenseActivationDialog({
                                             id="offline-activation-code"
                                             value={offlineActivationCode}
                                             onChange={e => setOfflineActivationCode(e.target.value)}
-                                            placeholder="RHEOLAB-OFFLINE-ACT-v1:..."
+                                            placeholder="RL-ACT1:..."
                                             className="min-h-[96px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-xs text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                             disabled={isActivating}
                                         />

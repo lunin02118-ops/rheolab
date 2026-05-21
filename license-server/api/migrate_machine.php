@@ -101,7 +101,7 @@ foreach ($legacyMachineIds as $legacyId) {
 
 if (!$matched) {
     logAction($db, $license['id'], $newMachineId, 'migrate_machine', false,
-        'No legacy ID match. Stored: ' . $storedId . ', Provided: ' . implode(',', $legacyMachineIds));
+        'No legacy ID match. Provided legacy IDs: ' . count($legacyMachineIds));
     jsonError('Ни один из устаревших Machine ID не соответствует текущей привязке', 403);
 }
 

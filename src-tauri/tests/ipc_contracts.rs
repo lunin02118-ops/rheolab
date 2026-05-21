@@ -8,7 +8,7 @@
 //!
 //!   cargo test --test ipc_contracts -- --nocapture
 
-use rheolab_enterprise::commands::experiments::types::StoredExperiment;
+use rheolab_enterprise::commands::experiments::types::{RheologyParameterSource, StoredExperiment};
 use rheolab_enterprise::db::migration::run_migrations;
 use rheolab_enterprise::db::repositories::experiments::{
     ExperimentRepository, SqliteExperimentRepository,
@@ -79,6 +79,8 @@ fn minimal_experiment(id: &str, user_id: &str) -> StoredExperiment {
         viscosity_min: None,
         pressure_max: None,
         extra_fields: None,
+        rheology_source: RheologyParameterSource::Program,
+        rheology_parameters: vec![],
     }
 }
 

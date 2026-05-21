@@ -184,6 +184,7 @@ fn parse_csv_rows_with_override(
             geometry_source,
             used_ai: false,
         },
+        instrument_rheology: Vec::new(),
     })
 }
 
@@ -305,5 +306,6 @@ fn parse_csv_rows(rows: &[Vec<String>], filename: &str) -> Result<ParsingResult,
             geometry_source,
             used_ai: false,
         },
+        instrument_rheology: Vec::new(),
     })
 }

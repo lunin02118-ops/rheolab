@@ -12,7 +12,7 @@
  * Channel ladder (highest → lowest privilege):
  *   alpha   — Superuser  licences (project owner's personal QA tier)
  *   beta    — Developer  licences (internal dev team)
- *   stable  — everything else (Standard / Enterprise / Trial / Demo)
+ *   stable  — everything else (Corporate / Trial)
  *
  * - Superuser clients send   X-Update-Channel: alpha  + X-Update-Token: <HMAC>
  * - Developer clients send   X-Update-Channel: beta   + X-Update-Token: <HMAC>

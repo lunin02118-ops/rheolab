@@ -28,10 +28,11 @@
 //! checks).  End-to-end PDF bytes verification lives in Phase 1.H's
 //! integration test, which is gated behind `#[cfg(test)]` + a feature flag.
 
-use base64::prelude::*;
 use std::collections::HashMap;
 
-use super::super::pdf::{build_single_experiment_body, build_typst_globals};
+use super::super::pdf::{
+    build_single_experiment_body, build_typst_globals, decode_company_logo_asset,
+};
 use super::super::typst_renderer::compile_to_pdf;
 use super::types::ComparisonReportInput;
 
@@ -86,9 +87,8 @@ pub(crate) fn build_comparison_typst_source(
     let logo_source = input.company_logo_base64.as_ref()
         .or(anchor_input.metadata.company_logo_base64.as_ref());
     if let Some(logo_b64) = logo_source {
-        let clean = logo_b64.split_once(',').map(|(_, s)| s).unwrap_or(logo_b64);
-        if let Ok(bytes) = BASE64_STANDARD.decode(clean) {
-            files.insert("logo.png".to_string(), bytes);
+        if let Some((file_name, bytes)) = decode_company_logo_asset(logo_b64) {
+            files.insert(file_name.to_string(), bytes);
         }
     }
 
@@ -112,6 +112,9 @@ pub(crate) fn build_comparison_typst_source(
     // the comparison payload supplies one.
     if let Some(name) = &input.company_name {
         effective_anchor.metadata.company_name = Some(name.clone());
+    }
+    if let Some(logo_b64) = logo_source {
+        effective_anchor.metadata.company_logo_base64 = Some(logo_b64.clone());
     }
     let globals = build_typst_globals(&effective_anchor, total_pages);
 
@@ -154,6 +157,7 @@ pub(crate) fn build_comparison_typst_source(
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
+    use base64::prelude::*;
     use super::super::super::types::{DataPoint, ReportInput, ReportMetadata, ReportSettings};
     use super::super::types::{
         ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics,
@@ -244,6 +248,11 @@ pub(super) mod tests {
             },
             experiments: entries,
         }
+    }
+
+    fn svg_logo_data_uri() -> String {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="#0F172A"/></svg>"##;
+        format!("data:image/svg+xml;base64,{}", BASE64_STANDARD.encode(svg))
     }
 
     #[test]
@@ -348,6 +357,35 @@ pub(super) mod tests {
 
         // Body markers should be present 3×.
         assert_eq!(src.matches("// --- Page 1 Content ---").count(), 3);
+    }
+
+    #[test]
+    fn source_uses_svg_logo_when_comparison_settings_provide_svg() {
+        let entries = vec![mk_entry("e1", "A", mk_input("T-1", 5))];
+        let mut input = mk_input_full(entries);
+        input.company_logo_base64 = Some(svg_logo_data_uri());
+
+        let (src, files) = build_comparison_typst_source(&input).expect("build source");
+
+        assert!(files.contains_key("logo.svg"));
+        assert!(!files.contains_key("logo.png"));
+        assert!(src.contains(r#"image("logo.svg", width: 40pt)"#));
+    }
+
+    #[test]
+    fn comparison_pages_match_experiment_header_margins() {
+        let entries = vec![mk_entry("e1", "A", mk_input("T-1", 5))];
+        let input = mk_input_full(entries);
+        let (src, _) = build_comparison_typst_source(&input).expect("build source");
+
+        assert!(src.contains("margin: (top: 3.5cm, bottom: 2cm, x: 1cm)"),
+            "global experiment page margins must remain the baseline");
+        assert!(src.contains("flipped: true, margin: (top: 3.5cm, bottom: 2cm"),
+            "comparison chart page must align header height with experiment pages");
+        assert!(src.contains("flipped: false, margin: (top: 3.5cm, bottom: 2cm"),
+            "comparison summary page must align header height with experiment pages");
+        assert!(!src.contains("top: 2.5cm"));
+        assert!(!src.contains("bottom: 1.2cm"));
     }
 
     #[test]

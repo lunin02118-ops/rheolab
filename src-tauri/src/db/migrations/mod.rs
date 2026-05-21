@@ -9,6 +9,7 @@ pub mod v0006_artifact_import_batch_indexes;
 pub mod v0007_fk_indexes;
 pub mod v0008_analysis_artifact;
 pub mod v0009_experiment_list_projection;
+pub mod v0010_experiment_rheology_parameters;
 
 pub use error::MigrationError;
 pub use r#trait::Migration;
@@ -22,6 +23,7 @@ use v0006_artifact_import_batch_indexes::V0006ArtifactImportBatchIndexes;
 use v0007_fk_indexes::V0007FkIndexes;
 use v0008_analysis_artifact::V0008AnalysisArtifact;
 use v0009_experiment_list_projection::V0009ExperimentListProjection;
+use v0010_experiment_rheology_parameters::V0010ExperimentRheologyParameters;
 
 /// Ordered registry of all schema migrations, applied oldest-first on startup.
 ///
@@ -42,6 +44,7 @@ pub static MIGRATIONS: &[&dyn Migration] = &[
     &V0007FkIndexes,
     &V0008AnalysisArtifact,
     &V0009ExperimentListProjection,
+    &V0010ExperimentRheologyParameters,
 ];
 
 /// Returns the version of the last registered migration, or `0` if the

@@ -111,7 +111,7 @@ describe('useReportExportById', () => {
         });
 
         const request = vi.mocked(generatePdfReportByIdBytes).mock.calls[0][0];
-        expect(request.settings.reportSettings.showAdvancedStats).toBe(false);
+        expect(request.settings.reportSettings.showAdvancedStats).toBe(true);
         expect(request.settings.reportSettings.reportViscosityRates).toEqual([...DEFAULT_VISCOSITY_SHEAR_RATES]);
         expect(request.settings.analysisSettings).toEqual({
             pointsToAverage: 1,

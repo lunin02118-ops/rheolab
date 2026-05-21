@@ -6,9 +6,20 @@
  *   - Comparison: no experiments selected → shows "Добавить тест" button
  */
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React, { Suspense } from 'react';
+
+const libraryMocks = vi.hoisted(() => ({
+    lastFiltersProps: null as null | {
+        filters: Record<string, unknown>;
+        onChange: (filters: Record<string, unknown>) => void;
+    },
+    lastListProps: null as null | {
+        filters: Record<string, unknown>;
+        viewMode: string;
+    },
+}));
 
 // ════════════════════════════════════════════════════════════════════════════
 // 1. Comparison Page — no experiments selected
@@ -106,11 +117,36 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('@/components/library/experiment-filters', () => ({
-    ExperimentFilters: () => <div data-testid="MockExperimentFilters" />,
+    ExperimentFilters: (props: {
+        filters: Record<string, unknown>;
+        onChange: (filters: Record<string, unknown>) => void;
+    }) => {
+        libraryMocks.lastFiltersProps = props;
+        return (
+            <button
+                type="button"
+                data-testid="MockExperimentFilters"
+                onClick={() => props.onChange({
+                    ...props.filters,
+                    searchQuery: 'session search',
+                    reagentNames: ['Guar'],
+                    hasCrossing: 'yes',
+                })}
+            >
+                {String(props.filters.searchQuery ?? '')}
+            </button>
+        );
+    },
 }));
 
 vi.mock('@/components/library/experiment-list', () => ({
-    ExperimentList: () => <div data-testid="MockExperimentList" />,
+    ExperimentList: (props: {
+        filters: Record<string, unknown>;
+        viewMode: string;
+    }) => {
+        libraryMocks.lastListProps = props;
+        return <div data-testid="MockExperimentList" />;
+    },
 }));
 
 vi.mock('@/components/library/reagents-manager', () => ({
@@ -118,6 +154,13 @@ vi.mock('@/components/library/reagents-manager', () => ({
 }));
 
 describe('LibraryPage — initial render', () => {
+    beforeEach(() => {
+        sessionStorage.clear();
+        localStorage.clear();
+        libraryMocks.lastFiltersProps = null;
+        libraryMocks.lastListProps = null;
+    });
+
     it('renders the library page root element', async () => {
         const { default: LibraryPage } = await import('@/app/dashboard/library/page');
         render(<LibraryPage />);
@@ -139,5 +182,45 @@ describe('LibraryPage — initial render', () => {
         const { default: LibraryPage } = await import('@/app/dashboard/library/page');
         render(<LibraryPage />);
         expect(screen.getByTestId('MockExperimentList')).toBeDefined();
+    });
+
+    it('restores library filters from sessionStorage', async () => {
+        sessionStorage.setItem('rheolab-library-filters', JSON.stringify({
+            searchQuery: 'saved query',
+            reagentNames: ['Guar', 42],
+            hasCrossing: 'yes',
+        }));
+        const { default: LibraryPage } = await import('@/app/dashboard/library/page');
+
+        render(<LibraryPage />);
+
+        expect(libraryMocks.lastFiltersProps?.filters.searchQuery).toBe('saved query');
+        expect(libraryMocks.lastFiltersProps?.filters.reagentNames).toEqual(['Guar']);
+        expect(libraryMocks.lastFiltersProps?.filters.hasCrossing).toBe('yes');
+        expect(libraryMocks.lastListProps?.filters.searchQuery).toBe('saved query');
+    });
+
+    it('persists library filter changes for the current session', async () => {
+        const { default: LibraryPage } = await import('@/app/dashboard/library/page');
+
+        render(<LibraryPage />);
+        fireEvent.click(screen.getByTestId('MockExperimentFilters'));
+
+        const stored = JSON.parse(sessionStorage.getItem('rheolab-library-filters') ?? '{}');
+        expect(stored.searchQuery).toBe('session search');
+        expect(stored.reagentNames).toEqual(['Guar']);
+        expect(stored.hasCrossing).toBe('yes');
+    });
+
+    it('keeps filters after leaving and returning to the library page', async () => {
+        const { default: LibraryPage } = await import('@/app/dashboard/library/page');
+        const first = render(<LibraryPage />);
+
+        fireEvent.click(screen.getByTestId('MockExperimentFilters'));
+        first.unmount();
+        render(<LibraryPage />);
+
+        expect(libraryMocks.lastFiltersProps?.filters.searchQuery).toBe('session search');
+        expect(libraryMocks.lastListProps?.filters.searchQuery).toBe('session search');
     });
 });

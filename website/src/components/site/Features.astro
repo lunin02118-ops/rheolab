@@ -17,7 +17,7 @@ const capabilities = [
   {
     index: '03',
     title: 'Сравнение анализов',
-    text: 'Накладывает несколько экспериментов на общие графики по вязкости, температуре, давлению, скорости, скорости и напряжению сдвига.',
+    text: 'Накладывает несколько экспериментов на общие графики по вязкости, температуре, давлению, скорости вращения, скорости сдвига и напряжению сдвига.',
     facts: ['единые оси', 'несколько серий', 'быстрый визуальный контроль'],
     tone: 'blue',
   },
@@ -322,20 +322,21 @@ const workflow = [
 
   @media (max-width: 640px) {
     .site-features {
-      padding: 6.25rem 0;
+      padding: 4.75rem 0;
     }
 
     .site-section-header {
-      margin-bottom: 3rem;
+      margin-bottom: 2.25rem;
       text-align: left;
     }
 
     .site-section-header h2 {
-      font-size: 2.05rem;
+      font-size: clamp(1.85rem, 8.6vw, 2.25rem);
     }
 
     .site-section-header p {
-      font-size: 1.05rem;
+      font-size: 1rem;
+      line-height: 1.58;
     }
 
     .site-capability-grid,
@@ -345,16 +346,56 @@ const workflow = [
 
     .site-capability-card {
       min-height: auto;
-      padding: 1.45rem;
+      padding: 1.25rem;
     }
 
     .site-capability-card h3 {
       min-height: 0;
-      font-size: 1.35rem;
+      font-size: 1.22rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .site-capability-card p {
+      font-size: 0.96rem;
+      line-height: 1.55;
+    }
+
+    .site-capability-card li {
+      font-size: 0.9rem;
     }
 
     .site-workflow-panel {
-      padding: 1.45rem;
+      gap: 1.35rem;
+      padding: 1.25rem;
+    }
+
+    .site-workflow-copy h3 {
+      font-size: 1.42rem;
+    }
+
+    .site-workflow-copy p {
+      font-size: 0.96rem;
+    }
+
+    .site-workflow-steps {
+      gap: 0.7rem;
+    }
+
+    .site-workflow-steps li {
+      min-height: auto;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: start;
+      padding: 0.9rem;
+    }
+
+    .site-workflow-steps span {
+      margin-bottom: 0;
+    }
+
+    .site-workflow-steps strong {
+      font-size: 0.95rem;
     }
   }
 </style>

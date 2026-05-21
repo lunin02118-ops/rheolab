@@ -335,7 +335,7 @@ test.describe('[RC Manual Smoke/Tauri] saved Report tab by-id', () => {
     expect(beginnerRequestEvent).toBeTruthy();
     const beginnerRequest = beginnerRequestEvent!.request;
     expect(beginnerRequest.experimentId).toBe(experimentId);
-    expect(beginnerRequest.settings?.reportSettings?.showAdvancedStats).toBe(false);
+    expect(beginnerRequest.settings?.reportSettings?.showAdvancedStats).toBe(true);
     expect(beginnerRequest.settings?.reportSettings?.reportViscosityRates).toEqual(DEFAULT_BEGINNER_RATES);
     expect(beginnerRequest.settings?.analysisSettings).toEqual({
       pointsToAverage: 1,

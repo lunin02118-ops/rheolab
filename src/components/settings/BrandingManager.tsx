@@ -45,7 +45,7 @@ export function BrandingManager() {
                             <input
                                 type="file"
                                 id="settings-logo-upload"
-                                accept="image/*"
+                                accept="image/png,image/jpeg,image/svg+xml,image/gif"
                                 onChange={handleLogoUpload}
                                 className="hidden"
                             />

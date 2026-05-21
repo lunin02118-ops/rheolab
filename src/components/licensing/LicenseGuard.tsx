@@ -36,7 +36,7 @@ export function LicenseGuard() {
 
     // Определяем сообщение для разных случаев
     const message = result?.status === 'invalid'
-        ? result?.message || 'Для активации пробной версии требуется подключение к интернету!'
+        ? result?.message || 'Лицензия не активирована. Введите trial или corporate ключ.'
         : undefined;
 
     return (

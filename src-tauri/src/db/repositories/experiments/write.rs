@@ -84,8 +84,8 @@ pub(crate) fn persist_experiment(
           name, fieldName, operatorName, wellNumber, testId, waterSource, waterParams, \
           fluidType, testGroup, testSubGroup, metrics, rawPoints, calibration, userId, laboratoryId, \
           parsedBy, parseSource, timeRangeMin, timeRangeMax, viscosityMin, pressureMax, extraFields, \
-          testCategory, testType, dominantPattern) \
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31,?32,?33,?34,?35,?36,?37,?38) \
+          testCategory, testType, dominantPattern, rheologySource) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31,?32,?33,?34,?35,?36,?37,?38,?39) \
          ON CONFLICT(id) DO UPDATE SET \
            updatedAt = excluded.updatedAt, \
            originalFilename = excluded.originalFilename, \
@@ -122,7 +122,8 @@ pub(crate) fn persist_experiment(
            extraFields = excluded.extraFields, \
            testCategory = excluded.testCategory, \
            testType = excluded.testType, \
-           dominantPattern = excluded.dominantPattern",
+           dominantPattern = excluded.dominantPattern, \
+           rheologySource = excluded.rheologySource",
         params![
             exp.id,
             exp.created_at,
@@ -162,6 +163,7 @@ pub(crate) fn persist_experiment(
             exp.test_category,
             exp.test_type,
             exp.dominant_pattern,
+            exp.rheology_source.as_str(),
         ],
     )
     .map_err(|e| format!("SQL error (experiment insert): {}", e))?;
@@ -199,6 +201,8 @@ pub(crate) fn persist_experiment(
             e
         );
     }
+
+    replace_rheology_parameters(conn, exp)?;
 
     // PR2: Precompute touch-point metrics under the fixed library contract
     // (threshold = 50 cP, target_time = 10 min) so the experiment-library
@@ -260,6 +264,78 @@ pub(crate) fn persist_experiment(
             exp.id,
             e
         );
+    }
+
+    Ok(())
+}
+
+fn replace_rheology_parameters(conn: &rusqlite::Connection, exp: &StoredExperiment) -> Result<()> {
+    conn.execute(
+        "DELETE FROM ExperimentRheologyParameter WHERE experimentId = ?1",
+        params![exp.id],
+    )
+    .map_err(|e| format!("SQL error (rheology parameter cleanup): {}", e))?;
+
+    for row in &exp.rheology_parameters {
+        let viscosities_json =
+            serde_json::to_string(&row.viscosities).unwrap_or_else(|_| "{}".to_string());
+        let units_json = serde_json::to_string(&row.units).unwrap_or_else(|_| "{}".to_string());
+
+        conn.execute(
+            "INSERT INTO ExperimentRheologyParameter \
+             (experimentId, source, cycleNo, timeMin, endTimeMin, tempC, pressureBar, \
+              nPrime, kvPaSn, kPrimePaSn, kSlotPaSn, kPipePaSn, r2, viscositiesJson, \
+              binghamPvPaS, binghamYpPa, binghamR2, calcPoints, sourceSheet, sourceRow, \
+              unitsJson, createdAt, updatedAt) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, \
+                     ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23) \
+             ON CONFLICT(experimentId, source, cycleNo) DO UPDATE SET \
+               timeMin = excluded.timeMin, \
+               endTimeMin = excluded.endTimeMin, \
+               tempC = excluded.tempC, \
+               pressureBar = excluded.pressureBar, \
+               nPrime = excluded.nPrime, \
+               kvPaSn = excluded.kvPaSn, \
+               kPrimePaSn = excluded.kPrimePaSn, \
+               kSlotPaSn = excluded.kSlotPaSn, \
+               kPipePaSn = excluded.kPipePaSn, \
+               r2 = excluded.r2, \
+               viscositiesJson = excluded.viscositiesJson, \
+               binghamPvPaS = excluded.binghamPvPaS, \
+               binghamYpPa = excluded.binghamYpPa, \
+               binghamR2 = excluded.binghamR2, \
+               calcPoints = excluded.calcPoints, \
+               sourceSheet = excluded.sourceSheet, \
+               sourceRow = excluded.sourceRow, \
+               unitsJson = excluded.unitsJson, \
+               updatedAt = excluded.updatedAt",
+            params![
+                exp.id,
+                row.source.as_str(),
+                row.cycle_no,
+                row.time_min,
+                row.end_time_min,
+                row.temp_c,
+                row.pressure_bar,
+                row.n_prime,
+                row.kv_pasn,
+                row.k_prime_pasn,
+                row.k_slot_pasn,
+                row.k_pipe_pasn,
+                row.r2,
+                viscosities_json,
+                row.bingham_pv_pas,
+                row.bingham_yp_pa,
+                row.bingham_r2,
+                row.calc_points,
+                row.source_sheet,
+                row.source_row,
+                units_json,
+                exp.created_at,
+                exp.updated_at,
+            ],
+        )
+        .map_err(|e| format!("SQL error (rheology parameter insert): {}", e))?;
     }
 
     Ok(())

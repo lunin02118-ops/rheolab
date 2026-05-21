@@ -265,7 +265,7 @@ describe('isWatermarkRequired()', () => {
         useLicenseStore.setState({
             result: {
                 status: 'active', source: 'key', showWarning: false,
-                license: { id: '', type: 'standard', customerName: '', issuedAt: new Date(), expiresAt: new Date(), gracePeriodDays: 30, features: { watermark: true, maxExperiments: -1, maxComparisonExperiments: 4, exportPdf: true, exportExcel: true, aiParsing: false, comparison: false, calibrationAnalysis: false, calibrationParsing: false, chandler5550Support: false, bslR1Support: false } },
+                license: { id: '', type: 'trial', customerName: '', issuedAt: new Date(), expiresAt: new Date(), gracePeriodDays: 30, features: { watermark: true, maxExperiments: -1, maxComparisonExperiments: 4, exportPdf: true, exportExcel: true, aiParsing: false, comparison: false, calibrationAnalysis: false, calibrationParsing: false, chandler5550Support: false, bslR1Support: false } },
             },
         });
         expect(useLicenseStore.getState().isWatermarkRequired()).toBe(true);
@@ -275,7 +275,7 @@ describe('isWatermarkRequired()', () => {
         useLicenseStore.setState({
             result: {
                 status: 'active', source: 'key', showWarning: false,
-                license: { id: '', type: 'standard', customerName: '', issuedAt: new Date(), expiresAt: new Date(), gracePeriodDays: 30, features: { watermark: false, maxExperiments: -1, maxComparisonExperiments: 4, exportPdf: true, exportExcel: true, aiParsing: false, comparison: false, calibrationAnalysis: false, calibrationParsing: false, chandler5550Support: false, bslR1Support: false } },
+                license: { id: '', type: 'corporate', customerName: '', issuedAt: new Date(), expiresAt: undefined, gracePeriodDays: 30, features: { watermark: false, maxExperiments: -1, maxComparisonExperiments: 4, exportPdf: true, exportExcel: true, aiParsing: false, comparison: false, calibrationAnalysis: false, calibrationParsing: false, chandler5550Support: false, bslR1Support: false } },
             },
         });
         expect(useLicenseStore.getState().isWatermarkRequired()).toBe(false);

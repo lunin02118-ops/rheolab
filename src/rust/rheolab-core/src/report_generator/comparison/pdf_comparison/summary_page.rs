@@ -68,7 +68,7 @@ pub(super) fn build_summary_table_page(
     // header cell so the data cells stay narrow.
     format!(r##"
 #pagebreak()
-#page(paper: "a4", flipped: false, margin: (top: 2.5cm, bottom: 1.2cm, left: 2cm, right: 2cm))[
+#page(paper: "a4", flipped: false, margin: (top: 3.5cm, bottom: 2cm, left: 2cm, right: 2cm))[
 
 #text(size: 14pt, weight: "bold", fill: rgb("#0F172A"))[{title}]
 #v(12pt)

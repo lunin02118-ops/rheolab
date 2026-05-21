@@ -36,9 +36,8 @@ pub struct ComparisonReportInput {
     #[serde(default)]
     pub company_name: Option<String>,
 
-    /// Base-64 encoded PNG/JPEG of the company logo (same format as the
-    /// single-exp path).  The logo is the **only** non-vector asset in the
-    /// whole document.
+    /// Data URI or base-64 encoded PNG/JPEG/GIF/SVG company logo (same
+    /// format as the single-exp path).
     #[serde(default)]
     pub company_logo_base64: Option<String>,
 

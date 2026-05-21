@@ -3,6 +3,7 @@
  * diagnostics surface.
  */
 import type { ColumnarData } from './rheology';
+import type { RheologyParameterRow } from './experiment';
 
 // Re-export from the parser module for convenience.
 export type { RheoDataPoint, ParsingMetadata } from '@/lib/parsing/types';
@@ -34,6 +35,7 @@ export interface ParseResult {
     warnings?: string[];
     data: import('@/lib/parsing/types').RheoDataPoint[];
     columnarData?: ColumnarData;
+    instrumentRheology?: RheologyParameterRow[];
     metadata: {
         filename: string;
         /** Present when the result was loaded from the local experiment DB. */

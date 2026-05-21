@@ -82,6 +82,7 @@ mkdir -p "${WEB_DIR}"/{api,admin,includes,keys}
 # Copy PHP source files from the repo
 cp "${SCRIPT_DIR}/includes/db.php"           "${WEB_DIR}/includes/"
 cp "${SCRIPT_DIR}/includes/helpers.php"      "${WEB_DIR}/includes/"
+cp "${SCRIPT_DIR}/includes/license_payload.php" "${WEB_DIR}/includes/"
 cp "${SCRIPT_DIR}/includes/rate_limiter.php" "${WEB_DIR}/includes/"
 cp "${SCRIPT_DIR}/includes/sign_rsa.php"     "${WEB_DIR}/includes/"
 cp "${SCRIPT_DIR}/api/activate.php"          "${WEB_DIR}/api/"
@@ -94,7 +95,6 @@ cp "${SCRIPT_DIR}/api/register_demo.php"     "${WEB_DIR}/api/"
 cp "${SCRIPT_DIR}/api/migrate_machine.php"   "${WEB_DIR}/api/"
 cp "${SCRIPT_DIR}/api/update-channel.php"    "${WEB_DIR}/api/"
 cp "${SCRIPT_DIR}/admin/index.php"           "${WEB_DIR}/admin/"
-cp "${SCRIPT_DIR}/admin/demo-users.php"      "${WEB_DIR}/admin/"
 
 # .htaccess
 if [ -f "${SCRIPT_DIR}/.htaccess" ]; then

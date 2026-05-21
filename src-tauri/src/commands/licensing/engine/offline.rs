@@ -14,24 +14,17 @@ use super::{compute_days_remaining, mask_key, LicenseEngine};
 use crate::db::DbPool;
 use crate::error::{AppError, Result};
 
-const REQUEST_PREFIX: &str = "RHEOLAB-OFFLINE-REQ-v1:";
-const ACTIVATION_PREFIX: &str = "RHEOLAB-OFFLINE-ACT-v1:";
+const REQUEST_PREFIX: &str = "RL-REQ1:";
+const ACTIVATION_PREFIX: &str = "RL-ACT1:";
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct OfflineActivationRequestPayload {
     version: u8,
-    request_id: String,
     request_type: String,
-    app_version: String,
-    channel: String,
     machine_id: String,
-    legacy_machine_ids: Vec<String>,
     fingerprint_version: u8,
     platform: String,
-    created_at: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    license_key: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,8 +54,8 @@ fn decode_prefixed_json<T: for<'de> Deserialize<'de>>(prefix: &str, code: &str) 
         .map_err(|_| AppError::License("Код содержит неразбираемый JSON".into()))
 }
 
-fn signed_payload_license_type(payload: &Value) -> LicenseType {
-    LicenseType::from_str_loose(payload["type"].as_str().unwrap_or("standard"))
+pub(super) fn supported_payload_license_type(payload: &Value) -> Option<LicenseType> {
+    LicenseType::from_str_supported(payload["type"].as_str().unwrap_or(""))
 }
 
 fn payload_machine_id(payload: &Value) -> Option<&str> {
@@ -77,6 +70,19 @@ fn payload_offline_allowed(payload: &Value) -> bool {
         || payload["activationMode"].as_str() == Some("offline")
 }
 
+fn payload_hardware_bound(payload: &Value) -> bool {
+    payload["hardwareBound"].as_bool().unwrap_or(false)
+        || payload["hardware_bound"].as_bool().unwrap_or(false)
+        || payload["bindingMode"].as_str() == Some("hardware")
+}
+
+fn payload_has_no_expiry(payload: &Value) -> bool {
+    let expires_at = payload
+        .get("expiresAt")
+        .or_else(|| payload.get("expires_at"));
+    expires_at.map_or(true, Value::is_null)
+}
+
 fn current_machine_matches(app_data_dir: &std::path::Path, payload: &Value) -> bool {
     let Some(expected) = payload_machine_id(payload) else {
         return false;
@@ -88,6 +94,56 @@ fn current_machine_matches(app_data_dir: &std::path::Path, payload: &Value) -> b
     all_legacy_ids(app_data_dir)
         .into_iter()
         .any(|legacy| legacy == expected)
+}
+
+pub(super) fn trusted_license_payload(data: &Value) -> Value {
+    data["signedPayload"]
+        .as_str()
+        .and_then(|payload| serde_json::from_str::<Value>(payload).ok())
+        .unwrap_or_else(|| data.clone())
+}
+
+pub(super) fn is_hardware_bound_license(payload: &Value) -> bool {
+    supported_payload_license_type(payload) == Some(LicenseType::Corporate)
+        || payload_hardware_bound(payload)
+        || payload_offline_allowed(payload)
+}
+
+pub(super) fn is_local_permanent_license(payload: &Value) -> bool {
+    supported_payload_license_type(payload) == Some(LicenseType::Corporate)
+}
+
+pub(super) fn validate_supported_license_payload(
+    app_data_dir: &std::path::Path,
+    payload: &Value,
+) -> Result<LicenseType> {
+    let Some(license_type) = supported_payload_license_type(payload) else {
+        return Err(AppError::License(
+            "Тип лицензии не поддерживается. Используйте trial, corporate, developer или superuser."
+                .into(),
+        ));
+    };
+
+    if license_type == LicenseType::Corporate {
+        if !payload_has_no_expiry(payload) {
+            return Err(AppError::License(
+                "Корпоративная лицензия должна быть постоянной: expiresAt должен быть null.".into(),
+            ));
+        }
+        if !payload_hardware_bound(payload) {
+            return Err(AppError::License(
+                "Корпоративная лицензия должна быть привязана к железу: hardwareBound=true.".into(),
+            ));
+        }
+    }
+
+    if is_hardware_bound_license(payload) && !current_machine_matches(app_data_dir, payload) {
+        return Err(AppError::License(
+            "Лицензия выпущена для другого устройства".into(),
+        ));
+    }
+
+    Ok(license_type)
 }
 
 fn validate_offline_activation_payload(
@@ -112,14 +168,10 @@ fn validate_offline_activation_payload(
             "Ключ не разрешает офлайн-активацию".into(),
         ));
     }
-    if signed_payload_license_type(&payload) != LicenseType::Enterprise {
+    let license_type = validate_supported_license_payload(app_data_dir, &payload)?;
+    if license_type != LicenseType::Corporate {
         return Err(AppError::License(
-            "Офлайн-активация доступна только для Enterprise лицензий".into(),
-        ));
-    }
-    if !current_machine_matches(app_data_dir, &payload) {
-        return Err(AppError::License(
-            "Офлайн-ключ выпущен для другого устройства".into(),
+            "Офлайн-активация доступна только для корпоративных лицензий".into(),
         ));
     }
 
@@ -127,37 +179,19 @@ fn validate_offline_activation_payload(
 }
 
 impl LicenseEngine {
-    pub fn generate_offline_activation_request(
-        &self,
-        license_key: Option<String>,
-    ) -> Result<OfflineActivationRequestInfo> {
-        let created_at = Utc::now().to_rfc3339();
-        let request_id = uuid::Uuid::new_v4().to_string();
+    pub fn generate_offline_activation_request(&self) -> Result<OfflineActivationRequestInfo> {
         let machine_id = get_or_create_machine_id(&self.app_data_dir);
-        let legacy_machine_ids = all_legacy_ids(&self.app_data_dir);
         let payload = OfflineActivationRequestPayload {
             version: 1,
-            request_id: request_id.clone(),
-            request_type: "enterprise_offline_activation".to_string(),
-            app_version: super::super::types::APP_VERSION.to_string(),
-            channel: "enterprise-offline".to_string(),
+            request_type: "corporate_offline_activation".to_string(),
             machine_id: machine_id.clone(),
-            legacy_machine_ids: legacy_machine_ids.clone(),
             fingerprint_version: 2,
             platform: std::env::consts::OS.to_string(),
-            created_at: created_at.clone(),
-            license_key: license_key.and_then(|key| {
-                let trimmed = key.trim();
-                (!trimmed.is_empty()).then(|| trimmed.to_string())
-            }),
         };
 
         Ok(OfflineActivationRequestInfo {
             request_code: encode_prefixed(REQUEST_PREFIX, &payload)?,
-            request_id,
             machine_id,
-            legacy_machine_ids,
-            created_at,
         })
     }
 
@@ -174,12 +208,12 @@ impl LicenseEngine {
             &envelope.signature,
         )?;
 
-        let license_type_str = license["type"].as_str().unwrap_or("enterprise").to_string();
+        let license_type_str = license["type"].as_str().unwrap_or("corporate").to_string();
         let license_type = LicenseType::from_str_loose(&license_type_str);
         let key = license["key"]
             .as_str()
             .or_else(|| license["licenseKey"].as_str())
-            .unwrap_or("RHEO-OFFLINE-ENTERPRISE")
+            .unwrap_or("RHEO-OFFLINE-CORPORATE")
             .to_string();
 
         let db_record = serde_json::json!({
@@ -199,7 +233,6 @@ impl LicenseEngine {
             "activatedAt": Utc::now().to_rfc3339(),
             "activationMode": "offline",
             "offlineAllowed": true,
-            "offlineRequestId": license["offlineRequestId"],
         });
 
         let conn = db_pool.get().map_err(AppError::Pool)?;
@@ -209,7 +242,7 @@ impl LicenseEngine {
         let was_licensed = serde_json::json!({
             "wasLicensed": true,
             "date": Utc::now().to_rfc3339(),
-            "via": "offline_enterprise_activation",
+            "via": "offline_corporate_activation",
         });
         let was_str = serde_json::to_string(&was_licensed)?;
         if let Err(e) = upsert_system_state(&conn, DB_KEY_WAS_LICENSED, &was_str) {
@@ -239,21 +272,13 @@ impl LicenseEngine {
             expires_at,
             days_remaining,
             experiments_remaining: None,
-            message: Some("Enterprise лицензия активирована офлайн".to_string()),
+            message: Some("Корпоративная лицензия активирована офлайн".to_string()),
             show_warning,
         };
 
         self.set_cache(result.clone()).await;
         Ok(result)
     }
-}
-
-pub(super) fn is_offline_enterprise_license(data: &Value) -> bool {
-    payload_offline_allowed(data) && signed_payload_license_type(data) == LicenseType::Enterprise
-}
-
-pub(super) fn offline_machine_matches(app_data_dir: &std::path::Path, data: &Value) -> bool {
-    current_machine_matches(app_data_dir, data)
 }
 
 #[cfg(test)]
@@ -298,23 +323,53 @@ mod tests {
     fn request_code_roundtrips_with_prefix() {
         let payload = OfflineActivationRequestPayload {
             version: 1,
-            request_id: "req-1".into(),
-            request_type: "enterprise_offline_activation".into(),
-            app_version: "0.0.0-test".into(),
-            channel: "enterprise-offline".into(),
+            request_type: "corporate_offline_activation".into(),
             machine_id: "machine-1".into(),
-            legacy_machine_ids: vec![],
             fingerprint_version: 2,
             platform: "windows".into(),
-            created_at: "2026-05-05T00:00:00Z".into(),
-            license_key: Some("RHEO-TEST".into()),
         };
 
         let code = encode_prefixed(REQUEST_PREFIX, &payload).expect("encode");
         let decoded: OfflineActivationRequestPayload =
             decode_prefixed_json(REQUEST_PREFIX, &code).expect("decode");
         assert_eq!(decoded.machine_id, "machine-1");
-        assert_eq!(decoded.license_key.as_deref(), Some("RHEO-TEST"));
+    }
+
+    #[test]
+    fn generated_request_code_does_not_embed_license_key() {
+        let app_dir = tempfile::tempdir().expect("app dir");
+        let engine = LicenseEngine::new(app_dir.path().to_path_buf());
+
+        let request = engine
+            .generate_offline_activation_request()
+            .expect("request");
+        let encoded = request
+            .request_code
+            .strip_prefix(REQUEST_PREFIX)
+            .expect("request prefix");
+        let bytes = URL_SAFE_NO_PAD.decode(encoded).expect("base64url");
+        let payload: Value = serde_json::from_slice(&bytes).expect("json");
+
+        assert!(payload.get("licenseKey").is_none());
+        assert!(payload.get("license_key").is_none());
+        assert!(payload.get("requestId").is_none());
+        assert!(payload.get("createdAt").is_none());
+    }
+
+    #[test]
+    fn generated_request_code_is_stable_for_same_machine() {
+        let app_dir = tempfile::tempdir().expect("app dir");
+        let engine = LicenseEngine::new(app_dir.path().to_path_buf());
+
+        let first = engine
+            .generate_offline_activation_request()
+            .expect("first request");
+        let second = engine
+            .generate_offline_activation_request()
+            .expect("second request");
+
+        assert_eq!(first.request_code, second.request_code);
+        assert_eq!(first.machine_id, second.machine_id);
     }
 
     #[test]
@@ -322,8 +377,10 @@ mod tests {
         let tmp = tempfile::tempdir().expect("tempdir");
         let payload = serde_json::json!({
             "id": "lic-1",
-            "type": "enterprise",
+            "type": "corporate",
             "customerName": "ACME",
+            "expiresAt": null,
+            "hardwareBound": true,
             "machineId": "definitely-not-this-machine",
             "activationMode": "offline",
             "offlineAllowed": true,
@@ -342,12 +399,12 @@ mod tests {
     }
 
     #[test]
-    fn offline_payload_requires_enterprise() {
+    fn offline_payload_requires_corporate() {
         let tmp = tempfile::tempdir().expect("tempdir");
         let machine_id = get_or_create_machine_id(tmp.path());
         let payload = serde_json::json!({
             "id": "lic-1",
-            "type": "standard",
+            "type": "trial",
             "customerName": "ACME",
             "machineId": machine_id,
             "activationMode": "offline",
@@ -358,29 +415,69 @@ mod tests {
         let sig = sign_with_dev_private_key(signed_payload.as_bytes());
 
         let err = validate_offline_activation_payload(tmp.path(), &signed_payload, &sig)
-            .expect_err("standard offline must be rejected")
+            .expect_err("trial offline must be rejected")
             .to_string();
-        assert!(err.contains("Enterprise"), "unexpected error: {err}");
+        assert!(err.contains("корпоратив"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn corporate_payload_requires_hardware_bound_flag() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let machine_id = get_or_create_machine_id(tmp.path());
+        let payload = serde_json::json!({
+            "id": "lic-1",
+            "type": "corporate",
+            "customerName": "ACME",
+            "expiresAt": null,
+            "machineId": machine_id,
+            "key": "RHEO-CORP-TEST-0001"
+        });
+
+        let err = validate_supported_license_payload(tmp.path(), &payload)
+            .expect_err("corporate payload without hardwareBound must be rejected")
+            .to_string();
+        assert!(err.contains("hardwareBound"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn corporate_payload_requires_no_expiry() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let machine_id = get_or_create_machine_id(tmp.path());
+        let payload = serde_json::json!({
+            "id": "lic-1",
+            "type": "corporate",
+            "customerName": "ACME",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "hardwareBound": true,
+            "machineId": machine_id,
+            "key": "RHEO-CORP-TEST-0001"
+        });
+
+        let err = validate_supported_license_payload(tmp.path(), &payload)
+            .expect_err("corporate payload with expiresAt must be rejected")
+            .to_string();
+        assert!(err.contains("expiresAt"), "unexpected error: {err}");
     }
 
     #[tokio::test]
-    async fn activate_offline_persists_enterprise_license() {
+    async fn activate_offline_persists_corporate_license() {
         let app_dir = tempfile::tempdir().expect("app dir");
         let (_db_dir, pool) = setup_test_pool();
         let engine = LicenseEngine::new(app_dir.path().to_path_buf());
         let machine_id = get_or_create_machine_id(app_dir.path());
         let payload = serde_json::json!({
             "id": "lic-offline-1",
-            "type": "enterprise",
+            "type": "corporate",
             "customerName": "ACME Offline",
             "issuedAt": "2026-05-05T00:00:00Z",
             "expiresAt": null,
             "gracePeriodDays": 30,
             "machineId": machine_id,
+            "hardwareBound": true,
+            "permanent": true,
             "seats": 1,
             "activationMode": "offline",
             "offlineAllowed": true,
-            "offlineRequestId": "req-1",
             "key": "RHEO-OFFL-TEST-0001"
         });
         let signed_payload = serde_json::to_string(&payload).expect("payload json");
@@ -397,7 +494,7 @@ mod tests {
             .expect("offline activation");
 
         assert_eq!(result.status, LicenseStatus::Active);
-        assert_eq!(result.license_type.as_deref(), Some("enterprise"));
+        assert_eq!(result.license_type.as_deref(), Some("corporate"));
         assert_eq!(result.customer_name.as_deref(), Some("ACME Offline"));
 
         let conn = pool.get().expect("conn");

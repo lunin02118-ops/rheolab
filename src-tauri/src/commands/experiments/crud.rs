@@ -3,7 +3,7 @@
 use super::helpers::*;
 use super::types::*;
 use crate::commands::licensing::{
-    can_write_via_engine, maybe_increment_demo_save, require_write_license,
+    can_write_via_engine, current_features, maybe_increment_demo_save, require_write_license,
 };
 use crate::error::{AppError, Result};
 use crate::state::AppState;
@@ -151,7 +151,7 @@ pub async fn experiments_check_existence(
 #[tauri::command]
 pub async fn experiments_save(
     state: State<'_, AppState>,
-    payload: ExperimentSavePayload,
+    mut payload: ExperimentSavePayload,
 ) -> Result<ExperimentSaveResponse> {
     // WP-1.5: string length bounds on key fields
     validate_bounded_str(&payload.name, 500, "name")?;
@@ -183,6 +183,9 @@ pub async fn experiments_save(
             code: Some("License:required".to_string()),
         });
     }
+    let features = current_features(&state).await;
+    strip_payload_calibration_unless_allowed(&mut payload, features.calibration_parsing);
+
     if payload.water_source.trim().is_empty() {
         return Ok(ExperimentSaveResponse {
             success: false,
@@ -463,6 +466,15 @@ pub async fn experiments_delete(
     })
 }
 
+fn strip_payload_calibration_unless_allowed(
+    payload: &mut ExperimentSavePayload,
+    allow_calibration: bool,
+) {
+    if !allow_calibration {
+        payload.calibration = None;
+    }
+}
+
 fn payload_to_stored(
     payload: ExperimentSavePayload,
     id: String,
@@ -516,6 +528,8 @@ fn payload_to_stored(
         viscosity_min: payload.viscosity_min,
         pressure_max: payload.pressure_max,
         extra_fields: payload.extra_fields,
+        rheology_source: payload.rheology_source,
+        rheology_parameters: payload.rheology_parameters,
     }
 }
 

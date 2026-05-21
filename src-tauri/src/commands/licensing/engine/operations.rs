@@ -4,16 +4,15 @@ use serde_json::Value;
 use super::super::crypto::{
     delete_system_state, save_secure_last_check, upsert_system_state, verify_server_signature,
 };
-use super::super::demo::{check_demo, increment_demo_experiments};
 use super::super::features::features_for_type;
-use super::super::online::{
-    activate_online, deactivate_online, find_by_machine_online, register_demo_online,
-};
+use super::super::online::{activate_online, deactivate_online, find_by_machine_online};
 use super::super::types::{
-    LicenseCheckResult, LicenseSource, LicenseStatus, LicenseType, DB_KEY_LICENSE,
-    DB_KEY_WAS_LICENSED, DEFAULT_GRACE_PERIOD_DAYS,
+    LicenseCheckResult, LicenseSource, LicenseStatus, DB_KEY_LICENSE, DB_KEY_WAS_LICENSED,
+    DEFAULT_GRACE_PERIOD_DAYS,
 };
-use super::offline::{is_offline_enterprise_license, offline_machine_matches};
+use super::offline::{
+    supported_payload_license_type, trusted_license_payload, validate_supported_license_payload,
+};
 use super::{build_invalid, compute_days_remaining, mask_key, LicenseEngine, CHECK_CACHE_TTL_SECS};
 use crate::db::DbPool;
 use crate::error::{AppError, Result};
@@ -35,7 +34,7 @@ impl LicenseEngine {
     ///    fingerprint still cannot forge a valid response without the server's
     ///    private key.  Rate-limited on the server side (10 req / 10 min / IP).
     /// 4. If recovery returns nothing (or signature invalid, or network down),
-    ///    fall through to demo mode.
+    ///    return an unlicensed/invalid state.
     /// 5. Cache and return the result.
     pub async fn check(&self, db_pool: &DbPool) -> LicenseCheckResult {
         // Fast path: return the cached result if it's fresh enough.
@@ -84,31 +83,8 @@ impl LicenseEngine {
                     return recovered;
                 }
 
-                // 2b. No license anywhere → demo mode.
-                // Register / sync with server to obtain (or restore) the authoritative
-                // first_seen_at anchor. This prevents DB-wipe attacks where the user
-                // deletes the local state to reset the 30-day clock.
-                let server_anchor = register_demo_online(&self.app_data_dir).await;
-                if let Some(ref anchor) = server_anchor {
-                    tracing::debug!("Demo server anchor: first_seen_at={}", anchor);
-                    // Persist the sync date so subsequent launches can skip HTTP
-                    // for demo mode too (same offline-first logic as licensed checks).
-                    let today = Utc::now().format("%Y-%m-%d").to_string();
-                    if let Err(e) = save_secure_last_check(&self.app_data_dir, &today) {
-                        tracing::warn!("Failed to save demo sync date: {}", e);
-                    }
-                }
-
-                let conn = match db_pool.get() {
-                    Ok(c) => c,
-                    Err(e) => {
-                        tracing::error!("LicenseEngine: DB pool error in demo check: {}", e);
-                        let r = build_invalid("Ошибка базы данных");
-                        self.set_cache(r.clone()).await;
-                        return r;
-                    }
-                };
-                check_demo(&conn, server_anchor.as_deref())
+                // 2b. No license anywhere → block the application until activation.
+                build_invalid("Лицензия не активирована")
             }
         };
 
@@ -131,9 +107,9 @@ impl LicenseEngine {
     /// auto-recovery-by-machine-ID flow, then updates the cache and emits
     /// `license_status_updated` to the frontend.
     ///
-    /// UX note: after an OS reinstall the user briefly sees "Demo mode" on the
-    /// startup splash until the background `check()` recovers the license
-    /// (~1-2 s), at which point the frontend transitions to the licensed UI.
+    /// UX note: after an OS reinstall the user briefly sees an activation block
+    /// until the background `check()` recovers the license (~1-2 s), at which
+    /// point the frontend transitions to the licensed UI.
     pub async fn check_local_startup(&self, db_pool: &DbPool) -> LicenseCheckResult {
         // Note: no TTL fast-path here — this method always reads from DB so that
         // the background check() call (which DOES respect TTL) will see cache_time=None
@@ -160,65 +136,66 @@ impl LicenseEngine {
                 // Local path: parse stored data and check expiry — no HTTP.
                 let data: Value =
                     serde_json::from_str(&license_json).unwrap_or(serde_json::json!({}));
+                let trusted = trusted_license_payload(&data);
                 let key = data["key"].as_str().unwrap_or("");
-                let license_type_str = data["type"].as_str().unwrap_or("standard");
-                let license_type = LicenseType::from_str_loose(license_type_str);
-                let expires_at = data["expiresAt"].as_str();
-                let grace_days = data["gracePeriodDays"]
-                    .as_i64()
-                    .unwrap_or(DEFAULT_GRACE_PERIOD_DAYS);
-                let customer_name = data["customerName"].as_str().map(|s| s.to_string());
-                if is_offline_enterprise_license(&data)
-                    && !offline_machine_matches(&self.app_data_dir, &data)
-                {
-                    LicenseCheckResult {
-                        status: LicenseStatus::Invalid,
-                        source: LicenseSource::Key,
-                        features: super::super::features::expired_features(),
-                        key: Some(mask_key(key)),
-                        license_type: Some(license_type_str.to_string()),
-                        customer_name,
-                        expires_at: expires_at.map(|s| s.to_string()),
-                        days_remaining: None,
-                        experiments_remaining: None,
-                        message: Some(
-                            "Офлайн-лицензия выпущена для другого устройства".to_string(),
-                        ),
-                        show_warning: true,
+                let license_type_str = trusted["type"]
+                    .as_str()
+                    .or_else(|| data["type"].as_str())
+                    .unwrap_or("");
+                match supported_payload_license_type(&trusted) {
+                    None => build_invalid(
+                        "Тип лицензии не поддерживается. Активируйте trial или corporate лицензию.",
+                    ),
+                    Some(license_type) => {
+                        if let Err(e) =
+                            validate_supported_license_payload(&self.app_data_dir, &trusted)
+                        {
+                            LicenseCheckResult {
+                                status: LicenseStatus::Invalid,
+                                source: LicenseSource::Key,
+                                features: super::super::features::expired_features(),
+                                key: Some(mask_key(key)),
+                                license_type: Some(license_type_str.to_string()),
+                                customer_name: trusted["customerName"]
+                                    .as_str()
+                                    .or_else(|| data["customerName"].as_str())
+                                    .map(|s| s.to_string()),
+                                expires_at: trusted["expiresAt"]
+                                    .as_str()
+                                    .or_else(|| data["expiresAt"].as_str())
+                                    .map(|s| s.to_string()),
+                                days_remaining: None,
+                                experiments_remaining: None,
+                                message: Some(e.to_string()),
+                                show_warning: true,
+                            }
+                        } else {
+                            let expires_at = trusted["expiresAt"]
+                                .as_str()
+                                .or_else(|| data["expiresAt"].as_str());
+                            let grace_days = data["gracePeriodDays"]
+                                .as_i64()
+                                .unwrap_or(DEFAULT_GRACE_PERIOD_DAYS);
+                            let customer_name = trusted["customerName"]
+                                .as_str()
+                                .or_else(|| data["customerName"].as_str())
+                                .map(|s| s.to_string());
+                            self.build_expiry_result(
+                                key,
+                                license_type_str,
+                                license_type,
+                                customer_name,
+                                expires_at,
+                                grace_days,
+                            )
+                        }
                     }
-                } else {
-                    self.build_expiry_result(
-                        key,
-                        license_type_str,
-                        license_type,
-                        customer_name,
-                        expires_at,
-                        grace_days,
-                    )
                 }
             }
             None => {
-                // No verified license — tentatively enter demo mode.
-                //
-                // We intentionally DO NOT try machine-ID recovery here: this
-                // function is on the splash-screen hot path and must stay
-                // offline.  The background `check()` kicked off by `lib.rs`
-                // right after `setup()` will run recovery (and promote us to
-                // Active if a license is bound to this fingerprint on the
-                // server).
-                let conn = match db_pool.get() {
-                    Ok(c) => c,
-                    Err(e) => {
-                        tracing::error!(
-                            "LicenseEngine startup check: DB pool error in demo check: {}",
-                            e
-                        );
-                        let r = build_invalid("Ошибка базы данных");
-                        self.set_cache_value_only(r.clone()).await;
-                        return r;
-                    }
-                };
-                check_demo(&conn, None)
+                // No verified license — block locally. The background `check()`
+                // may still recover a corporate license bound to this machine.
+                build_invalid("Лицензия не активирована")
             }
         };
 
@@ -239,60 +216,23 @@ impl LicenseEngine {
             );
             self.set_cache_value_only(result.clone()).await;
         } else {
-            // DEMO path — NEVER offline-first.
-            //
-            // We intentionally ignore `is_online_check_due` here.  The
-            // background `check()` that runs right after `setup()` must be
-            // allowed to:
-            //   (a) sync the demo counter / first_seen_at anchor with the
-            //       server (prevents DB-wipe attacks);
-            //   (b) try auto-recovery by machine fingerprint — this is the
-            //       whole point of beta.28.  Writing a fresh
-            //       `cache_time=Some(now)` here would trip `check()`'s
-            //       `CHECK_CACHE_TTL_SECS` fast-path and make it return the
-            //       cached Demo result without ever reaching recovery.
-            //
-            // So for demo we always set value-only (cache_time stays None),
-            // which forces the background `check()` to do real work.
+            // Unlicensed path — value-only cache so the background `check()`
+            // can still attempt machine-ID recovery before the activation
+            // dialog becomes the final state.
             self.diag(
-                "check_local_startup: DEMO path — value-only cache, background check() will run recovery + demo sync"
+                "check_local_startup: unlicensed path — value-only cache, background check() will run recovery"
             );
             self.set_cache_value_only(result.clone()).await;
         }
         result
     }
 
-    // ── Register experiment (demo counter) ──────────────────────────────
+    // ── Register experiment ────────────────────────────────────────────
 
-    /// Increment the demo experiment counter and re-check.
-    /// In demo mode, this decrements `experiments_remaining`.
-    /// In licensed mode (no DemoState), this is a no-op re-check.
-    ///
-    /// Audit-v2 LIC-002: after the counter is incremented we explicitly
-    /// invalidate `cache_time` so the subsequent `check()` cannot return
-    /// a stale TTL-cached result.  Previously the stored DB count moved
-    /// to N+1 but `check()`'s 120-second TTL fast-path returned the
-    /// pre-increment cached result, so `experiments_remaining` reported
-    /// to the UI (and to any guard relying on the cached state) lagged
-    /// behind reality — at the boundary case `remaining = 1 → 0` this
-    /// could permit one extra write before the cache caught up.
+    /// Re-check after a saved experiment. The legacy demo counter no longer
+    /// participates in the product model, so this is intentionally a no-op
+    /// refresh hook kept for IPC compatibility.
     pub async fn register_experiment(&self, db_pool: &DbPool) -> Result<LicenseCheckResult> {
-        let mut counter_advanced = false;
-        if let Some(cached) = self.cached().await {
-            if cached.status == LicenseStatus::Demo {
-                let conn = db_pool.get().map_err(AppError::Pool)?;
-                match increment_demo_experiments(&conn) {
-                    Ok(_) => counter_advanced = true,
-                    Err(e) => tracing::warn!("Failed to increment demo counter: {}", e),
-                }
-            }
-        }
-        if counter_advanced {
-            // Drop the TTL marker so the next check() does the full
-            // DB read instead of returning the stale Demo cache.
-            self.invalidate_cache_time().await;
-        }
-        // Re-check to update cache with new experiment count
         Ok(self.check(db_pool).await)
     }
 
@@ -340,8 +280,8 @@ impl LicenseEngine {
         // The unsigned `data["license"]` top-level field is intentionally
         // ignored — only fields covered by the RSA signature can be
         // trusted, otherwise a MITM could substitute the unsigned half.
-        let license_type_str = license["type"].as_str().unwrap_or("standard").to_string();
-        let license_type = LicenseType::from_str_loose(&license_type_str);
+        let license_type = validate_supported_license_payload(&self.app_data_dir, &license)?;
+        let license_type_str = license["type"].as_str().unwrap_or("").to_string();
 
         let db_record = serde_json::json!({
             "id": license["id"],
@@ -352,6 +292,8 @@ impl LicenseEngine {
             "expiresAt": license["expiresAt"],
             "gracePeriodDays": license["gracePeriodDays"].as_i64().unwrap_or(DEFAULT_GRACE_PERIOD_DAYS),
             "machineId": license["machineId"],
+            "hardwareBound": license["hardwareBound"],
+            "permanent": license["permanent"],
             "seats": license["seats"],
             "features": license["features"],
             "key": key,
@@ -451,13 +393,12 @@ impl LicenseEngine {
             tracing::info!("License deactivated on server");
         }
 
-        // Scope 2: delete row + check demo — fresh connection, short hold.
+        // Scope 2: delete row — fresh connection, short hold.
         // Reached only after the server confirmed (or there was nothing to unbind).
         let result = {
             let conn = db_pool.get().map_err(AppError::Pool)?;
             delete_system_state(&conn, DB_KEY_LICENSE)?;
-            // Re-check (will fall through to demo, no network needed after deactivation)
-            check_demo(&conn, None)
+            build_invalid("Лицензия не активирована")
         };
 
         self.set_cache(result.clone()).await;
@@ -477,7 +418,7 @@ impl LicenseEngine {
     ///
     /// In all other cases (network error, server miss, forged signature,
     /// DB write failure) this returns `None` so the caller cleanly falls
-    /// through to demo mode — the user is never worse off than before.
+    /// through to the unlicensed state — the user is never worse off than before.
     async fn try_recover_by_machine_id(&self, db_pool: &DbPool) -> Option<LicenseCheckResult> {
         let data = match find_by_machine_online(&self.app_data_dir).await {
             Ok(Some(d)) => d,
@@ -520,8 +461,14 @@ impl LicenseEngine {
             }
         };
 
-        let license_type_str = license["type"].as_str().unwrap_or("standard").to_string();
-        let license_type = LicenseType::from_str_loose(&license_type_str);
+        let license_type = match validate_supported_license_payload(&self.app_data_dir, &license) {
+            Ok(license_type) => license_type,
+            Err(e) => {
+                self.diag(&format!("recovery: rejected signed payload — {e}"));
+                return None;
+            }
+        };
+        let license_type_str = license["type"].as_str().unwrap_or("").to_string();
 
         // Key must come from the RSA-signed payload — never from any raw
         // top-level `data["key"]` field, which is unsigned and could be
@@ -552,6 +499,8 @@ impl LicenseEngine {
             "expiresAt": license["expiresAt"],
             "gracePeriodDays": license["gracePeriodDays"].as_i64().unwrap_or(DEFAULT_GRACE_PERIOD_DAYS),
             "machineId": license["machineId"],
+            "hardwareBound": license["hardwareBound"],
+            "permanent": license["permanent"],
             "seats": license["seats"],
             "features": license["features"],
             "key": key_from_server.clone(),
@@ -665,9 +614,7 @@ fn validate_activation_response(data: &Value) -> Result<(String, String, Value)>
         .as_str()
         .filter(|s| !s.is_empty())
         .ok_or_else(|| {
-            AppError::License(
-                "Сервер не вернул подпись — активация отклонена (LIC-003)".into(),
-            )
+            AppError::License("Сервер не вернул подпись — активация отклонена (LIC-003)".into())
         })?;
 
     if !verify_server_signature(signed_payload, signature) {
@@ -676,9 +623,8 @@ fn validate_activation_response(data: &Value) -> Result<(String, String, Value)>
         ));
     }
 
-    let license: Value = serde_json::from_str(signed_payload).map_err(|_| {
-        AppError::License("Сервер вернул неразбираемый payload (LIC-003)".into())
-    })?;
+    let license: Value = serde_json::from_str(signed_payload)
+        .map_err(|_| AppError::License("Сервер вернул неразбираемый payload (LIC-003)".into()))?;
 
     Ok((signed_payload.to_string(), signature.to_string(), license))
 }
@@ -716,7 +662,8 @@ mod activate_tests {
     /// licence Value.
     #[test]
     fn validate_activation_response_accepts_correctly_signed_payload() {
-        let payload = r#"{"id":42,"type":"standard","customerName":"Acme","expiresAt":"2099-12-31"}"#;
+        let payload =
+            r#"{"id":42,"type":"standard","customerName":"Acme","expiresAt":"2099-12-31"}"#;
         let signature = sign_with_dev_private_key(payload.as_bytes());
         let data = json!({
             "success": true,
@@ -726,7 +673,8 @@ mod activate_tests {
             // must work without it.
         });
 
-        let (sp, sig, lic) = validate_activation_response(&data).expect("must accept valid payload");
+        let (sp, sig, lic) =
+            validate_activation_response(&data).expect("must accept valid payload");
         assert_eq!(sp, payload);
         assert!(!sig.is_empty());
         assert_eq!(lic["id"], 42);
@@ -793,9 +741,7 @@ mod activate_tests {
         });
         let err = validate_activation_response(&data).unwrap_err().to_string();
         assert!(
-            err.contains("подпись")
-                || err.contains("signature")
-                || err.contains("LIC-003"),
+            err.contains("подпись") || err.contains("signature") || err.contains("LIC-003"),
             "must reject missing signature; got: {err}"
         );
     }
@@ -818,9 +764,7 @@ mod activate_tests {
         });
         let err = validate_activation_response(&data).unwrap_err().to_string();
         assert!(
-            err.contains("Подпись")
-                || err.contains("signature")
-                || err.contains("LIC-003"),
+            err.contains("Подпись") || err.contains("signature") || err.contains("LIC-003"),
             "MITM substitution must fail RSA verify; got: {err}"
         );
     }
@@ -836,9 +780,7 @@ mod activate_tests {
         });
         let err = validate_activation_response(&data).unwrap_err().to_string();
         assert!(
-            err.contains("Подпись")
-                || err.contains("signature")
-                || err.contains("LIC-003"),
+            err.contains("Подпись") || err.contains("signature") || err.contains("LIC-003"),
             "garbage signature must Err, never panic; got: {err}"
         );
     }
@@ -878,8 +820,7 @@ mod activate_tests {
             // attacker-injected unsigned half
             "license": {"id": 1, "type": "developer", "features": {"export_pdf": true}},
         });
-        let (_, _, lic) =
-            validate_activation_response(&data).expect("signed payload accepted");
+        let (_, _, lic) = validate_activation_response(&data).expect("signed payload accepted");
         assert_eq!(
             lic["type"], "standard",
             "must use SIGNED type, not unsigned `license.type`"

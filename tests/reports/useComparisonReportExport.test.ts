@@ -133,7 +133,7 @@ describe('useComparisonReportExport', () => {
             expect(request.settings.unitSystem).toBe('SI');
             expect(request.settings.companyName).toBe('Acme');
             expect(request.settings.reportSettings.reportViscosityRates).toEqual([40, 100]);
-            expect(request.settings.reportSettings.showAdvancedStats).toBe(false);
+            expect(request.settings.reportSettings.showAdvancedStats).toBe(true);
             expect(request.settings.reportSettings.showTemperature).toBe(true);
             expect(request.settings.reportSettings.showBathTemperature).toBe(false);
             expect(request.settings.reportSettings.shearRateAxis).toBe('right');

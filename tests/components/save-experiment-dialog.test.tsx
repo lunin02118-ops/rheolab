@@ -231,6 +231,103 @@ describe('SaveExperimentDialog', () => {
         expect(payload.rawPoints).toEqual([]);
     });
 
+    it('shows rheology source selector only when instrument parameters were parsed', () => {
+        renderDialog({
+            analysis: {
+                ...baseAnalysis,
+                instrumentRheology: [{
+                    source: 'instrument',
+                    cycleNo: 1,
+                    nPrime: 0.61,
+                    kPrimePaSn: 0.22,
+                }],
+                programRheology: [{
+                    source: 'program',
+                    cycleNo: 1,
+                    nPrime: 0.62,
+                    kPrimePaSn: 0.23,
+                }],
+            },
+        });
+        expect(screen.getByTestId('SaveDialogRheologySourceSelect')).toBeDefined();
+    });
+
+    it('omits rheology source selector without instrument parameters', () => {
+        renderDialog({
+            analysis: {
+                ...baseAnalysis,
+                programRheology: [{
+                    source: 'program',
+                    cycleNo: 1,
+                    nPrime: 0.62,
+                    kPrimePaSn: 0.23,
+                }],
+            },
+        });
+        expect(screen.queryByTestId('SaveDialogRheologySourceSelect')).toBeNull();
+    });
+
+    it('defaults to instrument source and forwards both instrument and program rows', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        renderDialog({
+            onSave,
+            analysis: {
+                ...baseAnalysis,
+                instrumentRheology: [{
+                    source: 'instrument',
+                    cycleNo: 1,
+                    nPrime: 0.61,
+                    kPrimePaSn: 0.22,
+                    viscosities: { '40': 1200 },
+                    sourceSheet: 'Power Law Data',
+                    sourceRow: 42,
+                }],
+                programRheology: [{
+                    source: 'program',
+                    cycleNo: 1,
+                    nPrime: 0.62,
+                    kPrimePaSn: 0.23,
+                    binghamPvPaS: 0.31,
+                    binghamYpPa: 4.5,
+                }],
+            },
+        });
+
+        fireEvent.click(screen.getByTestId('SaveDialogSaveButton'));
+        await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+
+        const payload = onSave.mock.calls[0][0] as ExperimentSavePayload;
+        expect(payload.rheologySource).toBe('instrument');
+        expect(payload.rheologyParameters).toHaveLength(2);
+        expect(payload.rheologyParameters?.map(row => row.source).sort()).toEqual(['instrument', 'program']);
+        expect(payload.rheologyParameters?.find(row => row.source === 'instrument')?.sourceSheet).toBe('Power Law Data');
+        expect(payload.rheologyParameters?.find(row => row.source === 'program')?.binghamPvPaS).toBe(0.31);
+    });
+
+    it('defaults to program source when only program parameters are available', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        renderDialog({
+            onSave,
+            analysis: {
+                ...baseAnalysis,
+                programRheology: [{
+                    source: 'program',
+                    cycleNo: 1,
+                    nPrime: 0.62,
+                    kPrimePaSn: 0.23,
+                }],
+            },
+        });
+
+        fireEvent.click(screen.getByTestId('SaveDialogSaveButton'));
+        await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+
+        const payload = onSave.mock.calls[0][0] as ExperimentSavePayload;
+        expect(payload.rheologySource).toBe('program');
+        expect(payload.rheologyParameters).toHaveLength(1);
+        expect(payload.rheologyParameters?.[0].source).toBe('program');
+    });
+
     it('trims leading/trailing whitespace from string fields before save', async () => {
         mockInitHook.mockReturnValue(makeInitResult({ name: '  Trimmed  ', waterSource: '  Lake  ' }));
         const onSave = vi.fn().mockResolvedValue(undefined);

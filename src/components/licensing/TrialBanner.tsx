@@ -1,12 +1,11 @@
 /**
  * Trial Banner
  * 
- * Баннер для пользователей в Demo режиме
+ * Баннер для пользователей с пробной лицензией
  */
 
 import React, { useState } from 'react';
 import { useLicense } from '@/hooks/useLicense';
-import { DEMO_LIMITS } from '@/lib/licensing';
 import { X, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -15,7 +14,8 @@ interface TrialBannerProps {
 }
 
 export function TrialBanner({ onActivate }: TrialBannerProps) {
-    const { isDemo, daysRemaining, experimentsRemaining } = useLicense();
+    const { result, daysRemaining, experimentsRemaining } = useLicense();
+    const isTrial = result?.license?.type === 'trial';
 
     // Check if banner was dismissed today (lazy initial state)
     const [dismissed, setDismissed] = useState(() => {
@@ -29,8 +29,8 @@ export function TrialBanner({ onActivate }: TrialBannerProps) {
         return false;
     });
 
-    // Не показывать если не Demo или скрыт
-    if (!isDemo || dismissed) {
+    // Не показывать если не пробная лицензия или баннер скрыт
+    if (!isTrial || dismissed) {
         return null;
     }
 
@@ -39,7 +39,7 @@ export function TrialBanner({ onActivate }: TrialBannerProps) {
         localStorage.setItem('trial_banner_dismissed', new Date().toISOString());
     };
 
-    const isUrgent = daysRemaining <= 7 || experimentsRemaining <= 5;
+    const isUrgent = daysRemaining <= 7 || (experimentsRemaining >= 0 && experimentsRemaining <= 5);
 
     return (
         <div className={`
@@ -53,8 +53,8 @@ export function TrialBanner({ onActivate }: TrialBannerProps) {
                 <Zap className="h-4 w-4" />
                 <span>
                     <strong>Пробная версия:</strong>{' '}
-                    {daysRemaining} дней и {experimentsRemaining} экспериментов осталось
-                    <span className="opacity-50 ml-2 text-xs">(В базе: {DEMO_LIMITS.maxExperiments - experimentsRemaining})</span>
+                    {daysRemaining > 0 ? `${daysRemaining} дней осталось` : 'срок действия ограничен'}
+                    {experimentsRemaining >= 0 ? `, ${experimentsRemaining} экспериментов осталось` : ''}
                 </span>
             </div>
 
@@ -65,7 +65,7 @@ export function TrialBanner({ onActivate }: TrialBannerProps) {
                     className="h-7 text-xs"
                     onClick={onActivate}
                 >
-                    Активировать полную версию
+                    Активировать корпоративную лицензию
                 </Button>
 
                 <button

@@ -75,7 +75,7 @@ export type ConflictItem = { id: string; mergeEventId: string | null; experiment
 
 export type ExperimentDeleteResponse = { success: boolean; error?: string | null }
 
-export type ExperimentDetailMeta = { id: string; createdAt: string; updatedAt: string; name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; calibration: JsonValue | null; reagents: StoredExperimentReagent[]; summary: ExperimentDetailSummary; user: StoredExperimentUser | null; laboratory: StoredExperimentLaboratory | null; parsedBy?: string | null; parseSource?: string | null; extraFields?: JsonValue | null }
+export type ExperimentDetailMeta = { id: string; createdAt: string; updatedAt: string; name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; calibration: JsonValue | null; reagents: StoredExperimentReagent[]; summary: ExperimentDetailSummary; user: StoredExperimentUser | null; laboratory: StoredExperimentLaboratory | null; parsedBy?: string | null; parseSource?: string | null; extraFields?: JsonValue | null; rheologySource?: RheologyParameterSource }
 
 export type ExperimentDetailMetaResponse = { success: boolean; experiment?: ExperimentDetailMeta | null; error?: string | null }
 
@@ -108,7 +108,7 @@ export type ExperimentReportRecipeOverride = { name: string; concentration: numb
 
 export type ExperimentReportWaterOverride = { source?: string | null; salinity?: number | null; ph?: number | null; hardness?: number | null; fe?: number | null; ca?: number | null; mg?: number | null; cl?: number | null; so4?: number | null; hco3?: number | null }
 
-export type ExperimentSavePayload = { name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; rawPoints?: JsonValue[]; calibration: JsonValue | null; reagents?: StoredExperimentReagent[]; overwrite: boolean | null; laboratoryId?: string | null; parsedBy?: string | null; parseSource?: string | null; timeRangeMin?: number | null; timeRangeMax?: number | null; viscosityMin?: number | null; pressureMax?: number | null; extraFields?: JsonValue | null }
+export type ExperimentSavePayload = { name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; rawPoints?: JsonValue[]; calibration: JsonValue | null; reagents?: StoredExperimentReagent[]; overwrite: boolean | null; laboratoryId?: string | null; parsedBy?: string | null; parseSource?: string | null; timeRangeMin?: number | null; timeRangeMax?: number | null; viscosityMin?: number | null; pressureMax?: number | null; extraFields?: JsonValue | null; rheologySource?: RheologyParameterSource; rheologyParameters?: RheologyParameterRow[] }
 
 export type ExperimentSaveResponse = { success: boolean; experimentId?: string | null; message?: string | null; error?: string | null; code?: string | null }
 
@@ -286,7 +286,7 @@ export type LicenseFeatures = { maxExperiments: number; maxComparisonExperiments
 /**
  * Where the license came from
  */
-export type LicenseSource = "key" | "demo"
+export type LicenseSource = "key" | "unlicensed" | "demo"
 
 /**
  * Authoritative license status determined entirely in Rust.
@@ -336,7 +336,7 @@ export type LicenseStatus =
  * ships a build to `alpha`, validates it on their machine, then promotes it
  * to `beta`; once the dev team confirms, it moves to `stable`.
  */
-export type LicenseType = "demo" | "trial" | "standard" | "enterprise" | "developer" | 
+export type LicenseType = "trial" | "corporate" | "developer" |
 /**
  * Top-tier personal licence for the project owner. Receives builds on
  * the `alpha` channel before Developer licences see them on `beta`.
@@ -357,9 +357,9 @@ imported: number;
 skipped: number }
 
 /**
- * Request code shown to an Enterprise customer for offline activation.
+ * Request code shown to a Corporate customer for offline activation.
  */
-export type OfflineActivationRequestInfo = { requestCode: string; requestId: string; machineId: string; legacyMachineIds: string[]; createdAt: string }
+export type OfflineActivationRequestInfo = { requestCode: string; machineId: string }
 
 export type OperatorDeleteResponse = { success: boolean; error?: string | null }
 
@@ -367,7 +367,7 @@ export type OperatorMutationResponse = { success: boolean; operator?: StoredOper
 
 export type OperatorUpsertPayload = { name: string; position?: string | null }
 
-export type ParseFileResponse = { success: boolean; source: string; data: ParsedPoint[]; metadata: ParseMetadata; summary: ParseSummary }
+export type ParseFileResponse = { success: boolean; source: string; data: ParsedPoint[]; instrumentRheology?: RheologyParameterRow[]; metadata: ParseMetadata; summary: ParseSummary }
 
 export type ParseMetadata = { filename: string; instrumentType?: string | null; geometry?: string | null; geometrySource?: string | null; usedAI: boolean; testDate?: string | null; aiDiagnostics?: AiDiagnostics | null; filenameMetadata?: FilenameMetadataResponse | null; calibration?: CalibrationResponse | null }
 
@@ -415,6 +415,10 @@ export type RecipeComponentResponse = { abbreviation: string; concentration: num
 
 export type ReportArtifactItem = { id: string; experimentId: string; importBatchId: string | null; reportType: string; templateVersion: string | null; storagePath: string | null; binarySha256: string | null; sizeBytes: number | null; createdAt: string }
 
+export type RheologyParameterRow = { source?: RheologyParameterSource; cycleNo: number; timeMin?: number | null; endTimeMin?: number | null; tempC?: number | null; pressureBar?: number | null; nPrime?: number | null; kvPaSn?: number | null; kPrimePaSn?: number | null; kSlotPaSn?: number | null; kPipePaSn?: number | null; r2?: number | null; viscosities?: Partial<{ [key in string]: number }>; binghamPvPaS?: number | null; binghamYpPa?: number | null; binghamR2?: number | null; calcPoints?: number | null; sourceSheet?: string | null; sourceRow?: number | null; units?: Partial<{ [key in string]: string }> }
+
+export type RheologyParameterSource = "instrument" | "program"
+
 export type SeriesDecodeCacheStatsResponse = { entries: number; byteSize: number; maxEntries: number; maxBytes: number; ttlSeconds: number; hits: number; misses: number }
 
 export type SeriesMetaResponse = { experimentId: string; pointCount: number; timeMinSec: number | null; timeMaxSec: number | null; availableMetrics: SeriesMetricDescriptor[]; dataHash: string }
@@ -423,7 +427,7 @@ export type SeriesMetricDescriptor = { id: number; key: string }
 
 export type SimpleResult = { success: boolean; message: string | null; error: string | null; deletedCount: number | null }
 
-export type StoredExperiment = { id: string; createdAt: string; updatedAt: string; name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; rawPoints: JsonValue[]; calibration: JsonValue | null; reagents: StoredExperimentReagent[]; maxViscosity: number | null; avgViscosity: number | null; user: StoredExperimentUser | null; laboratory: StoredExperimentLaboratory | null; parsedBy?: string | null; parseSource?: string | null; timeRangeMin?: number | null; timeRangeMax?: number | null; viscosityMin?: number | null; pressureMax?: number | null; extraFields?: JsonValue | null }
+export type StoredExperiment = { id: string; createdAt: string; updatedAt: string; name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; rawPoints: JsonValue[]; calibration: JsonValue | null; reagents: StoredExperimentReagent[]; maxViscosity: number | null; avgViscosity: number | null; user: StoredExperimentUser | null; laboratory: StoredExperimentLaboratory | null; parsedBy?: string | null; parseSource?: string | null; timeRangeMin?: number | null; timeRangeMax?: number | null; viscosityMin?: number | null; pressureMax?: number | null; extraFields?: JsonValue | null; rheologySource?: RheologyParameterSource; rheologyParameters?: RheologyParameterRow[] }
 
 export type StoredExperimentLaboratory = { id: string; name: string }
 
@@ -506,4 +510,3 @@ viscosityAtTargetMinCp: number | null;
 viscosityAtTargetMaxCp: number | null }
 
 export type WaterSourcesResponse = { waterSources: string[] }
-

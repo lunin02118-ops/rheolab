@@ -50,12 +50,9 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
     }
 
     // Calculate colspan for expanded details
-    // Base: expand(1) + cycle(1) + type(1) + time(1) + dur(1) + n'(1) + K'(1) + Ks(1) + Kp(1) + R²(1) = 10
-    const baseColCount = 10 + viscosityRates.length;
-    // Expert adds PV(1)+YP(1)+R²Bingham(1)=+3, plus edit button only when onEditCycle is provided
-    const detailColSpan = isExpert
-        ? baseColCount + 3 + (onEditCycle ? 1 : 0)
-        : baseColCount;
+    // Base includes PV/YP/R² Bingham in every UI mode; edit stays expert-only.
+    const baseColCount = 13 + viscosityRates.length;
+    const detailColSpan = baseColCount + (isExpert && onEditCycle ? 1 : 0);
 
     return (
         <div className="overflow-hidden">
@@ -89,20 +86,15 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
                                     <span className="cursor-help" title={`Вязкость при ${rate} с⁻¹`}>η@{rate} ({viscUnit})</span>
                                 </th>
                             ))}
-                            {/* Expert mode: Bingham model columns */}
-                            {isExpert && (
-                                <>
-                                    <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
-                                        <span className="cursor-help" title="Пластическая вязкость">PV ({rUnits.plasticViscosity})</span>
-                                    </th>
-                                    <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
-                                        <span className="cursor-help" title="Предел текучести">YP ({rUnits.yieldPoint})</span>
-                                    </th>
-                                    <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
-                                        <span className="cursor-help" title="Модель Бингама R²">R² Bingham</span>
-                                    </th>
-                                </>
-                            )}
+                            <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
+                                <span className="cursor-help" title="Пластическая вязкость">PV ({rUnits.plasticViscosity})</span>
+                            </th>
+                            <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
+                                <span className="cursor-help" title="Предел текучести">YP ({rUnits.yieldPoint})</span>
+                            </th>
+                            <th className="min-w-[80px] py-2 px-3 text-center text-xs font-semibold text-foreground whitespace-nowrap">
+                                <span className="cursor-help" title="Модель Бингама R²">R² Bingham</span>
+                            </th>
                             {isExpert && onEditCycle && (
                                 <th className="w-10 py-2 px-2"></th>
                             )}

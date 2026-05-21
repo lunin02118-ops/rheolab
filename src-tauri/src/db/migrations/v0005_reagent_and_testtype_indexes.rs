@@ -93,9 +93,7 @@ mod tests {
     }
 
     fn explain(conn: &Connection, sql: &str) -> String {
-        let mut stmt = conn
-            .prepare(&format!("EXPLAIN QUERY PLAN {sql}"))
-            .unwrap();
+        let mut stmt = conn.prepare(&format!("EXPLAIN QUERY PLAN {sql}")).unwrap();
         stmt.query_map([], |row| row.get::<_, String>(3))
             .unwrap()
             .filter_map(|r| r.ok())

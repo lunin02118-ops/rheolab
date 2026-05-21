@@ -14,6 +14,7 @@ use crate::db::migrations::v0006_artifact_import_batch_indexes::V0006ArtifactImp
 use crate::db::migrations::v0007_fk_indexes::V0007FkIndexes;
 use crate::db::migrations::v0008_analysis_artifact::V0008AnalysisArtifact;
 use crate::db::migrations::v0009_experiment_list_projection::V0009ExperimentListProjection;
+use crate::db::migrations::v0010_experiment_rheology_parameters::V0010ExperimentRheologyParameters;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -86,6 +87,7 @@ fn migration_v1_creates_all_tables() {
         "ExperimentPayload",
         "ExperimentProjectionMeta",
         "ExperimentReagent",
+        "ExperimentRheologyParameter",
         "ImportBatch",
         "Laboratory",
         "MergeEvent",
@@ -533,6 +535,8 @@ fn schema_identity_with_raw_ddl() {
     V0008AnalysisArtifact.up(&conn_b).unwrap();
     // v0009 — ExperimentListProjection + facet cache tables.
     V0009ExperimentListProjection.up(&conn_b).unwrap();
+    // v0010 — persisted rheology parameters by source.
+    V0010ExperimentRheologyParameters.up(&conn_b).unwrap();
 
     fn dump(conn: &Connection) -> Vec<String> {
         let mut stmt = conn

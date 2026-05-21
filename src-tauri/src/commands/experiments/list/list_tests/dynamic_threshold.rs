@@ -1,7 +1,7 @@
 //! Dynamic viscosity threshold tests (user-configurable touch-point).
 
-use super::*;
 use super::fixtures::*;
+use super::*;
 use crate::commands::experiments::crud::persist_experiment;
 use serde_json::json;
 

@@ -4,12 +4,12 @@ This guide is for the License Manager who issues keys to customers.
 
 ## Workflow
 
-1.  **Customer Purchase**: A customer buys RheoLab Enterprise.
+1.  **Customer Purchase**: A customer buys a RheoLab corporate license.
 2.  **Generate Key**:
     - Login to the Admin Panel.
     - Click **"Создать лицензию"**.
     - Enter customer name.
-    - Select `Standard`, `Developer`, or `Enterprise` based on the purchased tier.
+    - Select `Corporate`, `Developer`, or `Superuser` based on the issuance scenario.
     - Click **Create**.
     - Copy the generated key (e.g., `ABCD-1234-EFGH-5678`).
 3.  **Send Key**: Email the key to the customer.
@@ -42,7 +42,7 @@ If a customer buys a new PC or reinstalls Windows:
 - If they decide to buy:
     1.  Find the trial license.
     2.  Edit it.
-    3.  Change **Type** to the purchased tier (`Standard`, `Developer`, or `Enterprise`).
+    3.  Change **Type** to the required tier (`Corporate`, `Developer`, or `Superuser`).
     4.  Update **Expiration Date**.
     5.  Save.
     The customer continues using the same key.

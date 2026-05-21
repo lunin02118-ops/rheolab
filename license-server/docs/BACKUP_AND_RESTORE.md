@@ -10,8 +10,8 @@ The server is configured to automatically back up the database and files every d
 - **Script**: `/usr/local/bin/backup-license.sh`
 - **Location**: `/var/backups/license-server/`
 - **Format**: `backup_YYYY-MM-DD_HH-MM-SS.tar.gz`
-- **Retention**: Backups older than 30 days are automatically deleted.
-- **S3 mirror**: when `/root/.license-server-s3.env` is present, the archive is also uploaded to S3-compatible storage as `latest/backup_latest.tar.gz` and `daily/backup_<timestamp>.tar.gz`.
+- **Local retention**: when S3 is configured and upload succeeds, the server keeps the latest 3 local archives and prunes older local archives only after matching S3 daily objects and `.sha256` files are confirmed. Without S3, local archives older than 7 days are deleted.
+- **S3 mirror**: when `/root/.license-server-s3.env` is present, the archive is also uploaded to S3-compatible storage as `latest/backup_latest.tar.gz` and `daily/backup_<timestamp>.tar.gz`. Remote daily retention defaults to 30 days unless `S3_RETENTION_DAYS` overrides it.
 
 ### Content of Backup
 Each backup archive contains:
@@ -26,13 +26,18 @@ ls -lh /var/backups/license-server
 
 To check S3 settings on the server:
 ```bash
-sudo cat /root/.license-server-s3.env
+sudo test -f /root/.license-server-s3.env && echo "S3 backup config exists"
 ```
 
 ### Manual Backup
 You can trigger a backup manually at any time:
 ```bash
 sudo /usr/local/bin/backup-license.sh
+```
+
+To verify the latest local backup and, when configured, the S3 `latest` object without overwriting the live database:
+```bash
+sudo /usr/local/bin/license-admin-verify-backup.sh
 ```
 
 S3 storage layout:
@@ -65,7 +70,7 @@ The server now includes `/usr/local/bin/cleanup-license.sh`.
 It performs conservative housekeeping:
 1. Deletes expired `rate_limits` rows.
 2. Rotates and truncates an oversized `/var/log/license-backup.log`.
-3. Removes old compressed log archives and stale temporary directories.
+3. Removes old compressed log archives, local backup archives older than 7 days, and stale temporary directories.
 
 Run manually with:
 ```bash

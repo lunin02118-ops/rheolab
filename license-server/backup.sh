@@ -15,6 +15,8 @@ S3_HELPER="${S3_HELPER:-/usr/local/bin/license-s3-helper.py}"
 TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
 BACKUP_DIR="$BACKUP_ROOT/$TIMESTAMP"
 RETENTION_DAYS=30
+LOCAL_RETENTION_DAYS="${LOCAL_RETENTION_DAYS:-7}"
+LOCAL_KEEP_COUNT="${LOCAL_KEEP_COUNT:-3}"
 
 load_s3_env() {
     if [ -f "$S3_ENV_FILE" ]; then
@@ -53,6 +55,42 @@ s3_delete_object() {
     local object_key="$1"
 
     s3_helper delete "$S3_BUCKET" "$object_key"
+}
+
+cleanup_local_by_age() {
+    echo "[$(date)] S3 upload is not configured; cleaning local backups older than $LOCAL_RETENTION_DAYS days..."
+    find "$BACKUP_ROOT" -maxdepth 1 -name "backup_*.tar.gz" -type f -mtime +"$LOCAL_RETENTION_DAYS" -delete
+}
+
+cleanup_local_after_s3_upload() {
+    local remote_prefix="$1"
+    local keep_count="${2:-$LOCAL_KEEP_COUNT}"
+    local remote_index
+    remote_index=$(mktemp)
+
+    if ! s3_list_objects "$remote_prefix/daily/" > "$remote_index" 2>/dev/null; then
+        echo "[$(date)] WARNING: Unable to list S3 daily backups; keeping all local archives."
+        rm -f "$remote_index"
+        return 0
+    fi
+
+    echo "[$(date)] Cleaning local backups after confirmed S3 upload; keeping latest $keep_count local archives..."
+    find "$BACKUP_ROOT" -maxdepth 1 -type f -name 'backup_*.tar.gz' -printf '%T@ %p\n' \
+        | sort -rn \
+        | awk -v keep="$keep_count" 'NR > keep { sub(/^[^ ]+ /, ""); print }' \
+        | while IFS= read -r archive; do
+            [ -n "$archive" ] || continue
+            local base
+            base=$(basename "$archive")
+            if grep -Fq "$remote_prefix/daily/$base" "$remote_index" && grep -Fq "$remote_prefix/daily/$base.sha256" "$remote_index"; then
+                echo "[$(date)] Removing local S3-confirmed backup: $archive"
+                rm -f -- "$archive"
+            else
+                echo "[$(date)] Keeping local backup without confirmed S3 object: $archive"
+            fi
+        done
+
+    rm -f "$remote_index"
 }
 
 cleanup_remote_s3() {
@@ -112,11 +150,7 @@ else
     exit 1
 fi
 
-# 5. Cleanup Old Backups
-echo "[$(date)] Cleaning up backups older than $RETENTION_DAYS days..."
-find "$BACKUP_ROOT" -name "backup_*.tar.gz" -type f -mtime +$RETENTION_DAYS -delete
-
-# 6. Upload to S3-compatible object storage (optional)
+# 5. Upload to S3-compatible object storage (optional)
 if has_s3_config && command -v python3 >/dev/null 2>&1 && [ -f "$S3_HELPER" ]; then
     S3_PREFIX="${S3_PREFIX:-license-server}"
     LATEST_KEY="${S3_PREFIX}/latest/backup_latest.tar.gz"
@@ -136,6 +170,9 @@ if has_s3_config && command -v python3 >/dev/null 2>&1 && [ -f "$S3_HELPER" ]; t
     cleanup_remote_s3 "$S3_PREFIX" "${S3_RETENTION_DAYS:-$RETENTION_DAYS}"
     rm -f "$SHA_FILE"
     echo "[$(date)] S3 upload completed successfully."
+    cleanup_local_after_s3_upload "$S3_PREFIX" "$LOCAL_KEEP_COUNT"
+else
+    cleanup_local_by_age
 fi
 
 echo "[$(date)] Backup process completed successfully."

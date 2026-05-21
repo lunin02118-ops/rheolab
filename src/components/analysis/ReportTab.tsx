@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FileText, Download, Loader2, Languages } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useBrandingStore } from '@/lib/store/branding-store';
@@ -137,17 +137,23 @@ export function ReportTab({
     const isGenerating = isExporting || isExcelExporting;
     const canDownload = formatPdf || formatExcel;
 
+    useEffect(() => {
+        if (!canUseCalibration && includeCalibration) {
+            setIncludeCalibration(false);
+        }
+    }, [canUseCalibration, includeCalibration]);
+
     // Show the "Save as default" affordance only when the visible selection
     // no longer matches the stored defaults — otherwise the click would be
     // a no-op and add visual noise to the form.
     const isDefaultDirty =
-        includeCalibration !== showCalibration ||
+        (canUseCalibration && includeCalibration !== showCalibration) ||
         includeRawData     !== showRawData ||
         includeRecipe      !== showRecipe ||
         includeWaterAnalysis !== showWaterAnalysis;
 
     const saveSectionsAsDefault = () => {
-        setShowCalibration(includeCalibration);
+        setShowCalibration(canUseCalibration ? includeCalibration : false);
         setShowRawData(includeRawData);
         setShowRecipe(includeRecipe);
         setShowWaterAnalysis(includeWaterAnalysis);
@@ -234,19 +240,20 @@ export function ReportTab({
                             </button>
                         )}
                     </div>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                            type="checkbox"
-                            checked={includeCalibration}
-                            onChange={(e) => setIncludeCalibration(e.target.checked)}
-                            disabled={!canUseCalibration}
-                            data-testid="ReportCalibrationToggle"
-                            className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500 disabled:opacity-40"
-                        />
-                        <span className={`text-sm ${canUseCalibration ? 'text-foreground' : 'text-muted-foreground'}`}>
-                            {reportLanguage === 'en' ? 'Calibration data' : 'Калибровка'}
-                        </span>
-                    </label>
+                    {canUseCalibration && (
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={includeCalibration}
+                                onChange={(e) => setIncludeCalibration(e.target.checked)}
+                                data-testid="ReportCalibrationToggle"
+                                className="w-4 h-4 rounded border-border text-purple-600 focus:ring-purple-500"
+                            />
+                            <span className="text-sm text-foreground">
+                                {reportLanguage === 'en' ? 'Calibration data' : 'Калибровка'}
+                            </span>
+                        </label>
+                    )}
                     <label className="flex items-center gap-3 cursor-pointer group">
                         <input
                             type="checkbox"

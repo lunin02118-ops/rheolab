@@ -43,6 +43,8 @@ export type {
     Experiment,
     WaterParams,
     ExperimentSavePayload,
+    RheologyParameterRow,
+    RheologyParameterSource,
     LastContext,
 } from './experiment';
 

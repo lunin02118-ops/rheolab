@@ -92,9 +92,7 @@ pub fn run_full_analysis_kernel(
     // 4. Apply cycle overrides
     if !cycle_overrides.is_empty() {
         for cycle in &mut cycles {
-            if let Some((_, step_ids)) =
-                cycle_overrides.iter().find(|(id, _)| *id == cycle.id)
-            {
+            if let Some((_, step_ids)) = cycle_overrides.iter().find(|(id, _)| *id == cycle.id) {
                 let override_steps: Vec<RheoStep> = clean_steps
                     .iter()
                     .filter(|s| step_ids.contains(&s.id))
@@ -110,8 +108,7 @@ pub fn run_full_analysis_kernel(
     }
 
     // 5. Process cycles + calculate Grace
-    let (processed_cycles, results) =
-        process_all_cycles(&cycles, geometry_key, settings, false);
+    let (processed_cycles, results) = process_all_cycles(&cycles, geometry_key, settings, false);
 
     AnalysisOutput {
         cycles: processed_cycles,
@@ -352,8 +349,7 @@ fn typed_columns_to_rheo_points(
     );
     let pressure_bar = first_column(columns, &["pressure_bar", "pressureBar", "pressure"]);
     let rpm = first_column(columns, &["speed_rpm", "speedRpm", "rpm"]);
-    let bath_temperature =
-        first_column(columns, &["bath_temperature_c", "bathTemperatureC"]);
+    let bath_temperature = first_column(columns, &["bath_temperature_c", "bathTemperatureC"]);
 
     let len = time.len();
     for (name, column) in [
@@ -386,7 +382,9 @@ fn typed_columns_to_rheo_points(
         });
     }
     if out.is_empty() {
-        return Err(AppError::BadRequest("analysis data must not be empty".into()));
+        return Err(AppError::BadRequest(
+            "analysis data must not be empty".into(),
+        ));
     }
     Ok(out)
 }

@@ -24,7 +24,8 @@ import {
     mapReagentsToRecipe
 } from '@/lib/experiments/mappers';
 import { isTauri } from '@/lib/tauri/core';
-import type { WaterParams } from '@/types';
+import type { RheologyParameterRow, WaterParams } from '@/types';
+import type { GraceCycleResult } from '@/lib/analysis/types';
 import type { ExperimentDetailMeta, StoredExperiment } from '@/types/tauri';
 
 // Custom hooks
@@ -40,6 +41,41 @@ function isLegacyDetailRawPointsForced(): boolean {
 }
 
 type FullDataLoadReason = 'save' | 'legacy-detail-fallback' | 'unknown';
+
+function programRheologyRowFromResult(result: GraceCycleResult): RheologyParameterRow {
+    const viscosities: Record<string, number> = {};
+    Object.entries(result.viscosities ?? {}).forEach(([rate, value]) => {
+        if (Number.isFinite(Number(value))) {
+            viscosities[String(rate)] = Number(value);
+        }
+    });
+
+    return {
+        source: 'program',
+        cycleNo: result.cycleNo,
+        timeMin: result.timeMin,
+        endTimeMin: result.endTimeMin,
+        tempC: result.tempC,
+        pressureBar: result.pressure_bar,
+        nPrime: result.n_prime,
+        kvPaSn: result.Kv_PaSn,
+        kPrimePaSn: result.K_prime_PaSn,
+        kSlotPaSn: result.K_prime_slot_PaSn,
+        kPipePaSn: result.K_pipe_PaSn,
+        r2: result.r2,
+        viscosities,
+        binghamPvPaS: result.bingham_PV_PaS,
+        binghamYpPa: result.bingham_YP_Pa,
+        binghamR2: result.bingham_r2,
+        calcPoints: result.calcPoints,
+        units: {
+            consistency: 'Pa*s^n',
+            viscosity: 'cP',
+            binghamPv: 'Pa*s',
+            binghamYp: 'Pa',
+        },
+    };
+}
 
 function emitFullDataLoadEvent(experimentId: string, reason: FullDataLoadReason): void {
     if (typeof window === 'undefined') return;
@@ -430,8 +466,10 @@ export default function Dashboard() {
             prefilledWaterSource: waterSource,
             prefilledWaterParams: waterParams,
             prefilledRecipe: recipe,
+            instrumentRheology: parseResult.instrumentRheology ?? [],
+            programRheology: Array.from(cycleResults.values()).map(programRheologyRowFromResult),
         };
-    }, [parseResult, geometryOverride, waterSource, waterParams, recipe]);
+    }, [parseResult, geometryOverride, waterSource, waterParams, recipe, cycleResults]);
 
     return (
         <div className="min-h-screen">

@@ -2,12 +2,91 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 pub(super) const DUPLICATE_CODE: &str = "DUPLICATE_ENTRY";
 pub(super) const NAME_CONFLICT_CODE: &str = "NAME_CONFLICT";
 pub(super) const NO_LAB_ID: &str = "__no_lab__";
 /// Default userId for desktop-local experiments (no real auth session)
 pub(crate) const LOCAL_USER_ID: &str = "desktop-local-admin";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "lowercase")]
+pub enum RheologyParameterSource {
+    Instrument,
+    Program,
+}
+
+impl Default for RheologyParameterSource {
+    fn default() -> Self {
+        Self::Program
+    }
+}
+
+impl RheologyParameterSource {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Instrument => "instrument",
+            Self::Program => "program",
+        }
+    }
+
+    pub(crate) fn from_db(value: &str) -> Self {
+        match value {
+            "instrument" => Self::Instrument,
+            _ => Self::Program,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RheologyParameterRow {
+    #[serde(default)]
+    pub source: RheologyParameterSource,
+    pub cycle_no: i32,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub time_min: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub end_time_min: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub temp_c: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub pressure_bar: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub n_prime: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[serde(rename = "kvPaSn")]
+    pub kv_pasn: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[serde(rename = "kPrimePaSn")]
+    pub k_prime_pasn: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[serde(rename = "kSlotPaSn")]
+    pub k_slot_pasn: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[serde(rename = "kPipePaSn")]
+    pub k_pipe_pasn: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub r2: Option<f64>,
+    #[serde(default)]
+    pub viscosities: BTreeMap<String, f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[serde(rename = "binghamPvPaS")]
+    pub bingham_pv_pas: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub bingham_yp_pa: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub bingham_r2: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub calc_points: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub source_sheet: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub source_row: Option<i32>,
+    #[serde(default)]
+    pub units: BTreeMap<String, String>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -334,6 +413,10 @@ pub struct ExperimentSavePayload {
     pub pressure_max: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub extra_fields: Option<Value>,
+    #[serde(default)]
+    pub rheology_source: RheologyParameterSource,
+    #[serde(default)]
+    pub rheology_parameters: Vec<RheologyParameterRow>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
@@ -386,6 +469,10 @@ pub struct StoredExperiment {
     pub pressure_max: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extra_fields: Option<Value>,
+    #[serde(default)]
+    pub rheology_source: RheologyParameterSource,
+    #[serde(default)]
+    pub rheology_parameters: Vec<RheologyParameterRow>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
@@ -462,6 +549,8 @@ pub struct ExperimentDetailMeta {
     pub parse_source: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extra_fields: Option<Value>,
+    #[serde(default)]
+    pub rheology_source: RheologyParameterSource,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]

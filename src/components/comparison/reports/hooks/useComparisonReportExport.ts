@@ -21,9 +21,15 @@ import type {
 } from '@/lib/analysis/report-types/types';
 
 import {
+    generateComparisonExcelReportBytes,
     generateComparisonExcelReportByIdsBytes,
+    generateComparisonPdfReportBytes,
     generateComparisonPdfReportByIdsBytes,
 } from '@/lib/reports/client';
+import {
+    buildComparisonDirectReportInput,
+    hasFileBackedComparisonExperiment,
+} from '@/lib/reports/comparison-direct-export';
 import { saveBytes, saveBytesToDir, type SaveBytesItem } from '@/lib/reports/report-save';
 import { EXPERIMENT_COLORS } from '@/components/comparison/comparison-chart-constants';
 import { logger } from '@/lib/logger';
@@ -216,6 +222,11 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         [options.displaySettings, options.chartSettings, options.brushRange],
     );
 
+    const hasFileBackedSelection = useMemo(
+        () => hasFileBackedComparisonExperiment(options.experiments),
+        [options.experiments],
+    );
+
     const buildByIdsRequest = useCallback((): ComparisonReportByIdsRequest => ({
         experimentIds: options.experiments.map((exp) => exp.id),
         settings: {
@@ -240,7 +251,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
                 showBathTemperature: options.chartSettings.lines.bathTemperature.visible,
                 shearRateAxis: options.chartSettings.lines.shearRate.axis,
                 pressureAxis: options.chartSettings.lines.pressure.axis,
-                showAdvancedStats: options.isExpert,
+                showAdvancedStats: true,
                 reportViscosityRates: options.reportViscosityRates,
                 rheologyUnits: {
                     viscosity: options.chartSettings.rheologyUnits.viscosity,
@@ -274,15 +285,66 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         options.reportViscosityRates,
     ]);
 
+    const buildDirectInput = useCallback(
+        (kind: 'pdf' | 'excel') => buildComparisonDirectReportInput({
+            experiments: options.experiments,
+            comparisonChartConfig,
+            chartSettings: options.chartSettings,
+            language: options.language,
+            unitSystem: options.unitSystem,
+            companyName: options.companyName,
+            companyLogo: options.companyLogo,
+            showCalibration: options.showCalibration,
+            showRawData: options.showRawData,
+            showRecipe: options.showRecipe,
+            showWaterAnalysis: options.showWaterAnalysis,
+            showRheology: options.showRheology,
+            showTouchPoints: options.displaySettings.showTouchPoints,
+            viscosityThreshold: options.displaySettings.viscosityThreshold,
+            showTargetTime: options.displaySettings.showTargetTime,
+            targetTime: options.displaySettings.targetTime,
+            reportViscosityRates: options.reportViscosityRates,
+            isExpert: options.isExpert,
+        }, kind),
+        [
+            comparisonChartConfig,
+            options.experiments,
+            options.chartSettings,
+            options.language,
+            options.unitSystem,
+            options.companyName,
+            options.companyLogo,
+            options.showCalibration,
+            options.showRawData,
+            options.showRecipe,
+            options.showWaterAnalysis,
+            options.showRheology,
+            options.displaySettings.showTouchPoints,
+            options.displaySettings.viscosityThreshold,
+            options.displaySettings.showTargetTime,
+            options.displaySettings.targetTime,
+            options.reportViscosityRates,
+            options.isExpert,
+        ],
+    );
+
     const generatePdfBytes = useCallback(async () => {
+        if (hasFileBackedSelection) {
+            const input = await withPerf('pdf:buildDirectPayload', () => buildDirectInput('pdf'));
+            return await withPerf('pdf:directRoundtrip', () => generateComparisonPdfReportBytes(input));
+        }
         const request = buildByIdsRequest();
         return await withPerf('pdf:byIdsRoundtrip', () => generateComparisonPdfReportByIdsBytes(request));
-    }, [buildByIdsRequest]);
+    }, [buildByIdsRequest, buildDirectInput, hasFileBackedSelection]);
 
     const generateExcelBytes = useCallback(async () => {
+        if (hasFileBackedSelection) {
+            const input = await withPerf('excel:buildDirectPayload', () => buildDirectInput('excel'));
+            return await withPerf('excel:directRoundtrip', () => generateComparisonExcelReportBytes(input));
+        }
         const request = buildByIdsRequest();
         return await withPerf('excel:byIdsRoundtrip', () => generateComparisonExcelReportByIdsBytes(request));
-    }, [buildByIdsRequest]);
+    }, [buildByIdsRequest, buildDirectInput, hasFileBackedSelection]);
 
     const baseFilename = useMemo(() => {
         const date = new Date().toISOString().split('T')[0];

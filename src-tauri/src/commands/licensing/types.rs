@@ -55,6 +55,7 @@ pub(super) const ALPHA_CHANNEL_KEY: &str = match option_env!("ALPHA_CHANNEL_SECR
 pub(super) const STORAGE_SALT: &str = "rheolab-storage-salt";
 pub(crate) const HW_SALT: &str = "rheolab-hw-";
 
+#[cfg(test)]
 pub(super) const DB_KEY_DEMO: &str = "demo_state_v4";
 pub(super) const DB_KEY_LICENSE: &str = "license_data_v1";
 pub(super) const DB_KEY_WAS_LICENSED: &str = "was_licensed_v1";
@@ -71,8 +72,10 @@ pub(super) const LOCAL_USER_ID: &str = "desktop-local-admin";
 // ── License engine constants ───────────────────────────────────────────
 
 /// Maximum demo trial duration in days
+#[cfg(test)]
 pub(super) const DEMO_MAX_DAYS: i64 = 30;
 /// Maximum experiments allowed in demo mode
+#[cfg(test)]
 pub(super) const DEMO_MAX_EXPERIMENTS: i64 = 10;
 /// Maximum days allowed offline before requiring re-validation
 pub(super) const MAX_OFFLINE_DAYS: i64 = 30;
@@ -120,6 +123,7 @@ impl std::fmt::Display for LicenseStatus {
 #[serde(rename_all = "snake_case")]
 pub enum LicenseSource {
     Key,
+    Unlicensed,
     Demo,
 }
 
@@ -139,10 +143,8 @@ pub enum LicenseSource {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "snake_case")]
 pub enum LicenseType {
-    Demo,
     Trial,
-    Standard,
-    Enterprise,
+    Corporate,
     Developer,
     /// Top-tier personal licence for the project owner. Receives builds on
     /// the `alpha` channel before Developer licences see them on `beta`.
@@ -151,13 +153,16 @@ pub enum LicenseType {
 
 impl LicenseType {
     pub fn from_str_loose(s: &str) -> Self {
+        Self::from_str_supported(s).unwrap_or(LicenseType::Trial)
+    }
+
+    pub fn from_str_supported(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
-            "demo" => LicenseType::Demo,
-            "trial" => LicenseType::Trial,
-            "enterprise" => LicenseType::Enterprise,
-            "developer" => LicenseType::Developer,
-            "superuser" => LicenseType::Superuser,
-            _ => LicenseType::Standard,
+            "trial" => Some(LicenseType::Trial),
+            "corporate" => Some(LicenseType::Corporate),
+            "developer" => Some(LicenseType::Developer),
+            "superuser" => Some(LicenseType::Superuser),
+            _ => None,
         }
     }
 }
@@ -206,15 +211,12 @@ pub struct LicenseCheckResult {
     pub show_warning: bool,
 }
 
-/// Request code shown to an Enterprise customer for offline activation.
+/// Request code shown to a Corporate customer for offline activation.
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct OfflineActivationRequestInfo {
     pub request_code: String,
-    pub request_id: String,
     pub machine_id: String,
-    pub legacy_machine_ids: Vec<String>,
-    pub created_at: String,
 }
 
 // ── Startup key assertion ──────────────────────────────────────────────
@@ -263,6 +265,7 @@ pub fn assert_production_keys() {
 // ── Response / domain types ────────────────────────────────────────────
 
 /// Internal demo state — used by demo.rs engine module.
+#[cfg(test)]
 #[derive(Debug, Serialize, Deserialize, specta::Type)]
 #[specta(export = false)]
 #[serde(rename_all = "camelCase")]

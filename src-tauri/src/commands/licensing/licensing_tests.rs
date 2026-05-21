@@ -1,5 +1,6 @@
 use super::crypto::upsert_system_state;
 use super::demo;
+use super::types::LicenseStatus;
 use super::*;
 
 // ── Test-clock helpers ──────────────────────────────────────────────
@@ -101,12 +102,12 @@ fn gate_accepts_valid_license() {
     // G-2: Fully RSA-signed license → gate must accept via license path (not demo fallback)
     let conn = setup_test_db();
 
-    let signed_payload = r#"{"id":1,"type":"standard","expiresAt":"2099-12-31"}"#;
+    let signed_payload = r#"{"id":1,"type":"trial","expiresAt":"2099-12-31"}"#;
     let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
 
     let license = json!({
         "id": 1,
-        "type": "standard",
+        "type": "trial",
         "expiresAt": "2099-12-31T23:59:59Z",
         "gracePeriodDays": 30,
         "signedPayload": signed_payload,
@@ -140,7 +141,7 @@ fn gate_rejects_tampered_hmac() {
     let conn = setup_test_db();
     let license = json!({
         "id": 1,
-        "type": "enterprise",
+        "type": "corporate",
         "expiresAt": "2099-12-31T23:59:59Z",
         "gracePeriodDays": 30
     });
@@ -175,12 +176,12 @@ fn gate_rejects_expired_plus_grace() {
     let conn = setup_test_db();
     let expired = days_ago_rfc3339(60);
 
-    let signed_payload = r#"{"id":1,"type":"standard","expiresAt":"2024-01-01"}"#;
+    let signed_payload = r#"{"id":1,"type":"trial","expiresAt":"2024-01-01"}"#;
     let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
 
     let license = json!({
         "id": 1,
-        "type": "standard",
+        "type": "trial",
         "expiresAt": expired,
         "gracePeriodDays": 30,
         "signedPayload": signed_payload,
@@ -209,13 +210,12 @@ fn gate_rejects_expired_plus_grace() {
 }
 
 #[test]
-fn gate_accepts_active_demo() {
-    // G-5: Active demo (fresh first launch) → gate must accept
+fn gate_rejects_unlicensed_even_without_demo_state() {
+    // G-5: No license must reject. Demo mode is no longer part of the product model.
     let conn = setup_test_db();
-    // Don't insert any demo state — check_demo will create one (first launch)
     assert!(
-        check_license_gate(&conn).is_ok(),
-        "Gate must accept an active demo period"
+        check_license_gate(&conn).is_err(),
+        "Gate must reject when no license is present"
     );
 }
 
@@ -225,12 +225,12 @@ fn gate_accepts_grace_period_license() {
     let conn = setup_test_db();
     let expired = days_ago_rfc3339(10);
 
-    let signed_payload = r#"{"id":1,"type":"standard","expiresAt":"2024-01-01"}"#;
+    let signed_payload = r#"{"id":1,"type":"trial","expiresAt":"2024-01-01"}"#;
     let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
 
     let license = json!({
         "id": 1,
-        "type": "standard",
+        "type": "trial",
         "expiresAt": expired,
         "gracePeriodDays": 30,  // 10 days expired, 20 days of grace left
         "signedPayload": signed_payload,
@@ -362,12 +362,12 @@ fn maybe_increment_is_noop_when_licensed() {
     // When a valid RSA-signed license exists, maybe_increment_demo_save should not error
     let conn = setup_test_db();
 
-    let signed_payload = r#"{"id":1,"type":"standard","expiresAt":"2099-12-31"}"#;
+    let signed_payload = r#"{"id":1,"type":"trial","expiresAt":"2099-12-31"}"#;
     let server_sig = sign_with_dev_private_key(signed_payload.as_bytes());
 
     let license = json!({
         "id": 1,
-        "type": "standard",
+        "type": "trial",
         "expiresAt": "2099-12-31T23:59:59Z",
         "gracePeriodDays": 30,
         "signedPayload": signed_payload,
@@ -421,13 +421,13 @@ fn maybe_increment_is_noop_when_e2e_skip_gate_set() {
         "Demo counter must not have incremented with RHEOLAB_E2E_SKIP_LICENSE_GATE=1"
     );
 
-    // Sanity: without the env var, increment *does* happen.
+    // Sanity: without the env var, legacy hook remains a no-op too.
     maybe_increment_demo_save(&conn);
     let after_normal = demo::check_demo(&conn, None);
     assert_eq!(
         after_normal.experiments_remaining,
-        Some(9),
-        "Demo counter must increment normally without the env var"
+        Some(10),
+        "Demo counter hook must remain a no-op after demo licensing removal"
     );
 }
 
@@ -455,13 +455,12 @@ fn maybe_increment_ignores_env_bypass_in_release() {
     maybe_increment_demo_save(&conn);
     unsafe { env::remove_var("RHEOLAB_E2E_SKIP_LICENSE_GATE") };
 
-    // In release the env var is ignored → counter MUST have moved to 9.
+    // Demo licensing was removed, so this legacy hook is a no-op in release too.
     let after = demo::check_demo(&conn, None);
     assert_eq!(
         after.experiments_remaining,
-        Some(9),
-        "RELEASE builds must NOT honour RHEOLAB_E2E_SKIP_LICENSE_GATE — \
-         demo counter must increment regardless (audit-v2 LIC-001)"
+        Some(10),
+        "Demo counter hook must remain a no-op in release builds"
     );
 }
 
@@ -708,6 +707,14 @@ fn license_type_from_str_recognises_superuser() {
     assert_ne!(
         types::LicenseType::from_str_loose("enterprise"),
         types::LicenseType::Superuser,
+    );
+    assert!(
+        types::LicenseType::from_str_supported("enterprise").is_none(),
+        "enterprise is intentionally unsupported"
+    );
+    assert!(
+        types::LicenseType::from_str_supported("standard").is_none(),
+        "standard is intentionally unsupported"
     );
 }
 

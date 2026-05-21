@@ -136,10 +136,7 @@ export interface ComparisonReportInput {
     unitSystem: ReportUnitSystem;
     /** Overrides the `companyName` taken from the anchor experiment. */
     companyName?: string;
-    /**
-     * Base-64 encoded PNG/JPEG of the company logo.  This is the **only**
-     * non-vector asset in the whole document.
-     */
+    /** Data URI or base-64 encoded PNG/JPEG/GIF/SVG company logo. */
     companyLogoBase64?: string;
     /** ISO-8601 timestamp captured client-side when the user pressed Generate. */
     generatedAt: string;

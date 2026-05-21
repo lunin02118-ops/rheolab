@@ -202,19 +202,22 @@ pub(super) fn render_comparison_chart(
     // page edge regardless of axis count.  That fixes the SVG→pt scale and
     // therefore also fixes the required SVG aspect ratio.
     //
-    // A4 landscape body = 595 - top(2.5cm=71pt) - bottom(1.2cm=34pt) = 490pt
+    // A4 landscape body = 595 - top(3.5cm=99pt) - bottom(2cm=57pt) = 439pt.
+    // The top/bottom margins intentionally match `build_typst_globals` so the
+    // document header lands at the same vertical position as experiment pages.
     //
     // Budget below the chart frame (must fit on the same page):
     //   ~12pt spacer + ~9pt axis label + ~16pt spacer + legend box ≤ 95pt
     //   where the legend box itself scales with line count
     //   (≈ 27pt / 37pt for 2-line / 3-line wraps of 8pt text).
     //
-    // Target chart render height = 395pt → leaves ~95pt for everything
-    // below the chart, which fits a 3-line legend comfortably.
+    // Target chart render height = 350pt → leaves ~89pt for everything
+    // below the chart, which fits a 3-line legend comfortably even with the
+    // aligned header margins above.
     //   Rendered chart height = text_width_pt × svg_h / svg_w
     //   → svg_h = CHART_BODY_TARGET_PT × svg_w / text_width_pt
     const SVG_W: f64 = 1040.0;
-    const CHART_BODY_TARGET_PT: f64 = 395.0;
+    const CHART_BODY_TARGET_PT: f64 = 350.0;
     const A4_LANDSCAPE_W_PT: f64 = 842.0;
     const MARGIN_CM: f64 = 2.0;
     const MARGIN_PT: f64 = MARGIN_CM * 72.0 / 2.54; // ≈ 56.693 pt
@@ -289,7 +292,7 @@ mod tests {
     ///
     /// Page margin is pinned to 2 cm = 56.693 pt on both sides, so
     /// text_width_pt = 842 - 2×56.693 = 728.614 pt, and
-    /// svg_h = round(422 × 1040 / 728.614) = 602.
+    /// svg_h = round(350 × 1040 / 728.614) = 500.
     #[test]
     fn comparison_svg_dimensions_match_fixed_2cm_margin() {
         let entries = vec![
@@ -310,17 +313,17 @@ mod tests {
         // Pin the exact value so drift in MARGIN_CM or CHART_BODY_TARGET_PT
         // is caught immediately.
         assert_eq!(
-            cfg.height, 564,
-            "SVG height must be 564 for a 2-cm left/right page margin \
-             (CHART_BODY_TARGET_PT = 395pt)"
+            cfg.height, 500,
+            "SVG height must be 500 for a 2-cm left/right page margin \
+             (CHART_BODY_TARGET_PT = 350pt)"
         );
 
-        // Aspect ratio check: rendered height must be ~395pt (the body target).
+        // Aspect ratio check: rendered height must be ~350pt (the body target).
         let text_width_pt = 842.0 - 2.0 * (2.0 * 72.0 / 2.54); // 728.614
         let rendered_height_pt = text_width_pt * cfg.height as f64 / cfg.width as f64;
         assert!(
-            (rendered_height_pt - 395.0).abs() < 1.0,
-            "rendered height {rendered_height_pt:.1}pt must match CHART_BODY_TARGET=395pt",
+            (rendered_height_pt - 350.0).abs() < 1.0,
+            "rendered height {rendered_height_pt:.1}pt must match CHART_BODY_TARGET=350pt",
         );
     }
 

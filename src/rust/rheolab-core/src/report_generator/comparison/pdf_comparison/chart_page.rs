@@ -283,7 +283,7 @@ pub(super) fn build_chart_full_page(
 
     // ── Typst page — identical structure to chart_page.rs ───────────
     format!(r##"
-#page(paper: "a4", flipped: true, margin: (top: 2.5cm, bottom: 1.2cm, left: {left_page_margin}pt, right: {right_page_margin}pt))[
+#page(paper: "a4", flipped: true, margin: (top: 3.5cm, bottom: 2cm, left: {left_page_margin}pt, right: {right_page_margin}pt))[
     #set par(spacing: 0pt)
     #set block(spacing: 0pt)
     // Chart SVG with side labels and ticks

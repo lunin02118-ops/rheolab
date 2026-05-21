@@ -13,7 +13,7 @@
  * - `developer` → `beta`    (internal dev team)
  * - everything else → `stable`
  */
-export type LicenseType = 'demo' | 'trial' | 'standard' | 'enterprise' | 'developer' | 'superuser';
+export type LicenseType = 'trial' | 'corporate' | 'developer' | 'superuser';
 
 export type LicenseStatus =
     | 'active'           // Полная лицензия активна
@@ -25,13 +25,14 @@ export type LicenseStatus =
 
 export type LicenseSource =
     | 'key'              // Активация по ключу
+    | 'unlicensed'       // Лицензия не активирована
     | 'demo';            // Demo режим
 
 // ==================== License Features ====================
 
 export interface LicenseFeatures {
     maxExperiments: number;     // -1 = unlimited
-    maxComparisonExperiments: number; // Максимум графиков в сравнении (3 для demo/trial, 8 для paid/developer)
+    maxComparisonExperiments: number; // Максимум графиков в сравнении (3 для trial, 8 для corporate/developer)
     exportPdf: boolean;
     exportExcel: boolean;
     aiParsing: boolean;
@@ -55,12 +56,12 @@ export interface License {
 
     // Сроки
     issuedAt: Date;
-    expiresAt: Date;
+    expiresAt?: Date;
     gracePeriodDays: number;
 
     // Привязка
-    machineId?: string;         // Для standard лицензий
-    seats?: number;             // Для enterprise
+    machineId?: string;         // Для corporate лицензий
+    seats?: number;             // Зарезервировано для корпоративных договоров
 
     // Возможности
     features: LicenseFeatures;
@@ -84,12 +85,3 @@ export interface LicenseResult {
     // Ключ (для отображения)
     key?: string;
 }
-
-
-
-// ==================== Constants ====================
-
-export const DEMO_LIMITS = {
-    maxDays: 30,
-    maxExperiments: 10,  // Максимум экспериментов в БД для Demo версии
-};

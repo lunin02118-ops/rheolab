@@ -32,6 +32,8 @@ pub async fn parsing_parse_file(
     request: ParseRequest,
     state: tauri::State<'_, crate::state::AppState>,
 ) -> crate::error::Result<ParseFileResponse> {
+    let features = crate::commands::licensing::current_features(&state).await;
+
     // Resolve AI key server-side — never sent over IPC.
     let ai_key = {
         let conn = state.pool_conn()?;
@@ -42,7 +44,21 @@ pub async fn parsing_parse_file(
         }
         resolved
     };
-    commands::parsing_parse_file_inner(request, ai_key).await
+    let response = commands::parsing_parse_file_inner(request, ai_key).await?;
+    Ok(strip_calibration_unless_allowed(
+        response,
+        features.calibration_parsing,
+    ))
+}
+
+fn strip_calibration_unless_allowed(
+    mut response: ParseFileResponse,
+    allow_calibration: bool,
+) -> ParseFileResponse {
+    if !allow_calibration {
+        response.metadata.calibration = None;
+    }
+    response
 }
 
 /// Internal adapter for integration tests that need to exercise the parsing
@@ -243,6 +259,57 @@ mod tests {
             pressure_bar: pres,
             bath_temperature_c: None,
         }
+    }
+
+    fn response_with_calibration() -> ParseFileResponse {
+        ParseFileResponse {
+            success: true,
+            source: "test".to_string(),
+            data: vec![pt(0.0, 10.0, 25.0, 1.0)],
+            metadata: ParseMetadata {
+                filename: "fixture.xlsx".to_string(),
+                instrument_type: None,
+                geometry: None,
+                geometry_source: None,
+                used_ai: false,
+                test_date: None,
+                ai_diagnostics: None,
+                filename_metadata: None,
+                calibration: Some(CalibrationResponse {
+                    device_type: "Grace M5600".to_string(),
+                    r_squared: 0.999,
+                    slope: 1.0,
+                    intercept: 0.0,
+                    hysteresis: 1.0,
+                    stdev: 1.0,
+                    status: "PASS".to_string(),
+                    last_cal_date: Some("2026-05-01".to_string()),
+                    calibration_date: Some("2026-05-01".to_string()),
+                    issues: Vec::new(),
+                    raw_data: "[]".to_string(),
+                }),
+            },
+            summary: ParseSummary {
+                point_count: 1,
+                time_range: None,
+                viscosity_range: None,
+                temperature_range: None,
+                pressure_range: None,
+            },
+            instrument_rheology: vec![],
+        }
+    }
+
+    #[test]
+    fn strip_calibration_removes_developer_only_parse_metadata() {
+        let response = strip_calibration_unless_allowed(response_with_calibration(), false);
+        assert!(response.metadata.calibration.is_none());
+    }
+
+    #[test]
+    fn strip_calibration_keeps_metadata_for_developer_tiers() {
+        let response = strip_calibration_unless_allowed(response_with_calibration(), true);
+        assert!(response.metadata.calibration.is_some());
     }
 
     // ── normalize_date_string ────────────────────────────────────────────────

@@ -8,7 +8,7 @@
  *   licensing_check           → full check (startup, refresh)
  *   licensing_activate_full   → activate key via server + DB
  *   licensing_deactivate      → deactivate + remove from DB
- *   licensing_register_experiment → increment demo counter
+ *   licensing_register_experiment → refresh license state after save
  */
 
 import { create } from 'zustand';
@@ -29,7 +29,7 @@ import { licenseEvents } from '@/lib/store/license-events';
 
 interface RustLicenseCheckResult {
     status: LicenseStatus;
-    source: 'key' | 'demo';
+    source: 'key' | 'unlicensed' | 'demo';
     features: LicenseFeatures;
     key?: string;
     licenseType?: string;
@@ -43,10 +43,7 @@ interface RustLicenseCheckResult {
 
 interface OfflineActivationRequestInfo {
     requestCode: string;
-    requestId: string;
     machineId: string;
-    legacyMachineIds: string[];
-    createdAt: string;
 }
 
 /**
@@ -58,10 +55,10 @@ function adaptResult(r: RustLicenseCheckResult): LicenseResult {
         r.customerName || r.licenseType
             ? {
                   id: '',
-                  type: (r.licenseType ?? 'standard') as LicenseType,
+                  type: (r.licenseType ?? 'trial') as LicenseType,
                   customerName: r.customerName ?? '',
                   issuedAt: new Date(),
-                  expiresAt: r.expiresAt ? new Date(r.expiresAt) : new Date(),
+                  expiresAt: r.expiresAt ? new Date(r.expiresAt) : undefined,
                   gracePeriodDays: 30,
                   features: r.features,
               }
@@ -101,7 +98,7 @@ export interface LicenseState {
     refresh: () => Promise<void>;
     refreshExperimentsCount: () => Promise<void>;
     activate: (key: string) => Promise<{ success: boolean; message: string }>;
-    createOfflineActivationRequest: (licenseKey?: string) => Promise<OfflineActivationRequestInfo>;
+    createOfflineActivationRequest: () => Promise<OfflineActivationRequestInfo>;
     activateOffline: (activationCode: string) => Promise<{ success: boolean; message: string }>;
     deactivate: () => Promise<void>;
     canSaveExperiment: () => { allowed: boolean; message?: string };
@@ -234,10 +231,9 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
     },
 
     // ── createOfflineActivationRequest ───────────────────────────────────────
-    createOfflineActivationRequest: async (licenseKey?: string) => {
+    createOfflineActivationRequest: async () => {
         return invoke<OfflineActivationRequestInfo>(
             'licensing_offline_activation_request',
-            { licenseKey: licenseKey?.trim() || null },
         );
     },
 
@@ -252,7 +248,7 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
             set({ result, ...deriveFromResult(result) });
             return {
                 success: true,
-                message: result.message || 'Enterprise лицензия активирована офлайн',
+                message: result.message || 'Корпоративная лицензия активирована офлайн',
             };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -301,7 +297,7 @@ export const useLicenseStore = create<LicenseState>()((set, get) => ({
                 return {
                     allowed: false,
                     message:
-                        'Достигнут лимит Demo версии. Удалите старые или активируйте полную версию.',
+                        'Пробный лимит исчерпан. Активируйте корпоративную лицензию.',
                 };
             }
         }

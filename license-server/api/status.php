@@ -40,10 +40,8 @@ if (!$license) {
     jsonError('Ключ не найден', 404);
 }
 
-$expiresAt = strtotime($license['expires_at']);
-$now = time();
-$isExpired = $expiresAt < $now;
-$daysRemaining = max(0, ceil(($expiresAt - $now) / 86400));
+$isExpired = isLicenseExpired($license);
+$daysRemaining = licenseDaysRemaining($license);
 
 $status = 'active';
 if ($license['is_revoked']) {
@@ -58,8 +56,8 @@ if ($license['is_revoked']) {
 jsonResponse([
     'success' => true,
     'status' => $status,
-    'licenseType' => $license['license_type'],
-    'expiresAt' => $license['expires_at'],
+    'licenseType' => normalizeLicenseType($license['license_type']) ?? $license['license_type'],
+    'expiresAt' => licenseExpiresAt($license),
     'daysRemaining' => $daysRemaining,
     'isActivated' => !empty($license['machine_id'])
 ]);

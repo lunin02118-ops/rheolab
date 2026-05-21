@@ -169,5 +169,47 @@ const contactCards = [
       width: 100%;
     }
   }
+
+  @media (max-width: 640px) {
+    .site-contact {
+      padding: 4.75rem 0;
+    }
+
+    .site-contact-header {
+      margin-bottom: 2.25rem;
+      text-align: left;
+    }
+
+    .site-contact-header h2 {
+      font-size: clamp(1.85rem, 8.6vw, 2.25rem);
+    }
+
+    .site-contact-header p {
+      font-size: 1rem;
+      line-height: 1.58;
+    }
+
+    .site-contact-grid {
+      gap: 1rem;
+    }
+
+    .site-contact-card {
+      padding: 1.25rem;
+    }
+
+    .site-contact-kicker {
+      font-size: 0.78rem;
+    }
+
+    .site-contact-link {
+      font-size: clamp(1.05rem, 5.4vw, 1.28rem);
+    }
+
+    .site-contact-card p,
+    .site-contact-checklist li {
+      font-size: 0.96rem;
+      line-height: 1.55;
+    }
+  }
 </style>
 

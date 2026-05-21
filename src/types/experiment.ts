@@ -6,6 +6,31 @@ import type { RheoPoint } from './rheology';
 import type { CalibrationData, ExperimentReagentInput, TestMetrics } from './metrics';
 import type { FluidType, TestCategory, TestGroup, TestSubGroup, TestType } from './taxonomy';
 
+export type RheologyParameterSource = 'instrument' | 'program';
+
+export interface RheologyParameterRow {
+    source: RheologyParameterSource;
+    cycleNo: number;
+    timeMin?: number | null;
+    endTimeMin?: number | null;
+    tempC?: number | null;
+    pressureBar?: number | null;
+    nPrime?: number | null;
+    kvPaSn?: number | null;
+    kPrimePaSn?: number | null;
+    kSlotPaSn?: number | null;
+    kPipePaSn?: number | null;
+    r2?: number | null;
+    viscosities?: Record<string, number>;
+    binghamPvPaS?: number | null;
+    binghamYpPa?: number | null;
+    binghamR2?: number | null;
+    calcPoints?: number | null;
+    sourceSheet?: string | null;
+    sourceRow?: number | null;
+    units?: Record<string, string>;
+}
+
 /**
  * Experiment record — mirrors the DB schema.
  */
@@ -98,6 +123,8 @@ export interface ExperimentSavePayload {
     viscosityMin?: number;
     pressureMax?: number;
     extraFields?: Record<string, unknown>;
+    rheologySource?: RheologyParameterSource;
+    rheologyParameters?: RheologyParameterRow[];
 }
 
 /**

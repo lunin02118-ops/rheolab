@@ -25,6 +25,7 @@ use super::types::{AiContextCandidate, AiMappingResponse, ColumnMapping, Parsing
 mod ai_candidates;
 mod csv_parser;
 mod heuristics;
+mod instrument_rheology;
 mod workbook;
 
 pub use ai_candidates::{extract_ai_context_candidates, extract_candidate_headers};
@@ -205,4 +206,3 @@ pub(super) fn calculate_sheet_score(sheet_name: &str, result: &ParsingResult) ->
 
     score
 }
-

@@ -80,5 +80,7 @@ export function toWirePayload(app: AppPayload): WirePayload {
         viscosityMin:    app.viscosityMin    ?? null,
         pressureMax:     app.pressureMax     ?? null,
         extraFields:     (app.extraFields    ?? null) as WirePayload['extraFields'],
+        rheologySource:   app.rheologySource  ?? 'program',
+        rheologyParameters: (app.rheologyParameters ?? []) as WirePayload['rheologyParameters'],
     };
 }

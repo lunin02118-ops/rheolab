@@ -65,8 +65,9 @@ if (!$license['is_active']) {
     jsonError('Ключ неактивен', 403);
 }
 
-// Проверить срок действия
-if (strtotime($license['expires_at']) < time()) {
+// Проверить срок действия. Corporate licenses are permanent
+// (`expires_at = NULL`, signed as `expiresAt: null`).
+if (isLicenseExpired($license)) {
     logAction($db, $license['id'], $machineId, 'activate', false, 'Срок действия истёк');
     jsonError('Срок действия ключа истёк', 403);
 }
@@ -92,7 +93,7 @@ if ($license['machine_id'] && $license['machine_id'] !== $machineId) {
 
     if (!$isLegacyMigration) {
         logAction($db, $license['id'], $machineId, 'activate', false,
-            'Несоответствие Machine ID: ' . $license['machine_id'] . ' vs ' . $machineId);
+            'Несоответствие Machine ID');
         jsonError('Этот ключ уже активирован на другом устройстве. Обратитесь в поддержку для сброса привязки.', 403);
     }
 }
@@ -125,20 +126,14 @@ if (!$license['machine_id']) {
 // Логируем успех
 logAction($db, $license['id'], $machineId, 'activate', true);
 
-send_response:
-
-// Формируем ответ с лицензией
-$licenseData = [
-    'id' => $license['id'],
-    'type' => $license['license_type'],
-    'customerName' => $license['customer_name'],
-    'organization' => $license['organization'],
-    'email' => $license['customer_email'],
-    'issuedAt' => $license['created_at'],
-    'expiresAt' => $license['expires_at'],
-    'activatedAt' => $license['activated_at'] ?: date('Y-m-d H:i:s'),
-    'machineId' => $machineId
-];
+// Формируем ответ с лицензией. The signed payload is the only trusted
+// contract consumed by the desktop client.
+try {
+    $licenseData = buildSignedLicensePayload($license, $machineId);
+} catch (InvalidArgumentException $e) {
+    logAction($db, $license['id'], $machineId, 'activate', false, 'Unsupported license type');
+    jsonError('Тип лицензии не поддерживается', 500);
+}
 
 // Подписываем лицензию
 $signed = signLicense($licenseData);

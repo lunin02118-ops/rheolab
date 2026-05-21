@@ -6,6 +6,173 @@
 
 ---
 
+## [0.2.3-alpha.9] — 2026-05-21
+
+> Добавлены два источника реологических параметров: значения прибора из отчёта и значения, рассчитанные RheoLab.
+
+### Добавлено
+- **Instrument rheology parsing**: Grace, BSL, Chandler и Brookfield отчёты теперь извлекают расчётные `n'`, `K'`, `Ks`, `Kp`, `R²`, вязкости и параметры Бингама из приборных таблиц.
+- **ExperimentRheologyParameter**: новая таблица хранит приборные и программные параметры по циклам вместе с единицами, листом и строкой источника.
+- **Save Dialog**: при наличии приборных параметров пользователь выбирает источник по умолчанию для отчётов и сравнения: `Прибор` или `Программа`.
+
+### Изменено
+- **Reports / comparison**: сохранённые отчёты и сравнение используют источник, выбранный для каждого эксперимента; для старых экспериментов `program` продолжает пересчитываться из сырых точек.
+- **Basic mode**: `PV`, `YP` и `R² Bingham` отображаются и экспортируются всегда, редактирование циклов остаётся только в экспертном режиме.
+- **DB import/merge**: импорт `.db` переносит новую таблицу реологических параметров.
+
+### Проверки
+- `cargo test --manifest-path src-tauri/Cargo.toml` — passed.
+- `npm run test` — passed.
+- `npm run version:validate` — passed.
+
+---
+
+## [0.2.3-alpha.8] — 2026-05-21
+
+> Убрана идея пула “свободных” корпоративных лицензий: офлайн-лицензия создаётся автоматически при выдаче кода активации.
+
+### Изменено
+- **License admin**: при вставке `RL-REQ1:...` сервер сам создаёт новый корпоративный ключ, сразу привязывает его к Machine ID и отдаёт `RL-ACT1:...`.
+- **Idempotency**: если для этого Machine ID уже есть активная корпоративная лицензия, сервер переиспользует её, чтобы после переустановки ОС не плодить дубликаты.
+- **Offline license actions**: для корпоративных офлайн-лицензий убраны действия `Сбросить` и `Отозвать`, потому что сервер не может удалённо отключить уже выданный `RL-ACT1`.
+- **Admin copy/docs**: текст в админке и документации больше не говорит про свободные ключи или предварительное создание лицензии.
+
+### Проверки
+- `php -l license-server\admin\index.php` — passed.
+- `.\vendor\bin\phpunit` в `license-server` — passed.
+- `npm run version:validate` — passed.
+- `npm run typecheck` — passed.
+- `node scripts\release\prepare-production.js --channel alpha` — passed.
+- `python scripts\dev\verify-alpha-pipeline.py --expect-version 0.2.3-alpha.8` — passed.
+
+---
+
+## [0.2.3-alpha.7] — 2026-05-21
+
+> Kaizen-упрощение корпоративной офлайн-активации: оператор вставляет только код запроса и сразу получает код активации.
+
+### Изменено
+- **License admin**: убран ручной выбор корпоративной лицензии; сервер сам берёт свободный корпоративный ключ и привязывает его к Machine ID из запроса.
+- **Offline Corporate request**: код запроса стал постоянным для текущего Machine ID и больше не содержит случайный requestId/дату генерации.
+- **Offline formats**: удалена поддержка старых `RHEOLAB-OFFLINE-...` префиксов и второго “старого” кода активации.
+
+### Проверки
+- `php -l license-server\admin\index.php` — passed.
+- `.\vendor\bin\phpunit` в `license-server` — passed.
+- `cargo test --manifest-path src-tauri\Cargo.toml commands::licensing::engine::offline --lib` — passed.
+- `npm run typecheck` — passed.
+- `npm run version:validate` — passed.
+- `node scripts\release\prepare-production.js --channel alpha` — passed.
+- `python scripts\dev\verify-alpha-pipeline.py --expect-version 0.2.3-alpha.7` — passed.
+
+---
+
+## [0.2.3-alpha.6] — 2026-05-21
+
+> Alpha-hotfix для корпоративной офлайн-активации: клиент больше не вводит лицензионный ключ при генерации запроса, а админка выбирает корпоративную лицензию из списка.
+
+### Изменено
+- **Offline Corporate request**: вкладка офлайн-активации в приложении формирует `RL-REQ1:` без поля ключа/договора.
+- **License admin**: ручной ввод корпоративного ключа заменён выбором активной корпоративной лицензии из списка.
+- **Offline request payload**: `licenseKey` больше не попадает в request-код; старые request-коды продолжают приниматься сервером.
+
+### Проверки
+- `npm run typecheck` — passed.
+- `php -l license-server\admin\index.php` — passed.
+- `.\vendor\bin\phpunit` в `license-server` — passed.
+- `cargo test --manifest-path src-tauri\Cargo.toml commands::licensing::engine::offline --lib` — passed.
+- `npm run version:validate` — passed.
+
+---
+
+## [0.2.3-alpha.5] — 2026-05-20
+
+> Alpha-hotfix для корпоративной офлайн-активации: короткие коды запроса/активации и уборка revoked-лицензий в админке сервера.
+
+### Изменено
+- **Offline Corporate activation**: новый короткий формат кодов `RL-REQ1:` и `RL-ACT1:` вместо длинного `RHEOLAB-OFFLINE-...`.
+- **Legacy compatibility**: старые request/activation-префиксы продолжают приниматься, чтобы не ломать клиентов до обновления.
+- **License admin cleanup**: в админке сервера лицензий добавлено удаление отозванных ключей по одному и массово.
+
+### Проверки
+- `php -l license-server\admin\index.php` — passed.
+- `.\vendor\bin\phpunit` в `license-server` — passed.
+- `cargo test --manifest-path src-tauri\Cargo.toml commands::licensing::engine::offline --lib` — passed.
+- `npm run typecheck` — passed.
+- `npm run version:validate` — passed.
+
+---
+
+## [0.2.3-alpha.4] — 2026-05-20
+
+> Alpha-сборка с обновлённой корпоративной лицензией: калибровка скрыта из пользовательского интерфейса и заблокирована на backend-уровне для корпоративного режима.
+
+### Изменено
+- **Corporate license features**: корпоративная версия больше не получает доступ к режимам калибровки; калибровка остаётся только для developer/superuser-сценариев.
+- **Analysis and comparison reports**: опции калибровки скрываются из настроек отчётов, если текущая лицензия не разрешает этот режим.
+- **Parsing and experiment save guards**: данные калибровки не сохраняются и не проходят через парсинг для корпоративной лицензии.
+
+### Проверки
+- `npm run version:validate` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed.
+- `cargo test --manifest-path src-tauri\Cargo.toml` — passed.
+- Release gate вкладки «Сравнение» — passed.
+
+---
+
+## [0.2.3-alpha.3] — 2026-05-20
+
+> Alpha-hotfix для PDF-отчётов: верхний колонтитул теперь стоит на одной высоте на страницах экспериментов, графиков и сводных таблиц.
+
+### Исправлено
+- **Report header alignment**: страницы графика сравнения и сводной таблицы используют те же вертикальные поля, что и листы экспериментов.
+- **Single report chart page alignment**: отдельная страница графика в обычном отчёте также приведена к общим полям отчёта.
+- **Chart fit after margin alignment**: высота графиков пересчитана под новую рабочую область страницы, чтобы график, подпись оси и легенда оставались внутри листа.
+
+### Проверки
+- `cargo test --manifest-path src\rust\rheolab-core\Cargo.toml pdf` — passed.
+- `cargo check --manifest-path src-tauri\Cargo.toml` — passed.
+- `npm run build` — passed.
+- `npm run version:validate` — passed.
+
+---
+
+## [0.2.3-alpha.2] — 2026-05-20
+
+> Alpha-hotfix для брендинга отчётов: SVG-логотип компании теперь корректно вставляется в PDF и больше не декодируется как PNG.
+
+### Исправлено
+- **SVG company logo in PDF**: генератор отчётов определяет формат логотипа по data URI/сигнатуре файла и передаёт в Typst `logo.svg`, `logo.png`, `logo.jpg` или `logo.gif` с корректным расширением.
+- **Comparison report header logo**: вкладка «Сравнение» использует тот же формат логотипа в общем заголовке отчёта, включая логотип, заданный на уровне настроек сравнения.
+- **Unsupported image formats fail soft**: неподдержанный или повреждённый логотип больше не должен ломать генерацию PDF; отчёт будет собран без логотипа.
+
+### Проверки
+- `cargo test --manifest-path src\rust\rheolab-core\Cargo.toml svg_logo` — passed.
+- `cargo test --manifest-path src\rust\rheolab-core\Cargo.toml pdf_compiles_with_svg_company_logo` — passed.
+- `npm run build` — passed.
+- `cargo check --manifest-path src-tauri\Cargo.toml` — passed.
+
+---
+
+## [0.2.3-alpha.1] — 2026-05-20
+
+> Alpha-hotfix для вкладки «Сравнение»: отчёт теперь сохраняется и для экспериментов, добавленных напрямую с локального диска, без обязательного сохранения в библиотеку/базу.
+
+### Исправлено
+- **Comparison report from local files**: экспорт PDF/XLSX больше не падает с ошибкой `Experiment IDs not found: file-...`, если часть сравниваемых экспериментов была добавлена горячим добавлением из файла.
+- **Mixed comparison selections**: отчёт корректно собирается для смешанного набора, где часть экспериментов уже хранится в базе, а часть находится только в памяти текущей сессии.
+- **Fast DB path preserved**: для отчётов, где все эксперименты уже сохранены в базе, сохранён прежний backend-путь экспорта по ID.
+
+### Проверки
+- `npm run test -- --run tests/reports/comparison-direct-export.test.ts tests/reports/client.test.ts` — passed.
+- `npm run build` — passed.
+- `cargo check --manifest-path src-tauri\Cargo.toml` — passed.
+- `cargo test --manifest-path src-tauri\Cargo.toml reports_generate_comparison_` — passed.
+- `npm run version:validate` — passed before alpha version bump.
+
+---
+
 ## [0.2.2] — 2026-05-09
 
 > Stable release, promoted from `0.2.2-alpha.24` after validation. The startup DB backfill throttling and user-visible DB update status from the alpha line are now the public default.

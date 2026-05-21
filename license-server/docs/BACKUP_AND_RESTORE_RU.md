@@ -10,8 +10,8 @@
 - **Скрипт**: `/usr/local/bin/backup-license.sh`
 - **Расположение**: `/var/backups/license-server/`
 - **Формат**: `backup_ГГГГ-ММ-ДД_ЧЧ-ММ-СС.tar.gz`
-- **Хранение**: Резервные копии старше 30 дней удаляются автоматически.
-- **S3 mirror**: при наличии `/root/.license-server-s3.env` архив дополнительно уходит в S3-совместимое хранилище как `latest/backup_latest.tar.gz` и `daily/backup_<timestamp>.tar.gz`.
+- **Локальное хранение**: при настроенном S3 и успешной загрузке сервер держит 3 последних локальных архива, а более старые удаляет только после подтверждения соответствующего S3 daily-объекта и `.sha256`. Без S3 локальные архивы старше 7 дней удаляются автоматически.
+- **S3 mirror**: при наличии `/root/.license-server-s3.env` архив дополнительно уходит в S3-совместимое хранилище как `latest/backup_latest.tar.gz` и `daily/backup_<timestamp>.tar.gz`. Удалённое хранение daily-архивов по умолчанию — 30 дней, если не задан `S3_RETENTION_DAYS`.
 
 ### Содержимое резервной копии
 Каждый архив содержит:
@@ -26,7 +26,7 @@ ls -lh /var/backups/license-server
 
 Чтобы проверить S3-настройки на сервере:
 ```bash
-sudo cat /root/.license-server-s3.env
+sudo test -f /root/.license-server-s3.env && echo "S3 backup config exists"
 ```
 
 ### Ручное создание резервной копии
@@ -82,7 +82,7 @@ powershell -ExecutionPolicy Bypass -File .\license-server\download-backup.ps1 -S
 Он делает следующее:
 1. Удаляет истёкшие записи из `rate_limits`.
 2. Обрезает и архивирует слишком большой `/var/log/license-backup.log`.
-3. Удаляет старые архивы логов и временные каталоги старше retention-периода.
+3. Удаляет старые архивы логов, локальные backup-архивы старше 7 дней и временные каталоги старше retention-периода.
 
 Ручной запуск:
 ```bash

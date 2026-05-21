@@ -114,6 +114,12 @@ function DashboardContentInner({
     const hasCalibrationData = !!parseResult?.metadata?.calibration;
     const canUseCalibration = isInitialized && (result?.license?.features?.calibrationAnalysis ?? false) && hasCalibrationData;
 
+    useEffect(() => {
+        if (activeTab === 'calibration' && !canUseCalibration) {
+            setActiveTab('chart');
+        }
+    }, [activeTab, canUseCalibration]);
+
     // Keep source points as-is to avoid an extra full-array remap before chart processing.
     const binarySeries = useExperimentSeriesOverview(
         parseResult?.metadata?.experimentId,
@@ -262,20 +268,21 @@ function DashboardContentInner({
                     Анализ воды
                 </button>
 
-                <button
-                    onClick={() => switchTab('calibration')}
-                    data-testid="CalibrationTabButton"
-                    role="tab"
-                    aria-selected={activeTab === 'calibration'}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'calibration'
-                        ? 'bg-amber-600 text-foreground'
-                        : 'bg-secondary text-muted-foreground hover:text-foreground'
-                        } ${!canUseCalibration ? 'hidden' : ''}`}
-                    disabled={!canUseCalibration}
-                >
-                    <Settings className="w-4 h-4" />
-                    Калибровка
-                </button>
+                {canUseCalibration && (
+                    <button
+                        onClick={() => switchTab('calibration')}
+                        data-testid="CalibrationTabButton"
+                        role="tab"
+                        aria-selected={activeTab === 'calibration'}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'calibration'
+                            ? 'bg-amber-600 text-foreground'
+                            : 'bg-secondary text-muted-foreground hover:text-foreground'
+                            }`}
+                    >
+                        <Settings className="w-4 h-4" />
+                        Калибровка
+                    </button>
+                )}
 
                 <button
                     onClick={() => switchTab('report')}
@@ -363,7 +370,7 @@ function DashboardContentInner({
                             </div>
                         )}
 
-                        {activeTab === 'calibration' && (
+                        {activeTab === 'calibration' && canUseCalibration && (
                             <div className="w-full">
                                 <CalibrationPanel calibration={parseResult.metadata?.calibration} />
                             </div>

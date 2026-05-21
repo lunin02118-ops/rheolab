@@ -9,6 +9,53 @@ import { useSearchParams } from 'react-router-dom';
 import { emitLibraryFilterPerfEvent } from '@/lib/perf/library-filter-spans';
 import { changedExperimentFilterKeys } from '@/lib/library/filter-debounce';
 
+const LIBRARY_FILTERS_SESSION_KEY = 'rheolab-library-filters';
+
+function normalizeSessionFilters(value: unknown): FilterState {
+    if (!value || typeof value !== 'object') return EMPTY_FILTERS;
+
+    const raw = value as Partial<Record<keyof FilterState, unknown>>;
+    const normalized: FilterState = { ...EMPTY_FILTERS };
+
+    for (const key of Object.keys(EMPTY_FILTERS) as Array<keyof FilterState>) {
+        const next = raw[key];
+        if (key === 'reagentNames') {
+            normalized.reagentNames = Array.isArray(next)
+                ? next.filter((item): item is string => typeof item === 'string')
+                : [];
+        } else if (key === 'hasCrossing') {
+            normalized.hasCrossing = next === 'yes' || next === 'no' ? next : '';
+        } else {
+            (normalized as Record<keyof FilterState, string | string[]>)[key] =
+                typeof next === 'string' ? next : '';
+        }
+    }
+
+    return normalized;
+}
+
+function readSessionFilters(): FilterState {
+    if (typeof window === 'undefined') return EMPTY_FILTERS;
+
+    try {
+        const raw = window.sessionStorage.getItem(LIBRARY_FILTERS_SESSION_KEY);
+        if (!raw) return EMPTY_FILTERS;
+        return normalizeSessionFilters(JSON.parse(raw));
+    } catch {
+        return EMPTY_FILTERS;
+    }
+}
+
+function writeSessionFilters(filters: FilterState) {
+    if (typeof window === 'undefined') return;
+
+    try {
+        window.sessionStorage.setItem(LIBRARY_FILTERS_SESSION_KEY, JSON.stringify(filters));
+    } catch {
+        // Ignore storage quota / privacy-mode failures; filters still work in memory.
+    }
+}
+
 // Inner component that uses useSearchParams
 function LibraryContent() {
     const [searchParams] = useSearchParams();
@@ -21,9 +68,10 @@ function LibraryContent() {
     useEffect(() => {
         localStorage.setItem('rheolab-library-viewMode', viewMode);
     }, [viewMode]);
-    const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+    const [filters, setFilters] = useState<FilterState>(readSessionFilters);
 
     const handleFiltersChange = (next: FilterState) => {
+        writeSessionFilters(next);
         const filterKeys = changedExperimentFilterKeys(filters, next);
         if (filterKeys.length > 0) {
             emitLibraryFilterPerfEvent({

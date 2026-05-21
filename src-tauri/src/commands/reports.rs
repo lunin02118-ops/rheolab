@@ -23,7 +23,9 @@ use crate::commands::licensing::{can_write_via_engine, current_features};
 use crate::commands::{
     analysis::run_full_analysis_kernel,
     analysis::AnalysisOutput,
-    experiments::types::{StoredExperiment, StoredExperimentReagent},
+    experiments::types::{
+        RheologyParameterRow, RheologyParameterSource, StoredExperiment, StoredExperimentReagent,
+    },
 };
 use crate::db::repositories::analysis_artifacts::{
     delete_analysis_artifact, get_analysis_artifact, put_analysis_artifact,
@@ -94,7 +96,6 @@ async fn generate_excel_bytes(input: ReportInput) -> Result<Vec<u8>> {
     name = "reports::comparison::pdf::spawn_blocking",
     fields(n_experiments = input.experiments.len())
 )]
-#[cfg(test)]
 async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
         rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
@@ -113,7 +114,6 @@ async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<V
     name = "reports::comparison::excel::spawn_blocking",
     fields(n_experiments = input.experiments.len())
 )]
-#[cfg(test)]
 async fn generate_comparison_excel_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
     tokio::task::spawn_blocking(move || {
         rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
@@ -122,6 +122,54 @@ async fn generate_comparison_excel_bytes(input: ComparisonReportInput) -> Result
     })
     .await
     .map_err(AppError::Join)?
+}
+
+#[tauri::command]
+pub async fn reports_generate_comparison_pdf(
+    state: State<'_, AppState>,
+    input: ComparisonReportInput,
+) -> Result<tauri::ipc::Response> {
+    if !can_write_via_engine(&state).await {
+        return Err(AppError::License("required".into()));
+    }
+    let features = current_features(&state).await;
+    validate_comparison_direct_input(&input, &features, ReportFormat::Pdf)?;
+
+    #[cfg(debug_assertions)]
+    {
+        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+            tracing::debug!("[E2E] reports_generate_comparison_pdf: returning mock PDF bytes");
+            return Ok(tauri::ipc::Response::new(vec![
+                0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34,
+            ]));
+        }
+    }
+
+    let bytes = generate_comparison_pdf_bytes(input).await?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
+#[tauri::command]
+pub async fn reports_generate_comparison_excel(
+    state: State<'_, AppState>,
+    input: ComparisonReportInput,
+) -> Result<tauri::ipc::Response> {
+    if !can_write_via_engine(&state).await {
+        return Err(AppError::License("required".into()));
+    }
+    let features = current_features(&state).await;
+    validate_comparison_direct_input(&input, &features, ReportFormat::Excel)?;
+
+    #[cfg(debug_assertions)]
+    {
+        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+            tracing::debug!("[E2E] reports_generate_comparison_excel: returning mock XLSX bytes");
+            return Ok(tauri::ipc::Response::new(vec![0x50, 0x4b, 0x03, 0x04]));
+        }
+    }
+
+    let bytes = generate_comparison_excel_bytes(input).await?;
+    Ok(tauri::ipc::Response::new(bytes))
 }
 
 #[tauri::command]
@@ -142,6 +190,7 @@ pub async fn reports_generate_pdf(
             "PDF export is not included in your current licence (REP-001)".into(),
         ));
     }
+    enforce_calibration_feature(&features, input.settings.show_calibration)?;
     // E2E fast-path: return a minimal valid %PDF-1.4 header so the UI
     // flow completes instantly without running Typst (which at opt-level=0
     // takes 5+ minutes).  Set RHEOLAB_E2E_MOCK_REPORTS=1 to activate.
@@ -175,6 +224,7 @@ pub async fn reports_generate_excel(
             "Excel export is not included in your current licence (REP-001)".into(),
         ));
     }
+    enforce_calibration_feature(&features, input.settings.show_calibration)?;
     // E2E fast-path: return a minimal PK ZIP header so the UI flow completes.
     // Gated to debug builds only — never available in release (F-02).
     #[cfg(debug_assertions)]
@@ -1038,15 +1088,7 @@ fn build_report_input_for_experiment_with_analysis(
 ) -> Result<ReportInput> {
     let raw_data = rheo_points_to_report_data(rheo_points);
 
-    let cycle_results = analysis
-        .map(|output| {
-            output
-                .results
-                .iter()
-                .map(|(_, result)| grace_result_to_cycle_result(result))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
+    let cycle_results = select_cycle_results_for_report(experiment, analysis)?;
     let cycles = analysis
         .map(|output| {
             output
@@ -1175,6 +1217,75 @@ fn grace_result_to_cycle_result(result: &GraceCycleResult) -> CycleResult {
         bingham_yp: Some(result.bingham_yp_pa),
         bingham_r2: Some(result.bingham_r2),
     }
+}
+
+fn select_cycle_results_for_report(
+    experiment: &StoredExperiment,
+    analysis: Option<&AnalysisOutput>,
+) -> Result<Vec<CycleResult>> {
+    let selected_source = experiment.rheology_source;
+    let persisted = experiment
+        .rheology_parameters
+        .iter()
+        .filter(|row| row.source == selected_source)
+        .cloned()
+        .collect::<Vec<_>>();
+
+    match selected_source {
+        RheologyParameterSource::Instrument => {
+            if persisted.is_empty() {
+                return Err(AppError::BadRequest(format!(
+                    "Для эксперимента '{}' выбран источник реологических параметров 'Прибор', но сохранённые параметры прибора не найдены.",
+                    experiment.name
+                )));
+            }
+            Ok(rheology_rows_to_cycle_results(persisted))
+        }
+        RheologyParameterSource::Program => {
+            if !persisted.is_empty() {
+                return Ok(rheology_rows_to_cycle_results(persisted));
+            }
+            Ok(analysis
+                .map(|output| {
+                    output
+                        .results
+                        .iter()
+                        .map(|(_, result)| grace_result_to_cycle_result(result))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default())
+        }
+    }
+}
+
+fn rheology_rows_to_cycle_results(mut rows: Vec<RheologyParameterRow>) -> Vec<CycleResult> {
+    rows.sort_by_key(|row| row.cycle_no);
+    rows.into_iter()
+        .map(|row| {
+            let visc_at_40 = row.viscosities.get("40").copied();
+            let visc_at_100 = row.viscosities.get("100").copied();
+            let visc_at_170 = row.viscosities.get("170").copied();
+            let viscosities = row.viscosities.into_iter().collect();
+            CycleResult {
+                cycle_no: row.cycle_no,
+                time_min: row.time_min.or(row.end_time_min).unwrap_or_default(),
+                temp_c: row.temp_c.unwrap_or(25.0),
+                pressure_bar: row.pressure_bar,
+                n_prime: row.n_prime.unwrap_or_default(),
+                k_prime: row.k_prime_pasn.or(row.kv_pasn).unwrap_or_default(),
+                k_slot: row.k_slot_pasn,
+                k_pipe: row.k_pipe_pasn,
+                r2: row.r2.unwrap_or_default(),
+                visc_at_40,
+                visc_at_100,
+                visc_at_170,
+                viscosities,
+                bingham_pv: row.bingham_pv_pas,
+                bingham_yp: row.bingham_yp_pa,
+                bingham_r2: row.bingham_r2,
+            }
+        })
+        .collect()
 }
 
 fn finite_option(value: f64) -> Option<f64> {
@@ -1326,7 +1437,7 @@ fn build_report_settings(settings: &ComparisonReportByIdsSettings) -> ReportSett
         pressure_axis: settings.report_settings.pressure_axis.clone(),
         axis_mode: settings.comparison_chart.axis_mode.clone(),
         viscosity_shear_rates: settings.report_settings.report_viscosity_rates.clone(),
-        show_advanced_stats: settings.report_settings.show_advanced_stats,
+        show_advanced_stats: true,
         line_settings: Some(build_core_chart_line_settings(
             &settings.comparison_chart.line_settings,
         )),
@@ -1857,8 +1968,70 @@ fn validate_comparison_by_ids_request(
             enforce_comparison_excel_features(features, request.experiment_ids.len())?
         }
     }
+    enforce_calibration_feature(features, request.settings.section_toggles.show_calibration)?;
 
     request.settings.validate()
+}
+
+fn validate_comparison_direct_input(
+    input: &ComparisonReportInput,
+    features: &LicenseFeatures,
+    format: ReportFormat,
+) -> Result<()> {
+    if input.experiments.is_empty() {
+        return Err(AppError::BadRequest(
+            "comparison input must contain at least one experiment".into(),
+        ));
+    }
+
+    let mut seen = HashSet::with_capacity(input.experiments.len());
+    for entry in &input.experiments {
+        validate_bounded_str(&entry.id, MAX_METRIC_KEY_BYTES, "experiments[].id")?;
+        if entry.id.trim().is_empty() {
+            return Err(AppError::BadRequest(
+                "experiments[].id must not be empty".into(),
+            ));
+        }
+        if !seen.insert(&entry.id) {
+            return Err(AppError::BadRequest(format!(
+                "duplicate experiment ID in comparison input: {}",
+                entry.id
+            )));
+        }
+        validate_bounded_str(
+            &entry.display_name,
+            MAX_REPORT_RECIPE_TEXT_BYTES,
+            "experiments[].displayName",
+        )?;
+    }
+
+    match format {
+        ReportFormat::Pdf => enforce_comparison_pdf_features(features, input.experiments.len())?,
+        ReportFormat::Excel => {
+            enforce_comparison_excel_features(features, input.experiments.len())?
+        }
+    }
+    enforce_calibration_feature(
+        features,
+        input.experiments.iter().any(|entry| {
+            entry.section_toggles.show_calibration || entry.report_input.settings.show_calibration
+        }),
+    )?;
+
+    validate_language(&input.language)?;
+    validate_unit_system(&input.unit_system)?;
+    if let Some(company_name) = &input.company_name {
+        validate_bounded_str(company_name, MAX_COMPANY_NAME_BYTES, "companyName")?;
+    }
+    if let Some(company_logo_base64) = &input.company_logo_base64 {
+        validate_bounded_str(
+            company_logo_base64,
+            MAX_COMPANY_LOGO_BASE64_BYTES,
+            "companyLogoBase64",
+        )?;
+    }
+    validate_bounded_str(&input.generated_at, MAX_GENERATED_AT_BYTES, "generatedAt")?;
+    validate_core_comparison_chart(&input.comparison_chart)
 }
 
 fn validate_report_by_id_request(
@@ -1871,6 +2044,7 @@ fn validate_report_by_id_request(
         ReportFormat::Pdf => enforce_single_pdf_features(features)?,
         ReportFormat::Excel => enforce_single_excel_features(features)?,
     }
+    enforce_calibration_feature(features, request.settings.section_toggles.show_calibration)?;
     request.settings.validate()?;
     validate_recipe_override(request.recipe_override.as_deref())?;
     validate_water_override(request.water_override.as_ref())
@@ -2097,6 +2271,88 @@ fn validate_comparison_chart(chart: &ComparisonByIdsChartConfig) -> Result<()> {
     )?;
     validate_chart_dimension(chart.chart_width, "settings.comparisonChart.chartWidth")?;
     validate_chart_dimension(chart.chart_height, "settings.comparisonChart.chartHeight")
+}
+
+fn validate_core_comparison_chart(chart: &ComparisonChartConfig) -> Result<()> {
+    validate_metric_key(
+        &chart.metrics.primary,
+        "comparisonChart.metrics.primary",
+        false,
+    )?;
+    validate_metric_key(
+        &chart.metrics.left_secondary,
+        "comparisonChart.metrics.leftSecondary",
+        true,
+    )?;
+    validate_metric_key(
+        &chart.metrics.secondary,
+        "comparisonChart.metrics.secondary",
+        true,
+    )?;
+    validate_metric_key(
+        &chart.metrics.tertiary,
+        "comparisonChart.metrics.tertiary",
+        true,
+    )?;
+    match chart.axis_mode.as_str() {
+        "individual" | "shared" => {}
+        other => {
+            return Err(AppError::BadRequest(format!(
+                "comparisonChart.axisMode must be 'individual' or 'shared' (got '{other}')"
+            )));
+        }
+    }
+    if let Some([start, end]) = chart.brush_range {
+        validate_non_negative_finite(start, "comparisonChart.brushRange[0]")?;
+        validate_non_negative_finite(end, "comparisonChart.brushRange[1]")?;
+        if end <= start {
+            return Err(AppError::BadRequest(
+                "comparisonChart.brushRange must be [start, end] with end > start".into(),
+            ));
+        }
+        if end > MAX_TIME_MINUTES {
+            return Err(AppError::BadRequest(format!(
+                "comparisonChart.brushRange[1] exceeds {MAX_TIME_MINUTES} minutes"
+            )));
+        }
+    }
+    validate_non_negative_finite(
+        chart.touch_point.viscosity_threshold,
+        "comparisonChart.touchPoint.viscosityThreshold",
+    )?;
+    validate_non_negative_finite(
+        chart.touch_point.target_time,
+        "comparisonChart.touchPoint.targetTime",
+    )?;
+    if chart.experiment_colors.is_empty() {
+        return Err(AppError::BadRequest(
+            "comparisonChart.experimentColors must not be empty".into(),
+        ));
+    }
+    if chart.experiment_colors.len() > MAX_VISCOSITY_RATES {
+        return Err(AppError::BadRequest(format!(
+            "comparisonChart.experimentColors exceeds {MAX_VISCOSITY_RATES} entries"
+        )));
+    }
+    for (idx, color) in chart.experiment_colors.iter().enumerate() {
+        validate_bounded_str(
+            color,
+            MAX_COLOR_BYTES,
+            &format!("comparisonChart.experimentColors[{idx}]"),
+        )?;
+    }
+    validate_choice(
+        &chart.time_format,
+        &["seconds", "minutes", "hh:mm:ss"],
+        "comparisonChart.timeFormat",
+    )?;
+    validate_choice(
+        &chart.downsample_mode,
+        &["off", "smart", "fast"],
+        "comparisonChart.downsampleMode",
+    )?;
+    validate_chart_dimension(chart.chart_width, "comparisonChart.chartWidth")?;
+    validate_chart_dimension(chart.chart_height, "comparisonChart.chartHeight")
 }
 
 fn validate_metrics(metrics: &ComparisonByIdsMetrics) -> Result<()> {
@@ -2369,6 +2625,19 @@ fn enforce_single_excel_features(
     Ok(())
 }
 
+fn enforce_calibration_feature(
+    features: &crate::commands::licensing::types::LicenseFeatures,
+    requested: bool,
+) -> Result<()> {
+    if requested && !features.calibration_analysis {
+        return Err(AppError::License(
+            "Calibration sections are available only for Developer/Superuser licences (REP-001)"
+                .into(),
+        ));
+    }
+    Ok(())
+}
+
 /// REP-001 gate for by-IDs comparison PDF exports.
 ///
 /// Pure helper so the licence-feature contract can be unit-tested
@@ -2582,11 +2851,12 @@ mod tests {
     use super::{
         build_analysis_key_for_experiment, build_comparison_report_input_by_ids,
         build_comparison_report_input_by_ids_cached, build_report_input_by_id_cached_with_job,
-        enforce_comparison_excel_features, enforce_comparison_pdf_features,
-        enforce_max_comparison_experiments, enforce_single_excel_features,
-        enforce_single_pdf_features, generate_comparison_excel_by_ids_bytes,
-        generate_comparison_excel_by_ids_bytes_cached, generate_comparison_pdf_by_ids_bytes,
-        generate_comparison_pdf_by_ids_bytes_cached, validate_comparison_by_ids_request,
+        enforce_calibration_feature, enforce_comparison_excel_features,
+        enforce_comparison_pdf_features, enforce_max_comparison_experiments,
+        enforce_single_excel_features, enforce_single_pdf_features,
+        generate_comparison_excel_by_ids_bytes, generate_comparison_excel_by_ids_bytes_cached,
+        generate_comparison_pdf_by_ids_bytes, generate_comparison_pdf_by_ids_bytes_cached,
+        validate_comparison_by_ids_request, validate_comparison_direct_input,
         validate_comparison_experiment_ids_exist, validate_report_by_id_request,
         ComparisonByIdsChartConfig, ComparisonByIdsChartLineSettings, ComparisonByIdsLineSettings,
         ComparisonByIdsMetrics, ComparisonByIdsReportSettings, ComparisonByIdsSectionToggles,
@@ -2598,7 +2868,9 @@ mod tests {
         build_analysis_cache_key, decode_analysis_artifact, hash_experiment_data_bytes,
         ANALYSIS_ARTIFACT_ENCODING, ANALYSIS_CACHE_ALGORITHM_VERSION,
     };
-    use crate::commands::experiments::types::{StoredExperiment, StoredExperimentReagent};
+    use crate::commands::experiments::types::{
+        RheologyParameterRow, RheologyParameterSource, StoredExperiment, StoredExperimentReagent,
+    };
     use crate::commands::licensing::types::LicenseFeatures;
     use crate::db::create_pool;
     use crate::db::migration::run_migrations;
@@ -2610,6 +2882,7 @@ mod tests {
     use calamine::Reader;
     use rheolab_core::RHEOLAB_CORE_VERSION;
     use serde_json::json;
+    use std::collections::BTreeMap;
     use std::fs;
     use std::io::{Cursor, Read, Seek};
     use std::path::PathBuf;
@@ -2811,6 +3084,50 @@ mod tests {
             viscosity_min: Some(600.0),
             pressure_max: Some(20.0),
             extra_fields: None,
+            rheology_source: RheologyParameterSource::Program,
+            rheology_parameters: vec![],
+        }
+    }
+
+    fn report_rheology_row(
+        source: RheologyParameterSource,
+        cycle_no: i32,
+        n_prime: f64,
+        k_prime: f64,
+        bingham_pv: f64,
+    ) -> RheologyParameterRow {
+        let mut viscosities = BTreeMap::new();
+        viscosities.insert("40".to_string(), 1400.0 + cycle_no as f64);
+        viscosities.insert("100".to_string(), 900.0 + cycle_no as f64);
+        viscosities.insert("170".to_string(), 650.0 + cycle_no as f64);
+
+        let mut units = BTreeMap::new();
+        units.insert("consistency".to_string(), "Pa*s^n".to_string());
+        units.insert("viscosity".to_string(), "cP".to_string());
+        units.insert("binghamPv".to_string(), "Pa*s".to_string());
+        units.insert("binghamYp".to_string(), "Pa".to_string());
+
+        RheologyParameterRow {
+            source,
+            cycle_no,
+            time_min: Some(cycle_no as f64 * 10.0),
+            end_time_min: Some(cycle_no as f64 * 10.5),
+            temp_c: Some(77.0),
+            pressure_bar: Some(12.5),
+            n_prime: Some(n_prime),
+            kv_pasn: None,
+            k_prime_pasn: Some(k_prime),
+            k_slot_pasn: Some(k_prime * 1.1),
+            k_pipe_pasn: Some(k_prime * 1.2),
+            r2: Some(0.997),
+            viscosities,
+            bingham_pv_pas: Some(bingham_pv),
+            bingham_yp_pa: Some(4.2),
+            bingham_r2: Some(0.981),
+            calc_points: Some(5),
+            source_sheet: Some("Power Law Data".into()),
+            source_row: Some(42),
+            units,
         }
     }
 
@@ -3089,6 +3406,76 @@ mod tests {
             report.water_params.as_ref().and_then(|water| water.ph),
             Some(7.1)
         );
+    }
+
+    #[test]
+    fn by_id_report_input_uses_persisted_instrument_rheology_when_selected() {
+        let (pool, _dir) = by_ids_fixture_pool();
+        {
+            let conn = pool.get().expect("conn");
+            let mut exp = stored_experiment_for_by_ids("exp_aaaaaaaaaaaaaaaaaaaa", "Alpha");
+            exp.rheology_source = RheologyParameterSource::Instrument;
+            exp.rheology_parameters = vec![
+                report_rheology_row(RheologyParameterSource::Instrument, 1, 0.41, 0.333, 0.12),
+                report_rheology_row(RheologyParameterSource::Program, 1, 0.91, 9.333, 1.12),
+            ];
+            persist_experiment(&conn, &exp).expect("persist instrument rheology");
+        }
+
+        let request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
+        let report = build_report_input_by_id_cached_with_job(&pool, &request, None)
+            .expect("build by-id report input");
+
+        assert_eq!(report.cycle_results.len(), 1);
+        let cycle = &report.cycle_results[0];
+        assert_eq!(cycle.n_prime, 0.41);
+        assert_eq!(cycle.k_prime, 0.333);
+        assert_eq!(cycle.bingham_pv, Some(0.12));
+        assert_eq!(cycle.visc_at_40, Some(1401.0));
+    }
+
+    #[test]
+    fn comparison_report_input_uses_each_experiments_saved_rheology_source() {
+        let (conn, mut exp_a, mut exp_b) = by_ids_fixture_db();
+        exp_a.rheology_source = RheologyParameterSource::Instrument;
+        exp_a.rheology_parameters = vec![
+            report_rheology_row(RheologyParameterSource::Instrument, 1, 0.41, 0.333, 0.12),
+            report_rheology_row(RheologyParameterSource::Program, 1, 0.91, 9.333, 1.12),
+        ];
+        exp_b.rheology_source = RheologyParameterSource::Program;
+        exp_b.rheology_parameters = vec![
+            report_rheology_row(RheologyParameterSource::Instrument, 1, 0.52, 0.444, 0.22),
+            report_rheology_row(RheologyParameterSource::Program, 1, 0.82, 8.444, 1.22),
+        ];
+        persist_experiment(&conn, &exp_a).expect("persist alpha sources");
+        persist_experiment(&conn, &exp_b).expect("persist beta sources");
+
+        let request = valid_by_ids_request();
+        let input =
+            build_comparison_report_input_by_ids(&conn, &request).expect("build comparison input");
+
+        let alpha_cycle = &input.experiments[0].report_input.cycle_results[0];
+        let beta_cycle = &input.experiments[1].report_input.cycle_results[0];
+        assert_eq!(alpha_cycle.n_prime, 0.41);
+        assert_eq!(alpha_cycle.k_prime, 0.333);
+        assert_eq!(beta_cycle.n_prime, 0.82);
+        assert_eq!(beta_cycle.k_prime, 8.444);
+    }
+
+    #[test]
+    fn comparison_report_input_errors_when_instrument_source_has_no_rows() {
+        let (conn, mut exp_a, _) = by_ids_fixture_db();
+        exp_a.rheology_source = RheologyParameterSource::Instrument;
+        exp_a.rheology_parameters = vec![];
+        persist_experiment(&conn, &exp_a).expect("persist missing instrument rows");
+
+        let mut request = valid_by_ids_request();
+        request.experiment_ids = vec![exp_a.id.clone()];
+        let err = build_comparison_report_input_by_ids(&conn, &request)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("параметры прибора не найдены"));
     }
 
     #[test]
@@ -3593,6 +3980,30 @@ mod tests {
     }
 
     #[test]
+    fn validate_by_ids_rejects_calibration_without_feature() {
+        let mut request = valid_by_ids_request();
+        request.settings.section_toggles.show_calibration = true;
+        let features = comparison_features(3);
+
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("Calibration"));
+        assert!(err.contains("Developer"));
+    }
+
+    #[test]
+    fn validate_by_ids_accepts_calibration_for_developer_features() {
+        let mut request = valid_by_ids_request();
+        request.settings.section_toggles.show_calibration = true;
+        let mut features = comparison_features(3);
+        features.calibration_analysis = true;
+
+        assert!(validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf).is_ok());
+    }
+
+    #[test]
     fn validate_by_ids_accepts_valid_excel_request() {
         let request = valid_by_ids_request();
         let features = comparison_features(3);
@@ -3688,6 +4099,35 @@ mod tests {
         features.export_pdf = true;
 
         assert!(validate_report_by_id_request(&request, &features, ReportFormat::Pdf).is_ok());
+    }
+
+    #[test]
+    fn validate_by_id_rejects_calibration_without_feature() {
+        let mut request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
+        request.settings.section_toggles.show_calibration = true;
+        let mut features = empty_features();
+        features.export_pdf = true;
+
+        let err = validate_report_by_id_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("Calibration"));
+        assert!(err.contains("Developer"));
+    }
+
+    #[test]
+    fn validate_direct_comparison_rejects_calibration_without_feature() {
+        let mut input = fixture_comparison_input();
+        input.experiments[0].section_toggles.show_calibration = true;
+        let features = comparison_features(3);
+
+        let err = validate_comparison_direct_input(&input, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("Calibration"));
+        assert!(err.contains("Developer"));
     }
 
     #[test]
@@ -3866,6 +4306,22 @@ mod tests {
         let err = enforce_single_excel_features(&f).unwrap_err().to_string();
         assert!(err.contains("Excel"));
         assert!(err.contains("REP-001"));
+    }
+
+    #[test]
+    fn enforce_calibration_feature_rejects_corporate_tier() {
+        let f = comparison_features(3);
+        let err = enforce_calibration_feature(&f, true)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("Calibration"));
+        assert!(err.contains("Developer"));
+    }
+
+    #[test]
+    fn enforce_calibration_feature_accepts_when_not_requested() {
+        let f = comparison_features(3);
+        assert!(enforce_calibration_feature(&f, false).is_ok());
     }
 
     #[test]
