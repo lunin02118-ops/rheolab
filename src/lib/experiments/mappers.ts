@@ -8,9 +8,28 @@
  */
 
 import { toFiniteNumber } from '@/lib/utils/numbers';
-import type { ParseResult } from '@/types';
+import type { ParseResult, RheologyParameterRow } from '@/types';
 import type { RecipeComponent } from '@/components/analysis/recipe-panel';
 import type { ExperimentDetailMeta } from '@/types/tauri';
+
+function extractInstrumentRheologyRows(value: unknown): RheologyParameterRow[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .filter((row): row is Partial<RheologyParameterRow> => {
+            if (!row || typeof row !== 'object') return false;
+            const source = (row as { source?: unknown }).source;
+            return source === 'instrument';
+        })
+        .map((row) => ({
+            ...row,
+            source: 'instrument' as const,
+            cycleNo: Number(row.cycleNo ?? 0),
+        }))
+        .filter((row) => Number.isFinite(row.cycleNo) && row.cycleNo > 0);
+}
 
 /**
  * Map a raw experiment record from the DB into a ParseResult.
@@ -41,9 +60,11 @@ export function mapExperimentToParseResult(exp: Record<string, unknown>): ParseR
         success: true,
         source: 'regex',
         data,
+        instrumentRheology: extractInstrumentRheologyRows(exp.rheologyParameters),
         metadata: {
             filename: String(exp.originalFilename ?? ''),
             experimentId: exp.id != null ? String(exp.id) : undefined,
+            rheologySource: exp.rheologySource === 'instrument' ? 'instrument' : 'program',
             instrumentType: exp.instrumentType != null ? String(exp.instrumentType) : undefined,
             testDate: new Date(exp.testDate as string),
             geometry: exp.geometry != null ? String(exp.geometry) : undefined,
@@ -126,10 +147,12 @@ export function mapExperimentDetailMetaToParseResult(meta: ExperimentDetailMeta)
         success: true,
         source: 'regex',
         data: [],
+        instrumentRheology: extractInstrumentRheologyRows(meta.rheologyParameters),
         parsedBy: (meta.parsedBy as ParseResult['parsedBy']) || undefined,
         metadata: {
             filename: meta.originalFilename,
             experimentId: meta.id,
+            rheologySource: meta.rheologySource === 'instrument' ? 'instrument' : 'program',
             instrumentType: meta.instrumentType || undefined,
             testDate: new Date(meta.testDate),
             geometry: meta.geometry || undefined,

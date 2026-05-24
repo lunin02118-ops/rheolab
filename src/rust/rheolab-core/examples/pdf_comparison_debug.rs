@@ -20,13 +20,11 @@
 //! Author note: keep this file lean — it is a developer tool, not a test.
 
 use rheolab_core::report_generator::comparison::{
-    generate_comparison_pdf, ComparisonChartConfig, ComparisonExperimentEntry,
-    ComparisonMetrics, ComparisonReportInput, SectionToggles, TouchPointConfig,
+    generate_comparison_pdf, ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics,
+    ComparisonReportInput, SectionToggles, TouchPointConfig,
 };
 use rheolab_core::report_generator::pdf::generate_pdf_from_input;
-use rheolab_core::report_generator::{
-    DataPoint, ReportInput, ReportMetadata, ReportSettings,
-};
+use rheolab_core::report_generator::{DataPoint, ReportInput, ReportMetadata, ReportSettings};
 use std::fs;
 use std::path::PathBuf;
 
@@ -84,7 +82,7 @@ fn mk_experiment(
             // Pressure curve: smooth ramp from ~5 bar at rest to ~75 bar
             // under shear, with mild pulsation so the trace stays readable.
             let p_base = 5.0 + 70.0 * (1.0 - (-0.5 * (t / 3600.0)).exp());
-            let p_bar  = p_base + (i as f64 * 0.05).sin() * 3.5;
+            let p_bar = p_base + (i as f64 * 0.05).sin() * 3.5;
             DataPoint {
                 time_sec: t,
                 viscosity_cp: v,
@@ -185,19 +183,29 @@ fn build_input(
             // fills any metric fields we don't override here.
             line_settings: rheolab_core::report_generator::types::ChartLineSettings {
                 viscosity: rheolab_core::report_generator::types::LineSettings {
-                    color: "#3b82f6".into(), width: 2, style: "solid".into(), // blue
+                    color: "#3b82f6".into(),
+                    width: 2,
+                    style: "solid".into(), // blue
                 },
                 temperature: rheolab_core::report_generator::types::LineSettings {
-                    color: "#ea580c".into(), width: 2, style: "solid".into(), // orange
+                    color: "#ea580c".into(),
+                    width: 2,
+                    style: "solid".into(), // orange
                 },
                 shear_rate: rheolab_core::report_generator::types::LineSettings {
-                    color: "#16a34a".into(), width: 2, style: "solid".into(), // green
+                    color: "#16a34a".into(),
+                    width: 2,
+                    style: "solid".into(), // green
                 },
                 pressure: rheolab_core::report_generator::types::LineSettings {
-                    color: "#9333ea".into(), width: 2, style: "solid".into(), // purple
+                    color: "#9333ea".into(),
+                    width: 2,
+                    style: "solid".into(), // purple
                 },
                 bath_temperature: Some(rheolab_core::report_generator::types::LineSettings {
-                    color: "#dc2626".into(), width: 2, style: "dashed".into(), // red dashed
+                    color: "#dc2626".into(),
+                    width: 2,
+                    style: "dashed".into(), // red dashed
                 }),
                 ..Default::default()
             },
@@ -226,18 +234,26 @@ fn build_input(
 /// the comparison PDF — this is what makes side-by-side single-vs-multi
 /// PDF inspection useful.
 fn settings_from_slots(left_sec: &str, sec: &str, ter: &str, axis_mode: &str) -> ReportSettings {
-    let in_left  = |k: &str| canonical_to_internal(left_sec) == k;
+    let in_left = |k: &str| canonical_to_internal(left_sec) == k;
     let in_right = |k: &str| canonical_to_internal(sec) == k || canonical_to_internal(ter) == k;
-    let in_any   = |k: &str| in_left(k) || in_right(k);
+    let in_any = |k: &str| in_left(k) || in_right(k);
 
     ReportSettings {
-        show_temperature:      in_any("temperature"),
-        show_shear_rate:       in_any("shear_rate"),
-        show_pressure:         in_any("pressure"),
+        show_temperature: in_any("temperature"),
+        show_shear_rate: in_any("shear_rate"),
+        show_pressure: in_any("pressure"),
         show_bath_temperature: in_any("bath_temperature"),
-        shear_rate_axis:       if in_left("shear_rate") { "left".into() } else { "right".into() },
-        pressure_axis:         if in_left("pressure")   { "left".into() } else { "right".into() },
-        axis_mode:             axis_mode.into(),
+        shear_rate_axis: if in_left("shear_rate") {
+            "left".into()
+        } else {
+            "right".into()
+        },
+        pressure_axis: if in_left("pressure") {
+            "left".into()
+        } else {
+            "right".into()
+        },
+        axis_mode: axis_mode.into(),
         // Match comparison defaults — no touch points / minimal sections
         // so the PDF stays focused on axes only.
         ..ReportSettings::default()
@@ -272,12 +288,14 @@ fn resolve_paths(name: &str) -> (PathBuf, PathBuf, PathBuf) {
     // root).
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR")); // .../src/rust/rheolab-core
     let workspace_root = manifest
-        .parent().and_then(|p| p.parent()).and_then(|p| p.parent())
+        .parent()
+        .and_then(|p| p.parent())
+        .and_then(|p| p.parent())
         .map(|p| p.to_path_buf())
         .unwrap_or(manifest.clone());
     let out_dir = workspace_root.join("runtime").join("pdf-debug");
     fs::create_dir_all(&out_dir).expect("mkdir runtime/pdf-debug");
-    let cmp_path    = out_dir.join(format!("comparison_{name}.pdf"));
+    let cmp_path = out_dir.join(format!("comparison_{name}.pdf"));
     let single_path = out_dir.join(format!("single_{name}.pdf"));
     (out_dir, cmp_path, single_path)
 }
@@ -303,12 +321,22 @@ fn main() {
     //     axis-mode   → "shared" (one scale per side) or "indiv" (per metric)
     let variants: &[(&str, &str, &str, &str, &str)] = &[
         // name,                                        left_secondary,  secondary,            tertiary,           axis_mode
-        ("A1_visc_only__shared",                         "none",          "none",               "none",             "shared"),
-        ("A2_visc_only__indiv",                          "none",          "none",               "none",             "individual"),
-
-        ("B1_visc+shear_left__temp_right__shared",       "shear_rate",    "temperature_c",      "none",             "shared"),
-        ("B2_visc+shear_left__temp_right__indiv",        "shear_rate",    "temperature_c",      "none",             "individual"),
-
+        ("A1_visc_only__shared", "none", "none", "none", "shared"),
+        ("A2_visc_only__indiv", "none", "none", "none", "individual"),
+        (
+            "B1_visc+shear_left__temp_right__shared",
+            "shear_rate",
+            "temperature_c",
+            "none",
+            "shared",
+        ),
+        (
+            "B2_visc+shear_left__temp_right__indiv",
+            "shear_rate",
+            "temperature_c",
+            "none",
+            "individual",
+        ),
         // ── Production-key variants ─────────────────────────────────────
         // Mirrors what the live UI dropdown actually sends — the metric
         // value `"shear_rate_s1"` (canonical UI key).  Before the fix
@@ -317,37 +345,107 @@ fn main() {
         // `"shear_rate"`.  Keep these variants in the harness so a
         // future regression is caught visually with a single
         // `cargo run --example pdf_comparison_debug --release`.
-        ("B3_visc+shear_s1_left__off__indiv",            "shear_rate_s1", "none",               "none",             "individual"),
-        ("B4_visc+shear_s1_left__temp_c_right__indiv",   "shear_rate_s1", "temperature_c",      "none",             "individual"),
-
-        ("C1_visc_left__bath+sample_right__shared",      "none",          "bath_temperature_c", "temperature_c",    "shared"),
-        ("C2_visc_left__bath+sample_right__indiv",       "none",          "bath_temperature_c", "temperature_c",    "individual"),
-
-        ("D1_visc+shear_left__bath+sample_right__shared","shear_rate",    "bath_temperature_c", "temperature_c",    "shared"),
-        ("D2_visc+shear_left__bath+sample_right__indiv", "shear_rate",    "bath_temperature_c", "temperature_c",    "individual"),
-
+        (
+            "B3_visc+shear_s1_left__off__indiv",
+            "shear_rate_s1",
+            "none",
+            "none",
+            "individual",
+        ),
+        (
+            "B4_visc+shear_s1_left__temp_c_right__indiv",
+            "shear_rate_s1",
+            "temperature_c",
+            "none",
+            "individual",
+        ),
+        (
+            "C1_visc_left__bath+sample_right__shared",
+            "none",
+            "bath_temperature_c",
+            "temperature_c",
+            "shared",
+        ),
+        (
+            "C2_visc_left__bath+sample_right__indiv",
+            "none",
+            "bath_temperature_c",
+            "temperature_c",
+            "individual",
+        ),
+        (
+            "D1_visc+shear_left__bath+sample_right__shared",
+            "shear_rate",
+            "bath_temperature_c",
+            "temperature_c",
+            "shared",
+        ),
+        (
+            "D2_visc+shear_left__bath+sample_right__indiv",
+            "shear_rate",
+            "bath_temperature_c",
+            "temperature_c",
+            "individual",
+        ),
         // ── Pressure-focused variants ───────────────────────────────────
         // Pressure alone on the right axis.
-        ("E1_visc_left__pressure_right__shared",         "none",          "pressure_bar",       "none",             "shared"),
-        ("E2_visc_left__pressure_right__indiv",          "none",          "pressure_bar",       "none",             "individual"),
-
+        (
+            "E1_visc_left__pressure_right__shared",
+            "none",
+            "pressure_bar",
+            "none",
+            "shared",
+        ),
+        (
+            "E2_visc_left__pressure_right__indiv",
+            "none",
+            "pressure_bar",
+            "none",
+            "individual",
+        ),
         // Shear left, pressure + sample temperature co-habiting the right
         // axis — exercises the case where pressure shares a side with
         // another metric of a *different* unit (bar vs °C).
-        ("F1_visc+shear_left__pressure+temp_right__shared","shear_rate",  "pressure_bar",       "temperature_c",    "shared"),
-        ("F2_visc+shear_left__pressure+temp_right__indiv","shear_rate",   "pressure_bar",       "temperature_c",    "individual"),
-
+        (
+            "F1_visc+shear_left__pressure+temp_right__shared",
+            "shear_rate",
+            "pressure_bar",
+            "temperature_c",
+            "shared",
+        ),
+        (
+            "F2_visc+shear_left__pressure+temp_right__indiv",
+            "shear_rate",
+            "pressure_bar",
+            "temperature_c",
+            "individual",
+        ),
         // Pressure on the right alongside bath temperature — three
         // metrics competing on the right side (pressure + bath + sample
         // all via bath_temperature_c/temperature_c cannot be requested
         // at once because ComparisonMetrics exposes only 3 slots besides
         // the primary, so we pair pressure with bath here; use F2 for
         // pressure + sample).
-        ("G1_visc_left__pressure+bath_right__shared",    "none",          "pressure_bar",       "bath_temperature_c","shared"),
-        ("G2_visc_left__pressure+bath_right__indiv",     "none",          "pressure_bar",       "bath_temperature_c","individual"),
+        (
+            "G1_visc_left__pressure+bath_right__shared",
+            "none",
+            "pressure_bar",
+            "bath_temperature_c",
+            "shared",
+        ),
+        (
+            "G2_visc_left__pressure+bath_right__indiv",
+            "none",
+            "pressure_bar",
+            "bath_temperature_c",
+            "individual",
+        ),
     ];
 
-    println!("[pdf_debug] generating {} variants × 2 PDFs (comparison + single)...\n", variants.len());
+    println!(
+        "[pdf_debug] generating {} variants × 2 PDFs (comparison + single)...\n",
+        variants.len()
+    );
     let mut first_path: Option<PathBuf> = None;
 
     // Resolve the debug output directory once so we can point the
@@ -360,10 +458,7 @@ fn main() {
         let (_, cmp_path, single_path) = resolve_paths(name);
 
         // ── Comparison PDF (4 experiments stacked) ──────────────────────
-        std::env::set_var(
-            "RHEOLAB_DEBUG_TYPST_NAME",
-            format!("comparison_{name}.typ"),
-        );
+        std::env::set_var("RHEOLAB_DEBUG_TYPST_NAME", format!("comparison_{name}.typ"));
         let cmp_input = build_input(left_sec, sec, ter, mode);
         let cmp_bytes = generate_comparison_pdf(&cmp_input)
             .unwrap_or_else(|e| panic!("variant {name} failed: {e}"));
@@ -373,10 +468,7 @@ fn main() {
         // Same trace as the first comparison experiment, but rendered
         // through the per-experiment pipeline so the user can verify the
         // axis layout matches between the two flavours.
-        std::env::set_var(
-            "RHEOLAB_DEBUG_TYPST_NAME",
-            format!("single_{name}.typ"),
-        );
+        std::env::set_var("RHEOLAB_DEBUG_TYPST_NAME", format!("single_{name}.typ"));
         let single_input = build_single_input(&cmp_input, left_sec, sec, ter, mode);
         let single_bytes = generate_pdf_from_input(&single_input)
             .unwrap_or_else(|e| panic!("variant {name} (single) failed: {e}"));
@@ -398,6 +490,10 @@ fn main() {
         }
     }
 
-    println!("\n[pdf_debug] done — {} variants written ({} PDFs total)", variants.len(), variants.len() * 2);
+    println!(
+        "\n[pdf_debug] done — {} variants written ({} PDFs total)",
+        variants.len(),
+        variants.len() * 2
+    );
     println!("            output dir → {}", out_dir.display());
 }

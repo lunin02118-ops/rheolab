@@ -551,6 +551,8 @@ pub struct ExperimentDetailMeta {
     pub extra_fields: Option<Value>,
     #[serde(default)]
     pub rheology_source: RheologyParameterSource,
+    #[serde(default)]
+    pub rheology_parameters: Vec<RheologyParameterRow>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]

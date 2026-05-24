@@ -59,6 +59,38 @@ import {
 // === Line Key Type ===
 export type LineKey = keyof ChartLineSettings;
 
+const VALID_RHEOLOGY_UNITS = {
+    viscosity: ['mPa·s', 'Pa·s', 'cP'],
+    temperature: ['°C', '°F', 'K'],
+    pressure: ['bar', 'psi', 'MPa', 'kPa'],
+    consistency: ['Pa·s^n', 'lbf·s^n/100ft²'],
+    plasticViscosity: ['Pa·s', 'cP'],
+    yieldPoint: ['Pa', 'lbf/100ft²'],
+    timeFormat: ['seconds', 'minutes', 'hh:mm:ss'],
+} as const;
+
+function sanitizeUnit<T extends readonly string[]>(
+    value: unknown,
+    allowed: T,
+    fallback: T[number],
+): T[number] {
+    return typeof value === 'string' && allowed.includes(value)
+        ? value
+        : fallback;
+}
+
+function sanitizeRheologyUnits(input: Record<string, unknown>): RheologyUnits {
+    return {
+        viscosity: sanitizeUnit(input.viscosity, VALID_RHEOLOGY_UNITS.viscosity, METRIC_UNITS.viscosity),
+        temperature: sanitizeUnit(input.temperature, VALID_RHEOLOGY_UNITS.temperature, METRIC_UNITS.temperature),
+        pressure: sanitizeUnit(input.pressure, VALID_RHEOLOGY_UNITS.pressure, METRIC_UNITS.pressure),
+        consistency: sanitizeUnit(input.consistency, VALID_RHEOLOGY_UNITS.consistency, METRIC_UNITS.consistency),
+        plasticViscosity: sanitizeUnit(input.plasticViscosity, VALID_RHEOLOGY_UNITS.plasticViscosity, METRIC_UNITS.plasticViscosity),
+        yieldPoint: sanitizeUnit(input.yieldPoint, VALID_RHEOLOGY_UNITS.yieldPoint, METRIC_UNITS.yieldPoint),
+        timeFormat: sanitizeUnit(input.timeFormat, VALID_RHEOLOGY_UNITS.timeFormat, METRIC_UNITS.timeFormat),
+    };
+}
+
 // === Store State Interface ===
 interface ChartSettingsState {
     settings: ChartSettings;
@@ -196,6 +228,9 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
                                 ...chartData,
                                 lines: { ...DEFAULT_LINE_SETTINGS, ...chartData.lines },
                                 precision: { ...DEFAULT_CHART_SETTINGS.precision, ...chartData.precision },
+                                rheologyUnits: sanitizeRheologyUnits(
+                                    (chartData.rheologyUnits ?? {}) as Record<string, unknown>,
+                                ),
                             },
                         });
                     } else {
@@ -230,7 +265,7 @@ export const useChartSettingsStore = create<ChartSettingsState>()(
 
                 // Deep-merge rheologyUnits so new fields (e.g. timeFormat) get defaults
                 const pRheoUnits = (pSettings.rheologyUnits ?? {}) as Record<string, unknown>;
-                const mergedRheoUnits = { ...METRIC_UNITS, ...pRheoUnits };
+                const mergedRheoUnits = sanitizeRheologyUnits({ ...METRIC_UNITS, ...pRheoUnits });
 
                 return {
                     ...current,

@@ -11,7 +11,7 @@ pub fn format_number(value: Option<f64>, decimals: u32) -> String {
         Some(v) if v.is_finite() => {
             format!("{:.prec$}", v, prec = decimals as usize)
         }
-        _ => "-".to_string()
+        _ => "-".to_string(),
     }
 }
 
@@ -40,7 +40,7 @@ pub fn format_date(date_str: &Option<String>, lang: &str) -> String {
                 s.clone()
             }
         }
-        _ => "-".to_string()
+        _ => "-".to_string(),
     }
 }
 
@@ -53,7 +53,8 @@ pub fn build_ramp_string(cycles: &[super::super::types::CycleInfo]) -> Option<St
         return None;
     }
 
-    let rates: Vec<String> = target_cycle.steps
+    let rates: Vec<String> = target_cycle
+        .steps
         .iter()
         .map(|s| format!("{}", s.avg_shear_rate.round() as i32))
         .collect();

@@ -231,7 +231,7 @@ describe('SaveExperimentDialog', () => {
         expect(payload.rawPoints).toEqual([]);
     });
 
-    it('shows rheology source selector only when instrument parameters were parsed', () => {
+    it('shows that parsed instrument rheology will be saved automatically', () => {
         renderDialog({
             analysis: {
                 ...baseAnalysis,
@@ -241,33 +241,27 @@ describe('SaveExperimentDialog', () => {
                     nPrime: 0.61,
                     kPrimePaSn: 0.22,
                 }],
-                programRheology: [{
-                    source: 'program',
-                    cycleNo: 1,
-                    nPrime: 0.62,
-                    kPrimePaSn: 0.23,
-                }],
             },
         });
-        expect(screen.getByTestId('SaveDialogRheologySourceSelect')).toBeDefined();
+        expect(screen.getByText('Сохранение реологических параметров')).toBeDefined();
+        expect(screen.getByText(/будет сохранена автоматически/)).toBeDefined();
+        expect(screen.queryByTestId('SaveDialogRheologySourceInstrument')).toBeNull();
+        expect(screen.queryByTestId('SaveDialogRheologySourceProgram')).toBeNull();
     });
 
-    it('omits rheology source selector without instrument parameters', () => {
+    it('explains when parsed instrument rheology was not found', () => {
         renderDialog({
             analysis: {
                 ...baseAnalysis,
-                programRheology: [{
-                    source: 'program',
-                    cycleNo: 1,
-                    nPrime: 0.62,
-                    kPrimePaSn: 0.23,
-                }],
             },
         });
-        expect(screen.queryByTestId('SaveDialogRheologySourceSelect')).toBeNull();
+        expect(screen.getByText('Сохранение реологических параметров')).toBeDefined();
+        expect(screen.getByText(/Таблица реологических расчётов прибора не найдена/)).toBeDefined();
+        expect(screen.queryByTestId('SaveDialogRheologySourceInstrument')).toBeNull();
+        expect(screen.queryByTestId('SaveDialogRheologySourceProgram')).toBeNull();
     });
 
-    it('defaults to instrument source and forwards both instrument and program rows', async () => {
+    it('uses instrument as saved default when parsed rows exist and forwards parsed rows only', async () => {
         const onSave = vi.fn().mockResolvedValue(undefined);
         renderDialog({
             onSave,
@@ -282,13 +276,54 @@ describe('SaveExperimentDialog', () => {
                     sourceSheet: 'Power Law Data',
                     sourceRow: 42,
                 }],
-                programRheology: [{
-                    source: 'program',
+            },
+        });
+
+        fireEvent.click(screen.getByTestId('SaveDialogSaveButton'));
+        await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+
+        const payload = onSave.mock.calls[0][0] as ExperimentSavePayload;
+        expect(payload.rheologySource).toBe('instrument');
+        expect(payload.rheologyParameters).toHaveLength(1);
+        expect(payload.rheologyParameters?.[0].source).toBe('instrument');
+        expect(payload.rheologyParameters?.[0].sourceSheet).toBe('Power Law Data');
+    });
+
+    it('does not expose a save-time source selector for parsed rheology rows', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        renderDialog({
+            onSave,
+            analysis: {
+                ...baseAnalysis,
+                instrumentRheology: [{
+                    source: 'instrument',
                     cycleNo: 1,
-                    nPrime: 0.62,
-                    kPrimePaSn: 0.23,
-                    binghamPvPaS: 0.31,
-                    binghamYpPa: 4.5,
+                    nPrime: 0.61,
+                    kPrimePaSn: 0.22,
+                }],
+            },
+        });
+
+        expect(screen.queryByTestId('SaveDialogRheologySourceInstrument')).toBeNull();
+        expect(screen.queryByTestId('SaveDialogRheologySourceProgram')).toBeNull();
+        fireEvent.click(screen.getByTestId('SaveDialogSaveButton'));
+        await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+
+        const payload = onSave.mock.calls[0][0] as ExperimentSavePayload;
+        expect(payload.rheologySource).toBe('instrument');
+    });
+
+    it('saves instrument as the default source whenever parsed rows exist', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        renderDialog({
+            onSave,
+            analysis: {
+                ...baseAnalysis,
+                instrumentRheology: [{
+                    source: 'instrument',
+                    cycleNo: 1,
+                    nPrime: 0.61,
+                    kPrimePaSn: 0.22,
                 }],
             },
         });
@@ -298,24 +333,14 @@ describe('SaveExperimentDialog', () => {
 
         const payload = onSave.mock.calls[0][0] as ExperimentSavePayload;
         expect(payload.rheologySource).toBe('instrument');
-        expect(payload.rheologyParameters).toHaveLength(2);
-        expect(payload.rheologyParameters?.map(row => row.source).sort()).toEqual(['instrument', 'program']);
-        expect(payload.rheologyParameters?.find(row => row.source === 'instrument')?.sourceSheet).toBe('Power Law Data');
-        expect(payload.rheologyParameters?.find(row => row.source === 'program')?.binghamPvPaS).toBe(0.31);
     });
 
-    it('defaults to program source when only program parameters are available', async () => {
+    it('defaults to program source and saves no rheology rows when parsed table is absent', async () => {
         const onSave = vi.fn().mockResolvedValue(undefined);
         renderDialog({
             onSave,
             analysis: {
                 ...baseAnalysis,
-                programRheology: [{
-                    source: 'program',
-                    cycleNo: 1,
-                    nPrime: 0.62,
-                    kPrimePaSn: 0.23,
-                }],
             },
         });
 
@@ -324,8 +349,7 @@ describe('SaveExperimentDialog', () => {
 
         const payload = onSave.mock.calls[0][0] as ExperimentSavePayload;
         expect(payload.rheologySource).toBe('program');
-        expect(payload.rheologyParameters).toHaveLength(1);
-        expect(payload.rheologyParameters?.[0].source).toBe('program');
+        expect(payload.rheologyParameters).toHaveLength(0);
     });
 
     it('trims leading/trailing whitespace from string fields before save', async () => {

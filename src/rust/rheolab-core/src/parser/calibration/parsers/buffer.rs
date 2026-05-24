@@ -5,6 +5,8 @@ use std::io::Cursor;
 
 use calamine::{open_workbook_from_rs, DataType, Reader, Xls, Xlsx};
 
+use crate::parser::text_encoding::{decode_text, normalize_cell};
+
 use super::super::CalibrationReport;
 use super::parse_calibration_data;
 
@@ -35,16 +37,17 @@ pub fn parse_calibration_from_buffer(data: &[u8]) -> Result<CalibrationReport, S
 
 /// Try to parse calibration from CSV/TXT text data.
 fn try_parse_calibration_from_text(data: &[u8]) -> Result<CalibrationReport, String> {
-    let text = String::from_utf8_lossy(data);
+    let text = decode_text(data);
 
     // Check if this looks like a Chandler CSV with calibration data
-    let text_lower = text.to_lowercase();
+    let text_lower = normalize_cell(&text).to_lowercase();
     if !text_lower.contains("calibration") {
         return Err("No calibration data in text file".to_string());
     }
 
     // Convert text to rows (same format as Excel parsing)
-    let rows: Vec<Vec<String>> = text.lines()
+    let rows: Vec<Vec<String>> = text
+        .lines()
         .map(|line| {
             // Detect delimiter
             let delimiter = if line.contains('\t') {
@@ -55,7 +58,7 @@ fn try_parse_calibration_from_text(data: &[u8]) -> Result<CalibrationReport, Str
                 ','
             };
             line.split(delimiter)
-                .map(|s| s.trim().to_string())
+                .map(normalize_cell)
                 .collect()
         })
         .collect();
@@ -81,7 +84,8 @@ where
         let name_lower = sheet_name.to_lowercase();
         if calibration_keywords.iter().any(|k| name_lower.contains(k)) {
             if let Some(Ok(range)) = workbook.worksheet_range(sheet_name) {
-                let rows: Vec<Vec<String>> = range.rows()
+                let rows: Vec<Vec<String>> = range
+                    .rows()
                     .map(|row: &[DataType]| row.iter().map(|c| c.to_string()).collect())
                     .collect();
 
@@ -95,11 +99,14 @@ where
     // 2. Search in all sheets
     for sheet_name in &sheet_names {
         if let Some(Ok(range)) = workbook.worksheet_range(sheet_name) {
-            let rows: Vec<Vec<String>> = range.rows()
+            let rows: Vec<Vec<String>> = range
+                .rows()
                 .map(|row: &[DataType]| row.iter().map(|c| c.to_string()).collect())
                 .collect();
 
-            if rows.len() < 5 { continue; }
+            if rows.len() < 5 {
+                continue;
+            }
 
             if let Ok(report) = parse_calibration_data(&rows) {
                 return Some(report);

@@ -1,7 +1,6 @@
 //! Translations
-//! 
+//!
 //! Matches TRANSLATIONS from report-formatters.ts exactly
-
 
 #[derive(Debug, Clone)]
 pub struct Translations {

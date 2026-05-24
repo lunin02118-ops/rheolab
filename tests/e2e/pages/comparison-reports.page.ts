@@ -29,6 +29,8 @@ export class ComparisonReportsPage {
     readonly recipeToggle: Locator;
     readonly waterAnalysisToggle: Locator;
     readonly rheologyToggle: Locator;
+    readonly programRheologyConfirmDialog: Locator;
+    readonly programRheologyConfirmOkButton: Locator;
 
     // — Export buttons —
     readonly pdfButton: Locator;
@@ -50,6 +52,10 @@ export class ComparisonReportsPage {
         this.recipeToggle = page.getByTestId('ComparisonReportRecipeToggle');
         this.waterAnalysisToggle = page.getByTestId('ComparisonReportWaterAnalysisToggle');
         this.rheologyToggle = page.getByTestId('ComparisonReportRheologyToggle');
+        this.programRheologyConfirmDialog = page.getByTestId('ProgramRheologyConfirmDialog');
+        this.programRheologyConfirmOkButton = this.programRheologyConfirmDialog.getByRole('button', {
+            name: /^(ОК|OK)$/,
+        });
 
         this.pdfButton = page.getByTestId('ComparisonReportPdfButton');
         this.excelButton = page.getByTestId('ComparisonReportExcelButton');
@@ -82,13 +88,21 @@ export class ComparisonReportsPage {
     async downloadPdf(timeoutMs = 30_000): Promise<Download> {
         const downloadPromise = this.page.waitForEvent('download', { timeout: timeoutMs });
         await this.pdfButton.click();
+        await this.confirmProgramRheologyIfShown();
         return downloadPromise;
     }
 
     async downloadExcel(timeoutMs = 30_000): Promise<Download> {
         const downloadPromise = this.page.waitForEvent('download', { timeout: timeoutMs });
         await this.excelButton.click();
+        await this.confirmProgramRheologyIfShown();
         return downloadPromise;
+    }
+
+    private async confirmProgramRheologyIfShown() {
+        if (await this.programRheologyConfirmDialog.isVisible().catch(() => false)) {
+            await this.programRheologyConfirmOkButton.click();
+        }
     }
 
     // ── Assertions ────────────────────────────────────────────────────────

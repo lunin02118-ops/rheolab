@@ -109,7 +109,10 @@ pub fn build_candidate_validation_report(
         severe_errors.push("No data rows parsed".to_string());
     }
     if invalid_time_count > 0 {
-        severe_errors.push(format!("Invalid time values detected: {}", invalid_time_count));
+        severe_errors.push(format!(
+            "Invalid time values detected: {}",
+            invalid_time_count
+        ));
     }
     if mandatory_field_coverage == 0 {
         severe_errors.push("No rows with mandatory time + viscosity/RPM coverage".to_string());
@@ -141,7 +144,8 @@ fn check_temperature_stability(data: &[RheoPoint], warnings: &mut Vec<String>) {
         return;
     }
 
-    let temps: Vec<f64> = data.iter()
+    let temps: Vec<f64> = data
+        .iter()
         .map(|p| p.temperature_c)
         .filter(|&t| t > 0.0)
         .collect();
@@ -157,7 +161,11 @@ fn check_temperature_stability(data: &[RheoPoint], warnings: &mut Vec<String>) {
     if temp_range < 0.5 {
         warnings.push(format!("⚠️ ВНИМАНИЕ: Температура не изменяется в ходе теста ({:.1}°C - {:.1}°C). Возможна проблема с датчиком температуры!", min_temp, max_temp));
     } else if temp_range < 2.0 && data.len() > 100 {
-        warnings.push(format!("⚠️ Температура почти не меняется: Δ = {:.1}°C за {} точек измерений.", temp_range, data.len()));
+        warnings.push(format!(
+            "⚠️ Температура почти не меняется: Δ = {:.1}°C за {} точек измерений.",
+            temp_range,
+            data.len()
+        ));
     }
 }
 
@@ -166,11 +174,12 @@ fn validate_shear_rate_consistency(data: &[RheoPoint], warnings: &mut Vec<String
         return false;
     }
 
-    let samples: Vec<&RheoPoint> = data.iter()
+    let samples: Vec<&RheoPoint> = data
+        .iter()
         .filter(|p| {
-            p.viscosity_cp > 0.0 &&
-            p.shear_stress.unwrap_or(0.0) > 0.0 &&
-            p.shear_rate.unwrap_or(0.0) > 0.0
+            p.viscosity_cp > 0.0
+                && p.shear_stress.unwrap_or(0.0) > 0.0
+                && p.shear_rate.unwrap_or(0.0) > 0.0
         })
         .take(20)
         .collect();
@@ -201,28 +210,48 @@ fn validate_shear_rate_consistency(data: &[RheoPoint], warnings: &mut Vec<String
         let sr = sample.shear_rate.unwrap_or(0.0);
         let expected_sr = (stress * 1000.0) / sample.viscosity_cp;
 
-        warnings.push("⚠️ ОШИБКА: Скорость сдвига не соответствует соотношению η = τ/γ̇!".to_string());
-        warnings.push(format!("Пример: η={:.1} cP, τ={:.2} Pa", sample.viscosity_cp, stress));
-        warnings.push(format!("Ожидаемая γ̇ = {:.1} с⁻¹, Получена: {:.1} с⁻¹", expected_sr, sr));
+        warnings
+            .push("⚠️ ОШИБКА: Скорость сдвига не соответствует соотношению η = τ/γ̇!".to_string());
+        warnings.push(format!(
+            "Пример: η={:.1} cP, τ={:.2} Pa",
+            sample.viscosity_cp, stress
+        ));
+        warnings.push(format!(
+            "Ожидаемая γ̇ = {:.1} с⁻¹, Получена: {:.1} с⁻¹",
+            expected_sr, sr
+        ));
 
         let k_needed = expected_sr / sr;
         warnings.push(format!("Отношение Ожидаемая/Полученная ≈ {:.3}", k_needed));
 
         if (k_needed - 0.847).abs() < 0.05 {
-            warnings.push("💡 ГИПОТЕЗА: В колонке \"Скорость сдвига\" на самом деле RPM (для R1B5)!".to_string());
+            warnings.push(
+                "💡 ГИПОТЕЗА: В колонке \"Скорость сдвига\" на самом деле RPM (для R1B5)!"
+                    .to_string(),
+            );
         } else if (k_needed - 1.703).abs() < 0.1 {
-            warnings.push("💡 ГИПОТЕЗА: В колонке \"Скорость сдвига\" на самом деле RPM (для R1B1)!".to_string());
+            warnings.push(
+                "💡 ГИПОТЕЗА: В колонке \"Скорость сдвига\" на самом деле RPM (для R1B1)!"
+                    .to_string(),
+            );
         } else if (k_needed - (1.0 / 0.847)).abs() < 0.05 {
-            warnings.push("💡 ГИПОТЕЗА: В колонке \"RPM\" на самом деле уже указана Скорость сдвига (1/s)!".to_string());
+            warnings.push(
+                "💡 ГИПОТЕЗА: В колонке \"RPM\" на самом деле уже указана Скорость сдвига (1/s)!"
+                    .to_string(),
+            );
         }
     }
 
     has_issue
 }
 
-fn validate_rpm_consistency(data: &[RheoPoint], geometry: Option<&str>, warnings: &mut Vec<String>) {
+fn validate_rpm_consistency(
+    data: &[RheoPoint],
+    geometry: Option<&str>,
+    warnings: &mut Vec<String>,
+) {
     let geometry = geometry.unwrap_or("R1B5");
-    
+
     // K-Factors map (simplified)
     let k_factor = match geometry {
         "R1B1" => 1.703,
@@ -237,17 +266,17 @@ fn validate_rpm_consistency(data: &[RheoPoint], geometry: Option<&str>, warnings
     }
 
     let mut mismatch_count = 0;
-    
-    let samples: Vec<&RheoPoint> = data.iter()
-        .filter(|p| {
-            p.shear_rate.unwrap_or(0.0) > 0.0 &&
-            p.rpm.unwrap_or(0.0) > 0.0
-        })
+
+    let samples: Vec<&RheoPoint> = data
+        .iter()
+        .filter(|p| p.shear_rate.unwrap_or(0.0) > 0.0 && p.rpm.unwrap_or(0.0) > 0.0)
         .take(20)
         .collect();
 
     let total_checked = samples.len();
-    if total_checked == 0 { return; }
+    if total_checked == 0 {
+        return;
+    }
 
     for point in &samples {
         let sr = point.shear_rate.unwrap_or(0.0);
@@ -261,11 +290,17 @@ fn validate_rpm_consistency(data: &[RheoPoint], geometry: Option<&str>, warnings
     }
 
     if total_checked > 0 && mismatch_count > total_checked / 2 {
-        warnings.push(format!("⚠️ RPM Warning: Обороты в файле не соответствуют геометрии {} (K={}).", geometry, k_factor));
+        warnings.push(format!(
+            "⚠️ RPM Warning: Обороты в файле не соответствуют геометрии {} (K={}).",
+            geometry, k_factor
+        ));
         let sample = samples[0];
         let sr = sample.shear_rate.unwrap_or(0.0);
         let rpm = sample.rpm.unwrap_or(0.0);
         let expected_rpm = sr / k_factor;
-        warnings.push(format!("Пример: SR={:.1}, RPM={:.1}. Ожидалось RPM={:.1}", sr, rpm, expected_rpm));
+        warnings.push(format!(
+            "Пример: SR={:.1}, RPM={:.1}. Ожидалось RPM={:.1}",
+            sr, rpm, expected_rpm
+        ));
     }
 }

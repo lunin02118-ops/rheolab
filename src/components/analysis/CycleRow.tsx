@@ -3,10 +3,18 @@ import { AlertCircle, Pencil } from 'lucide-react';
 import type { RheoCycle } from '@/lib/analysis/types';
 import type { GraceCycleResult } from '@/lib/analysis/types';
 import { CYCLE_TYPE_STYLES, type CycleTypeName } from '@/lib/analysis/constants';
-import type { UnitSystem } from '@/lib/store/display-settings-store';
-import { convertViscosity, getViscosityDecimals } from '@/lib/store/display-settings-store';
-import type { TimeDisplayFormat } from '@/lib/store/chart-settings-types';
+import type { RheologyUnits, TimeDisplayFormat } from '@/lib/store/chart-settings-types';
 import { formatTime } from '@/lib/store/chart-settings-defaults';
+import {
+    consistencyDecimals,
+    convertConsistencyIndex,
+    convertPlasticViscosity,
+    convertViscosity,
+    convertYieldPoint,
+    plasticViscosityDecimals,
+    viscosityDecimals,
+    yieldPointDecimals,
+} from '@/lib/utils/unit-converters';
 
 interface CycleRowProps {
     cycle: RheoCycle;
@@ -14,8 +22,9 @@ interface CycleRowProps {
     isExpanded: boolean;
     isExpert: boolean;
     viscosityRates: number[];
-    unitSystem: UnitSystem;
+    rheologyUnits: RheologyUnits;
     timeFormat: TimeDisplayFormat;
+    preferResultTiming?: boolean;
     onToggle: () => void;
     onEdit?: () => void;
 }
@@ -26,14 +35,39 @@ export const CycleRow = memo(function CycleRow({
     isExpanded,
     isExpert,
     viscosityRates,
-    unitSystem,
+    rheologyUnits,
     timeFormat,
+    preferResultTiming = false,
     onToggle,
     onEdit
 }: CycleRowProps) {
     const hasResult = !!result;
     const rowIndex = cycle.cycleIndex || cycle.id;
     const typeStyle = CYCLE_TYPE_STYLES[cycle.type as CycleTypeName] ?? CYCLE_TYPE_STYLES.Custom;
+    const resultDurationSec = result && Number.isFinite(result.endTimeMin - result.timeMin)
+        ? Math.max(0, Math.round((result.endTimeMin - result.timeMin) * 60))
+        : null;
+    const displayStartTime = preferResultTiming && result
+        ? formatTime(result.timeMin * 60, timeFormat)
+        : (cycle.steps.length > 0 ? formatTime(cycle.steps[0].startTime, timeFormat) : '—');
+    const displayDurationSec = preferResultTiming && resultDurationSec !== null
+        ? resultDurationSec
+        : Math.round(cycle.duration);
+    const formatConsistency = (value: number | null | undefined) =>
+        value != null && Number.isFinite(value)
+            ? convertConsistencyIndex(value, rheologyUnits.consistency)
+                .toFixed(consistencyDecimals(rheologyUnits.consistency))
+            : '—';
+    const formatPlasticViscosity = (value: number | null | undefined) =>
+        value != null && Number.isFinite(value)
+            ? convertPlasticViscosity(value, rheologyUnits.plasticViscosity)
+                .toFixed(plasticViscosityDecimals(rheologyUnits.plasticViscosity))
+            : '—';
+    const formatYieldPoint = (value: number | null | undefined) =>
+        value != null && Number.isFinite(value)
+            ? convertYieldPoint(value, rheologyUnits.yieldPoint)
+                .toFixed(yieldPointDecimals(rheologyUnits.yieldPoint))
+            : '—';
 
     return (
         <tr
@@ -70,37 +104,37 @@ export const CycleRow = memo(function CycleRow({
             </td>
             {/* Start time (formatted per settings) */}
             <td className="py-3 px-2 text-center font-data text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                {cycle.steps.length > 0 ? formatTime(cycle.steps[0].startTime, timeFormat) : '—'}
+                {displayStartTime}
             </td>
             {/* Duration (always seconds) */}
             <td className="py-3 px-2 text-center font-data text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                {Math.round(cycle.duration)}
+                {displayDurationSec}
             </td>
             {hasResult ? (
                 <>
                     <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
-                        {result.n_prime != null ? result.n_prime.toFixed(4) : '—'}
+                        {Number.isFinite(result.n_prime) ? result.n_prime.toFixed(4) : '—'}
                     </td>
                     <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
-                        {result.K_prime_PaSn != null ? result.K_prime_PaSn.toFixed(4) : '—'}
+                        {formatConsistency(result.K_prime_PaSn)}
                     </td>
                     <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
-                        {result.K_prime_slot_PaSn != null && isFinite(result.K_prime_slot_PaSn) ? result.K_prime_slot_PaSn.toFixed(4) : '—'}
+                        {formatConsistency(result.K_prime_slot_PaSn)}
                     </td>
                     <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
-                        {result.K_pipe_PaSn != null && isFinite(result.K_pipe_PaSn) ? result.K_pipe_PaSn.toFixed(4) : '—'}
+                        {formatConsistency(result.K_pipe_PaSn)}
                     </td>
                     <td className="py-3 px-3 text-center">
-                        <span className={`font-data ${(result.r2 ?? 0) > 0.9 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                            {result.r2 != null ? result.r2.toFixed(4) : '—'}
+                        <span className={`font-data ${Number.isFinite(result.r2) && result.r2 > 0.9 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                            {Number.isFinite(result.r2) ? result.r2.toFixed(4) : '—'}
                         </span>
                     </td>
                     {/* Dynamic viscosity columns */}
                     {viscosityRates.map(rate => {
                         const raw = result.viscosities?.[rate]
                             ?? (rate === 40 ? result.viscAt40 : rate === 100 ? result.viscAt100 : rate === 170 ? result.viscAt170 : undefined);
-                        const val = raw != null && isFinite(raw) ? convertViscosity(raw, unitSystem) : null;
-                        const dec = getViscosityDecimals(unitSystem);
+                        const val = raw != null && isFinite(raw) ? convertViscosity(raw, rheologyUnits.viscosity) : null;
+                        const dec = viscosityDecimals(rheologyUnits.viscosity);
                         return (
                             <td key={rate} className="py-3 px-3 text-center font-data text-cyan-700 dark:text-cyan-400">
                                 {val != null ? val.toFixed(dec) : '—'}
@@ -108,14 +142,14 @@ export const CycleRow = memo(function CycleRow({
                         );
                     })}
                     <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
-                        {result.bingham_PV_PaS != null ? result.bingham_PV_PaS.toFixed(4) : '—'}
+                        {formatPlasticViscosity(result.bingham_PV_PaS)}
                     </td>
                     <td className="py-3 px-3 text-center font-data text-slate-700 dark:text-slate-200">
-                        {result.bingham_YP_Pa != null ? result.bingham_YP_Pa.toFixed(2) : '—'}
+                        {formatYieldPoint(result.bingham_YP_Pa)}
                     </td>
                     <td className="py-3 px-3 text-center">
-                        <span className={`font-data ${(result.bingham_r2 ?? 0) > 0.9 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                            {result.bingham_r2 != null ? result.bingham_r2.toFixed(4) : '—'}
+                        <span className={`font-data ${Number.isFinite(result.bingham_r2) && result.bingham_r2 > 0.9 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                            {Number.isFinite(result.bingham_r2) ? result.bingham_r2.toFixed(4) : '—'}
                         </span>
                     </td>
                     {/* Edit button (Expert mode) */}

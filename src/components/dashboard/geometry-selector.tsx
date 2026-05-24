@@ -9,8 +9,8 @@ import {
 
 // Available geometries with K-factors
 const GEOMETRIES = [
-    { value: 'R1B1', label: 'R1B1', kFactor: 1.703, description: 'Ротор 1, Боб 1 (широкий зазор)' },
-    { value: 'R1B2', label: 'R1B2', kFactor: 0.377, description: 'Ротор 1, Боб 2 (узкий зазор)' },
+    { value: 'R1B1', label: 'R1B1', kFactor: 1.703, description: 'Ротор 1, Боб 1 (малый зазор)' },
+    { value: 'R1B2', label: 'R1B2', kFactor: 0.377, description: 'Ротор 1, Боб 2 (большой зазор)' },
     { value: 'R1B5', label: 'R1B5', kFactor: 0.847, description: 'Ротор 1, Боб 5 (стандарт)' },
 ] as const;
 

@@ -14,9 +14,27 @@
 /// Matches `timeAxisUnit()` in `src/hooks/chart-options/time-format.ts`.
 pub fn time_axis_unit(time_format: &str, lang: &str) -> &'static str {
     match time_format {
-        "seconds" => if lang == "en" { "sec" } else { "с" },
-        "hh:mm:ss" => if lang == "en" { "hh:mm:ss" } else { "чч:мм:сс" },
-        _ => if lang == "en" { "min" } else { "мин" },
+        "seconds" => {
+            if lang == "en" {
+                "sec"
+            } else {
+                "с"
+            }
+        }
+        "hh:mm:ss" => {
+            if lang == "en" {
+                "hh:mm:ss"
+            } else {
+                "чч:мм:сс"
+            }
+        }
+        _ => {
+            if lang == "en" {
+                "min"
+            } else {
+                "мин"
+            }
+        }
     }
 }
 

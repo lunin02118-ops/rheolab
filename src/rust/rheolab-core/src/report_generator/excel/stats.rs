@@ -8,7 +8,6 @@
 //! `pdf/template/stats.rs` for the matching PDF logic and ADR-0012 for
 //! the full rationale.
 
-use rust_xlsxwriter::{Worksheet, XlsxError};
 use super::super::formatters::{
     build_ramp_string, convert_consistency_index, convert_pv, convert_viscosity, convert_yp,
     format_time_value, get_viscosity_unit, render_k_with, render_pv_with, render_viscosity_with,
@@ -17,6 +16,7 @@ use super::super::formatters::{
 };
 use super::super::types::{ReportInput, TouchPoint};
 use super::styles::Styles;
+use rust_xlsxwriter::{Worksheet, XlsxError};
 
 pub(super) fn write_touch_points_table(
     sheet: &mut Worksheet,
@@ -26,14 +26,24 @@ pub(super) fn write_touch_points_table(
     unit_system: &str,
     row: &mut u32,
 ) -> Result<(), XlsxError> {
-    if touch_points.is_empty() { return Ok(()); }
+    if touch_points.is_empty() {
+        return Ok(());
+    }
 
-    let tp_title = if is_ru { "Контрольные точки" } else { "Control Points" };
+    let tp_title = if is_ru {
+        "Контрольные точки"
+    } else {
+        "Control Points"
+    };
     sheet.write_string_with_format(*row, 0, tp_title, &styles.section_title)?;
     *row += 1;
 
     let tp_type = if is_ru { "Тип" } else { "Type" };
-    let tp_time = if is_ru { "Время (мин)" } else { "Time (min)" };
+    let tp_time = if is_ru {
+        "Время (мин)"
+    } else {
+        "Time (min)"
+    };
     let visc_unit = get_viscosity_unit(unit_system);
     let tp_visc = if is_ru {
         format!("Вязкость ({})", visc_unit)
@@ -72,13 +82,45 @@ pub(super) fn write_statistics(
     let unit_system = &input.settings.unit_system;
     let units = resolve_units(input);
 
-    let stats_title = if is_ru { "Реология" } else { "Rheology" };
+    let stats_title = if is_ru {
+        "Реология"
+    } else {
+        "Rheology"
+    };
     sheet.write_string_with_format(*row, 0, stats_title, &styles.section_title)?;
+    *row += 1;
+
+    let source_label = if is_ru {
+        "Источник данных"
+    } else {
+        "Data source"
+    };
+    let source_value = match input.settings.rheology_source.as_str() {
+        "instrument" => {
+            if is_ru {
+                "Прибор"
+            } else {
+                "Instrument"
+            }
+        }
+        _ => {
+            if is_ru {
+                "Программа"
+            } else {
+                "Program"
+            }
+        }
+    };
+    sheet.write_string(*row, 0, &format!("{}: {}", source_label, source_value))?;
     *row += 1;
 
     // Ramp info
     if let Some(ramp) = build_ramp_string(&input.cycles) {
-        let ramp_label = if is_ru { "Скорость сдвига" } else { "Shear Rate" };
+        let ramp_label = if is_ru {
+            "Скорость сдвига"
+        } else {
+            "Shear Rate"
+        };
         let ramp_text = format!("{}: {} (1/s)", ramp_label, ramp);
         sheet.write_string(*row, 0, &ramp_text)?;
         *row += 1;
@@ -193,7 +235,12 @@ pub(super) fn write_statistics(
 
         sheet.write_number_with_format(*row, col, cycle.temp_c, &styles.fmt_temperature)?;
         col += 1;
-        sheet.write_number_with_format(*row, col, cycle.pressure_bar.unwrap_or(0.0), &styles.fmt_pressure)?;
+        sheet.write_number_with_format(
+            *row,
+            col,
+            cycle.pressure_bar.unwrap_or(0.0),
+            &styles.fmt_pressure,
+        )?;
         col += 1;
         sheet.write_number_with_format(*row, col, cycle.n_prime, &styles.fmt_n_prime)?;
         col += 1;
@@ -232,12 +279,15 @@ pub(super) fn write_statistics(
         // Dynamic viscosity columns from viscosities HashMap
         for rate in visc_rates {
             let key = format!("{}", rate);
-            let visc_raw = cycle.viscosities.get(&key).copied()
+            let visc_raw = cycle
+                .viscosities
+                .get(&key)
+                .copied()
                 .or_else(|| match *rate {
-                    40  => cycle.visc_at_40,
+                    40 => cycle.visc_at_40,
                     100 => cycle.visc_at_100,
                     170 => cycle.visc_at_170,
-                    _   => None,
+                    _ => None,
                 })
                 .unwrap_or(0.0);
             let visc_val = if units.use_targets {
@@ -260,7 +310,12 @@ pub(super) fn write_statistics(
             col += 1;
             sheet.write_number_with_format(*row, col, yp_val, &styles.fmt_yp)?;
             col += 1;
-            sheet.write_number_with_format(*row, col, cycle.bingham_r2.unwrap_or(0.0), &styles.fmt_bingham_r2)?;
+            sheet.write_number_with_format(
+                *row,
+                col,
+                cycle.bingham_r2.unwrap_or(0.0),
+                &styles.fmt_bingham_r2,
+            )?;
         }
         let _ = col;
         *row += 1;

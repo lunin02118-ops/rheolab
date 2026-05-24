@@ -87,15 +87,12 @@ mod units;
 #[cfg(test)]
 mod tests;
 
-pub use numbers::{
-    build_ramp_string, format_date, format_number, format_number_direct,
-};
+pub use numbers::{build_ramp_string, format_date, format_number, format_number_direct};
 pub use resolve::{resolve_units, ResolvedUnits};
 pub use time::{format_time_value, time_axis_unit};
 pub use units::{
-    convert_consistency_index, convert_pv, convert_viscosity, convert_yp,
-    get_k_unit, get_pv_unit, get_viscosity_unit, get_yp_unit,
-    render_k_with, render_pv_with, render_viscosity_with, render_yp_with,
-    viscosity_decimals, viscosity_decimals_for, viscosity_excel_format,
+    convert_consistency_index, convert_pv, convert_viscosity, convert_yp, get_k_unit, get_pv_unit,
+    get_viscosity_unit, get_yp_unit, render_k_with, render_pv_with, render_viscosity_with,
+    render_yp_with, viscosity_decimals, viscosity_decimals_for, viscosity_excel_format,
     viscosity_excel_format_for,
 };

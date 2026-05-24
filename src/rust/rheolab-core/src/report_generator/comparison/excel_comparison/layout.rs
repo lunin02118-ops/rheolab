@@ -14,8 +14,7 @@ use rust_xlsxwriter::{Worksheet, XlsxError};
 
 use super::super::super::formatters::convert_viscosity;
 use super::super::super::touch_point::{
-    TouchPointInput, TouchPointType, SmartTouchPointOptions,
-    calculate_smart_touch_points,
+    calculate_smart_touch_points, SmartTouchPointOptions, TouchPointInput, TouchPointType,
 };
 use super::super::types::ComparisonReportInput;
 use super::helpers::canonical_to_internal;
@@ -84,9 +83,9 @@ pub(super) fn compute_chart_data_layout(
 
     let convert_time = |elapsed_sec: f64| -> f64 {
         match time_fmt.as_str() {
-            "seconds"  => elapsed_sec.round(),
+            "seconds" => elapsed_sec.round(),
             "hh:mm:ss" => elapsed_sec / 86_400.0,
-            _          => elapsed_sec / 60.0,
+            _ => elapsed_sec / 60.0,
         }
     };
 
@@ -111,7 +110,9 @@ pub(super) fn compute_chart_data_layout(
             cells.push((row, col_time, time_val));
             cells.push((row, col_visc, visc));
             last_row = row;
-            if time_val > global_max_time { global_max_time = time_val; }
+            if time_val > global_max_time {
+                global_max_time = time_val;
+            }
         }
         exp_columns.push((col_time, col_visc, last_row));
     }
@@ -143,10 +144,13 @@ pub(super) fn compute_chart_data_layout(
     if cfg.touch_point.enabled {
         for (i, entry) in input.experiments.iter().enumerate() {
             let raw = &entry.report_input.raw_data;
-            if raw.len() < 3 { continue; }
+            if raw.len() < 3 {
+                continue;
+            }
 
             let first_time_sec = raw.first().map(|p| p.time_sec).unwrap_or(0.0);
-            let inputs: Vec<TouchPointInput> = raw.iter()
+            let inputs: Vec<TouchPointInput> = raw
+                .iter()
                 .filter(|p| p.time_sec.is_finite() && p.viscosity_cp.is_finite())
                 .map(|p| TouchPointInput {
                     time_min: (p.time_sec - first_time_sec) / 60.0,
@@ -187,10 +191,11 @@ pub(super) fn compute_chart_data_layout(
     //
     // Resolve which additional metrics the user placed in the left_secondary,
     // secondary, and tertiary slots — mirror the PDF path's slot logic.
-    let in_left  = |key: &str| canonical_to_internal(&cfg.metrics.left_secondary) == key;
-    let in_right = |key: &str|
-        canonical_to_internal(&cfg.metrics.secondary)  == key
-        || canonical_to_internal(&cfg.metrics.tertiary) == key;
+    let in_left = |key: &str| canonical_to_internal(&cfg.metrics.left_secondary) == key;
+    let in_right = |key: &str| {
+        canonical_to_internal(&cfg.metrics.secondary) == key
+            || canonical_to_internal(&cfg.metrics.tertiary) == key
+    };
     let in_any = |key: &str| in_left(key) || in_right(key);
 
     // List of (internal_key, on_right).  We iterate this once to build
@@ -203,7 +208,10 @@ pub(super) fn compute_chart_data_layout(
     let mut specs: Vec<MetricSpec> = Vec::new();
     for &key in &["temperature", "shear_rate", "pressure", "bath_temperature"] {
         if in_any(key) {
-            specs.push(MetricSpec { key, on_right: !in_left(key) });
+            specs.push(MetricSpec {
+                key,
+                on_right: !in_left(key),
+            });
         }
     }
 
@@ -221,9 +229,9 @@ pub(super) fn compute_chart_data_layout(
 
             for (j, pt) in raw.iter().enumerate() {
                 let val = match spec.key {
-                    "temperature"      => pt.temperature_c,
-                    "shear_rate"       => pt.shear_rate,
-                    "pressure"         => pt.pressure_bar,
+                    "temperature" => pt.temperature_c,
+                    "shear_rate" => pt.shear_rate,
+                    "pressure" => pt.pressure_bar,
                     "bath_temperature" => pt.bath_temperature_c,
                     _ => None,
                 };

@@ -1,13 +1,15 @@
 //! Unit tests for touch-point calculation.
 
-use super::helpers::{find_dominant_shear_rate, filter_by_shear_rate, find_viscosity_peak};
 use super::algorithm::calculate_smart_touch_points;
-use super::types::{
-    SmartTouchPointOptions, TouchPointAnomaly, TouchPointInput, TouchPointType,
-};
+use super::helpers::{filter_by_shear_rate, find_dominant_shear_rate, find_viscosity_peak};
+use super::types::{SmartTouchPointOptions, TouchPointAnomaly, TouchPointInput, TouchPointType};
 
 fn make_point(time_min: f64, viscosity_cp: f64, shear_rate: f64) -> TouchPointInput {
-    TouchPointInput { time_min, viscosity_cp, shear_rate }
+    TouchPointInput {
+        time_min,
+        viscosity_cp,
+        shear_rate,
+    }
 }
 
 #[test]
@@ -56,7 +58,11 @@ fn test_viscosity_peak_detected() {
     let peak = find_viscosity_peak(&points, 1.0);
     assert!(peak.is_some(), "peak should be detected");
     let pt = peak.expect("peak detected");
-    assert!(pt >= 3.0 && pt <= 7.0, "peak should be near t=5, got {}", pt);
+    assert!(
+        pt >= 3.0 && pt <= 7.0,
+        "peak should be near t=5, got {}",
+        pt
+    );
 }
 
 #[test]
@@ -69,8 +75,14 @@ fn test_no_peak_monotonically_falling() {
         .collect();
     // Monotonically falling → decline detected from the very start → peak is near beginning
     let peak = find_viscosity_peak(&points, 1.0);
-    assert!(peak.is_some(), "monotonically falling data has peak at start");
-    assert!(peak.expect("peak detected") < 1.0, "peak should be near t=0");
+    assert!(
+        peak.is_some(),
+        "monotonically falling data has peak at start"
+    );
+    assert!(
+        peak.expect("peak detected") < 1.0,
+        "peak should be near t=0"
+    );
 }
 
 #[test]
@@ -98,12 +110,20 @@ fn test_smart_touch_points_basic() {
     );
 
     // Should have threshold and target
-    let threshold = results.iter().find(|r| matches!(r.tp_type, TouchPointType::Threshold));
+    let threshold = results
+        .iter()
+        .find(|r| matches!(r.tp_type, TouchPointType::Threshold));
     assert!(threshold.is_some(), "threshold should be found");
     let tp = threshold.expect("threshold found");
-    assert!(tp.time > 5.0, "threshold should be after peak (t=5), got {}", tp.time);
+    assert!(
+        tp.time > 5.0,
+        "threshold should be after peak (t=5), got {}",
+        tp.time
+    );
 
-    let target = results.iter().find(|r| matches!(r.tp_type, TouchPointType::Target));
+    let target = results
+        .iter()
+        .find(|r| matches!(r.tp_type, TouchPointType::Target));
     assert!(target.is_some(), "target-time should be found");
     assert!((target.expect("target found").time - 10.0).abs() < 0.01);
 }
@@ -146,11 +166,17 @@ fn test_smart_touch_points_filters_shear_ramps() {
         },
     );
 
-    let threshold = results.iter().find(|r| matches!(r.tp_type, TouchPointType::Threshold));
+    let threshold = results
+        .iter()
+        .find(|r| matches!(r.tp_type, TouchPointType::Threshold));
     assert!(threshold.is_some(), "threshold should be found");
     let tp = threshold.expect("threshold found");
     // Should NOT find the ramp drop at t=7; should find the real crossing at ~t=13
-    assert!(tp.time >= 12.0, "threshold should be at ~13min (not at ramp t=7), got {}", tp.time);
+    assert!(
+        tp.time >= 12.0,
+        "threshold should be at ~13min (not at ramp t=7), got {}",
+        tp.time
+    );
 }
 
 #[test]
@@ -173,8 +199,13 @@ fn test_smart_touch_points_no_shear_data_falls_back() {
         },
     );
 
-    let threshold = results.iter().find(|r| matches!(r.tp_type, TouchPointType::Threshold));
-    assert!(threshold.is_some(), "should find threshold even without shear-rate data");
+    let threshold = results
+        .iter()
+        .find(|r| matches!(r.tp_type, TouchPointType::Threshold));
+    assert!(
+        threshold.is_some(),
+        "should find threshold even without shear-rate data"
+    );
 }
 
 /// BUG #4 regression (mirror of the TS test):
@@ -252,7 +283,11 @@ fn test_sanitises_non_finite_inputs() {
     );
     for r in &results {
         assert!(r.time.is_finite(), "time must be finite, got {}", r.time);
-        assert!(r.viscosity.is_finite(), "viscosity must be finite, got {}", r.viscosity);
+        assert!(
+            r.viscosity.is_finite(),
+            "viscosity must be finite, got {}",
+            r.viscosity
+        );
     }
     let target = results
         .iter()
@@ -281,7 +316,11 @@ fn test_all_non_finite_returns_empty() {
             ..Default::default()
         },
     );
-    assert!(results.is_empty(), "expected empty result, got {:?}", results.len());
+    assert!(
+        results.is_empty(),
+        "expected empty result, got {:?}",
+        results.len()
+    );
 }
 
 #[test]
@@ -304,7 +343,10 @@ fn test_target_time_plain_interpolation_on_single_plateau() {
         .iter()
         .find(|r| matches!(r.tp_type, TouchPointType::Target))
         .expect("target-time marker must be present");
-    assert!(target.anomaly.is_none(), "no anomaly expected on a single plateau");
+    assert!(
+        target.anomaly.is_none(),
+        "no anomaly expected on a single plateau"
+    );
     // Linear interpolation between (5,800) and (6,760) ⇒ 780 cP.
     assert!(
         (target.viscosity - 780.0).abs() < 1e-6,

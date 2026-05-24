@@ -8,7 +8,7 @@ import type {
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import type { ExpertSettings } from '@/lib/store/analysis-settings-store';
 import type { RecipeComponent } from '@/lib/parsing/types';
-import type { WaterParams } from '@/types';
+import type { RheologyParameterSource, WaterParams } from '@/types';
 import type { ReportChartLineSettings } from '@/lib/analysis/report-types/report-inputs';
 import {
     generateExcelReportByIdBytes,
@@ -38,6 +38,7 @@ export interface UseReportExportByIdOptions {
     showRawData: boolean;
     showRecipe: boolean;
     showWaterAnalysis: boolean;
+    rheologySourceOverride?: RheologyParameterSource;
     reportViscosityRates: number[];
     isExpert: boolean;
     companyName: string;
@@ -187,6 +188,7 @@ export function useReportExportById(options: UseReportExportByIdOptions) {
             companyName: options.companyName || undefined,
             companyLogoBase64: options.companyLogo ?? undefined,
             generatedAt: new Date().toISOString(),
+            rheologySourceOverride: options.rheologySourceOverride,
             comparisonChart: {
                 metrics: {
                     primary: 'viscosity_cp',
@@ -264,6 +266,7 @@ export function useReportExportById(options: UseReportExportByIdOptions) {
         options.showCalibration,
         options.showRawData,
         options.showRecipe,
+        options.rheologySourceOverride,
         options.showTargetTime,
         options.showTouchPoints,
         options.showWaterAnalysis,

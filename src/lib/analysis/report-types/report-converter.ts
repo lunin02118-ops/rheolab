@@ -165,6 +165,7 @@ export function convertReportInputToWasm(input: PdfReportInput | ExcelReportInpu
             viscosity_threshold: input.settings.viscosityThreshold ?? 500,
             show_target_time: input.settings.showTargetTime ?? false,
             target_time: input.settings.targetTime ?? 10,
+            rheology_source: input.settings.rheologySource ?? 'program',
             show_calibration: input.settings.showCalibration,
             show_raw_data: input.settings.showRawData ?? false,
             viscosity_shear_rates: input.settings.viscosityShearRates ?? [40, 100, 170],

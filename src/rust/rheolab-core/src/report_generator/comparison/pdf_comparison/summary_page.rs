@@ -8,26 +8,51 @@ use super::super::types::ComparisonReportInput;
 use super::touch_points::build_comparison_touch_points_block;
 
 /// Build page 2: summary table + touch points on a separate portrait page.
-pub(super) fn build_summary_table_page(
-    input: &ComparisonReportInput,
-    is_ru: bool,
-) -> String {
-    let title = if is_ru { "Сравнение экспериментов" } else { "Experiment Comparison" };
+pub(super) fn build_summary_table_page(input: &ComparisonReportInput, is_ru: bool) -> String {
+    let title = if is_ru {
+        "Сравнение экспериментов"
+    } else {
+        "Experiment Comparison"
+    };
     // `test_id` stays on `ExperimentSummary` so the DB-side payload is
     // unchanged, but the Summary table no longer renders it — the user
     // asked for one less column and the experiment name already carries
     // enough identity on the chart + legend.
-    let t_exp    = if is_ru { "Эксперимент"            } else { "Experiment" };
-    let t_pts    = if is_ru { "Точек"                  } else { "Points" };
-    let t_dur    = if is_ru { "Длительность (мин)"     } else { "Duration (min)" };
-    let t_maxv   = if is_ru { "Макс. вязкость"         } else { "Max viscosity" };
-    let t_finv   = if is_ru { "Финал. вязкость"        } else { "Final viscosity" };
+    let t_exp = if is_ru {
+        "Эксперимент"
+    } else {
+        "Experiment"
+    };
+    let t_pts = if is_ru { "Точек" } else { "Points" };
+    let t_dur = if is_ru {
+        "Длительность (мин)"
+    } else {
+        "Duration (min)"
+    };
+    let t_maxv = if is_ru {
+        "Макс. вязкость"
+    } else {
+        "Max viscosity"
+    };
+    let t_finv = if is_ru {
+        "Финал. вязкость"
+    } else {
+        "Final viscosity"
+    };
     // New columns surfacing the two ambient-channel averages requested
     // by the maintainer. Both values are optional — a run that never
     // logged temperature or pressure renders as "—" rather than 0.0
     // (cf. ExperimentSummary::avg_temp_c / avg_pressure_bar docs).
-    let t_avgt   = if is_ru { "Сред. темп. (°C)"       } else { "Avg temp (°C)" };
-    let t_avgp   = if is_ru { "Сред. давл. (бар)"      } else { "Avg pressure (bar)" };
+    let t_avgt = if is_ru {
+        "Сред. темп. (°C)"
+    } else {
+        "Avg temp (°C)"
+    };
+    let t_avgp = if is_ru {
+        "Сред. давл. (бар)"
+    } else {
+        "Avg pressure (bar)"
+    };
 
     let visc_unit = get_viscosity_unit(&input.unit_system);
 
@@ -52,8 +77,10 @@ pub(super) fn build_summary_table_page(
             escape_typst(&s.display_name),
             s.data_points,
             s.duration_min,
-            max_v, visc_unit,
-            fin_v, visc_unit,
+            max_v,
+            visc_unit,
+            fin_v,
+            visc_unit,
             avg_t_cell,
             avg_p_cell,
         ));
@@ -66,7 +93,8 @@ pub(super) fn build_summary_table_page(
     // some breathing room so the two new ambient averages fit without
     // pushing the table off the page; the units already live in the
     // header cell so the data cells stay narrow.
-    format!(r##"
+    format!(
+        r##"
 #pagebreak()
 #page(paper: "a4", flipped: false, margin: (top: 3.5cm, bottom: 2cm, left: 2cm, right: 2cm))[
 
@@ -97,10 +125,18 @@ pub(super) fn build_summary_table_page(
 ]
 "##,
         title = escape_typst(title),
-        summary_hdr = if is_ru { "Сводная таблица" } else { "Summary" },
-        t_exp = t_exp, t_pts = t_pts,
-        t_dur = t_dur, t_maxv = t_maxv, t_finv = t_finv,
-        t_avgt = t_avgt, t_avgp = t_avgp,
+        summary_hdr = if is_ru {
+            "Сводная таблица"
+        } else {
+            "Summary"
+        },
+        t_exp = t_exp,
+        t_pts = t_pts,
+        t_dur = t_dur,
+        t_maxv = t_maxv,
+        t_finv = t_finv,
+        t_avgt = t_avgt,
+        t_avgp = t_avgp,
         rows = rows_typst,
         touch_points = touch_points_block,
     )

@@ -24,8 +24,8 @@
 use rust_xlsxwriter::{Workbook, XlsxError};
 
 use super::super::excel::{write_single_experiment_to_sheet, Styles};
-use super::types::ComparisonReportInput;
 use super::allocate_sheet_name;
+use super::types::ComparisonReportInput;
 
 mod helpers;
 mod layout;
@@ -41,9 +41,7 @@ use overlap_sheet::write_overlap_chart_sheet;
 ///
 /// Returns the complete workbook as a byte buffer ready to be streamed
 /// back to the UI or written to disk.
-pub fn generate_comparison_excel(
-    input: &ComparisonReportInput,
-) -> Result<Vec<u8>, String> {
+pub fn generate_comparison_excel(input: &ComparisonReportInput) -> Result<Vec<u8>, String> {
     if input.experiments.is_empty() {
         return Err("comparison report requires at least one experiment".to_string());
     }
@@ -52,9 +50,7 @@ pub fn generate_comparison_excel(
         .map_err(|e| format!("Excel comparison generation error: {}", e))
 }
 
-fn generate_comparison_excel_internal(
-    input: &ComparisonReportInput,
-) -> Result<Vec<u8>, XlsxError> {
+fn generate_comparison_excel_internal(input: &ComparisonReportInput) -> Result<Vec<u8>, XlsxError> {
     let mut workbook = Workbook::new();
     let styles = Styles::new();
     let is_ru = input.language.trim().to_lowercase().starts_with("ru");
@@ -63,7 +59,9 @@ fn generate_comparison_excel_internal(
     let mut used_names: Vec<String> = Vec::new();
 
     // ── Pre-allocate per-experiment sheet names ─────────────────────────
-    let exp_sheet_names: Vec<String> = input.experiments.iter()
+    let exp_sheet_names: Vec<String> = input
+        .experiments
+        .iter()
         .map(|entry| allocate_sheet_name(&entry.display_name, &mut used_names))
         .collect();
 
@@ -75,7 +73,11 @@ fn generate_comparison_excel_internal(
 
     // ── Sheet 1 (visible): Overlap Chart ────────────────────────────────
     let overlap_name = allocate_sheet_name(
-        if is_ru { "Общий график" } else { "Overlap Chart" },
+        if is_ru {
+            "Общий график"
+        } else {
+            "Overlap Chart"
+        },
         &mut used_names,
     );
     {
@@ -87,8 +89,8 @@ fn generate_comparison_excel_internal(
     // ── Per-experiment report sheets ────────────────────────────────────
     for (i, entry) in input.experiments.iter().enumerate() {
         let mut per_exp = entry.report_input.clone();
-        per_exp.settings.show_calibration   = entry.section_toggles.show_calibration;
-        per_exp.settings.show_raw_data      = entry.section_toggles.show_raw_data;
+        per_exp.settings.show_calibration = entry.section_toggles.show_calibration;
+        per_exp.settings.show_raw_data = entry.section_toggles.show_raw_data;
         if !entry.section_toggles.show_rheology {
             per_exp.cycle_results.clear();
             per_exp.cycles.clear();

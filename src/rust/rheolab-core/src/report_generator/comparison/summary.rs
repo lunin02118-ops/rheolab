@@ -65,13 +65,20 @@ where
             }
         }
     }
-    if count == 0 { None } else { Some(sum / count as f64) }
+    if count == 0 {
+        None
+    } else {
+        Some(sum / count as f64)
+    }
 }
 
 impl ExperimentSummary {
     /// Build a single summary row from a display name and a [`ReportInput`].
     pub fn from_report_input(display_name: &str, input: &ReportInput) -> Self {
-        let test_id = input.metadata.test_id.as_deref()
+        let test_id = input
+            .metadata
+            .test_id
+            .as_deref()
             .or(Some(input.metadata.filename.as_str()))
             .filter(|s| !s.is_empty())
             .unwrap_or("—")
@@ -83,16 +90,20 @@ impl ExperimentSummary {
             (0.0, 0.0, 0.0)
         } else {
             let first_time = input.raw_data.first().map(|p| p.time_sec).unwrap_or(0.0);
-            let last_time  = input.raw_data.last() .map(|p| p.time_sec).unwrap_or(0.0);
+            let last_time = input.raw_data.last().map(|p| p.time_sec).unwrap_or(0.0);
             let duration = ((last_time - first_time) / 60.0).max(0.0);
 
-            let max_v = input.raw_data.iter()
+            let max_v = input
+                .raw_data
+                .iter()
                 .map(|p| p.viscosity_cp)
                 .filter(|v| v.is_finite())
                 .fold(f64::NEG_INFINITY, f64::max);
             let max_v = if max_v.is_finite() { max_v } else { 0.0 };
 
-            let final_v = input.raw_data.last()
+            let final_v = input
+                .raw_data
+                .last()
                 .map(|p| p.viscosity_cp)
                 .filter(|v| v.is_finite())
                 .unwrap_or(0.0);
@@ -103,12 +114,9 @@ impl ExperimentSummary {
         // Mean over every finite temperature / pressure sample. Both columns
         // are `Option<f64>` on `DataPoint`, so we can't lean on the
         // viscosity-side `is_finite()` filter alone.
-        let avg_temp_c = average_finite_optional(
-            input.raw_data.iter().map(|p| p.temperature_c),
-        );
-        let avg_pressure_bar = average_finite_optional(
-            input.raw_data.iter().map(|p| p.pressure_bar),
-        );
+        let avg_temp_c = average_finite_optional(input.raw_data.iter().map(|p| p.temperature_c));
+        let avg_pressure_bar =
+            average_finite_optional(input.raw_data.iter().map(|p| p.pressure_bar));
 
         Self {
             display_name: display_name.to_string(),
@@ -125,15 +133,16 @@ impl ExperimentSummary {
 
 /// Build one summary row per entry in `experiments`, preserving order.
 pub fn build_summaries(entries: &[ComparisonExperimentEntry]) -> Vec<ExperimentSummary> {
-    entries.iter()
+    entries
+        .iter()
         .map(|e| ExperimentSummary::from_report_input(&e.display_name, &e.report_input))
         .collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::super::types::{DataPoint, ReportMetadata, ReportSettings};
+    use super::*;
 
     fn mk_input(points: Vec<DataPoint>, test_id: Option<&str>, filename: &str) -> ReportInput {
         ReportInput {
@@ -166,7 +175,12 @@ mod tests {
         }
     }
 
-    fn mk_full_point(t_sec: f64, visc_cp: f64, temp_c: Option<f64>, press_bar: Option<f64>) -> DataPoint {
+    fn mk_full_point(
+        t_sec: f64,
+        visc_cp: f64,
+        temp_c: Option<f64>,
+        press_bar: Option<f64>,
+    ) -> DataPoint {
         DataPoint {
             time_sec: t_sec,
             viscosity_cp: visc_cp,
@@ -183,7 +197,11 @@ mod tests {
     fn summary_computes_basic_metrics() {
         // 3 points over 5 minutes, viscosity 100, 300, 150 → max=300, final=150, duration=5.0
         let input = mk_input(
-            vec![mk_point(0.0, 100.0), mk_point(150.0, 300.0), mk_point(300.0, 150.0)],
+            vec![
+                mk_point(0.0, 100.0),
+                mk_point(150.0, 300.0),
+                mk_point(300.0, 150.0),
+            ],
             Some("T-42"),
             "test.dat",
         );
@@ -224,8 +242,8 @@ mod tests {
         // pressure = (350 + 360 + 370) / 3 = 360.
         let input = mk_input(
             vec![
-                mk_full_point(0.0,   100.0, Some(90.0), Some(350.0)),
-                mk_full_point(60.0,  150.0, Some(92.0), Some(360.0)),
+                mk_full_point(0.0, 100.0, Some(90.0), Some(350.0)),
+                mk_full_point(60.0, 150.0, Some(92.0), Some(360.0)),
                 mk_full_point(120.0, 200.0, Some(94.0), Some(370.0)),
             ],
             Some("T-A"),
@@ -245,10 +263,10 @@ mod tests {
         // pressure: 200, None, 220, None → mean over {200, 220} = 210
         let input = mk_input(
             vec![
-                mk_full_point(0.0,    50.0, None,            Some(200.0)),
-                mk_full_point(60.0,   60.0, Some(80.0),      None),
-                mk_full_point(120.0,  70.0, Some(f64::NAN),  Some(220.0)),
-                mk_full_point(180.0,  80.0, Some(100.0),     None),
+                mk_full_point(0.0, 50.0, None, Some(200.0)),
+                mk_full_point(60.0, 60.0, Some(80.0), None),
+                mk_full_point(120.0, 70.0, Some(f64::NAN), Some(220.0)),
+                mk_full_point(180.0, 80.0, Some(100.0), None),
             ],
             Some("T-B"),
             "mixed.dat",
@@ -267,8 +285,8 @@ mod tests {
         // a measured ambient temperature).
         let input = mk_input(
             vec![
-                mk_full_point(0.0,  100.0, Some(f64::NAN),       None),
-                mk_full_point(60.0, 200.0, Some(f64::INFINITY),  None),
+                mk_full_point(0.0, 100.0, Some(f64::NAN), None),
+                mk_full_point(60.0, 200.0, Some(f64::INFINITY), None),
             ],
             Some("T-C"),
             "all-nan.dat",
@@ -284,12 +302,14 @@ mod tests {
         let b = mk_input(vec![mk_point(0.0, 200.0)], Some("B"), "b.dat");
         let entries = vec![
             ComparisonExperimentEntry {
-                id: "1".into(), display_name: "A".into(),
+                id: "1".into(),
+                display_name: "A".into(),
                 report_input: a,
                 section_toggles: Default::default(),
             },
             ComparisonExperimentEntry {
-                id: "2".into(), display_name: "B".into(),
+                id: "2".into(),
+                display_name: "B".into(),
                 report_input: b,
                 section_toggles: Default::default(),
             },

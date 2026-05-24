@@ -15,8 +15,7 @@
 use super::super::super::formatters::{convert_viscosity, get_viscosity_unit};
 use super::super::super::pdf::template::helpers::escape_typst;
 use super::super::super::touch_point::{
-    TouchPointInput, TouchPointType, SmartTouchPointOptions,
-    calculate_smart_touch_points,
+    calculate_smart_touch_points, SmartTouchPointOptions, TouchPointInput, TouchPointType,
 };
 use super::super::types::ComparisonReportInput;
 
@@ -53,10 +52,13 @@ pub(super) fn build_comparison_touch_points_block(
 
     for entry in &input.experiments {
         let raw = &entry.report_input.raw_data;
-        if raw.len() < 3 { continue; }
+        if raw.len() < 3 {
+            continue;
+        }
 
         let first_time_sec = raw.first().map(|p| p.time_sec).unwrap_or(0.0);
-        let inputs: Vec<TouchPointInput> = raw.iter()
+        let inputs: Vec<TouchPointInput> = raw
+            .iter()
             .filter(|p| p.time_sec.is_finite() && p.viscosity_cp.is_finite())
             .map(|p| TouchPointInput {
                 time_min: (p.time_sec - first_time_sec) / 60.0,
@@ -93,16 +95,29 @@ pub(super) fn build_comparison_touch_points_block(
     let threshold_display = convert_viscosity(cfg.touch_point.viscosity_threshold, unit_system);
 
     // Localised strings shared by both tables.
-    let h_name = if is_ru { "Название теста" } else { "Test Name" };
-    let h_time = if is_ru { "Время (мин)" } else { "Time (min)" };
-    let h_visc = if is_ru { format!("Вязкость ({})", visc_unit) }
-                 else     { format!("Viscosity ({})", visc_unit) };
+    let h_name = if is_ru {
+        "Название теста"
+    } else {
+        "Test Name"
+    };
+    let h_time = if is_ru {
+        "Время (мин)"
+    } else {
+        "Time (min)"
+    };
+    let h_visc = if is_ru {
+        format!("Вязкость ({})", visc_unit)
+    } else {
+        format!("Viscosity ({})", visc_unit)
+    };
 
     // Helper: render ONE three-column table for a filtered row slice.  The
     // caller decides the section title so the same helper serves both
     // "threshold crossings" and "viscosity at set time".
     let render_table = |title: &str, rows: &[&TpRow]| -> String {
-        if rows.is_empty() { return String::new(); }
+        if rows.is_empty() {
+            return String::new();
+        }
         let mut body = String::new();
         for tp in rows {
             body.push_str(&format!(
@@ -112,7 +127,8 @@ pub(super) fn build_comparison_touch_points_block(
                 tp.viscosity_display,
             ));
         }
-        format!(r##"
+        format!(
+            r##"
 #v(10pt)
 #section_header("{title}")
 #v(5pt)
@@ -138,27 +154,41 @@ pub(super) fn build_comparison_touch_points_block(
     };
 
     // Split the rows while preserving the original per-experiment order.
-    let threshold_rows: Vec<&TpRow> = tp_rows.iter()
+    let threshold_rows: Vec<&TpRow> = tp_rows
+        .iter()
         .filter(|r| matches!(r.tp_type, TouchPointType::Threshold))
         .collect();
-    let target_rows: Vec<&TpRow> = tp_rows.iter()
+    let target_rows: Vec<&TpRow> = tp_rows
+        .iter()
         .filter(|r| matches!(r.tp_type, TouchPointType::Target))
         .collect();
 
     let threshold_title = if is_ru {
-        format!("Точки касания (порог {:.0} {})", threshold_display, visc_unit)
+        format!(
+            "Точки касания (порог {:.0} {})",
+            threshold_display, visc_unit
+        )
     } else {
-        format!("Threshold Crossings (threshold {:.0} {})", threshold_display, visc_unit)
+        format!(
+            "Threshold Crossings (threshold {:.0} {})",
+            threshold_display, visc_unit
+        )
     };
     let target_title = if is_ru {
-        format!("Вязкость в заданное время ({:.0} мин)", cfg.touch_point.target_time)
+        format!(
+            "Вязкость в заданное время ({:.0} мин)",
+            cfg.touch_point.target_time
+        )
     } else {
-        format!("Viscosity at Set Time ({:.0} min)", cfg.touch_point.target_time)
+        format!(
+            "Viscosity at Set Time ({:.0} min)",
+            cfg.touch_point.target_time
+        )
     };
 
     let mut out = String::new();
     out.push_str(&render_table(&threshold_title, &threshold_rows));
-    out.push_str(&render_table(&target_title,    &target_rows));
+    out.push_str(&render_table(&target_title, &target_rows));
     out
 }
 

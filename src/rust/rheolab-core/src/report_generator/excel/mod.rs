@@ -14,15 +14,15 @@
 //! - [`stats`]        — touch-points table + rheological statistics
 //! - [`touch_points`] — Excel-specific touch-point calculation wrapper
 
-mod styles;
-mod raw_data;
 mod chart;
 mod metadata;
+mod raw_data;
 mod stats;
+mod styles;
 mod touch_points;
 
-use rust_xlsxwriter::{Workbook, Worksheet, XlsxError};
 use super::types::ReportInput;
+use rust_xlsxwriter::{Workbook, Worksheet, XlsxError};
 
 pub(crate) use styles::Styles;
 // Shared 33 %-shrink helper for Excel chart line widths; the comparison
@@ -36,15 +36,14 @@ use raw_data::RawDataSummary;
 
 /// Generate Excel report from JSON input.
 pub fn generate_excel_report(input_json: &str) -> Result<Vec<u8>, String> {
-    let input: ReportInput = serde_json::from_str(input_json)
-        .map_err(|e| format!("JSON parse error: {}", e))?;
+    let input: ReportInput =
+        serde_json::from_str(input_json).map_err(|e| format!("JSON parse error: {}", e))?;
     generate_excel_from_input(&input)
 }
 
 /// Generate an Excel report from a pre-parsed [`ReportInput`].
 pub fn generate_excel_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
-    generate_excel_internal(input)
-        .map_err(|e| format!("Excel generation error: {}", e))
+    generate_excel_internal(input).map_err(|e| format!("Excel generation error: {}", e))
 }
 
 fn generate_excel_internal(input: &ReportInput) -> Result<Vec<u8>, XlsxError> {
@@ -129,8 +128,11 @@ pub(crate) fn write_single_experiment_to_sheet(
     }
 
     // ── Data → chart pipeline ──────────────────────────────────────────
-    let RawDataSummary { max_time_display, has_bath, time_format } =
-        raw_data::write_raw_data(sheet, input, styles, is_ru)?;
+    let RawDataSummary {
+        max_time_display,
+        has_bath,
+        time_format,
+    } = raw_data::write_raw_data(sheet, input, styles, is_ru)?;
 
     let touch_points = if input.settings.show_touch_points {
         touch_points::calculate_touch_points(&input.raw_data, &input.settings, is_ru)
@@ -141,17 +143,33 @@ pub(crate) fn write_single_experiment_to_sheet(
     let data_len = input.raw_data.len() as u32;
     let last_row = std::cmp::max(2, data_len);
 
-    chart::build_chart(sheet, sheet_name, input, is_ru, has_bath, max_time_display, &time_format, last_row)?;
+    chart::build_chart(
+        sheet,
+        sheet_name,
+        input,
+        is_ru,
+        has_bath,
+        max_time_display,
+        &time_format,
+        last_row,
+    )?;
 
     // ── Report content (after the chart) ───────────────────────────────
     let mut current_row = 16u32;
-    metadata::write_summary      (sheet, input, styles, is_ru, &mut current_row)?;
-    metadata::write_calibration  (sheet, input, styles, is_ru, &mut current_row)?;
-    metadata::write_recipe       (sheet, input, styles, is_ru, &mut current_row)?;
+    metadata::write_summary(sheet, input, styles, is_ru, &mut current_row)?;
+    metadata::write_calibration(sheet, input, styles, is_ru, &mut current_row)?;
+    metadata::write_recipe(sheet, input, styles, is_ru, &mut current_row)?;
     metadata::write_water_analysis(sheet, input, styles, is_ru, &mut current_row)?;
 
     if input.settings.show_touch_points && !touch_points.is_empty() {
-        stats::write_touch_points_table(sheet, &touch_points, styles, is_ru, &input.settings.unit_system, &mut current_row)?;
+        stats::write_touch_points_table(
+            sheet,
+            &touch_points,
+            styles,
+            is_ru,
+            &input.settings.unit_system,
+            &mut current_row,
+        )?;
     }
 
     // --- Program (Schedule) Section ---
@@ -163,14 +181,32 @@ pub(crate) fn write_single_experiment_to_sheet(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::types::{DataPoint, ReportMetadata, ReportSettings};
+    use super::*;
 
     fn make_minimal_input() -> ReportInput {
         ReportInput {
             raw_data: vec![
-                DataPoint { time_sec:  0.0, viscosity_cp: 100.0, temperature_c: Some(25.0), shear_rate: Some(100.0), shear_stress_pa: None, speed_rpm: None, pressure_bar: None, bath_temperature_c: None },
-                DataPoint { time_sec: 60.0, viscosity_cp: 150.0, temperature_c: Some(50.0), shear_rate: Some( 75.0), shear_stress_pa: None, speed_rpm: None, pressure_bar: None, bath_temperature_c: None },
+                DataPoint {
+                    time_sec: 0.0,
+                    viscosity_cp: 100.0,
+                    temperature_c: Some(25.0),
+                    shear_rate: Some(100.0),
+                    shear_stress_pa: None,
+                    speed_rpm: None,
+                    pressure_bar: None,
+                    bath_temperature_c: None,
+                },
+                DataPoint {
+                    time_sec: 60.0,
+                    viscosity_cp: 150.0,
+                    temperature_c: Some(50.0),
+                    shear_rate: Some(75.0),
+                    shear_stress_pa: None,
+                    speed_rpm: None,
+                    pressure_bar: None,
+                    bath_temperature_c: None,
+                },
             ],
             metadata: ReportMetadata {
                 filename: "test.xlsx".to_string(),
@@ -196,6 +232,22 @@ mod tests {
         assert!(bytes.len() > 1000);
     }
 
+    #[test]
+    fn rheology_source_reaches_excel_output() {
+        let program = make_minimal_input();
+        let mut instrument = program.clone();
+        instrument.settings.rheology_source = "instrument".to_string();
+
+        let program_bytes = generate_excel_internal(&program).expect("program source xlsx");
+        let instrument_bytes =
+            generate_excel_internal(&instrument).expect("instrument source xlsx");
+
+        assert_ne!(
+            program_bytes, instrument_bytes,
+            "changing rheology_source must change the rendered XLSX"
+        );
+    }
+
     /// Golden test: the single-experiment path is a thin wrapper around
     /// [`write_single_experiment_to_sheet`].  Running it twice must produce
     /// deterministic output — byte-for-byte identical.
@@ -208,9 +260,11 @@ mod tests {
         let a = generate_excel_internal(&input).expect("first run");
         let b = generate_excel_internal(&input).expect("second run");
         assert_eq!(
-            a.len(), b.len(),
+            a.len(),
+            b.len(),
             "non-deterministic length: {} vs {}",
-            a.len(), b.len(),
+            a.len(),
+            b.len(),
         );
         // XLSX files are ZIPs; the ZIP central directory records CRCs of each
         // entry.  If content drifted between runs, CRCs wouldn't match and
@@ -242,24 +296,34 @@ mod tests {
             ..Default::default()
         });
 
-        let bytes_min  = generate_excel_internal(&base).expect("minutes run");
-        let bytes_sec  = generate_excel_internal(&with_seconds).expect("seconds run");
-        let bytes_hms  = generate_excel_internal(&with_hhmmss).expect("hh:mm:ss run");
+        let bytes_min = generate_excel_internal(&base).expect("minutes run");
+        let bytes_sec = generate_excel_internal(&with_seconds).expect("seconds run");
+        let bytes_hms = generate_excel_internal(&with_hhmmss).expect("hh:mm:ss run");
 
-        assert_ne!(bytes_min, bytes_sec,
-            "time_format='seconds' MUST produce different bytes than 'minutes'");
-        assert_ne!(bytes_min, bytes_hms,
-            "time_format='hh:mm:ss' MUST produce different bytes than 'minutes'");
-        assert_ne!(bytes_sec, bytes_hms,
-            "'seconds' and 'hh:mm:ss' are visually distinct → bytes must differ");
+        assert_ne!(
+            bytes_min, bytes_sec,
+            "time_format='seconds' MUST produce different bytes than 'minutes'"
+        );
+        assert_ne!(
+            bytes_min, bytes_hms,
+            "time_format='hh:mm:ss' MUST produce different bytes than 'minutes'"
+        );
+        assert_ne!(
+            bytes_sec, bytes_hms,
+            "'seconds' and 'hh:mm:ss' are visually distinct → bytes must differ"
+        );
 
         // Determinism per format (two consecutive runs = identical bytes).
         let bytes_sec2 = generate_excel_internal(&with_seconds).expect("seconds run 2");
-        assert_eq!(bytes_sec, bytes_sec2,
-            "seconds-formatted output is non-deterministic");
+        assert_eq!(
+            bytes_sec, bytes_sec2,
+            "seconds-formatted output is non-deterministic"
+        );
         let bytes_hms2 = generate_excel_internal(&with_hhmmss).expect("hh:mm:ss run 2");
-        assert_eq!(bytes_hms, bytes_hms2,
-            "hh:mm:ss-formatted output is non-deterministic");
+        assert_eq!(
+            bytes_hms, bytes_hms2,
+            "hh:mm:ss-formatted output is non-deterministic"
+        );
     }
 
     /// Golden test: driving the assembler helper directly on a fresh
@@ -281,6 +345,10 @@ mod tests {
 
         // Should be a valid xlsx: magic bytes for ZIP (PK\x03\x04) at offset 0.
         assert_eq!(&bytes[0..4], b"PK\x03\x04", "not a ZIP / XLSX file");
-        assert!(bytes.len() > 1000, "trivially empty workbook: {} bytes", bytes.len());
+        assert!(
+            bytes.len() > 1000,
+            "trivially empty workbook: {} bytes",
+            bytes.len()
+        );
     }
 }

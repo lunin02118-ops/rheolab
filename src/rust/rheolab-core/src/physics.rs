@@ -166,14 +166,20 @@ fn linear_regression(x: &[f64], y: &[f64]) -> (f64, f64, f64) {
     // Calculate R² (coefficient of determination)
     let y_mean = sum_y / n;
     let ss_tot: f64 = y.iter().map(|yi| (yi - y_mean).powi(2)).sum();
-    let ss_res: f64 = x.iter().zip(y.iter())
+    let ss_res: f64 = x
+        .iter()
+        .zip(y.iter())
         .map(|(xi, yi)| {
             let y_pred = slope * xi + intercept;
             (yi - y_pred).powi(2)
         })
         .sum();
 
-    let r2 = if ss_tot.abs() > 1e-15 { 1.0 - (ss_res / ss_tot) } else { 0.0 };
+    let r2 = if ss_tot.abs() > 1e-15 {
+        1.0 - (ss_res / ss_tot)
+    } else {
+        0.0
+    };
 
     (slope, intercept, r2)
 }
@@ -239,7 +245,7 @@ mod tests {
         let x = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let y = vec![2.0, 4.0, 6.0, 8.0, 10.0];
         let (slope, intercept, r2) = linear_regression(&x, &y);
-        
+
         assert!((slope - 2.0).abs() < 1e-10);
         assert!(intercept.abs() < 1e-10);
         assert!((r2 - 1.0).abs() < 1e-10);

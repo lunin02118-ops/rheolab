@@ -15,12 +15,11 @@
  * Covers unit-conversion regressions that the golden_tests.rs cycle-shape tests
  * cannot catch (pressure PSI→bar, dyne/cm²→Pa, minutes→seconds, etc.)
  */
-
 use std::fs;
 use std::path::PathBuf;
 
-use serde::Deserialize;
 use rheolab_core::parser::rheo_parser::parse_rheo_data;
+use serde::Deserialize;
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 
@@ -77,23 +76,48 @@ fn assert_field_near(row_idx: usize, field: &str, actual: f64, expected: f64) {
     );
 }
 
-fn validate_rows(label: &str, data: &[rheolab_core::types::RheoPoint], gold: &[GoldRow], offset: usize) {
+fn validate_rows(
+    label: &str,
+    data: &[rheolab_core::types::RheoPoint],
+    gold: &[GoldRow],
+    offset: usize,
+) {
     let count = gold.len().min(data.len().saturating_sub(offset));
     for i in 0..count {
         let p = &data[offset + i];
         let g = &gold[i];
         let ri = offset + i;
-        assert_field_near(ri, "time_sec",     p.time_sec,       g.time_sec);
-        assert_field_near(ri, "viscosity_cp", p.viscosity_cp,   g.viscosity_cp);
-        assert_field_near(ri, "temperature_c",p.temperature_c,  g.sample_temp_c);
+        assert_field_near(ri, "time_sec", p.time_sec, g.time_sec);
+        assert_field_near(ri, "viscosity_cp", p.viscosity_cp, g.viscosity_cp);
+        assert_field_near(ri, "temperature_c", p.temperature_c, g.sample_temp_c);
         if let Some(expected_bath) = g.bath_temperature_c {
-            assert_field_near(ri, "bath_temperature_c", p.bath_temperature_c.unwrap_or(0.0), expected_bath);
+            assert_field_near(
+                ri,
+                "bath_temperature_c",
+                p.bath_temperature_c.unwrap_or(0.0),
+                expected_bath,
+            );
         }
-        assert_field_near(ri, "shear_rate_s1",p.shear_rate.unwrap_or(0.0), g.shear_rate_1s);
+        assert_field_near(
+            ri,
+            "shear_rate_s1",
+            p.shear_rate.unwrap_or(0.0),
+            g.shear_rate_1s,
+        );
         if let Some(expected_ss) = g.shear_stress_pa {
-            assert_field_near(ri, "shear_stress_pa", p.shear_stress.unwrap_or(0.0), expected_ss);
+            assert_field_near(
+                ri,
+                "shear_stress_pa",
+                p.shear_stress.unwrap_or(0.0),
+                expected_ss,
+            );
         }
-        assert_field_near(ri, "pressure_bar", p.pressure_bar.unwrap_or(0.0), g.pressure_bar);
+        assert_field_near(
+            ri,
+            "pressure_bar",
+            p.pressure_bar.unwrap_or(0.0),
+            g.pressure_bar,
+        );
     }
     if count > 0 {
         println!("  [{label}] {count} rows validated OK");
@@ -117,7 +141,11 @@ fn run_gold_standard_for(filename: &str, entry: &GoldEntry) {
     let result = parse_rheo_data(&data, filename)
         .unwrap_or_else(|e| panic!("parse_rheo_data failed for {filename}: {e}"));
 
-    println!("\n[GOLD] {filename}: parsed {} points (expected ~{})", result.data.len(), entry.total_rows);
+    println!(
+        "\n[GOLD] {filename}: parsed {} points (expected ~{})",
+        result.data.len(),
+        entry.total_rows
+    );
 
     // ── Row count ──────────────────────────────────────────────────────────────
     let tolerance = (entry.total_rows as f64 * 0.05).max(5.0) as usize;
@@ -125,7 +153,8 @@ fn run_gold_standard_for(filename: &str, entry: &GoldEntry) {
     assert!(
         diff <= tolerance,
         "{filename}: row count expected ~{}, got {} (diff {diff}, tol ±{tolerance})",
-        entry.total_rows, result.data.len()
+        entry.total_rows,
+        result.data.len()
     );
 
     // ── First rows ─────────────────────────────────────────────────────────────
@@ -152,7 +181,11 @@ fn load_gold_entry(filename: &str) -> Option<GoldEntry> {
     let entry_val = value.get(filename)?;
 
     // Skip AI-required files
-    if entry_val.get("requiresAI").and_then(|v| v.as_bool()).unwrap_or(false) {
+    if entry_val
+        .get("requiresAI")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+    {
         println!("[SKIP] {filename} requires AI parsing");
         return None;
     }
@@ -187,6 +220,40 @@ fn test_gold_chandler() {
 }
 
 #[test]
+fn test_chandler_instrument_rheology_stops_before_raw_data() {
+    let filename = "Отчёт Chandler.xls";
+    let path = ts_fixtures_dir().join(filename);
+    let data = fs::read(&path).unwrap_or_else(|e| panic!("Failed to read {filename}: {e}"));
+    let result = parse_rheo_data(&data, filename)
+        .unwrap_or_else(|e| panic!("parse_rheo_data failed for {filename}: {e}"));
+    let rows = result.instrument_rheology;
+
+    assert_eq!(
+        rows.len(),
+        3,
+        "Chandler instrument rheology must contain only model summary rows, got cycles {:?}",
+        rows.iter().map(|row| row.cycle_no).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        rows.iter().map(|row| row.cycle_no).collect::<Vec<_>>(),
+        vec![1, 2, 3]
+    );
+    assert!(
+        rows.iter()
+            .all(|row| row.source_row.is_some_and(|source_row| source_row < 100)),
+        "Raw data rows must not be parsed as instrument rheology: {:?}",
+        rows.iter()
+            .map(|row| (row.cycle_no, row.source_sheet.clone(), row.source_row))
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        rows.iter()
+            .all(|row| row.n_prime.is_some_and(|value| value > 0.0 && value < 1.0)),
+        "Chandler model rows must contain sane n' values"
+    );
+}
+
+#[test]
 fn test_gold_bsl() {
     let filename = "Отчёт BSL.xlsx";
     if let Some(entry) = load_gold_entry(filename) {
@@ -196,7 +263,8 @@ fn test_gold_bsl() {
 
 #[test]
 fn test_gold_sst_mamontovskoe_csv() {
-    let filename = "8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv";
+    let filename =
+        "8957 SST Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@63C 30.10.25.csv";
     if let Some(entry) = load_gold_entry(filename) {
         run_gold_standard_for(filename, &entry);
     }

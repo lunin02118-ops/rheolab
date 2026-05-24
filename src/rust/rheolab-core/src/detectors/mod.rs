@@ -73,19 +73,19 @@ pub(crate) const SHEAR_RATE_HIGH: f64 = 400.0;
 // SUB-MODULES
 // ============================================================================
 
-mod mixing;
-mod classify;
 mod anchor;
-mod sst;
+mod classify;
+mod mixing;
 mod repeating;
+mod sst;
 
 // ============================================================================
 // PUBLIC API
 // ============================================================================
 
 pub use anchor::detect_anchor_cycles_internal;
-pub use sst::{is_sst_pattern, detect_sst_cycles_internal};
-pub use repeating::{is_repeating_sequence_pattern, detect_repeating_sequence_cycles_internal};
+pub use repeating::{detect_repeating_sequence_cycles_internal, is_repeating_sequence_pattern};
+pub use sst::{detect_sst_cycles_internal, is_sst_pattern};
 
 // ============================================================================
 // TESTS

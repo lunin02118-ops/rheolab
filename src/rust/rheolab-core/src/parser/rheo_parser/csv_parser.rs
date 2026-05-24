@@ -1,12 +1,14 @@
 //! CSV/TSV/DAT parsing for the rheolab parser.
-use crate::types::RheoPoint as RheoDataPoint;
-use super::super::types::{ColumnMapping, ParsingResult, ParsingMetadata};
-use super::super::header_detector::{detect_header, detect_header_bsl_fast, find_raw_data_sections};
-use super::super::row_mapper::map_row;
 use super::super::date_detector::detect_date;
-use super::super::instrument_detector::detect_instrument;
 use super::super::geometry_verifier::{detect_geometry, physics_geometry};
-use super::{merge_mappings, build_row_mapper_config, parse_delimited_rows};
+use super::super::header_detector::{
+    detect_header, detect_header_bsl_fast, find_raw_data_sections,
+};
+use super::super::instrument_detector::detect_instrument;
+use super::super::row_mapper::map_row;
+use super::super::types::{ColumnMapping, ParsingMetadata, ParsingResult};
+use super::{build_row_mapper_config, merge_mappings, parse_delimited_rows};
+use crate::types::RheoPoint as RheoDataPoint;
 
 /// Parse CSV/TSV/DAT file, splitting by auto-detected delimiter.
 ///
@@ -96,7 +98,10 @@ fn parse_csv_rows_with_override(
                 let mut found = 0usize;
                 for (row_idx, row) in section_rows.iter().enumerate() {
                     if let Some(cell) = row.get(tcol) {
-                        let normalized = cell.trim().replace(',', ".").replace(char::is_whitespace, "");
+                        let normalized = cell
+                            .trim()
+                            .replace(',', ".")
+                            .replace(char::is_whitespace, "");
                         if !normalized.is_empty() && normalized.parse::<f64>().is_ok() {
                             found = row_idx.saturating_sub(1);
                             break;
@@ -152,7 +157,9 @@ fn parse_csv_rows_with_override(
     if !combined_data.is_empty() {
         unique_data.push(combined_data[0].clone());
         for point in combined_data.iter().skip(1) {
-            let last = unique_data.last().expect("non-empty: element pushed before loop");
+            let last = unique_data
+                .last()
+                .expect("non-empty: element pushed before loop");
             if (point.time_sec - last.time_sec).abs() > 1e-6 {
                 unique_data.push(point.clone());
             }
@@ -163,10 +170,6 @@ fn parse_csv_rows_with_override(
     if let Some(phys) = physics_geometry(&combined_data) {
         match &geometry {
             None => {
-                geometry = Some(phys.geometry);
-                geometry_source = Some("physics".to_string());
-            }
-            Some(ctx_geo) if *ctx_geo != phys.geometry => {
                 geometry = Some(phys.geometry);
                 geometry_source = Some("physics".to_string());
             }
@@ -274,7 +277,9 @@ fn parse_csv_rows(rows: &[Vec<String>], filename: &str) -> Result<ParsingResult,
     if !combined_data.is_empty() {
         unique_data.push(combined_data[0].clone());
         for p in combined_data.iter().skip(1) {
-            let last = unique_data.last().expect("non-empty: element pushed before loop");
+            let last = unique_data
+                .last()
+                .expect("non-empty: element pushed before loop");
             if (p.time_sec - last.time_sec).abs() > 1e-6 {
                 unique_data.push(p.clone());
             }
@@ -285,10 +290,6 @@ fn parse_csv_rows(rows: &[Vec<String>], filename: &str) -> Result<ParsingResult,
     if let Some(phys) = physics_geometry(&combined_data) {
         match &geometry {
             None => {
-                geometry = Some(phys.geometry);
-                geometry_source = Some("physics".to_string());
-            }
-            Some(ctx_geo) if *ctx_geo != phys.geometry => {
                 geometry = Some(phys.geometry);
                 geometry_source = Some("physics".to_string());
             }

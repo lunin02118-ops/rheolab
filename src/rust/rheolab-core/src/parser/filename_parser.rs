@@ -64,25 +64,57 @@ pub struct CatalogItem {
 // caught by `parser::tests::regex_patterns_compile` on every test run.
 
 // Recipe regex: CONCENTRATION(REAGENT_NAME)
-static RECIPE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(\d+(?:\.\d+)?)\(([A-Za-z0-9\-]+)\)").expect("RECIPE_REGEX pattern is static and valid"));
+static RECIPE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(\d+(?:\.\d+)?)\(([A-Za-z0-9\-]+)\)")
+        .expect("RECIPE_REGEX pattern is static and valid")
+});
 // Date regex: DD.MM.YY or DD.MM.YYYY at end
-static DATE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(\d{2})\.(\d{2})(?:\.(\d{2,4}))?$").expect("DATE_REGEX pattern is static and valid"));
+static DATE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(\d{2})\.(\d{2})(?:\.(\d{2,4}))?$")
+        .expect("DATE_REGEX pattern is static and valid")
+});
 // Temperature regex: @XXC
-static TEMP_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"@(\d+)[Cc]").expect("TEMP_REGEX pattern is static and valid"));
+static TEMP_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"@(\d+)[Cc]").expect("TEMP_REGEX pattern is static and valid")
+});
 // Field and destination regex: FieldName_(destination)
-static FIELD_DEST_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"([A-Za-zА-Яа-яёЁ]+)_\(([^)]+)\)").expect("FIELD_DEST_REGEX pattern is static and valid"));
+static FIELD_DEST_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"([A-Za-zА-Яа-яёЁ]+)_\(([^)]+)\)")
+        .expect("FIELD_DEST_REGEX pattern is static and valid")
+});
 // Test ID: digits at start
-static TEST_ID_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"^\d+$").expect("TEST_ID_REGEX pattern is static and valid"));
+static TEST_ID_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"^\d+$").expect("TEST_ID_REGEX pattern is static and valid")
+});
 // Test type: 2-4 uppercase letters
-static TEST_TYPE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"^[A-Z]{2,4}$").expect("TEST_TYPE_REGEX pattern is static and valid"));
+static TEST_TYPE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"^[A-Z]{2,4}$").expect("TEST_TYPE_REGEX pattern is static and valid")
+});
 // Category patterns
-static GELLING_AGENT_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(WG-\d+|HPG-\d+|HEC-\d+|CMC|ГУАР|Guar)").expect("GELLING_AGENT_PATTERN pattern is static and valid"));
-static CROSSLINKER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(WCL|XL-\d+|CL-\d+|Borate|Zirconate|Titanate|СШ-\d+)").expect("CROSSLINKER_PATTERN pattern is static and valid"));
-static BREAKER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(HT-\d+|EB-\d+|OX-\d+|Breaker|Деструктор)").expect("BREAKER_PATTERN pattern is static and valid"));
-static BUFFER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(Buffer|pH-\d+|Буфер)").expect("BUFFER_PATTERN pattern is static and valid"));
-static FRICTION_REDUCER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^FR-\d+").expect("FRICTION_REDUCER_PATTERN pattern is static and valid"));
-static CLAY_CONTROL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^KCl$").expect("CLAY_CONTROL_PATTERN pattern is static and valid"));
-static STABILIZER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(r"(?i)^(THPS|TS-\d+)").expect("STABILIZER_PATTERN pattern is static and valid"));
+static GELLING_AGENT_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?i)^(WG-\d+|HPG-\d+|HEC-\d+|CMC|ГУАР|Guar)")
+        .expect("GELLING_AGENT_PATTERN pattern is static and valid")
+});
+static CROSSLINKER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?i)^(WCL|XL-\d+|CL-\d+|Borate|Zirconate|Titanate|СШ-\d+)")
+        .expect("CROSSLINKER_PATTERN pattern is static and valid")
+});
+static BREAKER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?i)^(HT-\d+|EB-\d+|OX-\d+|Breaker|Деструктор)")
+        .expect("BREAKER_PATTERN pattern is static and valid")
+});
+static BUFFER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?i)^(Buffer|pH-\d+|Буфер)").expect("BUFFER_PATTERN pattern is static and valid")
+});
+static FRICTION_REDUCER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?i)^FR-\d+").expect("FRICTION_REDUCER_PATTERN pattern is static and valid")
+});
+static CLAY_CONTROL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?i)^KCl$").expect("CLAY_CONTROL_PATTERN pattern is static and valid")
+});
+static STABILIZER_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?i)^(THPS|TS-\d+)").expect("STABILIZER_PATTERN pattern is static and valid")
+});
 
 /// Get full test type name
 fn get_test_type_full(test_type: &str) -> &'static str {
@@ -155,13 +187,16 @@ pub fn parse_filename(filename: &str) -> FilenameMetadata {
     // We still use `.and_then(parse)` + `.unwrap_or(default)` to keep the
     // function panic-free even if that invariant ever changes.
     if let Some(caps) = DATE_REGEX.captures(base_name) {
-        let day: u32 = caps.get(1)
+        let day: u32 = caps
+            .get(1)
             .and_then(|m| m.as_str().parse().ok())
             .unwrap_or(1);
-        let month: u32 = caps.get(2)
+        let month: u32 = caps
+            .get(2)
             .and_then(|m| m.as_str().parse().ok())
             .unwrap_or(1);
-        let year: i32 = caps.get(3)
+        let year: i32 = caps
+            .get(3)
             .and_then(|m| m.as_str().parse::<i32>().ok())
             .map(|y| if y < 100 { y + 2000 } else { y })
             .unwrap_or(2026); // default if no year provided
@@ -179,8 +214,12 @@ pub fn parse_filename(filename: &str) -> FilenameMetadata {
     // missing we treat the match as malformed and skip it instead of
     // panicking.
     for caps in RECIPE_REGEX.captures_iter(base_name) {
-        let Some(concentration_match) = caps.get(1) else { continue };
-        let Some(abbreviation_match) = caps.get(2) else { continue };
+        let Some(concentration_match) = caps.get(1) else {
+            continue;
+        };
+        let Some(abbreviation_match) = caps.get(2) else {
+            continue;
+        };
         let concentration: f64 = concentration_match.as_str().parse().unwrap_or(0.0);
         let abbreviation = abbreviation_match.as_str().to_string();
         let category = detect_category(&abbreviation);
@@ -218,7 +257,10 @@ pub fn parse_filename(filename: &str) -> FilenameMetadata {
 pub fn match_with_catalog(recipe: &mut [RecipeComponent], catalog: &[CatalogItem]) {
     for component in recipe.iter_mut() {
         // Try exact name match
-        if let Some(item) = catalog.iter().find(|c| c.name.eq_ignore_ascii_case(&component.abbreviation)) {
+        if let Some(item) = catalog
+            .iter()
+            .find(|c| c.name.eq_ignore_ascii_case(&component.abbreviation))
+        {
             component.reagent_id = Some(item.id.clone());
             component.reagent_name = Some(item.name.clone());
             component.category = Some(item.category.clone());
@@ -227,9 +269,8 @@ pub fn match_with_catalog(recipe: &mut [RecipeComponent], catalog: &[CatalogItem
 
         // Try to find by category (if only one match)
         if let Some(cat) = &component.category {
-            let category_matches: Vec<&CatalogItem> = catalog.iter()
-                .filter(|c| c.category == *cat)
-                .collect();
+            let category_matches: Vec<&CatalogItem> =
+                catalog.iter().filter(|c| c.category == *cat).collect();
             if category_matches.len() == 1 {
                 component.reagent_id = Some(category_matches[0].id.clone());
                 component.reagent_name = Some(category_matches[0].name.clone());
@@ -278,7 +319,10 @@ mod tests {
 
         assert_eq!(result.test_id, Some("8957".to_string()));
         assert_eq!(result.test_type, Some("SST".to_string()));
-        assert_eq!(result.test_type_full, Some("Shear Stability Test (тест на сдвиг)".to_string()));
+        assert_eq!(
+            result.test_type_full,
+            Some("Shear Stability Test (тест на сдвиг)".to_string())
+        );
         assert_eq!(result.temperature, Some(63));
     }
 
@@ -291,8 +335,14 @@ mod tests {
 
     #[test]
     fn test_detect_category() {
-        assert_eq!(detect_category("WG-9000F"), Some("Gelling Agent".to_string()));
-        assert_eq!(detect_category("HPG-100"), Some("Gelling Agent".to_string()));
+        assert_eq!(
+            detect_category("WG-9000F"),
+            Some("Gelling Agent".to_string())
+        );
+        assert_eq!(
+            detect_category("HPG-100"),
+            Some("Gelling Agent".to_string())
+        );
         assert_eq!(detect_category("WCL"), Some("Crosslinker".to_string()));
         assert_eq!(detect_category("HT-3"), Some("Breaker".to_string()));
         assert_eq!(detect_category("Buffer"), Some("Buffer".to_string()));
@@ -302,24 +352,20 @@ mod tests {
 
     #[test]
     fn test_match_with_catalog() {
-        let mut recipe = vec![
-            RecipeComponent {
-                abbreviation: "WG-9000F".to_string(),
-                concentration: 3.4,
-                unit: "kg/m³".to_string(),
-                category: Some("Gelling Agent".to_string()),
-                reagent_id: None,
-                reagent_name: None,
-            },
-        ];
+        let mut recipe = vec![RecipeComponent {
+            abbreviation: "WG-9000F".to_string(),
+            concentration: 3.4,
+            unit: "kg/m³".to_string(),
+            category: Some("Gelling Agent".to_string()),
+            reagent_id: None,
+            reagent_name: None,
+        }];
 
-        let catalog = vec![
-            CatalogItem {
-                id: "reagent-001".to_string(),
-                name: "WG-9000F".to_string(),
-                category: "Gelling Agent".to_string(),
-            },
-        ];
+        let catalog = vec![CatalogItem {
+            id: "reagent-001".to_string(),
+            name: "WG-9000F".to_string(),
+            category: "Gelling Agent".to_string(),
+        }];
 
         match_with_catalog(&mut recipe, &catalog);
 

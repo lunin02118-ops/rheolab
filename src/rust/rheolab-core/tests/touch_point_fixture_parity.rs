@@ -61,9 +61,17 @@ fn load_fixture() -> Vec<TouchPointInput> {
 #[test]
 fn fixture_snapshot_is_well_formed() {
     let pts = load_fixture();
-    assert!(pts.len() >= 600, "expected ≥600 data points, got {}", pts.len());
+    assert!(
+        pts.len() >= 600,
+        "expected ≥600 data points, got {}",
+        pts.len()
+    );
     let last_time = pts.last().map(|p| p.time_min).unwrap_or(0.0);
-    assert!(last_time > 290.0, "expected run to span >290 min, got {}", last_time);
+    assert!(
+        last_time > 290.0,
+        "expected run to span >290 min, got {}",
+        last_time
+    );
 }
 
 #[test]

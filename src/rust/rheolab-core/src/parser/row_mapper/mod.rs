@@ -1,5 +1,5 @@
-use crate::types::RheoPoint;
 use super::types::ColumnMapping;
+use crate::types::RheoPoint;
 
 mod detection;
 pub use detection::*;
@@ -92,7 +92,10 @@ pub fn map_row(
                 let val_str = row[idx].trim().replace(',', ".");
                 // Remove spaces? TS does replace(/\s/g, '')
                 let val_str = val_str.replace(char::is_whitespace, "");
-                if val_str.is_empty() || val_str.contains('x') || (val_str.contains('-') && val_str.len() < 2) {
+                if val_str.is_empty()
+                    || val_str.contains('x')
+                    || (val_str.contains('-') && val_str.len() < 2)
+                {
                     return 0.0;
                 }
                 return val_str.parse::<f64>().unwrap_or(0.0);
@@ -120,13 +123,14 @@ pub fn map_row(
         if time_idx < row.len() {
             let raw_time = &row[time_idx];
             let time_str = raw_time.trim();
-            
+
             if time_str.contains(':') {
                 // HH:MM:SS or MM:SS
-                let parts: Vec<f64> = time_str.split(':')
+                let parts: Vec<f64> = time_str
+                    .split(':')
                     .map(|p| p.replace(',', ".").parse::<f64>().unwrap_or(0.0))
                     .collect();
-                
+
                 if parts.len() == 3 {
                     time = parts[0] * 3600.0 + parts[1] * 60.0 + parts[2];
                 } else if parts.len() == 2 {
@@ -139,7 +143,11 @@ pub fn map_row(
                     raw_time.trim().to_string()
                 };
                 let t_str = repaired.replace(',', ".").replace(char::is_whitespace, "");
-                let t_val_raw: f64 = if t_str.is_empty() { 0.0 } else { t_str.parse().unwrap_or(0.0) };
+                let t_val_raw: f64 = if t_str.is_empty() {
+                    0.0
+                } else {
+                    t_str.parse().unwrap_or(0.0)
+                };
                 let t_val = if config.time_mode == TimeParsingMode::BslDroppedDecimalMinutes
                     && t_val_raw >= 100.0
                 {
@@ -193,22 +201,30 @@ pub fn map_row(
     match config.temp_unit {
         TemperatureUnit::Fahrenheit => {
             temp = (temp - 32.0) * 5.0 / 9.0;
-        },
+        }
         TemperatureUnit::Kelvin => {
             temp -= 273.15;
-        },
-        TemperatureUnit::Celsius => {},
+        }
+        TemperatureUnit::Celsius => {}
     }
 
     // Bath temperature — only present when a dedicated column was detected
     let bath_temperature_c = if mapping.bath_temp_col.is_some() {
         let mut bt = get_val(mapping.bath_temp_col);
         match config.temp_unit {
-            TemperatureUnit::Fahrenheit => { bt = (bt - 32.0) * 5.0 / 9.0; },
-            TemperatureUnit::Kelvin => { bt -= 273.15; },
-            TemperatureUnit::Celsius => {},
+            TemperatureUnit::Fahrenheit => {
+                bt = (bt - 32.0) * 5.0 / 9.0;
+            }
+            TemperatureUnit::Kelvin => {
+                bt -= 273.15;
+            }
+            TemperatureUnit::Celsius => {}
         }
-        if bt != 0.0 { Some(bt) } else { None }
+        if bt != 0.0 {
+            Some(bt)
+        } else {
+            None
+        }
     } else {
         None
     };
@@ -217,14 +233,25 @@ pub fn map_row(
         time_sec: time,
         viscosity_cp: visc,
         temperature_c: temp,
-        shear_rate: if shear_rate != 0.0 { Some(shear_rate) } else { None },
-        shear_stress: if shear_stress != 0.0 { Some(shear_stress) } else { None },
-        pressure_bar: if pressure != 0.0 { Some(pressure) } else { None },
+        shear_rate: if shear_rate != 0.0 {
+            Some(shear_rate)
+        } else {
+            None
+        },
+        shear_stress: if shear_stress != 0.0 {
+            Some(shear_stress)
+        } else {
+            None
+        },
+        pressure_bar: if pressure != 0.0 {
+            Some(pressure)
+        } else {
+            None
+        },
         rpm: if rpm != 0.0 { Some(rpm) } else { None },
         bath_temperature_c,
     })
 }
-
 
 #[cfg(test)]
 #[path = "tests.rs"]

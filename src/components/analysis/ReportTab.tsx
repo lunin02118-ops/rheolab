@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FileText, Download, Loader2, Languages } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useBrandingStore } from '@/lib/store/branding-store';
@@ -9,10 +9,13 @@ import { useLicense } from '@/hooks/useLicense';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { useReportExport } from '@/components/reports/hooks/useReportExport';
 import { useReportExportById } from '@/components/reports/hooks/useReportExportById';
+import { ProgramRheologyConfirmDialog } from '@/components/reports/ProgramRheologyConfirmDialog';
 import type { ParseResult } from '@/lib/store/experiment-data-store';
 import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
 import type { RecipeComponent } from '@/lib/parsing/types';
-import type { WaterParams } from '@/types';
+import type { RheologyParameterSource, WaterParams } from '@/types';
+
+type ReportRheologySourceMode = RheologyParameterSource;
 
 interface ReportTabProps {
     parseResult: ParseResult;
@@ -86,6 +89,23 @@ export function ReportTab({
     const [includeRawData, setIncludeRawData] = useState(showRawData);
     const [includeRecipe, setIncludeRecipe] = useState(showRecipe);
     const [includeWaterAnalysis, setIncludeWaterAnalysis] = useState(showWaterAnalysis);
+    const hasSavedExperiment = Boolean(savedExperimentId || parseResult.metadata.experimentId);
+    const hasInstrumentRheology = (parseResult.instrumentRheology?.length ?? 0) > 0;
+    const defaultRheologySourceMode: ReportRheologySourceMode =
+        hasSavedExperiment || hasInstrumentRheology ? 'instrument' : 'program';
+    const rheologySourceModeKey = `${parseResult.metadata.experimentId ?? ''}|${parseResult.metadata.filename}|${defaultRheologySourceMode}`;
+    const [rheologySourceModeSelection, setRheologySourceModeSelection] = useState<{
+        key: string;
+        mode: ReportRheologySourceMode;
+    }>({ key: '', mode: defaultRheologySourceMode });
+    const rheologySourceMode =
+        rheologySourceModeSelection.key === rheologySourceModeKey
+            ? rheologySourceModeSelection.mode
+            : defaultRheologySourceMode;
+    const setRheologySourceMode = (mode: ReportRheologySourceMode) => {
+        setRheologySourceModeSelection({ key: rheologySourceModeKey, mode });
+    };
+    const effectiveIncludeCalibration = includeCalibration && canUseCalibration;
 
     // Export hook — hardcode touchPoints/targetTime/threshold per TZ
     const legacyExport = useReportExport({
@@ -96,10 +116,12 @@ export function ReportTab({
         viscosityThreshold: 0,
         showTargetTime: false,
         targetTime: 0,
-        showCalibration: includeCalibration && canUseCalibration,
+        showCalibration: effectiveIncludeCalibration,
         showRawData: includeRawData,
         showRecipe: includeRecipe,
         showWaterAnalysis: includeWaterAnalysis,
+        rheologySource: rheologySourceMode,
+        instrumentRheology: parseResult.instrumentRheology,
         reportViscosityRates, isExpert,
         companyName, companyLogo, chartSettings,
     });
@@ -116,10 +138,11 @@ export function ReportTab({
         viscosityThreshold: 0,
         showTargetTime: false,
         targetTime: 0,
-        showCalibration: includeCalibration && canUseCalibration,
+        showCalibration: effectiveIncludeCalibration,
         showRawData: includeRawData,
         showRecipe: includeRecipe,
         showWaterAnalysis: includeWaterAnalysis,
+        rheologySourceOverride: rheologySourceMode,
         reportViscosityRates,
         isExpert,
         companyName,
@@ -132,35 +155,45 @@ export function ReportTab({
         isExporting, isExcelExporting,
         exportError, clearError,
         handleDownloadAll: downloadAll,
-    } = savedExperimentId ? byIdExport : legacyExport;
+    } = hasSavedExperiment ? byIdExport : legacyExport;
 
     const isGenerating = isExporting || isExcelExporting;
     const canDownload = formatPdf || formatExcel;
-
-    useEffect(() => {
-        if (!canUseCalibration && includeCalibration) {
-            setIncludeCalibration(false);
-        }
-    }, [canUseCalibration, includeCalibration]);
+    const [pendingProgramExport, setPendingProgramExport] = useState<{
+        pdf: boolean;
+        excel: boolean;
+    } | null>(null);
 
     // Show the "Save as default" affordance only when the visible selection
     // no longer matches the stored defaults — otherwise the click would be
     // a no-op and add visual noise to the form.
     const isDefaultDirty =
-        (canUseCalibration && includeCalibration !== showCalibration) ||
+        (canUseCalibration && effectiveIncludeCalibration !== showCalibration) ||
         includeRawData     !== showRawData ||
         includeRecipe      !== showRecipe ||
         includeWaterAnalysis !== showWaterAnalysis;
 
     const saveSectionsAsDefault = () => {
-        setShowCalibration(canUseCalibration ? includeCalibration : false);
+        setShowCalibration(effectiveIncludeCalibration);
         setShowRawData(includeRawData);
         setShowRecipe(includeRecipe);
         setShowWaterAnalysis(includeWaterAnalysis);
     };
 
     const handleDownloadAll = async () => {
+        if (rheologySourceMode === 'program') {
+            setPendingProgramExport({ pdf: formatPdf, excel: formatExcel });
+            return;
+        }
         await downloadAll(formatPdf, formatExcel);
+    };
+
+    const confirmProgramExport = () => {
+        const pending = pendingProgramExport;
+        setPendingProgramExport(null);
+        if (pending) {
+            void downloadAll(pending.pdf, pending.excel);
+        }
     };
 
     return (
@@ -290,6 +323,39 @@ export function ReportTab({
                             {reportLanguage === 'en' ? 'Water analysis' : 'Анализ воды'}
                         </span>
                     </label>
+
+                    <div className="pt-2">
+                        <label className="text-xs font-semibold text-foreground mb-1.5 block">
+                            {reportLanguage === 'en' ? 'Rheology table in report' : 'Таблица реологии в отчёте'}
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setRheologySourceMode('instrument')}
+                                disabled={!hasSavedExperiment && !hasInstrumentRheology}
+                                data-testid="ReportRheologySourceInstrument"
+                                className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                                    rheologySourceMode === 'instrument'
+                                        ? 'bg-secondary border-purple-500 text-foreground font-semibold'
+                                        : 'bg-background border-border text-muted-foreground hover:border-purple-400'
+                                } disabled:opacity-45 disabled:cursor-not-allowed disabled:hover:border-border`}
+                            >
+                                {reportLanguage === 'en' ? 'Instrument table' : 'Прибор'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setRheologySourceMode('program')}
+                                data-testid="ReportRheologySourceProgram"
+                                className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                                    rheologySourceMode === 'program'
+                                        ? 'bg-secondary border-purple-500 text-foreground font-semibold'
+                                        : 'bg-background border-border text-muted-foreground hover:border-purple-400'
+                                }`}
+                            >
+                                {reportLanguage === 'en' ? 'Calculation' : 'Расчёт'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -353,6 +419,12 @@ export function ReportTab({
                     </>
                 )}
             </button>
+            <ProgramRheologyConfirmDialog
+                open={pendingProgramExport !== null}
+                language={reportLanguage}
+                onConfirm={confirmProgramExport}
+                onCancel={() => setPendingProgramExport(null)}
+            />
         </div>
     );
 }

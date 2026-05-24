@@ -197,6 +197,7 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
                 ...(parseResult.columnarData
                     ? { columnarData: parseResult.columnarData }
                     : { rawPoints: parseResult.data ?? [] }),
+                instrumentRheology: parseResult.instrumentRheology ?? [],
             } as unknown as Experiment;
             onSelect(syntheticExp);
         } catch (err) {

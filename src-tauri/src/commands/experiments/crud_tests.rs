@@ -249,6 +249,32 @@ fn roundtrip_rheology_parameters_for_both_sources() {
 }
 
 #[test]
+fn detail_meta_includes_rheology_parameters() {
+    let conn = open_db();
+    let mut exp = make_experiment("rheo_meta_001");
+    exp.rheology_source = RheologyParameterSource::Instrument;
+    exp.rheology_parameters = vec![make_rheology_row(
+        RheologyParameterSource::Instrument,
+        3,
+        0.73,
+    )];
+
+    persist_experiment(&conn, &exp).unwrap();
+    let meta = load_experiment_detail_meta_by_id(&conn, "rheo_meta_001")
+        .unwrap()
+        .expect("detail meta must exist");
+
+    assert_eq!(meta.rheology_source, RheologyParameterSource::Instrument);
+    assert_eq!(meta.rheology_parameters.len(), 1);
+    assert_eq!(
+        meta.rheology_parameters[0].source,
+        RheologyParameterSource::Instrument
+    );
+    assert_eq!(meta.rheology_parameters[0].cycle_no, 3);
+    assert_eq!(meta.rheology_parameters[0].n_prime, Some(0.73));
+}
+
+#[test]
 fn upsert_replaces_rheology_parameters_atomically_with_experiment() {
     let conn = open_db();
     let mut exp = make_experiment("rheo_replace_001");

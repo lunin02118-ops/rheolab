@@ -3,6 +3,7 @@ import {
     useChartSettingsStore, 
     DEFAULT_CHART_SETTINGS, 
     DEFAULT_LINE_SETTINGS,
+    METRIC_UNITS,
     getStrokeDasharray,
     formatWithPrecision
 } from '@/lib/store/chart-settings-store';
@@ -155,6 +156,24 @@ describe('ChartSettingsStore', () => {
                 JSON.stringify({ foo: 'bar' })
             );
             expect(result).toBe(false);
+        });
+
+        test('importSettings sanitizes unsupported rheology units', () => {
+            const importData = {
+                ...DEFAULT_CHART_SETTINGS,
+                rheologyUnits: {
+                    ...DEFAULT_CHART_SETTINGS.rheologyUnits,
+                    consistency: 'eq.cP',
+                },
+            };
+
+            const result = useChartSettingsStore.getState().importSettings(
+                JSON.stringify(importData),
+            );
+
+            expect(result).toBe(true);
+            expect(useChartSettingsStore.getState().settings.rheologyUnits.consistency)
+                .toBe(METRIC_UNITS.consistency);
         });
     });
 

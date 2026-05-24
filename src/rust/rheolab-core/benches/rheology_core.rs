@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use rheolab_core::{
-    report_generator::chart_generator::{ChartConfig, ChartPoint, generate_chart_svg},
+    report_generator::chart_generator::{generate_chart_svg, ChartConfig, ChartPoint},
     schedule_detector::{detect_schedule, ScheduleConfig},
     types::RheoPoint,
 };
@@ -118,19 +118,15 @@ fn bench_detect_schedule(c: &mut Criterion) {
     for n in [1_000usize, 5_000, 20_000] {
         // Plateau data (no ramp): worst-case for schedule detector — all points are steps
         let data = make_rheo_points(n);
-        group.bench_with_input(
-            BenchmarkId::new("plateau", n),
-            &data,
-            |b, d| b.iter(|| detect_schedule(black_box(d), black_box(&config))),
-        );
+        group.bench_with_input(BenchmarkId::new("plateau", n), &data, |b, d| {
+            b.iter(|| detect_schedule(black_box(d), black_box(&config)))
+        });
 
         // Multi-step ramp data: exercises ramp boundary detection
         let ramp_data = make_step_ramp(n / 5);
-        group.bench_with_input(
-            BenchmarkId::new("step_ramp", n),
-            &ramp_data,
-            |b, d| b.iter(|| detect_schedule(black_box(d), black_box(&config))),
-        );
+        group.bench_with_input(BenchmarkId::new("step_ramp", n), &ramp_data, |b, d| {
+            b.iter(|| detect_schedule(black_box(d), black_box(&config)))
+        });
     }
     group.finish();
 }

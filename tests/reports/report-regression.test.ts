@@ -119,6 +119,7 @@ function makeReportBuildContext(overrides?: Partial<ReportBuildContext>): Report
         showWaterAnalysis: true,
         reportViscosityRates: [40, 100, 170],
         isExpert: true,
+        rheologySource: 'program',
         ...overrides,
     };
 }
@@ -258,7 +259,7 @@ describe('Report Regression: converter output completeness', () => {
             'language', 'unit_system',
             'show_temperature', 'show_shear_rate', 'show_pressure', 'show_bath_temperature',
             'show_touch_points', 'viscosity_threshold', 'show_target_time', 'target_time',
-            'show_calibration', 'show_raw_data',
+            'show_calibration', 'show_raw_data', 'rheology_source',
             'shear_rate_axis', 'pressure_axis', 'axis_mode',
             'viscosity_shear_rates', 'show_advanced_stats',
             'line_settings',
@@ -267,6 +268,13 @@ describe('Report Regression: converter output completeness', () => {
         for (const field of requiredFields) {
             expect(wasm, `Missing settings field: ${field}`).toHaveProperty(field);
         }
+    });
+
+    it('converter forwards rheology source to Rust settings', () => {
+        const input = makePdfInput({ rheologySource: 'instrument' });
+        const wasm = (convertReportInputToWasm(input) as any).settings;
+
+        expect(wasm.rheology_source).toBe('instrument');
     });
 
     it('raw_data includes bath_temperature_c', () => {

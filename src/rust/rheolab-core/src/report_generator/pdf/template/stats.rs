@@ -22,17 +22,16 @@
 
 use super::super::super::formatters::{
     convert_consistency_index, convert_pv, convert_viscosity, convert_yp, decimals, format_number,
-    format_number_direct, format_time_value, render_k_with, render_pv_with,
-    render_viscosity_with, render_yp_with, resolve_units, time_axis_unit, viscosity_decimals,
-    viscosity_decimals_for,
+    format_number_direct, format_time_value, render_k_with, render_pv_with, render_viscosity_with,
+    render_yp_with, resolve_units, time_axis_unit, viscosity_decimals, viscosity_decimals_for,
 };
 use super::super::super::types::ReportInput;
 
 /// Fragments used by the main Typst `#table(...)` call for the stats section.
 pub(super) struct StatsFragments {
-    pub columns: String,        // e.g. "0.5fr, 0.8fr, ..."
-    pub headers: String,        // e.g. "header_cell[Cycle], header_cell[Time]..."
-    pub rows: String,           // body rows concatenated with "\n"
+    pub columns: String, // e.g. "0.5fr, 0.8fr, ..."
+    pub headers: String, // e.g. "header_cell[Cycle], header_cell[Time]..."
+    pub rows: String,    // body rows concatenated with "\n"
 }
 
 pub(super) fn build_stats_section(input: &ReportInput, is_ru: bool) -> StatsFragments {
@@ -48,22 +47,28 @@ pub(super) fn build_stats_section(input: &ReportInput, is_ru: bool) -> StatsFrag
         } else {
             (convert_consistency_index(c.k_prime, unit_system), "")
         };
-        let ks_str = c.k_slot.map(|v| {
-            let cv = if units.use_targets {
-                render_k_with(v, &units.k).0
-            } else {
-                convert_consistency_index(v, unit_system)
-            };
-            format_number_direct(cv, decimals::K_PRIME)
-        }).unwrap_or_else(|| "—".to_string());
-        let kp_str = c.k_pipe.map(|v| {
-            let cv = if units.use_targets {
-                render_k_with(v, &units.k).0
-            } else {
-                convert_consistency_index(v, unit_system)
-            };
-            format_number_direct(cv, decimals::K_PRIME)
-        }).unwrap_or_else(|| "—".to_string());
+        let ks_str = c
+            .k_slot
+            .map(|v| {
+                let cv = if units.use_targets {
+                    render_k_with(v, &units.k).0
+                } else {
+                    convert_consistency_index(v, unit_system)
+                };
+                format_number_direct(cv, decimals::K_PRIME)
+            })
+            .unwrap_or_else(|| "—".to_string());
+        let kp_str = c
+            .k_pipe
+            .map(|v| {
+                let cv = if units.use_targets {
+                    render_k_with(v, &units.k).0
+                } else {
+                    convert_consistency_index(v, unit_system)
+                };
+                format_number_direct(cv, decimals::K_PRIME)
+            })
+            .unwrap_or_else(|| "—".to_string());
         let pv_converted = c.bingham_pv.map(|v| {
             if units.use_targets {
                 render_pv_with(v, &units.pv).0
@@ -105,13 +110,12 @@ pub(super) fn build_stats_section(input: &ReportInput, is_ru: bool) -> StatsFrag
         };
         for rate in visc_rates {
             let key = format!("{}", rate);
-            let visc_raw = c.viscosities.get(&key).copied()
-                .or_else(|| match *rate {
-                    40 => c.visc_at_40,
-                    100 => c.visc_at_100,
-                    170 => c.visc_at_170,
-                    _ => None,
-                });
+            let visc_raw = c.viscosities.get(&key).copied().or_else(|| match *rate {
+                40 => c.visc_at_40,
+                100 => c.visc_at_100,
+                170 => c.visc_at_170,
+                _ => None,
+            });
             let visc_converted = visc_raw.map(|v| {
                 if units.use_targets {
                     render_viscosity_with(v, &units.viscosity).0
@@ -154,15 +158,15 @@ pub(super) fn build_stats_section(input: &ReportInput, is_ru: bool) -> StatsFrag
     let h_visc_unit = units.viscosity.clone();
 
     let mut col_fractions = vec![
-        "0.5fr".to_string(),  // Cycle
-        "0.8fr".to_string(),  // Time
-        "0.8fr".to_string(),  // Temp
-        "0.8fr".to_string(),  // Pressure
-        "0.8fr".to_string(),  // n'
-        "1fr".to_string(),    // K'
-        "0.9fr".to_string(),  // Ks
-        "0.9fr".to_string(),  // Kp
-        "0.8fr".to_string(),  // R²
+        "0.5fr".to_string(), // Cycle
+        "0.8fr".to_string(), // Time
+        "0.8fr".to_string(), // Temp
+        "0.8fr".to_string(), // Pressure
+        "0.8fr".to_string(), // n'
+        "1fr".to_string(),   // K'
+        "0.9fr".to_string(), // Ks
+        "0.9fr".to_string(), // Kp
+        "0.8fr".to_string(), // R²
     ];
     let mut header_cells = vec![
         format!("header_cell[{}]", h_cycle),
@@ -170,24 +174,27 @@ pub(super) fn build_stats_section(input: &ReportInput, is_ru: bool) -> StatsFrag
         format!("header_cell[{}]", h_temp),
         format!("header_cell[{}]", h_press),
         "header_cell[n']".to_string(),
-        format!("header_cell[K'\\ #unit_text[({})]]" , h_k_unit),
-        format!("header_cell[Ks\\ #unit_text[({})]]" , h_k_unit),
-        format!("header_cell[Kp\\ #unit_text[({})]]" , h_k_unit),
+        format!("header_cell[K'\\ #unit_text[({})]]", h_k_unit),
+        format!("header_cell[Ks\\ #unit_text[({})]]", h_k_unit),
+        format!("header_cell[Kp\\ #unit_text[({})]]", h_k_unit),
         "header_cell[R²]".to_string(),
     ];
 
     // Dynamic viscosity columns
     for rate in visc_rates {
         col_fractions.push("1fr".to_string());
-        header_cells.push(format!("header_cell[η\\@{} #unit_text[({})]]", rate, h_visc_unit));
+        header_cells.push(format!(
+            "header_cell[η\\@{} #unit_text[({})]]",
+            rate, h_visc_unit
+        ));
     }
 
     // PV, YP, R²B (only in expert mode)
     if input.settings.show_advanced_stats {
         col_fractions.push("1.1fr".to_string());
-        header_cells.push(format!("header_cell[PV\\ #unit_text[({})]]" , h_pv_unit));
+        header_cells.push(format!("header_cell[PV\\ #unit_text[({})]]", h_pv_unit));
         col_fractions.push("1.1fr".to_string());
-        header_cells.push(format!("header_cell[YP\\ #unit_text[({})]]" , h_yp_unit));
+        header_cells.push(format!("header_cell[YP\\ #unit_text[({})]]", h_yp_unit));
         col_fractions.push("0.8fr".to_string());
         header_cells.push("header_cell[R²B]".to_string());
     }

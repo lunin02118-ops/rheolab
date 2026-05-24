@@ -1,8 +1,8 @@
 //! Column/unit detection helpers for the row mapper.
-use regex::Regex;
-use std::sync::LazyLock;
 use super::super::types::ColumnMapping;
 use super::{TemperatureUnit, TimeParsingMode};
+use regex::Regex;
+use std::sync::LazyLock;
 
 // Static compiled regexes for time-unit detection — compiled once (#8 fix).
 // `.expect()` fires once on first LazyLock access; guarded by static pattern.
@@ -19,7 +19,11 @@ struct TimeSample {
     value: f64,
 }
 
-pub fn detect_time_unit(header_row: &[String], mapping: &ColumnMapping, context: &str) -> (bool, bool) {
+pub fn detect_time_unit(
+    header_row: &[String],
+    mapping: &ColumnMapping,
+    context: &str,
+) -> (bool, bool) {
     if let Some(idx) = mapping.time_col {
         if idx < header_row.len() {
             let header = header_row[idx].to_lowercase();
@@ -33,7 +37,8 @@ pub fn detect_time_unit(header_row: &[String], mapping: &ColumnMapping, context:
 
             // Remove compound units where "мин"/"min" is NOT a time unit
             // (e.g. "об/мин" = RPM, "r/min", "1/мин" = frequency)
-            let clean_context = context.to_lowercase()
+            let clean_context = context
+                .to_lowercase()
                 .replace("об/мин", "")
                 .replace("об/min", "")
                 .replace("r/min", "")
@@ -101,19 +106,31 @@ pub fn is_time_too_large_for_minutes(
     };
 
     let parse_cell = |row: &[String], col: usize| -> f64 {
-        if col >= row.len() { return 0.0; }
-        let s = row[col].trim().replace(',', ".").replace(char::is_whitespace, "");
+        if col >= row.len() {
+            return 0.0;
+        }
+        let s = row[col]
+            .trim()
+            .replace(',', ".")
+            .replace(char::is_whitespace, "");
         s.parse::<f64>().unwrap_or(0.0)
     };
 
     let data_start = header_row_idx + 1;
-    if data_start >= data_rows.len() { return false; }
+    if data_start >= data_rows.len() {
+        return false;
+    }
     let end = data_rows.len();
     let num_data_rows = end - data_start;
 
     // Heuristic 1: Check max time value
-    let check_start = if end > data_start + 10 { end - 10 } else { data_start };
-    let max_time = data_rows[check_start..end].iter()
+    let check_start = if end > data_start + 10 {
+        end - 10
+    } else {
+        data_start
+    };
+    let max_time = data_rows[check_start..end]
+        .iter()
         .map(|row| parse_cell(row, time_col))
         .fold(0.0_f64, f64::max);
 
@@ -127,12 +144,14 @@ pub fn is_time_too_large_for_minutes(
     if num_data_rows > 300 {
         // Sample first 10 data rows to check the time step
         let sample_end = std::cmp::min(data_start + 11, end);
-        let sample_times: Vec<f64> = data_rows[data_start..sample_end].iter()
+        let sample_times: Vec<f64> = data_rows[data_start..sample_end]
+            .iter()
             .map(|row| parse_cell(row, time_col))
             .collect();
 
         if sample_times.len() >= 2 {
-            let steps: Vec<f64> = sample_times.windows(2)
+            let steps: Vec<f64> = sample_times
+                .windows(2)
                 .map(|w| (w[1] - w[0]).abs())
                 .filter(|&s| s > 0.0)
                 .collect();
@@ -150,13 +169,21 @@ pub fn is_time_too_large_for_minutes(
     false
 }
 
-pub fn detect_temperature_unit(header_row: &[String], mapping: &ColumnMapping, context: &str) -> TemperatureUnit {
+pub fn detect_temperature_unit(
+    header_row: &[String],
+    mapping: &ColumnMapping,
+    context: &str,
+) -> TemperatureUnit {
     if let Some(idx) = mapping.temperature_col {
         if idx < header_row.len() {
             let header = header_row[idx].to_lowercase();
             let combined = format!("{} {}", header, context.to_lowercase());
 
-            if combined.contains("°f") || combined.contains("degf") || combined.contains("fahrenheit") || combined.contains("(f)") {
+            if combined.contains("°f")
+                || combined.contains("degf")
+                || combined.contains("fahrenheit")
+                || combined.contains("(f)")
+            {
                 return TemperatureUnit::Fahrenheit;
             }
             if combined.contains("°k") || combined.contains("kelvin") || combined.contains("(k)") {
@@ -168,12 +195,16 @@ pub fn detect_temperature_unit(header_row: &[String], mapping: &ColumnMapping, c
 }
 
 // Heuristics for Stress and Pressure (simplified for now, can be expanded)
-pub fn detect_stress_multiplier(header_row: &[String], mapping: &ColumnMapping, context: &str) -> f64 {
+pub fn detect_stress_multiplier(
+    header_row: &[String],
+    mapping: &ColumnMapping,
+    context: &str,
+) -> f64 {
     if let Some(idx) = mapping.shear_stress_col {
         if idx < header_row.len() {
             let header = header_row[idx].to_lowercase();
             let combined = format!("{} {}", header, context.to_lowercase());
-            
+
             if combined.contains("dyne") || combined.contains("d/cm") {
                 return 0.1; // dyne/cm2 to Pa
             }
@@ -202,8 +233,13 @@ pub fn detect_stress_multiplier_from_data(
     let rate_col = mapping.shear_rate_col?;
 
     let parse_cell = |row: &[String], col: usize| -> f64 {
-        if col >= row.len() { return 0.0; }
-        let s = row[col].trim().replace(',', ".").replace(char::is_whitespace, "");
+        if col >= row.len() {
+            return 0.0;
+        }
+        let s = row[col]
+            .trim()
+            .replace(',', ".")
+            .replace(char::is_whitespace, "");
         s.parse::<f64>().unwrap_or(0.0)
     };
 
@@ -233,7 +269,11 @@ pub fn detect_stress_multiplier_from_data(
     None // Could not determine from data
 }
 
-pub fn detect_pressure_multiplier(header_row: &[String], mapping: &ColumnMapping, context: &str) -> f64 {
+pub fn detect_pressure_multiplier(
+    header_row: &[String],
+    mapping: &ColumnMapping,
+    context: &str,
+) -> f64 {
     if let Some(idx) = mapping.pressure_col {
         if idx < header_row.len() {
             let header = header_row[idx].to_lowercase();
@@ -271,8 +311,13 @@ pub fn detect_pressure_multiplier_from_data(
     let pressure_col = mapping.pressure_col?;
 
     let parse_cell = |row: &[String]| -> f64 {
-        if pressure_col >= row.len() { return 0.0; }
-        let s = row[pressure_col].trim().replace(',', ".").replace(char::is_whitespace, "");
+        if pressure_col >= row.len() {
+            return 0.0;
+        }
+        let s = row[pressure_col]
+            .trim()
+            .replace(',', ".")
+            .replace(char::is_whitespace, "");
         s.parse::<f64>().unwrap_or(0.0)
     };
 
@@ -377,7 +422,8 @@ pub fn detect_time_mode_from_data(
 
     // Criterion 3: average step expressed as minutes should convert to a
     // realistic sampling interval in seconds.
-    let steps: Vec<f64> = times.windows(2)
+    let steps: Vec<f64> = times
+        .windows(2)
         .map(|w| (w[1] - w[0]).abs())
         .filter(|&s| s > 1e-9)
         .collect();
@@ -395,7 +441,11 @@ pub fn detect_time_mode_from_data(
     Some(TimeParsingMode::Minutes)
 }
 
-pub fn detect_excel_serial_time(rows: &[Vec<String>], header_idx: usize, mapping: &ColumnMapping) -> bool {
+pub fn detect_excel_serial_time(
+    rows: &[Vec<String>],
+    header_idx: usize,
+    mapping: &ColumnMapping,
+) -> bool {
     let samples = collect_time_samples(rows, header_idx, mapping, 12);
     if samples.len() < 2 {
         return false;

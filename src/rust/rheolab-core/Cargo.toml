@@ -30,6 +30,7 @@ calamine = { version = "0.22.1", features = ["dates"] }
 csv = "1.3"
 chrono = { version = "0.4", default-features = false, features = ["serde"] }
 regex = "1.10"
+encoding_rs = "0.8"
 
 # Phase 6: Report Generation - Excel (optional)
 rust_xlsxwriter = { version = "0.80", default-features = false, features = ["serde"], optional = true }
@@ -52,4 +53,3 @@ insta = "1"
 [[bench]]
 name = "rheology_core"
 harness = false
-

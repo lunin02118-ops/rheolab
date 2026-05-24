@@ -96,12 +96,24 @@ pub fn parse_rheo_data_with_ai_hint(
     let ai_mapping = ColumnMapping {
         time_col: ai_hint.mapping.get("time_sec").map(|field| field.index),
         viscosity_col: ai_hint.mapping.get("viscosity_cp").map(|field| field.index),
-        temperature_col: ai_hint.mapping.get("temperature_c").map(|field| field.index),
-        shear_rate_col: ai_hint.mapping.get("shear_rate_s1").map(|field| field.index),
-        shear_stress_col: ai_hint.mapping.get("shear_stress_pa").map(|field| field.index),
+        temperature_col: ai_hint
+            .mapping
+            .get("temperature_c")
+            .map(|field| field.index),
+        shear_rate_col: ai_hint
+            .mapping
+            .get("shear_rate_s1")
+            .map(|field| field.index),
+        shear_stress_col: ai_hint
+            .mapping
+            .get("shear_stress_pa")
+            .map(|field| field.index),
         pressure_col: ai_hint.mapping.get("pressure_bar").map(|field| field.index),
         rpm_col: ai_hint.mapping.get("speed_rpm").map(|field| field.index),
-        bath_temp_col: ai_hint.mapping.get("bath_temperature_c").map(|field| field.index),
+        bath_temp_col: ai_hint
+            .mapping
+            .get("bath_temperature_c")
+            .map(|field| field.index),
     };
 
     let mut result = parse_rheo_data_with_column_override(
@@ -120,7 +132,10 @@ pub fn parse_rheo_data_with_ai_hint(
 /// Merge an AI-provided mapping on top of a heuristic mapping.  Every field
 /// present in the AI override takes precedence; un-mapped fields fall back to
 /// the heuristic result.
-pub(super) fn merge_mappings(heuristic: &ColumnMapping, ai_override: &ColumnMapping) -> ColumnMapping {
+pub(super) fn merge_mappings(
+    heuristic: &ColumnMapping,
+    ai_override: &ColumnMapping,
+) -> ColumnMapping {
     ColumnMapping {
         time_col: ai_override.time_col.or(heuristic.time_col),
         viscosity_col: ai_override.viscosity_col.or(heuristic.viscosity_col),
@@ -152,7 +167,8 @@ pub(super) fn build_row_mapper_config(
             }
         } else if is_hr {
             TimeParsingMode::Hours
-        } else if let Some(mode) = detect_time_mode_from_data(section_rows, header_row_idx, mapping) {
+        } else if let Some(mode) = detect_time_mode_from_data(section_rows, header_row_idx, mapping)
+        {
             mode
         } else if detect_excel_serial_time(section_rows, header_row_idx, mapping) {
             TimeParsingMode::ExcelSerial
@@ -165,12 +181,16 @@ pub(super) fn build_row_mapper_config(
     let mut stress_mult = detect_stress_multiplier(header_row, mapping, context_rows);
     let mut press_mult = detect_pressure_multiplier(header_row, mapping, context_rows);
     if stress_mult == 1.0 {
-        if let Some(multiplier) = detect_stress_multiplier_from_data(section_rows, header_row_idx, mapping) {
+        if let Some(multiplier) =
+            detect_stress_multiplier_from_data(section_rows, header_row_idx, mapping)
+        {
             stress_mult = multiplier;
         }
     }
     if press_mult == 1.0 {
-        if let Some(multiplier) = detect_pressure_multiplier_from_data(section_rows, header_row_idx, mapping) {
+        if let Some(multiplier) =
+            detect_pressure_multiplier_from_data(section_rows, header_row_idx, mapping)
+        {
             press_mult = multiplier;
         }
     }
@@ -205,4 +225,36 @@ pub(super) fn calculate_sheet_score(sheet_name: &str, result: &ParsingResult) ->
     }
 
     score
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_rheo_data;
+    use encoding_rs::WINDOWS_1251;
+
+    #[test]
+    fn parses_csv_with_mojibake_russian_headers() {
+        let csv = "Р’СЂРµРјСЏ;Р’СЏР·РєРѕСЃС‚СЊ;РўРµРјРїРµСЂР°С‚СѓСЂР°\n0;100;25\n60;110;26\n";
+
+        let result = parse_rheo_data(csv.as_bytes(), "mojibake.csv").unwrap();
+
+        assert_eq!(result.data.len(), 2);
+        assert_eq!(result.data[0].time_sec, 0.0);
+        assert_eq!(result.data[0].viscosity_cp, 100.0);
+        assert_eq!(result.data[1].temperature_c, 26.0);
+    }
+
+    #[test]
+    fn parses_windows_1251_csv_with_russian_headers() {
+        let csv = "Время;Вязкость;Температура\n0;100;25\n60;110;26\n";
+        let (bytes, _, had_errors) = WINDOWS_1251.encode(csv);
+        assert!(!had_errors);
+
+        let result = parse_rheo_data(bytes.as_ref(), "cp1251.csv").unwrap();
+
+        assert_eq!(result.data.len(), 2);
+        assert_eq!(result.data[0].time_sec, 0.0);
+        assert_eq!(result.data[0].viscosity_cp, 100.0);
+        assert_eq!(result.data[1].temperature_c, 26.0);
+    }
 }

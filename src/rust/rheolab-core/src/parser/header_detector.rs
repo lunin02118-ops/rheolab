@@ -1,4 +1,4 @@
-use super::types::{HeaderCandidate, ColumnMapping};
+use super::types::{ColumnMapping, HeaderCandidate};
 
 // Scoring constants
 const VISCOSITY_KEYWORD: f64 = 10.0;
@@ -60,13 +60,29 @@ pub fn detect_header(rows: &[Vec<String>], require_time: bool) -> Option<HeaderC
         }
 
         // Raw data markers
-        let markers = ["raw data", "сырые данные", "test data", "measurement data", "реология", "detail", "detail:", "detailed data", "raw", "unformatted", "исходные"];
+        let markers = [
+            "raw data",
+            "сырые данные",
+            "test data",
+            "measurement data",
+            "реология",
+            "detail",
+            "detail:",
+            "detailed data",
+            "raw",
+            "unformatted",
+            "исходные",
+        ];
         if markers.iter().any(|m| row1.contains(m)) {
             current_score += RAW_DATA_MARKER_BONUS;
         }
 
-        let threshold = if require_time { STRICT_THRESHOLD } else { SNAPSHOT_THRESHOLD };
-        
+        let threshold = if require_time {
+            STRICT_THRESHOLD
+        } else {
+            SNAPSHOT_THRESHOLD
+        };
+
         if current_score > max_score && current_score > threshold {
             max_score = current_score;
             best_header_idx = i as i32;
@@ -117,20 +133,29 @@ pub fn detect_header_bsl_fast(rows: &[Vec<String>]) -> Option<HeaderCandidate> {
 
     for i in 0..scan_limit {
         let row = &rows[i];
-        if row.len() < 3 { continue; }
+        if row.len() < 3 {
+            continue;
+        }
 
         let lower: Vec<String> = row.iter().map(|c| c.to_lowercase()).collect();
         let joined = lower.join(" ");
 
         // Must have time + viscosity (the two mandatory columns for BSL)
-        let has_time = lower.iter().any(|c|
+        let has_time = lower.iter().any(|c| {
             c.contains("время") || c.contains("time") || c.contains("мин") || c.contains("min")
-        );
-        let has_visc = lower.iter().any(|c|
-            c.contains("вязкость") || c.contains("viscosity") || c.contains("visc") ||
-            c.contains("сп") || c.contains("cp") || c.contains("mpas") || c.contains("mpa.s")
-        );
-        if !has_time || !has_visc { continue; }
+        });
+        let has_visc = lower.iter().any(|c| {
+            c.contains("вязкость")
+                || c.contains("viscosity")
+                || c.contains("visc")
+                || c.contains("сп")
+                || c.contains("cp")
+                || c.contains("mpas")
+                || c.contains("mpa.s")
+        });
+        if !has_time || !has_visc {
+            continue;
+        }
 
         // Reject model/summary/unit-only rows
         if joined.contains("avg") || joined.contains("summary") || joined.contains("итого") {
@@ -153,15 +178,30 @@ pub fn detect_header_bsl_fast(rows: &[Vec<String>]) -> Option<HeaderCandidate> {
         };
 
         // Try mapping on merged header first — if it finds more columns, use merge
-        let mapping_single = map_columns(&lower.iter().map(|s| s.to_string()).collect::<Vec<_>>(), true);
+        let mapping_single = map_columns(
+            &lower.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+            true,
+        );
         let mapping_merged = map_columns(&merged, true);
 
-        let score_single = [mapping_single.time_col, mapping_single.viscosity_col,
-                           mapping_single.temperature_col, mapping_single.pressure_col]
-            .iter().filter(|c| c.is_some()).count();
-        let score_merged = [mapping_merged.time_col, mapping_merged.viscosity_col,
-                           mapping_merged.temperature_col, mapping_merged.pressure_col]
-            .iter().filter(|c| c.is_some()).count();
+        let score_single = [
+            mapping_single.time_col,
+            mapping_single.viscosity_col,
+            mapping_single.temperature_col,
+            mapping_single.pressure_col,
+        ]
+        .iter()
+        .filter(|c| c.is_some())
+        .count();
+        let score_merged = [
+            mapping_merged.time_col,
+            mapping_merged.viscosity_col,
+            mapping_merged.temperature_col,
+            mapping_merged.pressure_col,
+        ]
+        .iter()
+        .filter(|c| c.is_some())
+        .count();
 
         if score_merged > score_single && i + 1 < rows.len() {
             return Some(HeaderCandidate {
@@ -184,28 +224,93 @@ pub fn detect_header_bsl_fast(rows: &[Vec<String>]) -> Option<HeaderCandidate> {
 fn calculate_row_score(row_str: &str, require_time: bool) -> f64 {
     let mut score = 0.0;
 
-    if ["visc", "вязкость", "сп", "reading", "вязк"].iter().any(|w| row_str.contains(w)) { score += VISCOSITY_KEYWORD; }
-    if ["rpm", "ротор", "speed", "n,", "скорость", "об/мин"].iter().any(|w| row_str.contains(w)) { score += RPM_KEYWORD; }
+    if ["visc", "вязкость", "сп", "reading", "вязк"]
+        .iter()
+        .any(|w| row_str.contains(w))
+    {
+        score += VISCOSITY_KEYWORD;
+    }
+    if ["rpm", "ротор", "speed", "n,", "скорость", "об/мин"]
+        .iter()
+        .any(|w| row_str.contains(w))
+    {
+        score += RPM_KEYWORD;
+    }
 
-    if ["stress", "напряжение", "dyne", "pa "].iter().any(|w| row_str.contains(w)) { score += STRESS_KEYWORD; }
-    if ["rate", "скорость сдвига", "sec-1", "s-1", "1/s"].iter().any(|w| row_str.contains(w)) { score += RATE_KEYWORD; }
-    if ["shear", "сдвиг"].iter().any(|w| row_str.contains(w)) { score += SHEAR_KEYWORD; }
-    if ["temp", "температур"].iter().any(|w| row_str.contains(w)) { score += TEMP_KEYWORD; }
+    if ["stress", "напряжение", "dyne", "pa "]
+        .iter()
+        .any(|w| row_str.contains(w))
+    {
+        score += STRESS_KEYWORD;
+    }
+    if ["rate", "скорость сдвига", "sec-1", "s-1", "1/s"]
+        .iter()
+        .any(|w| row_str.contains(w))
+    {
+        score += RATE_KEYWORD;
+    }
+    if ["shear", "сдвиг"].iter().any(|w| row_str.contains(w)) {
+        score += SHEAR_KEYWORD;
+    }
+    if ["temp", "температур"].iter().any(|w| row_str.contains(w)) {
+        score += TEMP_KEYWORD;
+    }
 
-    if ["time", "время", "elapsed"].iter().any(|w| row_str.contains(w)) { score += TIME_KEYWORD; }
-    if ["temperature", "температура"].iter().any(|w| row_str.contains(w)) { score += HEADER_KEYWORD; }
-    if ["viscosity", "вязкость"].iter().any(|w| row_str.contains(w)) { score += HEADER_KEYWORD; }
+    if ["time", "время", "elapsed"]
+        .iter()
+        .any(|w| row_str.contains(w))
+    {
+        score += TIME_KEYWORD;
+    }
+    if ["temperature", "температура"]
+        .iter()
+        .any(|w| row_str.contains(w))
+    {
+        score += HEADER_KEYWORD;
+    }
+    if ["viscosity", "вязкость"]
+        .iter()
+        .any(|w| row_str.contains(w))
+    {
+        score += HEADER_KEYWORD;
+    }
 
-    let has_time = ["time", "время", "elapsed", "sec", "min "].iter().any(|w| row_str.contains(w));
+    let has_time = ["time", "время", "elapsed", "sec", "min "]
+        .iter()
+        .any(|w| row_str.contains(w));
     if require_time {
-        if has_time { score += HAS_TIME_BONUS; } else { score += NO_TIME_PENALTY; }
+        if has_time {
+            score += HAS_TIME_BONUS;
+        } else {
+            score += NO_TIME_PENALTY;
+        }
     } else if has_time {
         score += HAS_TIME_SNAPSHOT_BONUS;
     }
 
-    let model_keywords = ["n'", "k'", "r²", "r^2", "slope", "intercept", "kv", "yield point", "coef detn", "power law", "correlation", "regression", "summary", "итого", "среднее"];
-    if model_keywords.iter().any(|kw| row_str.contains(kw)) { score += MODEL_KEYWORD_PENALTY; }
-    if row_str.contains("avg ") { score += AVG_KEYWORD_PENALTY; }
+    let model_keywords = [
+        "n'",
+        "k'",
+        "r²",
+        "r^2",
+        "slope",
+        "intercept",
+        "kv",
+        "yield point",
+        "coef detn",
+        "power law",
+        "correlation",
+        "regression",
+        "summary",
+        "итого",
+        "среднее",
+    ];
+    if model_keywords.iter().any(|kw| row_str.contains(kw)) {
+        score += MODEL_KEYWORD_PENALTY;
+    }
+    if row_str.contains("avg ") {
+        score += AVG_KEYWORD_PENALTY;
+    }
 
     // Colon count penalty (metadata)
     let colon_count = row_str.matches(':').count();
@@ -214,7 +319,12 @@ fn calculate_row_score(row_str: &str, require_time: bool) -> f64 {
     }
 
     // Unit row penalty
-    if ["dyne/cm", "sec^-1", "sec-1", "/cm^2", "/cm2", "lbf*s", "ft^2", "ft²"].iter().any(|u| row_str.contains(u)) {
+    if [
+        "dyne/cm", "sec^-1", "sec-1", "/cm^2", "/cm2", "lbf*s", "ft^2", "ft²",
+    ]
+    .iter()
+    .any(|u| row_str.contains(u))
+    {
         score += UNIT_ROW_PENALTY;
     }
     if (row_str.contains("°c") || row_str.contains("°f")) && !row_str.contains("temp") {
@@ -236,9 +346,17 @@ fn map_columns(header: &[String], _require_time: bool) -> ColumnMapping {
             let col_lower = col_str.to_lowercase();
             let mut score = 0;
 
-            if matches.iter().any(|t| col_lower.contains(t)) { score += 10; } else { continue; }
-            if exclude.iter().any(|t| col_lower.contains(t)) { score -= 100; }
-            if priority.iter().any(|t| col_lower.contains(t)) { score += 50; }
+            if matches.iter().any(|t| col_lower.contains(t)) {
+                score += 10;
+            } else {
+                continue;
+            }
+            if exclude.iter().any(|t| col_lower.contains(t)) {
+                score -= 100;
+            }
+            if priority.iter().any(|t| col_lower.contains(t)) {
+                score += 50;
+            }
 
             if score > best_score {
                 best_score = score;
@@ -250,51 +368,218 @@ fn map_columns(header: &[String], _require_time: bool) -> ColumnMapping {
 
     // Time is always mapped if found, but optional in snapshot mode
     mapping.time_col = find_col(
-        &["time", "duration", "elapsed", "время", "сек", "t (min)", "t,", "мин", "sec", "min", "час", "hour", "длительность", "продолжительность", "test time", "e.t."],
+        &[
+            "time",
+            "duration",
+            "elapsed",
+            "время",
+            "сек",
+            "t (min)",
+            "t,",
+            "мин",
+            "sec",
+            "min",
+            "час",
+            "hour",
+            "длительность",
+            "продолжительность",
+            "test time",
+            "e.t.",
+        ],
         &["e.t.", "test time", "время", "duration"],
-        &["step", "interval", "clock", "date", "timestamp"]
+        &["step", "interval", "clock", "date", "timestamp"],
     );
 
     mapping.viscosity_col = find_col(
-        &["viscosity", "visc", "dial", "reading", "вязкость", "показания", "сп", "cp", "вязк", "mpa.s", "mpas", "η", "eta", "dynamic visc", "динамическая", "apparent", "кажущаяся", "пластическая", "plastic", "eff visc", "эфф"],
+        &[
+            "viscosity",
+            "visc",
+            "dial",
+            "reading",
+            "вязкость",
+            "показания",
+            "сп",
+            "cp",
+            "вязк",
+            "mpa.s",
+            "mpas",
+            "η",
+            "eta",
+            "dynamic visc",
+            "динамическая",
+            "apparent",
+            "кажущаяся",
+            "пластическая",
+            "plastic",
+            "eff visc",
+            "эфф",
+        ],
         &["sample", "meas", "измеренная", "apparent", "кажущаяся"],
-        &["set", "уставка", "index", "idx", "avg", "plastic", "yield", "visc@", "target"]
+        &[
+            "set",
+            "уставка",
+            "index",
+            "idx",
+            "avg",
+            "plastic",
+            "yield",
+            "visc@",
+            "target",
+        ],
     );
 
     mapping.temperature_col = find_col(
-        &["temp", "deg", "температура", "t°", "t(c)", "град", "t,", "¡c", "sample temp", "fluid temp", "образец", "°c", "°f", "celsius", "fahrenheit", "kelvin", "°k", "термо", "thermo"],
+        &[
+            "temp",
+            "deg",
+            "температура",
+            "t°",
+            "t(c)",
+            "град",
+            "t,",
+            "¡c",
+            "sample temp",
+            "fluid temp",
+            "образец",
+            "°c",
+            "°f",
+            "celsius",
+            "fahrenheit",
+            "kelvin",
+            "°k",
+            "термо",
+            "thermo",
+        ],
         &["sample", "fluid", "test", "образец", "жидкость", "замер"],
-        &["bath", "heater", "set", "output", "нагреватель", "нагр", "баня", "уставка", "avg", "target", "целев", "задан"]
+        &[
+            "bath",
+            "heater",
+            "set",
+            "output",
+            "нагреватель",
+            "нагр",
+            "баня",
+            "уставка",
+            "avg",
+            "target",
+            "целев",
+            "задан",
+        ],
     );
 
     mapping.shear_rate_col = find_col(
-        &["shear rate", "s-1", "1/s", "1/c", "1/с", "1/сек", "1/ceк", "gamma", "rate", "скорость сдвига", "γ̇", "gamma dot", "гамма", "sr", "shearrate", "скор сдв"],
+        &[
+            "shear rate",
+            "s-1",
+            "1/s",
+            "1/c",
+            "1/с",
+            "1/сек",
+            "1/ceк",
+            "gamma",
+            "rate",
+            "скорость сдвига",
+            "γ̇",
+            "gamma dot",
+            "гамма",
+            "sr",
+            "shearrate",
+            "скор сдв",
+        ],
         &["calc", "fact", "actual", "измеренная"],
-        &["stress", "visc", "напряжение", "torque", "момент"]
+        &["stress", "visc", "напряжение", "torque", "момент"],
     );
 
     mapping.shear_stress_col = find_col(
-        &["shear stress", "tau", "ss", "напряжение", "напряж", "pa", "па", "dyne", "d/cm", "d/см", "τ", "касательное", "lb/100ft", "lb/100", "fann reading", "мн/м2", "mn/m2"],
+        &[
+            "shear stress",
+            "tau",
+            "ss",
+            "напряжение",
+            "напряж",
+            "pa",
+            "па",
+            "dyne",
+            "d/cm",
+            "d/см",
+            "τ",
+            "касательное",
+            "lb/100ft",
+            "lb/100",
+            "fann reading",
+            "мн/м2",
+            "mn/m2",
+        ],
         &["measured", "calc", "измеренное"],
-        &["rate", "скорость", "pressure", "psi", "давлен"]
+        &["rate", "скорость", "pressure", "psi", "давлен"],
     );
 
     mapping.rpm_col = find_col(
-        &["rpm", "speed", "rotor", "обороты", "ротор", "об/мин", "n,", "rev", "угловая", "angular", "вращен", "rotation", "скорость", "r/min", "r/мин"],
+        &[
+            "rpm",
+            "speed",
+            "rotor",
+            "обороты",
+            "ротор",
+            "об/мин",
+            "n,",
+            "rev",
+            "угловая",
+            "angular",
+            "вращен",
+            "rotation",
+            "скорость",
+            "r/min",
+            "r/мин",
+        ],
         &["actual", "measured", "факт"],
-        &["shear", "сдвига", "rate", "avg", "set", "target"]
+        &["shear", "сдвига", "rate", "avg", "set", "target"],
     );
 
     mapping.pressure_col = find_col(
-        &["pressure", "давлени", "psi", "bar", "бар", "атм", "atm", "kpa", "mpa", "кпа", "мпа", "press", "дав"],
+        &[
+            "pressure",
+            "давлени",
+            "psi",
+            "bar",
+            "бар",
+            "атм",
+            "atm",
+            "kpa",
+            "mpa",
+            "кпа",
+            "мпа",
+            "press",
+            "дав",
+        ],
         &["sample", "test", "cell", "ячейка"],
-        &["diff", "delta", "перепад"]
+        &["diff", "delta", "перепад"],
     );
 
     mapping.bath_temp_col = find_col(
-        &["bath", "heater", "нагреватель", "нагрев", "нагр", "баня", "bath temp", "heater temp", "jacket", "рубашка", "jacket temp"],
+        &[
+            "bath",
+            "heater",
+            "нагреватель",
+            "нагрев",
+            "нагр",
+            "баня",
+            "bath temp",
+            "heater temp",
+            "jacket",
+            "рубашка",
+            "jacket temp",
+        ],
         &["bath", "heater", "нагреватель", "нагрев", "нагр", "баня"],
-        &["set", "output", "уставка", "power", "мощность", "setpoint", "задан"]
+        &[
+            "set",
+            "output",
+            "уставка",
+            "power",
+            "мощность",
+            "setpoint",
+            "задан",
+        ],
     );
 
     mapping
@@ -328,17 +613,21 @@ pub fn find_raw_data_sections(rows: &[Vec<String>]) -> Vec<usize> {
 
     for (i, row) in rows.iter().enumerate() {
         // Count non-empty cells
-        let non_empty_cells = row.iter()
-            .filter(|c| !c.trim().is_empty())
-            .count();
+        let non_empty_cells = row.iter().filter(|c| !c.trim().is_empty()).count();
 
-        if non_empty_cells > 5 { continue; }
+        if non_empty_cells > 5 {
+            continue;
+        }
 
         let row_str = row.join(" ").to_lowercase();
         let trimmed_len = row_str.trim().len();
 
-        if trimmed_len == 0 { continue; }
-        if trimmed_len > 100 { continue; }
+        if trimmed_len == 0 {
+            continue;
+        }
+        if trimmed_len > 100 {
+            continue;
+        }
 
         if priority_markers.iter().any(|m| row_str.contains(m)) {
             priority_sections.push(i + 1);
@@ -367,7 +656,11 @@ mod tests {
     fn test_detect_header_simple() {
         let rows = vec![
             vec!["Some Metadata".to_string()],
-            vec!["Time".to_string(), "Viscosity".to_string(), "Temperature".to_string()],
+            vec![
+                "Time".to_string(),
+                "Viscosity".to_string(),
+                "Temperature".to_string(),
+            ],
             vec!["0".to_string(), "100".to_string(), "25".to_string()],
         ];
         let result = detect_header(&rows, true).unwrap();
@@ -381,12 +674,16 @@ mod tests {
     fn test_detect_header_merged() {
         let rows = vec![
             vec!["Time".to_string(), "Shear".to_string(), "Shear".to_string()],
-            vec!["(sec)".to_string(), "Rate".to_string(), "Stress".to_string()],
+            vec![
+                "(sec)".to_string(),
+                "Rate".to_string(),
+                "Stress".to_string(),
+            ],
             vec!["0".to_string(), "100".to_string(), "50".to_string()],
         ];
         // Should merge rows 0 and 1
         let result = detect_header(&rows, true).unwrap();
-        // Row index should point to the last header row (1) or start? 
+        // Row index should point to the last header row (1) or start?
         // In TS: return bestHeaderIdx + headersToMerge - 1
         // If best=0, merge=2 -> return 0 + 2 - 1 = 1.
         assert_eq!(result.row_index, 1);
@@ -422,10 +719,10 @@ mod tests {
         // golden parity test.
         let rows = vec![
             marker_row("Experiment: foo"),
-            marker_row("Sweep Data:"),                           // index 1 → header at 2
-            bulk_row(&["E.T.", "Rate", "Stress", "Visc"]),       // 2
-            marker_row("Log Data:"),                             // 3 → header at 4
-            bulk_row(&["E.T.", "Rate", "Stress", "Visc"]),       // 4
+            marker_row("Sweep Data:"), // index 1 → header at 2
+            bulk_row(&["E.T.", "Rate", "Stress", "Visc"]), // 2
+            marker_row("Log Data:"),   // 3 → header at 4
+            bulk_row(&["E.T.", "Rate", "Stress", "Visc"]), // 4
         ];
         let sections = find_raw_data_sections(&rows);
         assert_eq!(
@@ -445,13 +742,17 @@ mod tests {
         // recognise), and "Sweep Data:" is where the raw rows live.
         let rows = vec![
             marker_row("Experiment: foo"),
-            marker_row("Analyzed Data:"),                         // ignored — not a marker
+            marker_row("Analyzed Data:"), // ignored — not a marker
             bulk_row(&["E.T.", "n", "Kv", "K"]),
-            marker_row("Sweep Data:"),                            // index 3, chosen via fallback
+            marker_row("Sweep Data:"), // index 3, chosen via fallback
             bulk_row(&["E.T.", "Rate", "Stress", "Visc"]),
         ];
         let sections = find_raw_data_sections(&rows);
-        assert_eq!(sections, vec![4], "Sweep Data fallback must kick in when Log Data is absent");
+        assert_eq!(
+            sections,
+            vec![4],
+            "Sweep Data fallback must kick in when Log Data is absent"
+        );
     }
 
     #[test]
@@ -469,10 +770,10 @@ mod tests {
         // Defensive: two "Log Data:" sections in one file (seen in some
         // multi-test-run Grace exports) — both should be returned.
         let rows = vec![
-            marker_row("Log Data:"),                  // 0
+            marker_row("Log Data:"), // 0
             bulk_row(&["E.T.", "Rate"]),
             bulk_row(&["1", "100"]),
-            marker_row("Log Data:"),                  // 3
+            marker_row("Log Data:"), // 3
             bulk_row(&["E.T.", "Rate"]),
         ];
         let sections = find_raw_data_sections(&rows);

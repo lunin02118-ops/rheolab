@@ -1796,6 +1796,82 @@ async fn test_instrument_rheology_grace_power_law_table() {
 }
 
 #[tokio::test]
+async fn test_grace_program_rheology_matches_reported_b5_geometry() {
+    let r = parse_heuristic("Отчёт Grace.xlsx").await;
+    let first_instrument = r
+        .instrument_rheology
+        .iter()
+        .find(|row| row.cycle_no == 1)
+        .expect("Grace fixture should expose instrument rheology for cycle 1");
+
+    let points = r
+        .data
+        .iter()
+        .map(|point| rheolab_core::types::RheoPoint {
+            time_sec: point.time_sec,
+            viscosity_cp: point.viscosity_cp,
+            temperature_c: point.temperature_c,
+            shear_rate: Some(point.shear_rate_s1),
+            shear_stress: Some(point.shear_stress_pa),
+            pressure_bar: Some(point.pressure_bar),
+            rpm: Some(point.speed_rpm),
+            bath_temperature_c: point.bath_temperature_c,
+        })
+        .collect::<Vec<_>>();
+
+    let output = rheolab_enterprise::commands::analysis::run_full_analysis_kernel(
+        points,
+        "R1B5",
+        &rheolab_core::ExpertSettings {
+            points_to_average: 1,
+            viscosity_shear_rates: vec![40.0, 100.0, 170.0],
+        },
+        &rheolab_core::schedule_detector::ScheduleConfig::default(),
+        &[],
+    );
+    let (_, first_program) = output
+        .results
+        .iter()
+        .find(|(_, result)| result.cycle_no == 1)
+        .expect("Grace fixture should produce program rheology for cycle 1");
+
+    let instrument_visc_40 = first_instrument.viscosities.get("40").copied().unwrap();
+    let program_visc_40 = first_program.viscosities.get("40").copied().unwrap();
+
+    chk(
+        first_program.n_prime,
+        first_instrument.n_prime.unwrap(),
+        0.01,
+        "Grace cycle 1 n'",
+    );
+    chk(
+        first_program.kv_pasn,
+        first_instrument.kv_pasn.unwrap(),
+        0.01,
+        "Grace cycle 1 Kv",
+    );
+    chk(
+        first_program.k_prime_pasn,
+        first_instrument.k_prime_pasn.unwrap(),
+        0.01,
+        "Grace cycle 1 K'",
+    );
+    chk(
+        first_program.k_prime_slot_pasn,
+        first_instrument.k_slot_pasn.unwrap(),
+        0.01,
+        "Grace cycle 1 K' Slot",
+    );
+    chk(
+        program_visc_40,
+        instrument_visc_40,
+        0.01,
+        "Grace cycle 1 Visc@40",
+    );
+    assert_eq!(first_program.calc_points, 5);
+}
+
+#[tokio::test]
 async fn test_instrument_rheology_bsl_power_law_sheets() {
     let r = parse_heuristic("Отчёт BSL.xlsx").await;
     assert!(
@@ -1840,6 +1916,14 @@ async fn test_instrument_rheology_brookfield_power_law_data() {
                 && row.source_sheet.as_deref() == Some("Power Law Data")
         }),
         "Brookfield should expose instrument rows from Power Law Data; got {:?}",
+        r.instrument_rheology
+    );
+    assert!(
+        r.instrument_rheology
+            .iter()
+            .filter(|row| row.source_sheet.as_deref() == Some("Power Law Data"))
+            .all(|row| row.time_min.map(|time| time < 600.0).unwrap_or(true)),
+        "Brookfield Power Law rows must not expose Excel date serials as elapsed time; got {:?}",
         r.instrument_rheology
     );
 }

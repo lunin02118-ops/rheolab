@@ -9,7 +9,7 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ParseResult } from '@/lib/store/experiment-data-store';
 import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
 import type { RecipeComponent } from '@/lib/parsing/types';
-import type { WaterParams } from '@/types';
+import type { RheologyParameterRow, RheologyParameterSource, WaterParams } from '@/types';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import { generatePdfReportBlob, generateExcelReportBlob } from '@/lib/reports/client';
 import { saveBlob, saveBlobsToDir, type SaveBlobItem } from '@/lib/reports/report-save';
@@ -19,6 +19,7 @@ import {
     buildPdfReportInput,
     buildExcelReportInput,
     type ReportBuildContext,
+    mapRheologyParameterRows,
 } from '@/lib/reports/report-builders';
 import { extractExperimentMetadata } from '@/lib/metadata-utils';
 import { logger } from '@/lib/logger';
@@ -41,6 +42,8 @@ export interface UseReportExportOptions {
     showRawData: boolean;
     showRecipe: boolean;
     showWaterAnalysis: boolean;
+    rheologySource: RheologyParameterSource;
+    instrumentRheology?: RheologyParameterRow[];
     reportViscosityRates: number[];
     isExpert: boolean;
     companyName: string;
@@ -58,7 +61,14 @@ export function useReportExport(options: UseReportExportOptions) {
 
     // Pre-compute data mappings once when source data changes
     const rawDataMapped = useMemo(() => mapRawData(parseResult.data), [parseResult.data]);
-    const cycleResultsMapped = useMemo(() => mapCycleResults(cycleResults), [cycleResults]);
+    const instrumentRheologyMapped = useMemo(
+        () => mapRheologyParameterRows(parseResult.instrumentRheology ?? options.instrumentRheology ?? []),
+        [parseResult.instrumentRheology, options.instrumentRheology],
+    );
+    const programCycleResultsMapped = useMemo(() => mapCycleResults(cycleResults), [cycleResults]);
+    const cycleResultsMapped = options.rheologySource === 'instrument'
+        ? instrumentRheologyMapped
+        : programCycleResultsMapped;
 
     const legacyFields = useMemo(
         () => extractExperimentMetadata(parseResult.metadata),
@@ -90,6 +100,7 @@ export function useReportExport(options: UseReportExportOptions) {
         showWaterAnalysis: options.showWaterAnalysis,
         reportViscosityRates: options.reportViscosityRates,
         isExpert: options.isExpert,
+        rheologySource: options.rheologySource,
     }), [
         rawDataMapped, cycleResultsMapped, parseResult.metadata, legacyFields,
         options.editedRecipe, options.editedWaterParams, options.editedWaterSource,
@@ -97,8 +108,8 @@ export function useReportExport(options: UseReportExportOptions) {
         options.language, options.unitSystem, options.showTouchPoints,
         options.viscosityThreshold, options.showTargetTime, options.targetTime,
         options.showCalibration, options.showRawData,
-        options.showRecipe, options.showWaterAnalysis, options.reportViscosityRates,
-        options.isExpert,
+        options.showRecipe, options.showWaterAnalysis,
+        options.reportViscosityRates, options.isExpert, options.rheologySource,
     ]);
 
     const handleDownload = useCallback(async () => {

@@ -27,7 +27,7 @@ export interface GeometryParams {
 }
 
 export const GEOMETRY_PARAMS: Record<string, GeometryParams> = {
-    R1B1: { Rb: 1.7245, Rc: 1.8415, L: 3.80 },
-    R1B2: { Rb: 1.5987, Rc: 1.8415, L: 3.80 },
-    R1B5: { Rb: 1.3590, Rc: 1.8415, L: 3.80 }, // Default Grace
+    R1B1: { Rb: 1.7245, Rc: 1.8415, L: 7.62 },
+    R1B2: { Rb: 1.2276, Rc: 1.8415, L: 7.62 },
+    R1B5: { Rb: 1.5987, Rc: 1.8415, L: 7.62 }, // Default Grace
 };

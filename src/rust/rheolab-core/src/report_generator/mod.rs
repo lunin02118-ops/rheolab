@@ -1,5 +1,5 @@
 //! Report Generator Module
-//! 
+//!
 //! Complete report generation for PDF and Excel, matching JavaScript implementation exactly.
 //! This module is designed to produce byte-identical output to the React-PDF and ExcelJS versions.
 
@@ -9,10 +9,10 @@ pub mod excel;
 #[cfg(feature = "pdf")]
 pub mod pdf;
 
-pub mod types;
-pub mod translations;
 pub mod formatters;
 pub mod touch_point;
+pub mod translations;
+pub mod types;
 
 #[cfg(feature = "pdf")]
 pub mod typst_renderer;
@@ -29,10 +29,10 @@ pub mod chart_generator;
 pub mod comparison;
 
 #[cfg(feature = "excel")]
-pub use excel::{generate_excel_report, generate_excel_from_input};
+pub use excel::{generate_excel_from_input, generate_excel_report};
 
 #[cfg(feature = "pdf")]
-pub use pdf::{generate_pdf_report, generate_pdf_from_input};
+pub use pdf::{generate_pdf_from_input, generate_pdf_report};
 
 // Comparison report entry points (ADR-0010, Phase 1.E).
 #[cfg(feature = "excel")]

@@ -1,4 +1,4 @@
-﻿//! # RheoLab Core - Rheological Calculation Engine
+//! # RheoLab Core - Rheological Calculation Engine
 //!
 //! This crate provides high-performance implementations of rheological models
 //! and data processing algorithms for the RheoLab Enterprise desktop application.
@@ -39,23 +39,22 @@
 //! 3. Algorithm logic should be preserved exactly for consistency
 //! 4. Unit tests provide reference implementations for validation
 
-mod physics;
-mod grace;
-pub mod types;
 mod detectors;
-pub mod parser;
-mod processor;
+mod grace;
 pub mod parasitic_filter;
-pub mod schedule_detector;
+pub mod parser;
+mod physics;
+mod processor;
 pub mod report_generator;
+pub mod schedule_detector;
+pub mod types;
 
 // Always available (native Rust API)
-pub use grace::{calculate_grace_internal, ExpertSettings, GraceInputParams, GraceCycleResult};
 pub use detectors::{
-    detect_anchor_cycles_internal, is_sst_pattern,
-    detect_sst_cycles_internal, is_repeating_sequence_pattern,
-    detect_repeating_sequence_cycles_internal,
+    detect_anchor_cycles_internal, detect_repeating_sequence_cycles_internal,
+    detect_sst_cycles_internal, is_repeating_sequence_pattern, is_sst_pattern,
 };
+pub use grace::{calculate_grace_internal, ExpertSettings, GraceCycleResult, GraceInputParams};
 pub use processor::process_cycle_for_calculation as process_cycle_internal;
 
 // WASM-only exports removed -- native Tauri build does not use WASM.

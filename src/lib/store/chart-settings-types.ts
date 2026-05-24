@@ -22,7 +22,7 @@ export type ShearRateUnit = '1/s';
 export type RpmUnit = 'RPM';
 
 /** Consistency index K' / Ks / Kp unit. */
-export type ConsistencyUnit = 'Pa·s^n' | 'eq.cP' | 'lbf·s^n/100ft²';
+export type ConsistencyUnit = 'Pa·s^n' | 'lbf·s^n/100ft²';
 /** Plastic viscosity (PV) unit. */
 export type PlasticViscosityUnit = 'Pa·s' | 'cP';
 /** Yield point (YP) unit. */

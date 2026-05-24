@@ -10,11 +10,15 @@
  */
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
 import type { DashboardContentProps } from '@/components/dashboard/DashboardContent';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────
+
+const dashboardMocks = vi.hoisted(() => ({
+    cycleResultsTable: vi.fn(),
+}));
 
 vi.mock('@/hooks/useLicense', () => ({
     useLicense: () => ({
@@ -39,7 +43,49 @@ vi.mock('@/components/dashboard/raw-data-table-by-id', () => ({
 }));
 
 vi.mock('@/components/analysis/cycle-results-table', () => ({
-    CycleResultsTable: () => <div data-testid="MockCycleResultsTable" />,
+    CycleResultsTable: (props: {
+        cycles: Array<{ id: number; cycleIndex?: number }>;
+        results: Map<number, unknown>;
+        preferResultTiming?: boolean;
+        onEditCycle?: (cycleId: number) => void;
+    }) => {
+        dashboardMocks.cycleResultsTable(props);
+        const firstCycle = props.cycles[0];
+        const firstResult = props.results.values().next().value as {
+            timeMin?: number;
+            endTimeMin?: number;
+            n_prime?: number;
+            K_prime_PaSn?: number;
+        } | undefined;
+        const firstVisibleResult = firstCycle
+            ? props.results.get(firstCycle.id) as typeof firstResult
+            : firstResult;
+        return (
+            <div>
+                <div
+                    data-testid="MockCycleResultsTable"
+                    data-cycle-count={String(props.cycles.length)}
+                    data-result-count={String(props.results.size)}
+                    data-prefer-result-timing={String(Boolean(props.preferResultTiming))}
+                    data-first-cycle-id={String(firstCycle?.id ?? '')}
+                    data-first-cycle-index={String(firstCycle?.cycleIndex ?? '')}
+                    data-first-time-min={String(firstVisibleResult?.timeMin ?? '')}
+                    data-first-end-time-min={String(firstVisibleResult?.endTimeMin ?? '')}
+                    data-first-n-prime={String(firstVisibleResult?.n_prime ?? '')}
+                    data-first-k-prime={String(firstVisibleResult?.K_prime_PaSn ?? '')}
+                />
+                {firstCycle && props.onEditCycle && (
+                    <button
+                        type="button"
+                        data-testid="MockEditCycleButton"
+                        onClick={() => props.onEditCycle?.(firstCycle.id)}
+                    >
+                        edit
+                    </button>
+                )}
+            </div>
+        );
+    },
 }));
 
 vi.mock('@/components/analysis/ReportTab', () => ({
@@ -58,7 +104,9 @@ vi.mock('@/components/analysis/ReportTab', () => ({
 }));
 
 vi.mock('@/components/analysis/cycle-editor-dialog', () => ({
-    CycleEditorDialog: () => null,
+    CycleEditorDialog: ({ cycle }: { cycle: { id: number } | null }) => (
+        <div data-testid="MockCycleEditorDialog" data-cycle-id={String(cycle?.id ?? '')} />
+    ),
 }));
 
 vi.mock('@/components/analysis/recipe-panel', () => ({
@@ -90,7 +138,23 @@ vi.mock('@/lib/utils/columnar', () => ({
 }));
 
 vi.mock('@/components/ui/collapsible-card', () => ({
-    CollapsibleCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    CollapsibleCard: ({
+        title,
+        headerActions,
+        children,
+    }: {
+        title: React.ReactNode;
+        headerActions?: React.ReactNode;
+        children: React.ReactNode;
+    }) => (
+        <div>
+            <div>
+                <div>{title}</div>
+                <div>{headerActions}</div>
+            </div>
+            {children}
+        </div>
+    ),
 }));
 
 vi.mock('@/components/ui/logo', () => ({
@@ -168,6 +232,163 @@ describe('DashboardContent', () => {
         expect(screen.getByTestId('MockRheologyChart')).toBeDefined();
     });
 
+    it('switches rheology analysis between program and parsed instrument results', async () => {
+        render(<DashboardContent {...makeProps({
+            parseResult: {
+                ...mockParseResult,
+                instrumentRheology: [{
+                    source: 'instrument',
+                    cycleNo: 1,
+                    timeMin: 755.8,
+                    endTimeMin: 755.8,
+                    nPrime: 0.61,
+                    kPrimePaSn: 0.22,
+                }],
+            } as never,
+            cycles: [{
+                id: 1,
+                cycleIndex: 1,
+                type: 'API',
+                steps: [{ startTime: 600 } as never],
+                description: 'API RP 39 Cycle',
+                duration: 180,
+            } as never],
+            cycleResults: new Map([[1, {
+                cycleNo: 1,
+                timeMin: 10,
+                endTimeMin: 13,
+                n_prime: 0.44,
+                K_prime_PaSn: 0.18,
+            } as never]]),
+        })} />);
+
+        const initialTable = await screen.findByTestId('MockCycleResultsTable');
+        expect(initialTable.getAttribute('data-prefer-result-timing')).toBe('false');
+        expect(initialTable.getAttribute('data-first-n-prime')).toBe('0.44');
+
+        fireEvent.click(screen.getByTestId('AnalysisRheologySourceProgram'));
+
+        const programTable = screen.getByTestId('MockCycleResultsTable');
+        expect(programTable.getAttribute('data-prefer-result-timing')).toBe('false');
+        expect(programTable.getAttribute('data-first-n-prime')).toBe('0.44');
+
+        fireEvent.click(screen.getByTestId('AnalysisRheologySourceInstrument'));
+
+        const table = screen.getByTestId('MockCycleResultsTable');
+        expect(table.getAttribute('data-result-count')).toBe('1');
+        expect(table.getAttribute('data-prefer-result-timing')).toBe('true');
+        expect(table.getAttribute('data-first-time-min')).toBe('755.8');
+        expect(table.getAttribute('data-first-end-time-min')).toBe('755.8');
+        expect(table.getAttribute('data-first-n-prime')).toBe('0.61');
+        expect(table.getAttribute('data-first-k-prime')).toBe('0.22');
+        expect(screen.queryByTestId('InstrumentRheologyUnavailable')).toBeNull();
+    });
+
+    it('renders parsed instrument rows even when program cycle ids do not match', async () => {
+        render(<DashboardContent {...makeProps({
+            parseResult: {
+                ...mockParseResult,
+                instrumentRheology: [{
+                    source: 'instrument',
+                    cycleNo: 1,
+                    timeMin: 13,
+                    endTimeMin: 13,
+                    nPrime: 0.55,
+                    kPrimePaSn: 16.3,
+                    sourceSheet: 'Power Law Data',
+                }],
+            } as never,
+            cycles: [{
+                id: 99,
+                cycleIndex: 99,
+                type: 'API',
+                steps: [{ startTime: 600 } as never],
+                description: 'Program cycle with unrelated id',
+                duration: 180,
+            } as never],
+            cycleResults: new Map([[99, {
+                cycleNo: 99,
+                timeMin: 10,
+                endTimeMin: 13,
+                n_prime: 0.44,
+                K_prime_PaSn: 0.18,
+            } as never]]),
+        })} />);
+
+        await screen.findByTestId('MockCycleResultsTable');
+        fireEvent.click(screen.getByTestId('AnalysisRheologySourceInstrument'));
+
+        const table = screen.getByTestId('MockCycleResultsTable');
+        expect(table.getAttribute('data-prefer-result-timing')).toBe('true');
+        expect(table.getAttribute('data-cycle-count')).toBe('1');
+        expect(table.getAttribute('data-first-cycle-id')).toBe('-1');
+        expect(table.getAttribute('data-first-cycle-index')).toBe('1');
+        expect(table.getAttribute('data-first-n-prime')).toBe('0.55');
+        expect(table.getAttribute('data-first-k-prime')).toBe('16.3');
+    });
+
+    it('uses saved instrument source as the default for loaded experiments', async () => {
+        render(<DashboardContent {...makeProps({
+            parseResult: {
+                ...mockParseResult,
+                metadata: {
+                    ...mockParseResult.metadata,
+                    rheologySource: 'instrument',
+                },
+                instrumentRheology: [{
+                    source: 'instrument',
+                    cycleNo: 1,
+                    timeMin: 21,
+                    endTimeMin: 22,
+                    nPrime: 0.58,
+                    kPrimePaSn: 0.19,
+                }],
+            } as never,
+            cycles: [{
+                id: 1,
+                cycleIndex: 1,
+                type: 'API',
+                steps: [{ startTime: 600 } as never],
+                description: 'API RP 39 Cycle',
+                duration: 180,
+            } as never],
+            cycleResults: new Map([[1, {
+                cycleNo: 1,
+                timeMin: 10,
+                endTimeMin: 13,
+                n_prime: 0.44,
+                K_prime_PaSn: 0.18,
+            } as never]]),
+        })} />);
+
+        const table = await screen.findByTestId('MockCycleResultsTable');
+        expect(table.getAttribute('data-prefer-result-timing')).toBe('true');
+        expect(table.getAttribute('data-first-n-prime')).toBe('0.58');
+        expect(table.getAttribute('data-first-k-prime')).toBe('0.19');
+    });
+
+    it('shows a clear message when instrument rheology was not parsed', async () => {
+        render(<DashboardContent {...makeProps({
+            cycles: [{
+                id: 1,
+                cycleIndex: 1,
+                type: 'API',
+                steps: [],
+                description: 'API RP 39 Cycle',
+                duration: 180,
+            } as never],
+            cycleResults: new Map([[1, {} as never]]),
+        })} />);
+
+        expect(await screen.findByTestId('MockCycleResultsTable')).toBeDefined();
+
+        fireEvent.click(screen.getByTestId('AnalysisRheologySourceInstrument'));
+
+        expect(screen.getByTestId('InstrumentRheologyUnavailable')).toBeDefined();
+        expect(screen.getByText('Таблица реологических расчётов не найдена')).toBeDefined();
+        expect(screen.queryByTestId('MockCycleResultsTable')).toBeNull();
+    });
+
     // ── tab navigation ─────────────────────────────────────────────────────
 
     it('switches to table tab on click', async () => {
@@ -226,6 +447,67 @@ describe('DashboardContent', () => {
         expect(onRequireFullData).not.toHaveBeenCalled();
         expect(panel.textContent).toContain('by-id exp_1');
         expect(screen.queryByText(/Загружаем полный набор данных/i)).toBeNull();
+    });
+
+    it('loads full saved experiment before opening expert cycle editor from metadata-only view', async () => {
+        const onRequireFullData = vi.fn().mockResolvedValue(true);
+        render(<DashboardContent {...makeProps({
+            isExpert: true,
+            isMetadataOnly: true,
+            onRequireFullData,
+            cycles: [{
+                id: 1,
+                cycleIndex: 1,
+                type: 'API',
+                steps: [],
+                description: 'API RP 39 Cycle',
+                duration: 180,
+            } as never],
+            cycleResults: new Map([[1, {
+                cycleNo: 1,
+                timeMin: 10,
+                endTimeMin: 13,
+                n_prime: 0.44,
+                K_prime_PaSn: 0.18,
+            } as never]]),
+        })} />);
+
+        expect(await screen.findByTestId('MockCycleResultsTable')).toBeDefined();
+        fireEvent.click(screen.getByTestId('MockEditCycleButton'));
+
+        await waitFor(() => expect(onRequireFullData).toHaveBeenCalledOnce());
+        const dialog = await screen.findByTestId('MockCycleEditorDialog');
+        expect(dialog.getAttribute('data-cycle-id')).toBe('1');
+    });
+
+    it('does not open expert cycle editor when metadata-only full-data load fails', async () => {
+        const onRequireFullData = vi.fn().mockResolvedValue(false);
+        render(<DashboardContent {...makeProps({
+            isExpert: true,
+            isMetadataOnly: true,
+            onRequireFullData,
+            cycles: [{
+                id: 1,
+                cycleIndex: 1,
+                type: 'API',
+                steps: [],
+                description: 'API RP 39 Cycle',
+                duration: 180,
+            } as never],
+            cycleResults: new Map([[1, {
+                cycleNo: 1,
+                timeMin: 10,
+                endTimeMin: 13,
+                n_prime: 0.44,
+                K_prime_PaSn: 0.18,
+            } as never]]),
+        })} />);
+
+        expect(await screen.findByTestId('MockCycleResultsTable')).toBeDefined();
+        fireEvent.click(screen.getByTestId('MockEditCycleButton'));
+
+        await waitFor(() => expect(onRequireFullData).toHaveBeenCalledOnce());
+        expect(screen.queryByTestId('MockCycleEditorDialog')).toBeNull();
     });
 
     // ── save callback ──────────────────────────────────────────────────────

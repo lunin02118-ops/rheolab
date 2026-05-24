@@ -24,29 +24,35 @@ use std::fs;
 use std::path::PathBuf;
 
 fn mk_exp(name: &str, color: RGBColor, n: usize) -> ExperimentSeries {
-    let points = (0..n).map(|i| {
-        let t = i as f64 * 0.5; // 0..n/2 min
-        ChartPoint {
-            time_min: t,
-            viscosity_cp: 3000.0 * (-t / 30.0).exp() + 50.0,
-            temperature_c: Some(90.0 + (t * 0.1).sin()),
-            shear_rate: Some(100.0 + (t * 0.05).cos() * 5.0),
-            pressure_bar: Some(50.0 + (t * 0.2).sin() * 10.0),
-            bath_temperature_c: Some(98.0),
-        }
-    }).collect();
-    ExperimentSeries { points, color, display_name: name.into() }
+    let points = (0..n)
+        .map(|i| {
+            let t = i as f64 * 0.5; // 0..n/2 min
+            ChartPoint {
+                time_min: t,
+                viscosity_cp: 3000.0 * (-t / 30.0).exp() + 50.0,
+                temperature_c: Some(90.0 + (t * 0.1).sin()),
+                shear_rate: Some(100.0 + (t * 0.05).cos() * 5.0),
+                pressure_bar: Some(50.0 + (t * 0.2).sin() * 10.0),
+                bath_temperature_c: Some(98.0),
+            }
+        })
+        .collect();
+    ExperimentSeries {
+        points,
+        color,
+        display_name: name.into(),
+    }
 }
 
 #[derive(Clone, Copy)]
 struct ScenarioCfg {
-    show_temp:    bool,
-    show_bath:    bool,
-    show_shear:   bool,
-    show_press:   bool,
-    shear_axis:   &'static str,
-    pressure_ax:  &'static str,
-    axis_mode:    &'static str,
+    show_temp: bool,
+    show_bath: bool,
+    show_shear: bool,
+    show_press: bool,
+    shear_axis: &'static str,
+    pressure_ax: &'static str,
+    axis_mode: &'static str,
 }
 
 fn mk_cfg(s: ScenarioCfg) -> ChartConfig {
@@ -79,9 +85,9 @@ fn mk_cfg(s: ScenarioCfg) -> ChartConfig {
 fn main() {
     let exps = vec![
         mk_exp("E1", RGBColor(30, 144, 255), 300),
-        mk_exp("E2", RGBColor(255,   0,   0), 300),
-        mk_exp("E3", RGBColor(  0, 128,   0), 300),
-        mk_exp("E4", RGBColor(128,   0, 128), 300),
+        mk_exp("E2", RGBColor(255, 0, 0), 300),
+        mk_exp("E3", RGBColor(0, 128, 0), 300),
+        mk_exp("E4", RGBColor(128, 0, 128), 300),
     ];
 
     // (name, ScenarioCfg, expected_total, expected_left, expected_right)
@@ -92,58 +98,162 @@ fn main() {
     // happily renders it (see `pdf_comparison_debug` D/E/F/G groups).
     let cases: &[(&str, ScenarioCfg, usize, usize, usize)] = &[
         // ── Viscosity-only baselines ────────────────────────────────────
-        ("A_visc_only_shared",
-         ScenarioCfg { show_temp: false, show_bath: false, show_shear: false, show_press: false,
-                       shear_axis: "right", pressure_ax: "right", axis_mode: "shared" },
-         0, 0, 0),
-        ("A_visc_only_indiv",
-         ScenarioCfg { show_temp: false, show_bath: false, show_shear: false, show_press: false,
-                       shear_axis: "right", pressure_ax: "right", axis_mode: "individual" },
-         1, 1, 0),
-
+        (
+            "A_visc_only_shared",
+            ScenarioCfg {
+                show_temp: false,
+                show_bath: false,
+                show_shear: false,
+                show_press: false,
+                shear_axis: "right",
+                pressure_ax: "right",
+                axis_mode: "shared",
+            },
+            0,
+            0,
+            0,
+        ),
+        (
+            "A_visc_only_indiv",
+            ScenarioCfg {
+                show_temp: false,
+                show_bath: false,
+                show_shear: false,
+                show_press: false,
+                shear_axis: "right",
+                pressure_ax: "right",
+                axis_mode: "individual",
+            },
+            1,
+            1,
+            0,
+        ),
         // ── Shear rate + temperature ────────────────────────────────────
-        ("B_visc+shear_left__temp_right__indiv",
-         ScenarioCfg { show_temp: true,  show_bath: false, show_shear: true,  show_press: false,
-                       shear_axis: "left",  pressure_ax: "right", axis_mode: "individual" },
-         3, 2, 1),
-        ("B_visc__shear_right+temp_right__indiv",
-         ScenarioCfg { show_temp: true,  show_bath: false, show_shear: true,  show_press: false,
-                       shear_axis: "right", pressure_ax: "right", axis_mode: "individual" },
-         3, 1, 2),
-
+        (
+            "B_visc+shear_left__temp_right__indiv",
+            ScenarioCfg {
+                show_temp: true,
+                show_bath: false,
+                show_shear: true,
+                show_press: false,
+                shear_axis: "left",
+                pressure_ax: "right",
+                axis_mode: "individual",
+            },
+            3,
+            2,
+            1,
+        ),
+        (
+            "B_visc__shear_right+temp_right__indiv",
+            ScenarioCfg {
+                show_temp: true,
+                show_bath: false,
+                show_shear: true,
+                show_press: false,
+                shear_axis: "right",
+                pressure_ax: "right",
+                axis_mode: "individual",
+            },
+            3,
+            1,
+            2,
+        ),
         // ── Sample + bath (shared right axis) ───────────────────────────
-        ("C_visc__sample+bath_right__indiv",
-         ScenarioCfg { show_temp: true,  show_bath: true,  show_shear: false, show_press: false,
-                       shear_axis: "right", pressure_ax: "right", axis_mode: "individual" },
-         2, 1, 1),
-
+        (
+            "C_visc__sample+bath_right__indiv",
+            ScenarioCfg {
+                show_temp: true,
+                show_bath: true,
+                show_shear: false,
+                show_press: false,
+                shear_axis: "right",
+                pressure_ax: "right",
+                axis_mode: "individual",
+            },
+            2,
+            1,
+            1,
+        ),
         // ── Visc + shear + sample + bath ────────────────────────────────
-        ("D_visc+shear_left__sample+bath_right__indiv",
-         ScenarioCfg { show_temp: true,  show_bath: true,  show_shear: true,  show_press: false,
-                       shear_axis: "left",  pressure_ax: "right", axis_mode: "individual" },
-         3, 2, 1),
-
+        (
+            "D_visc+shear_left__sample+bath_right__indiv",
+            ScenarioCfg {
+                show_temp: true,
+                show_bath: true,
+                show_shear: true,
+                show_press: false,
+                shear_axis: "left",
+                pressure_ax: "right",
+                axis_mode: "individual",
+            },
+            3,
+            2,
+            1,
+        ),
         // ── Pressure on each side ───────────────────────────────────────
-        ("E_visc__pressure_right__indiv",
-         ScenarioCfg { show_temp: false, show_bath: false, show_shear: false, show_press: true,
-                       shear_axis: "right", pressure_ax: "right", axis_mode: "individual" },
-         2, 1, 1),
-        ("E_visc+pressure_left__indiv",
-         ScenarioCfg { show_temp: false, show_bath: false, show_shear: false, show_press: true,
-                       shear_axis: "right", pressure_ax: "left",  axis_mode: "individual" },
-         2, 2, 0),
-
+        (
+            "E_visc__pressure_right__indiv",
+            ScenarioCfg {
+                show_temp: false,
+                show_bath: false,
+                show_shear: false,
+                show_press: true,
+                shear_axis: "right",
+                pressure_ax: "right",
+                axis_mode: "individual",
+            },
+            2,
+            1,
+            1,
+        ),
+        (
+            "E_visc+pressure_left__indiv",
+            ScenarioCfg {
+                show_temp: false,
+                show_bath: false,
+                show_shear: false,
+                show_press: true,
+                shear_axis: "right",
+                pressure_ax: "left",
+                axis_mode: "individual",
+            },
+            2,
+            2,
+            0,
+        ),
         // ── Shear left + pressure right + sample temp right ─────────────
-        ("F_visc+shear_left__press+temp_right__indiv",
-         ScenarioCfg { show_temp: true,  show_bath: false, show_shear: true,  show_press: true,
-                       shear_axis: "left",  pressure_ax: "right", axis_mode: "individual" },
-         4, 2, 2),
-
+        (
+            "F_visc+shear_left__press+temp_right__indiv",
+            ScenarioCfg {
+                show_temp: true,
+                show_bath: false,
+                show_shear: true,
+                show_press: true,
+                shear_axis: "left",
+                pressure_ax: "right",
+                axis_mode: "individual",
+            },
+            4,
+            2,
+            2,
+        ),
         // ── Everything visible, shared mode (1 left, 1 right) ───────────
-        ("Z_all_metrics_shared",
-         ScenarioCfg { show_temp: true,  show_bath: true,  show_shear: true,  show_press: true,
-                       shear_axis: "left",  pressure_ax: "right", axis_mode: "shared" },
-         0, 0, 0),
+        (
+            "Z_all_metrics_shared",
+            ScenarioCfg {
+                show_temp: true,
+                show_bath: true,
+                show_shear: true,
+                show_press: true,
+                shear_axis: "left",
+                pressure_ax: "right",
+                axis_mode: "shared",
+            },
+            0,
+            0,
+            0,
+        ),
     ];
 
     let mut failures: usize = 0;
@@ -154,7 +264,9 @@ fn main() {
     // The folder layout mirrors `runtime/pdf-debug/` for consistency.
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let workspace_root = manifest
-        .parent().and_then(|p| p.parent()).and_then(|p| p.parent())
+        .parent()
+        .and_then(|p| p.parent())
+        .and_then(|p| p.parent())
         .map(|p| p.to_path_buf())
         .unwrap_or(manifest.clone());
     let out_dir = workspace_root.join("runtime").join("axis-debug");
@@ -181,17 +293,25 @@ fn main() {
                 // side-by-side in a browser / SVG viewer.  Keeping the
                 // names parallel (`<name>_multi.svg` / `<name>_single.svg`)
                 // makes diff-by-eye trivial.
-                let _ = fs::write(out_dir.join(format!("{name}_multi.svg")),  svg_m.as_bytes());
+                let _ = fs::write(out_dir.join(format!("{name}_multi.svg")), svg_m.as_bytes());
                 let _ = fs::write(out_dir.join(format!("{name}_single.svg")), svg_s.as_bytes());
-                let n_left  = ranges_m.individual_axes.iter().filter(|a| a.side == "left").count();
-                let n_right = ranges_m.individual_axes.iter().filter(|a| a.side == "right").count();
-                let path_count     = svg_m.matches("<path ").count();
+                let n_left = ranges_m
+                    .individual_axes
+                    .iter()
+                    .filter(|a| a.side == "left")
+                    .count();
+                let n_right = ranges_m
+                    .individual_axes
+                    .iter()
+                    .filter(|a| a.side == "right")
+                    .count();
+                let path_count = svg_m.matches("<path ").count();
                 let polyline_count = svg_m.matches("<polyline").count();
 
                 // Diagnostics gate (legacy expectations).
                 let count_ok = ranges_m.individual_axes.len() == *exp_total
-                            && n_left  == *exp_left
-                            && n_right == *exp_right;
+                    && n_left == *exp_left
+                    && n_right == *exp_right;
 
                 // Parity gate: structural slot match between the two
                 // renderers (metric tag + side + side_idx).  Tick scales
@@ -200,19 +320,27 @@ fn main() {
                 // feeds 1).  The dedicated unit test
                 // `comparison_individual_axes_match_single_experiment`
                 // pins those when both pipelines see the same trace.
-                let slots_m: Vec<_> = ranges_m.individual_axes.iter()
-                    .map(|a| (a.metric.clone(), a.side.clone(), a.side_idx)).collect();
-                let slots_s: Vec<_> = ranges_s.individual_axes.iter()
-                    .map(|a| (a.metric.clone(), a.side.clone(), a.side_idx)).collect();
+                let slots_m: Vec<_> = ranges_m
+                    .individual_axes
+                    .iter()
+                    .map(|a| (a.metric.clone(), a.side.clone(), a.side_idx))
+                    .collect();
+                let slots_s: Vec<_> = ranges_s
+                    .individual_axes
+                    .iter()
+                    .map(|a| (a.metric.clone(), a.side.clone(), a.side_idx))
+                    .collect();
                 let parity_ok = slots_m == slots_s;
 
                 let status = match (count_ok, parity_ok) {
-                    (true, true)   => "OK    ",
-                    (true, false)  => "PARITY",
-                    (false, true)  => "COUNT ",
+                    (true, true) => "OK    ",
+                    (true, false) => "PARITY",
+                    (false, true) => "COUNT ",
                     (false, false) => "FAIL  ",
                 };
-                if !count_ok || !parity_ok { failures += 1; }
+                if !count_ok || !parity_ok {
+                    failures += 1;
+                }
 
                 println!(
                     "[{status}] {name:<48} total={} L={} R={} (exp total={} L={} R={}) svg={} path={} polyline={}",
@@ -226,13 +354,22 @@ fn main() {
                     println!("            single: {slots_s:?}");
                 }
             }
-            (Err(e), _) => { println!("[ERR  ] {name}: multi failed: {e}"); failures += 1; }
-            (_, Err(e)) => { println!("[ERR  ] {name}: single failed: {e}"); failures += 1; }
+            (Err(e), _) => {
+                println!("[ERR  ] {name}: multi failed: {e}");
+                failures += 1;
+            }
+            (_, Err(e)) => {
+                println!("[ERR  ] {name}: single failed: {e}");
+                failures += 1;
+            }
         }
     }
 
     if failures == 0 {
-        println!("\n[parity] all {} scenarios match between single and multi renderers", cases.len());
+        println!(
+            "\n[parity] all {} scenarios match between single and multi renderers",
+            cases.len()
+        );
     } else {
         println!("\n[parity] {failures} of {} scenarios FAILED", cases.len());
         std::process::exit(1);

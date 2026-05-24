@@ -162,6 +162,23 @@ describe('useReportExportById', () => {
         });
     });
 
+    it('forwards rheology source override for saved by-id exports', async () => {
+        const { result } = renderHook(() =>
+            useReportExportById(
+                makeOptions({
+                    rheologySourceOverride: 'instrument',
+                }),
+            ),
+        );
+
+        await act(async () => {
+            await result.current.handleDownload();
+        });
+
+        const request = vi.mocked(generatePdfReportByIdBytes).mock.calls[0][0];
+        expect(request.settings.rheologySourceOverride).toBe('instrument');
+    });
+
     it('includes full water override fields for saved by-id exports', async () => {
         const waterParams = {
             salinity: 1234,

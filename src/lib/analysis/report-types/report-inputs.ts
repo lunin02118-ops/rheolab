@@ -111,6 +111,12 @@ type ReportSettings = {
     showTargetTime?: boolean;
     targetTime?: number;
     /**
+     * Which rheology parameter table is rendered in the report.
+     * `instrument` means parsed calculations from the device report;
+     * `program` means values calculated by RheoLab.
+     */
+    rheologySource?: 'instrument' | 'program';
+    /**
      * Axis layout mode for the chart.
      * - 'individual' (Раздельные): viscosity on its own left scale; other metrics on right
      * - 'shared' (Общие): metrics share a unified left/right scale based on their axis setting

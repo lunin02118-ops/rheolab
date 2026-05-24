@@ -53,7 +53,7 @@ pub fn detect_schedule(data: &[RheoPoint], config: &ScheduleConfig) -> Vec<RheoS
         // Find segment with similar shear rate
         while j < data.len() {
             let next_rate = data[j].shear_rate.unwrap_or(0.0);
-            
+
             let mut allowed_deviation = sr_abs_tol;
             if current_rate.abs() > 1e-6 {
                 allowed_deviation = sr_abs_tol.max((current_rate * sr_rel_tol_decimal).abs());
@@ -86,11 +86,23 @@ pub fn detect_schedule(data: &[RheoPoint], config: &ScheduleConfig) -> Vec<RheoS
         // Filter short steps
         if duration >= config.min_step_duration - 1e-5 {
             let count = segment_points.len() as f64;
-            let avg_rate = segment_points.iter().map(|p| p.shear_rate.unwrap_or(0.0)).sum::<f64>() / count;
-            let avg_stress = segment_points.iter().map(|p| p.shear_stress.unwrap_or(0.0)).sum::<f64>() / count;
+            let avg_rate = segment_points
+                .iter()
+                .map(|p| p.shear_rate.unwrap_or(0.0))
+                .sum::<f64>()
+                / count;
+            let avg_stress = segment_points
+                .iter()
+                .map(|p| p.shear_stress.unwrap_or(0.0))
+                .sum::<f64>()
+                / count;
             let avg_visc = segment_points.iter().map(|p| p.viscosity_cp).sum::<f64>() / count;
             let avg_temp = segment_points.iter().map(|p| p.temperature_c).sum::<f64>() / count;
-            let avg_press = segment_points.iter().map(|p| p.pressure_bar.unwrap_or(0.0)).sum::<f64>() / count;
+            let avg_press = segment_points
+                .iter()
+                .map(|p| p.pressure_bar.unwrap_or(0.0))
+                .sum::<f64>()
+                / count;
 
             let base_step = RheoStep {
                 id: step_id_counter,
@@ -113,24 +125,36 @@ pub fn detect_schedule(data: &[RheoPoint], config: &ScheduleConfig) -> Vec<RheoS
 
             // Step Splitting Logic
             if config.step_splitting && duration >= config.min_duration_for_split {
-                 let min_total = config.split_start_duration + config.split_end_duration + 0.1;
-                 if duration > min_total {
-                     // Split into Start + End (ignore middle conditioning part)
+                let min_total = config.split_start_duration + config.split_end_duration + 0.1;
+                if duration > min_total {
+                    // Split into Start + End (ignore middle conditioning part)
 
-                     // Part 1: Start segment
-                     let t_start = step_start_time;
-                     let t_end1 = t_start + config.split_start_duration;
-                     steps.push(create_split_step(&base_step, segment_points, t_start, t_end1, step_id_counter));
-                     step_id_counter += 1;
+                    // Part 1: Start segment
+                    let t_start = step_start_time;
+                    let t_end1 = t_start + config.split_start_duration;
+                    steps.push(create_split_step(
+                        &base_step,
+                        segment_points,
+                        t_start,
+                        t_end1,
+                        step_id_counter,
+                    ));
+                    step_id_counter += 1;
 
-                     // Part 2: End segment
-                     let t_end2 = end_time;
-                     let t_start2 = t_end2 - config.split_end_duration;
-                     steps.push(create_split_step(&base_step, segment_points, t_start2, t_end2, step_id_counter));
-                     step_id_counter += 1;
-                 } else {
-                     steps.push(base_step);
-                 }
+                    // Part 2: End segment
+                    let t_end2 = end_time;
+                    let t_start2 = t_end2 - config.split_end_duration;
+                    steps.push(create_split_step(
+                        &base_step,
+                        segment_points,
+                        t_start2,
+                        t_end2,
+                        step_id_counter,
+                    ));
+                    step_id_counter += 1;
+                } else {
+                    steps.push(base_step);
+                }
             } else {
                 steps.push(base_step);
             }
@@ -142,8 +166,15 @@ pub fn detect_schedule(data: &[RheoPoint], config: &ScheduleConfig) -> Vec<RheoS
     steps
 }
 
-fn create_split_step(base_step: &RheoStep, points: &[RheoPoint], t0: f64, t1: f64, id: i32) -> RheoStep {
-    let pts: Vec<RheoPoint> = points.iter()
+fn create_split_step(
+    base_step: &RheoStep,
+    points: &[RheoPoint],
+    t0: f64,
+    t1: f64,
+    id: i32,
+) -> RheoStep {
+    let pts: Vec<RheoPoint> = points
+        .iter()
         .filter(|p| p.time_sec >= t0 && p.time_sec <= t1)
         .cloned()
         .collect();
@@ -152,10 +183,16 @@ fn create_split_step(base_step: &RheoStep, points: &[RheoPoint], t0: f64, t1: f6
         let count = pts.len() as f64;
         (
             pts.iter().map(|p| p.shear_rate.unwrap_or(0.0)).sum::<f64>() / count,
-            pts.iter().map(|p| p.shear_stress.unwrap_or(0.0)).sum::<f64>() / count,
+            pts.iter()
+                .map(|p| p.shear_stress.unwrap_or(0.0))
+                .sum::<f64>()
+                / count,
             pts.iter().map(|p| p.viscosity_cp).sum::<f64>() / count,
             pts.iter().map(|p| p.temperature_c).sum::<f64>() / count,
-            pts.iter().map(|p| p.pressure_bar.unwrap_or(0.0)).sum::<f64>() / count,
+            pts.iter()
+                .map(|p| p.pressure_bar.unwrap_or(0.0))
+                .sum::<f64>()
+                / count,
         )
     } else {
         (
@@ -223,13 +260,24 @@ mod tests {
         let config = ScheduleConfig::default();
         let steps = detect_schedule(&points, &config);
 
-        assert!(steps.len() >= 3, "Expected at least 3 steps, got {}", steps.len());
+        assert!(
+            steps.len() >= 3,
+            "Expected at least 3 steps, got {}",
+            steps.len()
+        );
 
         for (i, step) in steps.iter().enumerate() {
-            println!("Step {}: id={}, start_time={}, end_time={}, duration={}, avg_rate={}",
-                i, step.id, step.start_time, step.end_time, step.duration, step.avg_shear_rate);
-            assert!(step.duration > 0.0, "Step {} has duration=0! start={}, end={}", 
-                i, step.start_time, step.end_time);
+            println!(
+                "Step {}: id={}, start_time={}, end_time={}, duration={}, avg_rate={}",
+                i, step.id, step.start_time, step.end_time, step.duration, step.avg_shear_rate
+            );
+            assert!(
+                step.duration > 0.0,
+                "Step {} has duration=0! start={}, end={}",
+                i,
+                step.start_time,
+                step.end_time
+            );
         }
     }
 
@@ -256,18 +304,28 @@ mod tests {
         // Serialize to JSON (same serde attributes as serde_wasm_bindgen)
         let json = serde_json::to_string(&step).unwrap();
         println!("Serialized JSON: {}", json);
-        assert!(json.contains("\"duration\":30"), "JSON should contain duration:30, got: {}", json);
+        assert!(
+            json.contains("\"duration\":30"),
+            "JSON should contain duration:30, got: {}",
+            json
+        );
 
         // Deserialize back
         let deserialized: RheoStep = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.duration, 30.0, "Duration lost in roundtrip!");
-        assert_eq!(deserialized.start_time, 10.0, "start_time lost in roundtrip!");
+        assert_eq!(
+            deserialized.start_time, 10.0,
+            "start_time lost in roundtrip!"
+        );
         assert_eq!(deserialized.end_time, 40.0, "end_time lost in roundtrip!");
 
         // Also test deserialization from camelCase (which is what serde_wasm_bindgen produces)
         let camel_json = r#"{"id":1,"startTime":10,"endTime":40,"duration":30,"avgShearRate":100,"avgShearStress":50,"avgViscosity":500,"avgTemperature":80,"avgPressure":0,"points":[],"calcPointsCount":5,"isRamp":false,"startIndex":0,"endIndex":4,"isSplitStart":false}"#;
         let from_camel: RheoStep = serde_json::from_str(camel_json).unwrap();
-        assert_eq!(from_camel.duration, 30.0, "Duration lost from camelCase JSON!");
+        assert_eq!(
+            from_camel.duration, 30.0,
+            "Duration lost from camelCase JSON!"
+        );
         println!("Serde roundtrip OK: duration={}", from_camel.duration);
     }
 }

@@ -1,6 +1,6 @@
 import { logger } from '@/lib/logger';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useSaveDialogInit } from '@/hooks/useSaveDialogInit';
 import type {
     ExperimentSavePayload,
@@ -12,7 +12,6 @@ import type {
     CalibrationData,
     ColumnarData,
     RheologyParameterRow,
-    RheologyParameterSource,
 } from '@/types';
 import { columnarToRawPoints } from '@/lib/utils/columnar';
 import {
@@ -86,7 +85,6 @@ interface SaveExperimentDialogProps {
         pressureMax?: number;
         extraFields?: Record<string, unknown>;
         instrumentRheology?: RheologyParameterRow[];
-        programRheology?: RheologyParameterRow[];
     };
 }
 
@@ -125,13 +123,6 @@ export function SaveExperimentDialog({
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const hasInstrumentRheology = (analysisData.instrumentRheology?.length ?? 0) > 0;
-    const [rheologySource, setRheologySource] = useState<RheologyParameterSource>(
-        hasInstrumentRheology ? 'instrument' : 'program',
-    );
-
-    useEffect(() => {
-        setRheologySource(hasInstrumentRheology ? 'instrument' : 'program');
-    }, [hasInstrumentRheology]);
 
     /** Drop or zero-out non-finite values so Zod schema passes. */
     const sanitizeRawPoints = (pts: RheoPoint[]): RheoPoint[] =>
@@ -162,11 +153,8 @@ export function SaveExperimentDialog({
         });
 
         try {
-            const effectiveRheologySource: RheologyParameterSource =
-                hasInstrumentRheology ? rheologySource : 'program';
             const rheologyParameters: RheologyParameterRow[] = [
                 ...(analysisData.instrumentRheology ?? []).map(row => ({ ...row, source: 'instrument' as const })),
-                ...(analysisData.programRheology ?? []).map(row => ({ ...row, source: 'program' as const })),
             ];
             const payload = {
                 name: name.trim(),
@@ -205,7 +193,7 @@ export function SaveExperimentDialog({
                 viscosityMin: analysisData.viscosityMin,
                 pressureMax: analysisData.pressureMax,
                 extraFields: analysisData.extraFields,
-                rheologySource: effectiveRheologySource,
+                rheologySource: hasInstrumentRheology ? 'instrument' as const : 'program' as const,
                 rheologyParameters,
                 reagents: reagents.filter(r => r.reagentId).map(r => ({
                     reagentId: r.reagentId,
@@ -374,23 +362,25 @@ export function SaveExperimentDialog({
                                     </Select>
                                 </div>
                             </div>
-                            {hasInstrumentRheology && (
-                                <div className="flex flex-col gap-1.5 max-w-[240px]">
-                                    <label className="text-xs font-medium text-muted-foreground">Источник параметров</label>
-                                    <Select
-                                        value={rheologySource}
-                                        onValueChange={v => setRheologySource(v as RheologyParameterSource)}
-                                    >
-                                        <SelectTrigger data-testid="SaveDialogRheologySourceSelect" className="bg-background dark:bg-secondary/30 border-border text-foreground h-8 text-xs">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="instrument" className="text-xs">Прибор</SelectItem>
-                                            <SelectItem value="program" className="text-xs">Программа</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                                <div>
+                                    <label className="text-xs font-semibold text-foreground">
+                                        Сохранение реологических параметров
+                                    </label>
+                                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                                        Таблица реологических расчётов из отчёта прибора всегда сохраняется в базу, если она найдена при парсинге.
+                                    </p>
                                 </div>
-                            )}
+                                {hasInstrumentRheology ? (
+                                    <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                                        Найдена таблица реологических расчётов прибора: {analysisData.instrumentRheology?.length ?? 0} строк. Она будет сохранена автоматически.
+                                    </p>
+                                ) : (
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Таблица реологических расчётов прибора не найдена. Расчётная таблица RheoLab будет сформирована при построении отчёта.
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

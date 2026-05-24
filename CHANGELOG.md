@@ -6,6 +6,84 @@
 
 ---
 
+## [0.2.3-alpha.16] — 2026-05-23
+
+> Hotfix смены экспертного паттерна для экспериментов, открытых из библиотеки.
+
+### Исправлено
+- **Analysis / Library**: при редактировании цикла у metadata-only эксперимента приложение автоматически догружает полный набор данных перед открытием редактора паттерна.
+- **Expert mode**: сообщение `Экспертный паттерн требует полной загрузки данных` больше не блокирует пользователя, если полный эксперимент доступен в базе.
+
+### Проверки
+- `npm run test -- tests/components/DashboardContent.test.tsx` — passed.
+- `npm run typecheck` — passed.
+
+---
+
+## [0.2.3-alpha.15] — 2026-05-22
+
+> Hotfix загрузки сохранённых приборных реологических параметров из базы.
+
+### Исправлено
+- **Analysis / Library**: при открытии сохранённого эксперимента из базы снова подтягивается таблица реологических расчётов прибора.
+- **Metadata load**: быстрый путь загрузки эксперимента теперь возвращает `rheologyParameters`, чтобы режим `Прибор` во вкладке анализа не терял сохранённые строки.
+
+### Проверки
+- `npm run test -- tests/experiments/mappers.test.ts tests/components/DashboardContent.test.tsx tests/experiments/client.test.ts tests/reports/report-builders.test.ts` — passed.
+- `cargo test --manifest-path src-tauri/Cargo.toml detail_meta_includes_rheology_parameters -- --nocapture` — passed.
+- `cargo test --manifest-path src-tauri/Cargo.toml roundtrip_rheology_parameters_for_both_sources -- --nocapture` — passed.
+- `npm run version:validate` — passed.
+
+---
+
+## [0.2.3-alpha.14] — 2026-05-22
+
+> В отчётах явно указан источник таблицы реологических параметров.
+
+### Добавлено
+- **PDF / Excel reports**: перед таблицей реологической статистики выводится `Источник данных: Прибор` или `Источник данных: Программа`.
+- **Reports / comparison**: источник прокидывается через весь пайплайн отчёта, включая экспорт из вкладки анализа, отчёты по сохранённым экспериментам и страницы сравнения.
+
+### Проверки
+- `npm run typecheck` — passed.
+- `npm run test -- tests/reports/report-builders.test.ts tests/reports/report-regression.test.ts tests/reports/comparison-experiment-adapter.test.ts tests/reports/comparison-report-converter.test.ts` — passed.
+- `cargo test --manifest-path src-tauri/Cargo.toml reports::tests::` — passed.
+- `cargo test --manifest-path src/rust/rheolab-core/Cargo.toml report_generator` — passed.
+- `npm run version:validate` — passed.
+
+---
+
+## [0.2.3-alpha.13] — 2026-05-22
+
+> Уточнён выбор источника таблицы реологии при формировании отчёта.
+
+### Изменено
+- **Reports / comparison**: убрана неоднозначная опция `Как сохранено`; пользователь явно выбирает `Прибор` или `Расчёт`.
+- **Comparison reports**: режим сравнения по умолчанию использует `Расчёт`, чтобы смешанные наборы экспериментов не зависели от наличия приборной таблицы во всех файлах.
+- **Calculated rheology confirmation**: при экспорте с режимом `Расчёт` показывается предупреждение, что в отчёт будет загружена расчётная таблица реологии, и экспорт продолжается только после подтверждения.
+
+### Проверки
+- `npm run typecheck` — passed.
+- `npm run test -- tests/components/comparison-report-settings.test.tsx tests/components/report-tab-rheology-source.test.tsx` — passed.
+- `npm run test -- tests/reports/useComparisonReportExport.test.ts tests/reports/useReportExportById.test.tsx tests/reports/report-builders.test.ts` — passed.
+
+---
+
+## [0.2.3-alpha.12] — 2026-05-21
+
+> Hotfix парсинга таблицы реологии Chandler и выравнивание визуального стиля блока рецептуры.
+
+### Исправлено
+- **Chandler instrument rheology**: парсер больше не захватывает строки из секции `Raw Data` как расчётные параметры прибора.
+- **Recipe panel UI**: иконка блока `Рецептура` приведена к общему стилю панели анализа воды.
+
+### Проверки
+- `cargo test --manifest-path src\rust\rheolab-core\Cargo.toml chandler -- --nocapture` — passed.
+- `cargo test --manifest-path src\rust\rheolab-core\Cargo.toml test_gold_ -- --nocapture` — passed.
+- `npm run typecheck` — passed.
+
+---
+
 ## [0.2.3-alpha.9] — 2026-05-21
 
 > Добавлены два источника реологических параметров: значения прибора из отчёта и значения, рассчитанные RheoLab.

@@ -1,9 +1,9 @@
 //! Mixing step detection — identifies "conditioning" steps that separate cycles.
 
-use crate::types::RheoStep;
 use super::{
-    DURATION_MIXING_MIN, DURATION_LONG_STEP_RATIO, DURATION_END_STEP_MIN, SHEAR_RATE_HIGH,
+    DURATION_END_STEP_MIN, DURATION_LONG_STEP_RATIO, DURATION_MIXING_MIN, SHEAR_RATE_HIGH,
 };
+use crate::types::RheoStep;
 
 /// Determines if a step at the given index is a "mixing" (conditioning) step.
 ///

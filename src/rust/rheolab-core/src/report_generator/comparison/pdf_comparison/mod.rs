@@ -46,9 +46,7 @@ use chart_renderer::render_comparison_chart;
 use summary_page::build_summary_table_page;
 
 /// Generate a comparison PDF report — returns the complete PDF byte stream.
-pub fn generate_comparison_pdf(
-    input: &ComparisonReportInput,
-) -> Result<Vec<u8>, String> {
+pub fn generate_comparison_pdf(input: &ComparisonReportInput) -> Result<Vec<u8>, String> {
     if input.experiments.is_empty() {
         return Err("comparison report requires at least one experiment".to_string());
     }
@@ -84,7 +82,9 @@ pub(crate) fn build_comparison_typst_source(
     // header is driven by the first experiment's metadata, same as
     // single-exp).  The assembler picks whichever experiment supplies a logo.
     let anchor_input = &input.experiments[0].report_input;
-    let logo_source = input.company_logo_base64.as_ref()
+    let logo_source = input
+        .company_logo_base64
+        .as_ref()
         .or(anchor_input.metadata.company_logo_base64.as_ref());
     if let Some(logo_b64) = logo_source {
         if let Some((file_name, bytes)) = decode_company_logo_asset(logo_b64) {
@@ -130,7 +130,7 @@ pub(crate) fn build_comparison_typst_source(
         // Apply per-experiment section toggles.
         let mut per_exp = entry.report_input.clone();
         per_exp.settings.show_calibration = entry.section_toggles.show_calibration;
-        per_exp.settings.show_raw_data    = entry.section_toggles.show_raw_data;
+        per_exp.settings.show_raw_data = entry.section_toggles.show_raw_data;
         if !entry.section_toggles.show_rheology {
             per_exp.cycle_results.clear();
             per_exp.cycles.clear();
@@ -140,15 +140,14 @@ pub(crate) fn build_comparison_typst_source(
         // starts on a fresh page; the first body starts after page 1.
         per_exp_blocks.push_str("\n#pagebreak()\n");
         per_exp_blocks.push_str(&build_single_experiment_body(
-            &per_exp,
-            /* has_chart = */ false,
-            None,
-            None,
-            is_ru,
+            &per_exp, /* has_chart = */ false, None, None, is_ru,
         ));
     }
 
-    let typst_src = format!("{}{}{}{}", globals, chart_page, summary_page, per_exp_blocks);
+    let typst_src = format!(
+        "{}{}{}{}",
+        globals, chart_page, summary_page, per_exp_blocks
+    );
     Ok((typst_src, files))
 }
 
@@ -156,19 +155,24 @@ pub(crate) fn build_comparison_typst_source(
 
 #[cfg(test)]
 pub(super) mod tests {
-    use super::*;
-    use base64::prelude::*;
     use super::super::super::types::{DataPoint, ReportInput, ReportMetadata, ReportSettings};
     use super::super::types::{
-        ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics,
-        SectionToggles, TouchPointConfig,
+        ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics, SectionToggles,
+        TouchPointConfig,
     };
+    use super::*;
+    use base64::prelude::*;
 
     pub(super) fn mk_point(t: f64, v: f64) -> DataPoint {
         DataPoint {
-            time_sec: t, viscosity_cp: v,
-            temperature_c: None, shear_rate: None, shear_stress_pa: None,
-            speed_rpm: None, pressure_bar: None, bath_temperature_c: None,
+            time_sec: t,
+            viscosity_cp: v,
+            temperature_c: None,
+            shear_rate: None,
+            shear_stress_pa: None,
+            speed_rpm: None,
+            pressure_bar: None,
+            bath_temperature_c: None,
         }
     }
 
@@ -176,40 +180,65 @@ pub(super) mod tests {
     /// individual-axis regression test.
     pub(super) fn mk_point_full(t: f64, v: f64, sr: f64, temp: f64) -> DataPoint {
         DataPoint {
-            time_sec: t, viscosity_cp: v,
+            time_sec: t,
+            viscosity_cp: v,
             temperature_c: Some(temp),
             shear_rate: Some(sr),
             shear_stress_pa: None,
-            speed_rpm: None, pressure_bar: None, bath_temperature_c: None,
+            speed_rpm: None,
+            pressure_bar: None,
+            bath_temperature_c: None,
         }
     }
 
     pub(super) fn mk_input(test_id: &str, n: usize) -> ReportInput {
-        let points: Vec<DataPoint> = (0..n).map(|i| mk_point(i as f64 * 30.0, 100.0 + i as f64 * 20.0)).collect();
+        let points: Vec<DataPoint> = (0..n)
+            .map(|i| mk_point(i as f64 * 30.0, 100.0 + i as f64 * 20.0))
+            .collect();
         ReportInput {
             raw_data: points,
-            metadata: ReportMetadata { filename: format!("{}.dat", test_id), test_id: Some(test_id.into()), ..Default::default() },
-            cycle_results: vec![], recipe: vec![], water_params: None, cycles: vec![],
+            metadata: ReportMetadata {
+                filename: format!("{}.dat", test_id),
+                test_id: Some(test_id.into()),
+                ..Default::default()
+            },
+            cycle_results: vec![],
+            recipe: vec![],
+            water_params: None,
+            cycles: vec![],
             settings: ReportSettings::default(),
-            chart_image_base64: None, axis_values: None,
+            chart_image_base64: None,
+            axis_values: None,
         }
     }
 
     /// `mk_input` variant that emits points with viscosity + shear_rate +
     /// temperature populated.  Used by individual-axis tests.
     pub(super) fn mk_input_full_data(test_id: &str, n: usize) -> ReportInput {
-        let points: Vec<DataPoint> = (0..n).map(|i| mk_point_full(
-            i as f64 * 30.0,
-            1500.0 + (i as f64) * 50.0,
-            40.0 + (i as f64) * 2.0,
-            105.0 + (i as f64 % 5.0),
-        )).collect();
+        let points: Vec<DataPoint> = (0..n)
+            .map(|i| {
+                mk_point_full(
+                    i as f64 * 30.0,
+                    1500.0 + (i as f64) * 50.0,
+                    40.0 + (i as f64) * 2.0,
+                    105.0 + (i as f64 % 5.0),
+                )
+            })
+            .collect();
         ReportInput {
             raw_data: points,
-            metadata: ReportMetadata { filename: format!("{}.dat", test_id), test_id: Some(test_id.into()), ..Default::default() },
-            cycle_results: vec![], recipe: vec![], water_params: None, cycles: vec![],
+            metadata: ReportMetadata {
+                filename: format!("{}.dat", test_id),
+                test_id: Some(test_id.into()),
+                ..Default::default()
+            },
+            cycle_results: vec![],
+            recipe: vec![],
+            water_params: None,
+            cycles: vec![],
             settings: ReportSettings::default(),
-            chart_image_base64: None, axis_values: None,
+            chart_image_base64: None,
+            axis_values: None,
         }
     }
 
@@ -295,10 +324,9 @@ pub(super) mod tests {
     fn full_pdf_compiles_with_touch_points() {
         // Ramp data that crosses 300 threshold
         let ramp = |offset: f64| -> Vec<DataPoint> {
-            (0..30).map(|j| mk_point(
-                j as f64 * 60.0,
-                100.0 + offset + j as f64 * 30.0,
-            )).collect()
+            (0..30)
+                .map(|j| mk_point(j as f64 * 60.0, 100.0 + offset + j as f64 * 30.0))
+                .collect()
         };
         let entries = vec![
             mk_entry("e1", "Exp A", {
@@ -344,13 +372,19 @@ pub(super) mod tests {
         let (src, files) = build_comparison_typst_source(&input).expect("build source");
 
         // Globals block emitted exactly once.
-        assert_eq!(src.matches("#let section_header").count(), 1,
-            "globals block must appear exactly once");
+        assert_eq!(
+            src.matches("#let section_header").count(),
+            1,
+            "globals block must appear exactly once"
+        );
         assert_eq!(src.matches("#let report_header").count(), 1);
 
         // One pagebreak for summary table page + one per experiment = 4 total.
-        assert_eq!(src.matches("#pagebreak()").count(), 4,
-            "expected 4 #pagebreak() separators: 1 summary + 3 experiments");
+        assert_eq!(
+            src.matches("#pagebreak()").count(),
+            4,
+            "expected 4 #pagebreak() separators: 1 summary + 3 experiments"
+        );
 
         // Comparison chart image is attached.
         assert!(files.contains_key("comparison_chart.svg"));
@@ -378,12 +412,18 @@ pub(super) mod tests {
         let input = mk_input_full(entries);
         let (src, _) = build_comparison_typst_source(&input).expect("build source");
 
-        assert!(src.contains("margin: (top: 3.5cm, bottom: 2cm, x: 1cm)"),
-            "global experiment page margins must remain the baseline");
-        assert!(src.contains("flipped: true, margin: (top: 3.5cm, bottom: 2cm"),
-            "comparison chart page must align header height with experiment pages");
-        assert!(src.contains("flipped: false, margin: (top: 3.5cm, bottom: 2cm"),
-            "comparison summary page must align header height with experiment pages");
+        assert!(
+            src.contains("margin: (top: 3.5cm, bottom: 2cm, x: 1cm)"),
+            "global experiment page margins must remain the baseline"
+        );
+        assert!(
+            src.contains("flipped: true, margin: (top: 3.5cm, bottom: 2cm"),
+            "comparison chart page must align header height with experiment pages"
+        );
+        assert!(
+            src.contains("flipped: false, margin: (top: 3.5cm, bottom: 2cm"),
+            "comparison summary page must align header height with experiment pages"
+        );
         assert!(!src.contains("top: 2.5cm"));
         assert!(!src.contains("bottom: 1.2cm"));
     }
@@ -395,10 +435,14 @@ pub(super) mod tests {
         let (src, _) = build_comparison_typst_source(&input).unwrap();
 
         // Title now lives on the summary table page (after the first pagebreak).
-        let idx_summary = src.find("Experiment Comparison").expect("summary title present");
+        let idx_summary = src
+            .find("Experiment Comparison")
+            .expect("summary title present");
         let idx_break = src.find("#pagebreak()").expect("pagebreak present");
-        assert!(idx_summary > idx_break,
-            "summary title must be after the first pagebreak (on the table page)");
+        assert!(
+            idx_summary > idx_break,
+            "summary title must be after the first pagebreak (on the table page)"
+        );
     }
 
     #[test]
@@ -406,8 +450,11 @@ pub(super) mod tests {
         let mut input = mk_input_full(vec![mk_entry("e1", "A", mk_input("T-1", 3))]);
         input.language = "ru".into();
         let (src, _) = build_comparison_typst_source(&input).unwrap();
-        assert!(src.contains("Сравнение экспериментов"), "RU summary title missing");
-        assert!(src.contains("Точек"),  "RU column header missing");
+        assert!(
+            src.contains("Сравнение экспериментов"),
+            "RU summary title missing"
+        );
+        assert!(src.contains("Точек"), "RU column header missing");
     }
 
     #[test]
@@ -426,7 +473,15 @@ pub(super) mod tests {
     fn colors_cycle_through_palette_when_exp_count_exceeds_palette_size() {
         // 5 experiments but only 2 colours — must not panic, modulo-cycle.
         let mut input = mk_input_full(
-            (0..5).map(|i| mk_entry(&format!("e{}", i), &format!("Exp {}", i), mk_input(&format!("T-{}", i), 3))).collect(),
+            (0..5)
+                .map(|i| {
+                    mk_entry(
+                        &format!("e{}", i),
+                        &format!("Exp {}", i),
+                        mk_input(&format!("T-{}", i), 3),
+                    )
+                })
+                .collect(),
         );
         input.comparison_chart.experiment_colors = vec!["#FF0000".into(), "#00FF00".into()];
         let (_src, _files) = build_comparison_typst_source(&input).expect("should cycle colours");
@@ -437,8 +492,10 @@ pub(super) mod tests {
         let entries = vec![mk_entry("e1", "A", mk_input("T-1", 5))];
         let input = mk_input_full(entries);
         let (src, _) = build_comparison_typst_source(&input).unwrap();
-        assert!(src.contains("flipped: true"),
-            "summary page must be landscape (flipped: true)");
+        assert!(
+            src.contains("flipped: true"),
+            "summary page must be landscape (flipped: true)"
+        );
     }
 
     #[test]
@@ -453,7 +510,10 @@ pub(super) mod tests {
         assert!(src.contains("Viscosity"), "left axis title missing");
         assert!(src.contains("Time (min)"), "bottom axis label missing");
         // Tick labels — generated by the overlay as #place(...) blocks
-        assert!(src.contains("#place(top + left"), "tick overlay directives missing");
+        assert!(
+            src.contains("#place(top + left"),
+            "tick overlay directives missing"
+        );
     }
 
     #[test]
@@ -466,17 +526,19 @@ pub(super) mod tests {
         let (src, _) = build_comparison_typst_source(&input).unwrap();
         assert!(src.contains("Alpha"), "experiment name missing from legend");
         assert!(src.contains("Beta"), "experiment name missing from legend");
-        assert!(src.contains("#line(length: 18pt"), "legend line indicator missing");
+        assert!(
+            src.contains("#line(length: 18pt"),
+            "legend line indicator missing"
+        );
     }
 
     #[test]
     fn touch_points_table_appears_when_enabled() {
         // Build ramp data that crosses 300 mPa·s threshold.
         let ramp = |offset: f64| -> Vec<DataPoint> {
-            (0..30).map(|j| mk_point(
-                j as f64 * 60.0,
-                100.0 + offset + j as f64 * 30.0,
-            )).collect()
+            (0..30)
+                .map(|j| mk_point(j as f64 * 60.0, 100.0 + offset + j as f64 * 30.0))
+                .collect()
         };
         let mut input = mk_input_full(vec![
             mk_entry("e1", "Exp A", {
@@ -500,8 +562,14 @@ pub(super) mod tests {
             src.contains("Threshold Crossings"),
             "touch-points section title missing",
         );
-        assert!(src.contains("Exp A"), "experiment name missing from touch-points table");
-        assert!(src.contains("Exp B"), "experiment name missing from touch-points table");
+        assert!(
+            src.contains("Exp A"),
+            "experiment name missing from touch-points table"
+        );
+        assert!(
+            src.contains("Exp B"),
+            "experiment name missing from touch-points table"
+        );
     }
 
     /// When both a viscosity threshold AND a target-time readout are
@@ -510,10 +578,9 @@ pub(super) mod tests {
     #[test]
     fn touch_points_render_two_tables_for_threshold_and_target_time() {
         let ramp = |offset: f64| -> Vec<DataPoint> {
-            (0..30).map(|j| mk_point(
-                j as f64 * 60.0,
-                100.0 + offset + j as f64 * 30.0,
-            )).collect()
+            (0..30)
+                .map(|j| mk_point(j as f64 * 60.0, 100.0 + offset + j as f64 * 30.0))
+                .collect()
         };
         let mut input = mk_input_full(vec![
             mk_entry("e1", "Exp A", {

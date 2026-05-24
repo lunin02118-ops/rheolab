@@ -4,7 +4,9 @@ use std::sync::LazyLock;
 
 use super::super::{BSLMeta, CalibrationDataPoint, CalibrationMeta, CalibrationReport};
 use super::analyze_quality;
-use super::math::{calculate_average_curve, calculate_hysteresis, calculate_linear_regression, calculate_stdev};
+use super::math::{
+    calculate_average_curve, calculate_hysteresis, calculate_linear_regression, calculate_stdev,
+};
 use super::meta::{find_bsl_table_start, find_meta_number, find_meta_value};
 use super::{R1B1_GEOMETRY_FACTOR, UNIT_CONVERSION_PA_TO_DYNE_CM2};
 
@@ -38,24 +40,34 @@ pub(super) fn parse_bsl_data(rows: &[Vec<String>]) -> Result<CalibrationReport, 
     let bsl_meta = BSLMeta {
         filename: find_meta_value(header_rows, "Имя файла").unwrap_or_default(),
         date: date.clone(),
-        rotor: find_meta_value(header_rows, "Ротор/боб").or_else(|| find_meta_value(header_rows, "Ротор")).unwrap_or_default(),
+        rotor: find_meta_value(header_rows, "Ротор/боб")
+            .or_else(|| find_meta_value(header_rows, "Ротор"))
+            .unwrap_or_default(),
         moment: find_meta_number(header_rows, "Момент").unwrap_or(0.0),
         calibration_fluid: find_meta_value(header_rows, "Кал. жидкость").unwrap_or_default(),
-        calibration_type: find_meta_value(header_rows, "Тип калибровки").unwrap_or_else(|| "Стандарт".to_string()),
+        calibration_type: find_meta_value(header_rows, "Тип калибровки")
+            .unwrap_or_else(|| "Стандарт".to_string()),
     };
 
-    let table_start = find_bsl_table_start(rows).ok_or("Не удалось найти таблицу данных в файле BSL")?;
+    let table_start =
+        find_bsl_table_start(rows).ok_or("Не удалось найти таблицу данных в файле BSL")?;
 
     let mut signals = Vec::new();
     let mut stresses = Vec::new();
     let mut raw_data = Vec::new();
 
     for row in rows.iter().skip(table_start) {
-        if row.len() < 5 { continue; }
-        if row[0].is_empty() { continue; }
+        if row.len() < 5 {
+            continue;
+        }
+        if row[0].is_empty() {
+            continue;
+        }
 
         let parse_num = |idx: usize| -> f64 {
-            row.get(idx).and_then(|s| s.replace(',', ".").replace(" ", "").parse::<f64>().ok()).unwrap_or(0.0)
+            row.get(idx)
+                .and_then(|s| s.replace(',', ".").replace(" ", "").parse::<f64>().ok())
+                .unwrap_or(0.0)
         };
 
         let rpm = parse_num(1);
@@ -63,9 +75,15 @@ pub(super) fn parse_bsl_data(rows: &[Vec<String>]) -> Result<CalibrationReport, 
         let viscosity = parse_num(3);
         let shear_stress_pa = parse_num(4);
         let temperature = parse_num(5); // Default 25 handled by 0.0? No, logic says || 25.
-        let temperature = if temperature == 0.0 && !row[5].contains('0') { 25.0 } else { temperature };
+        let temperature = if temperature == 0.0 && !row[5].contains('0') {
+            25.0
+        } else {
+            temperature
+        };
 
-        if rpm == 0.0 { continue; }
+        if rpm == 0.0 {
+            continue;
+        }
 
         let shear_stress_dyne = shear_stress_pa * UNIT_CONVERSION_PA_TO_DYNE_CM2;
 
@@ -117,7 +135,11 @@ pub(super) fn parse_bsl_data(rows: &[Vec<String>]) -> Result<CalibrationReport, 
     Ok(CalibrationReport {
         meta,
         data: raw_data,
-        status: if issues.is_empty() { "PASS".to_string() } else { "FAIL".to_string() },
+        status: if issues.is_empty() {
+            "PASS".to_string()
+        } else {
+            "FAIL".to_string()
+        },
         issues,
     })
 }

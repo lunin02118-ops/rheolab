@@ -180,6 +180,51 @@ describe('experimentToReportBuildContext', () => {
         expect(ctx.cycles).toEqual([]);
     });
 
+    it('uses legacy instrumentRheology only for the instrument source', async () => {
+        const exp = makeExperiment({
+            columnarData: undefined as unknown as ColumnarData,
+            instrumentRheology: [{
+                cycleNo: 1,
+                nPrime: 0.42,
+                kPrimePaSn: 0.33,
+            }],
+        } as unknown as Partial<Experiment>);
+
+        const instrumentCtx = await experimentToReportBuildContext(exp, {
+            ...makeOverrides(),
+            rheologySourceOverride: 'instrument',
+        });
+        expect(instrumentCtx.rheologySource).toBe('instrument');
+        expect(instrumentCtx.cycleResultsMapped[0]).toMatchObject({
+            cycleNo: 1,
+            nPrime: 0.42,
+            kPrime: 0.33,
+        });
+
+        const programCtx = await experimentToReportBuildContext(exp, {
+            ...makeOverrides(),
+            rheologySourceOverride: 'program',
+        });
+        expect(programCtx.rheologySource).toBe('program');
+        expect(programCtx.cycleResultsMapped).toEqual([]);
+    });
+
+    it('does not reuse unsourced persisted rheology rows across sources', async () => {
+        const exp = makeExperiment({
+            columnarData: undefined as unknown as ColumnarData,
+            rheologySource: 'instrument',
+            rheologyParameters: [{
+                cycleNo: 1,
+                nPrime: 0.42,
+                kPrimePaSn: 0.33,
+            }],
+        } as unknown as Partial<Experiment>);
+
+        await expect(
+            experimentToReportBuildContext(exp, makeOverrides()),
+        ).rejects.toThrow('таблица реологических расчётов не найдена');
+    });
+
     it('forwards all override fields verbatim', async () => {
         const overrides = makeOverrides();
         const ctx = await experimentToReportBuildContext(makeExperiment(), overrides);
@@ -195,6 +240,7 @@ describe('experimentToReportBuildContext', () => {
         expect(ctx.targetTime).toBe(10);
         expect(ctx.reportViscosityRates).toEqual([40, 100, 170]);
         expect(ctx.isExpert).toBe(false);
+        expect(ctx.rheologySource).toBe('program');
     });
 
     it('falls back to experiment id when name is missing', async () => {

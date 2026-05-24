@@ -1,4 +1,4 @@
-import type { Experiment } from '@/types';
+import type { Experiment, RheologyParameterSource } from '@/types';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import type {
     ComparisonChartConfig,
@@ -32,6 +32,7 @@ export interface ComparisonDirectReportOptions {
     showRecipe: boolean;
     showWaterAnalysis: boolean;
     showRheology: boolean;
+    rheologySourceOverride?: RheologyParameterSource;
     showTouchPoints: boolean;
     viscosityThreshold: number;
     showTargetTime: boolean;
@@ -141,6 +142,7 @@ export async function buildComparisonDirectReportInput(
         showRecipe: options.showRecipe,
         showWaterAnalysis: options.showWaterAnalysis,
         showRheology: options.showRheology,
+        rheologySourceOverride: options.rheologySourceOverride,
         showTouchPoints: options.showTouchPoints,
         viscosityThreshold: options.viscosityThreshold,
         showTargetTime: options.showTargetTime,

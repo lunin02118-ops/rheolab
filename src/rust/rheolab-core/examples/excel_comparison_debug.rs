@@ -19,12 +19,10 @@
 //! Author note: keep this file lean — it is a developer tool, not a test.
 
 use rheolab_core::report_generator::comparison::{
-    generate_comparison_excel, ComparisonChartConfig, ComparisonExperimentEntry,
-    ComparisonMetrics, ComparisonReportInput, SectionToggles, TouchPointConfig,
+    generate_comparison_excel, ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics,
+    ComparisonReportInput, SectionToggles, TouchPointConfig,
 };
-use rheolab_core::report_generator::{
-    DataPoint, ReportInput, ReportMetadata, ReportSettings,
-};
+use rheolab_core::report_generator::{DataPoint, ReportInput, ReportMetadata, ReportSettings};
 use std::fs;
 use std::path::PathBuf;
 
@@ -57,7 +55,7 @@ fn mk_experiment(
                 25.0 + (target - 25.0) * (warmup_min / 5.0)
             };
             let p_base = 5.0 + 70.0 * (1.0 - (-0.5 * (t / 3600.0)).exp());
-            let p_bar  = p_base + (i as f64 * 0.05).sin() * 3.5;
+            let p_bar = p_base + (i as f64 * 0.05).sin() * 3.5;
             DataPoint {
                 time_sec: t,
                 viscosity_cp: v,
@@ -103,11 +101,7 @@ fn build_experiments() -> Vec<ComparisonExperimentEntry> {
     ]
 }
 
-fn build_input(
-    left_secondary: &str,
-    secondary: &str,
-    tertiary: &str,
-) -> ComparisonReportInput {
+fn build_input(left_secondary: &str, secondary: &str, tertiary: &str) -> ComparisonReportInput {
     ComparisonReportInput {
         language: "ru".into(),
         unit_system: "SI".into(),
@@ -131,11 +125,7 @@ fn build_input(
                 target_time: 60.0,
             },
             line_settings: Default::default(),
-            experiment_colors: vec![
-                "#1E90FF".into(),
-                "#FF0000".into(),
-                "#008000".into(),
-            ],
+            experiment_colors: vec!["#1E90FF".into(), "#FF0000".into(), "#008000".into()],
             time_format: "minutes".into(),
             downsample_mode: "off".into(),
             chart_width: 1400,
@@ -150,21 +140,53 @@ fn main() {
     // but without the axis_mode dimension (Excel always uses combined).
     let variants: &[(&str, &str, &str, &str)] = &[
         // name,                                    left_secondary,  secondary,             tertiary
-        ("A_visc_only",                             "none",          "none",                "none"),
-        ("B_shear_left__temp_right",                "shear_rate_s1", "temperature_c",       "none"),
-        ("C_temp_left",                             "temperature_c", "none",                "none"),
-        ("D_shear_right",                           "none",          "shear_rate_s1",       "none"),
-        ("E_pressure_right",                        "none",          "pressure_bar",        "none"),
-        ("F_bath+sample_right",                     "none",          "bath_temperature_c",  "temperature_c"),
-        ("G_shear_left__bath+sample_right",         "shear_rate_s1", "bath_temperature_c",  "temperature_c"),
-        ("H_shear_left__pressure+temp_right",       "shear_rate_s1", "pressure_bar",        "temperature_c"),
-        ("I_pressure+bath_right",                   "none",          "pressure_bar",        "bath_temperature_c"),
-        ("J_temp_left__shear+pressure_right",       "temperature_c", "shear_rate_s1",       "pressure_bar"),
+        ("A_visc_only", "none", "none", "none"),
+        (
+            "B_shear_left__temp_right",
+            "shear_rate_s1",
+            "temperature_c",
+            "none",
+        ),
+        ("C_temp_left", "temperature_c", "none", "none"),
+        ("D_shear_right", "none", "shear_rate_s1", "none"),
+        ("E_pressure_right", "none", "pressure_bar", "none"),
+        (
+            "F_bath+sample_right",
+            "none",
+            "bath_temperature_c",
+            "temperature_c",
+        ),
+        (
+            "G_shear_left__bath+sample_right",
+            "shear_rate_s1",
+            "bath_temperature_c",
+            "temperature_c",
+        ),
+        (
+            "H_shear_left__pressure+temp_right",
+            "shear_rate_s1",
+            "pressure_bar",
+            "temperature_c",
+        ),
+        (
+            "I_pressure+bath_right",
+            "none",
+            "pressure_bar",
+            "bath_temperature_c",
+        ),
+        (
+            "J_temp_left__shear+pressure_right",
+            "temperature_c",
+            "shear_rate_s1",
+            "pressure_bar",
+        ),
     ];
 
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let workspace_root = manifest
-        .parent().and_then(|p| p.parent()).and_then(|p| p.parent())
+        .parent()
+        .and_then(|p| p.parent())
+        .and_then(|p| p.parent())
         .map(|p| p.to_path_buf())
         .unwrap_or(manifest.clone());
     let out_dir = workspace_root.join("runtime").join("excel-debug");
@@ -179,11 +201,7 @@ fn main() {
 
         let path = out_dir.join(format!("{name}.xlsx"));
         fs::write(&path, &bytes).expect("write XLSX");
-        println!(
-            "  {name:<48} {:>7} bytes → {}",
-            bytes.len(),
-            path.display()
-        );
+        println!("  {name:<48} {:>7} bytes → {}", bytes.len(), path.display());
     }
 
     // Auto-open first on Windows.

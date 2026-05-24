@@ -2,16 +2,22 @@
 //! calibration parsers.
 
 pub(super) fn detect_device_type(rows: &[Vec<String>]) -> Option<String> {
-    let preview: String = rows.iter().take(50)
+    let preview: String = rows
+        .iter()
+        .take(50)
         .map(|r| r.join(" ").to_lowercase())
         .collect::<Vec<_>>()
         .join("\n");
 
-    if preview.contains("калибровка прибора") || (preview.contains("ротор") && preview.contains("обороты") && preview.contains("угол")) {
+    if preview.contains("калибровка прибора")
+        || (preview.contains("ротор") && preview.contains("обороты") && preview.contains("угол"))
+    {
         return Some("bslR1".to_string());
     }
 
-    if preview.contains("имя файла") && (preview.contains("ротор/боб") || preview.contains("момент")) {
+    if preview.contains("имя файла")
+        && (preview.contains("ротор/боб") || preview.contains("момент"))
+    {
         return Some("bslR1".to_string());
     }
 
@@ -54,7 +60,9 @@ pub(super) fn find_meta_number(rows: &[Vec<String>], key: &str) -> Option<f64> {
 pub(super) fn find_bsl_table_start(rows: &[Vec<String>]) -> Option<usize> {
     for (i, row) in rows.iter().enumerate() {
         let line = row.join(" ").to_lowercase();
-        if line.contains("обороты") && (line.contains("угол") || line.contains("момент") || line.contains("напр")) {
+        if line.contains("обороты")
+            && (line.contains("угол") || line.contains("момент") || line.contains("напр"))
+        {
             return Some(i + 1);
         }
         if line.contains("№") && row.iter().any(|c| c.to_lowercase().contains("обороты")) {

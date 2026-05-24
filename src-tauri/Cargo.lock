@@ -5232,6 +5232,7 @@ dependencies = [
  "calamine",
  "chrono",
  "csv",
+ "encoding_rs",
  "plotters",
  "regex",
  "rust_xlsxwriter",
@@ -5245,7 +5246,7 @@ dependencies = [
 
 [[package]]
 name = "rheolab-enterprise"
-version = "0.2.3-alpha.8"
+version = "0.2.3-alpha.16"
 dependencies = [
  "aes",
  "aes-gcm",

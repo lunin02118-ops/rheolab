@@ -42,7 +42,10 @@ pub fn get_k_factor_for_geometry(geometry: Option<&str>) -> f64 {
 /// 2. If SR defined, ensure RPM matches Geometry (RPM = SR / K)
 ///
 /// This function mutates the data in-place.
-pub fn enforce_physics_and_geometry(data: &mut [RheoPoint], geometry: Option<&str>) -> PhysicsResult {
+pub fn enforce_physics_and_geometry(
+    data: &mut [RheoPoint],
+    geometry: Option<&str>,
+) -> PhysicsResult {
     let mut sr_recovered = false;
     let mut rpm_corrected = false;
     let k_factor = get_k_factor(geometry);
@@ -103,18 +106,22 @@ pub fn enforce_physics_and_geometry(data: &mut [RheoPoint], geometry: Option<&st
         }
     }
 
-    PhysicsResult { sr_recovered, rpm_corrected }
+    PhysicsResult {
+        sr_recovered,
+        rpm_corrected,
+    }
 }
 
 /// Infer average K-factor from data points
 ///
 /// Returns Some(avg_k) if enough valid data, None otherwise.
 pub fn infer_k_factor_from_data(data: &[RheoPoint]) -> Option<f64> {
-    let valid_points: Vec<&RheoPoint> = data.iter()
+    let valid_points: Vec<&RheoPoint> = data
+        .iter()
         .filter(|p| {
-            p.viscosity_cp > 0.0 &&
-            p.shear_stress.unwrap_or(0.0) > 0.0 &&
-            p.rpm.unwrap_or(0.0) > 0.0
+            p.viscosity_cp > 0.0
+                && p.shear_stress.unwrap_or(0.0) > 0.0
+                && p.rpm.unwrap_or(0.0) > 0.0
         })
         .collect();
 
@@ -122,7 +129,8 @@ pub fn infer_k_factor_from_data(data: &[RheoPoint]) -> Option<f64> {
         return None;
     }
 
-    let sum_k: f64 = valid_points.iter()
+    let sum_k: f64 = valid_points
+        .iter()
         .map(|p| {
             let stress = p.shear_stress.unwrap_or(0.0);
             let rpm = p.rpm.unwrap_or(1.0); // Avoid division by zero
@@ -219,9 +227,18 @@ mod tests {
 
     #[test]
     fn test_infer_geometry() {
-        assert_eq!(infer_geometry_from_k_factor(1.703), Some("R1B1".to_string()));
-        assert_eq!(infer_geometry_from_k_factor(0.377), Some("R1B2".to_string()));
-        assert_eq!(infer_geometry_from_k_factor(0.850), Some("R1B5".to_string()));
+        assert_eq!(
+            infer_geometry_from_k_factor(1.703),
+            Some("R1B1".to_string())
+        );
+        assert_eq!(
+            infer_geometry_from_k_factor(0.377),
+            Some("R1B2".to_string())
+        );
+        assert_eq!(
+            infer_geometry_from_k_factor(0.850),
+            Some("R1B5".to_string())
+        );
         assert_eq!(infer_geometry_from_k_factor(5.0), None);
     }
 }

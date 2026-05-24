@@ -1088,7 +1088,8 @@ fn build_report_input_for_experiment_with_analysis(
 ) -> Result<ReportInput> {
     let raw_data = rheo_points_to_report_data(rheo_points);
 
-    let cycle_results = select_cycle_results_for_report(experiment, analysis)?;
+    let selected_rheology =
+        select_cycle_results_for_report(experiment, analysis, settings.rheology_source_override)?;
     let cycles = analysis
         .map(|output| {
             output
@@ -1099,14 +1100,17 @@ fn build_report_input_for_experiment_with_analysis(
         })
         .unwrap_or_default();
 
+    let mut report_settings = build_report_settings(settings);
+    report_settings.rheology_source = selected_rheology.source.as_str().to_string();
+
     Ok(ReportInput {
         raw_data,
         metadata: build_report_metadata(experiment, settings),
-        cycle_results,
+        cycle_results: selected_rheology.cycle_results,
         recipe: build_report_recipe(experiment, settings.section_toggles.show_recipe),
         water_params: build_water_params(experiment, settings.section_toggles.show_water_analysis),
         cycles,
-        settings: build_report_settings(settings),
+        settings: report_settings,
         chart_image_base64: None,
         axis_values: axis_values_from_raw_data(&experiment.raw_points)?,
     })
@@ -1219,11 +1223,17 @@ fn grace_result_to_cycle_result(result: &GraceCycleResult) -> CycleResult {
     }
 }
 
+struct SelectedCycleResults {
+    source: RheologyParameterSource,
+    cycle_results: Vec<CycleResult>,
+}
+
 fn select_cycle_results_for_report(
     experiment: &StoredExperiment,
     analysis: Option<&AnalysisOutput>,
-) -> Result<Vec<CycleResult>> {
-    let selected_source = experiment.rheology_source;
+    source_override: Option<RheologyParameterSource>,
+) -> Result<SelectedCycleResults> {
+    let selected_source = source_override.unwrap_or(experiment.rheology_source);
     let persisted = experiment
         .rheology_parameters
         .iter()
@@ -1239,13 +1249,13 @@ fn select_cycle_results_for_report(
                     experiment.name
                 )));
             }
-            Ok(rheology_rows_to_cycle_results(persisted))
+            Ok(SelectedCycleResults {
+                source: selected_source,
+                cycle_results: rheology_rows_to_cycle_results(persisted),
+            })
         }
         RheologyParameterSource::Program => {
-            if !persisted.is_empty() {
-                return Ok(rheology_rows_to_cycle_results(persisted));
-            }
-            Ok(analysis
+            let calculated = analysis
                 .map(|output| {
                     output
                         .results
@@ -1253,7 +1263,17 @@ fn select_cycle_results_for_report(
                         .map(|(_, result)| grace_result_to_cycle_result(result))
                         .collect::<Vec<_>>()
                 })
-                .unwrap_or_default())
+                .unwrap_or_default();
+            if !calculated.is_empty() {
+                return Ok(SelectedCycleResults {
+                    source: selected_source,
+                    cycle_results: calculated,
+                });
+            }
+            Ok(SelectedCycleResults {
+                source: selected_source,
+                cycle_results: rheology_rows_to_cycle_results(persisted),
+            })
         }
     }
 }
@@ -1446,6 +1466,7 @@ fn build_report_settings(settings: &ComparisonReportByIdsSettings) -> ReportSett
             .rheology_units
             .as_ref()
             .map(build_core_rheology_units),
+        rheology_source: "program".to_string(),
     }
 }
 
@@ -1650,6 +1671,8 @@ pub struct ComparisonReportByIdsSettings {
     pub company_logo_base64: Option<String>,
     #[serde(default)]
     pub generated_at: Option<String>,
+    #[serde(default)]
+    pub rheology_source_override: Option<RheologyParameterSource>,
     pub comparison_chart: ComparisonByIdsChartConfig,
     pub section_toggles: ComparisonByIdsSectionToggles,
     pub report_settings: ComparisonByIdsReportSettings,
@@ -2951,6 +2974,7 @@ mod tests {
                 company_name: Some("RheoLab".into()),
                 company_logo_base64: None,
                 generated_at: Some("2026-04-29T00:00:00Z".into()),
+                rheology_source_override: None,
                 comparison_chart: ComparisonByIdsChartConfig {
                     metrics: ComparisonByIdsMetrics {
                         primary: "viscosity_cp".into(),
@@ -3426,12 +3450,47 @@ mod tests {
         let report = build_report_input_by_id_cached_with_job(&pool, &request, None)
             .expect("build by-id report input");
 
+        assert_eq!(report.settings.rheology_source, "instrument");
         assert_eq!(report.cycle_results.len(), 1);
         let cycle = &report.cycle_results[0];
         assert_eq!(cycle.n_prime, 0.41);
         assert_eq!(cycle.k_prime, 0.333);
         assert_eq!(cycle.bingham_pv, Some(0.12));
         assert_eq!(cycle.visc_at_40, Some(1401.0));
+    }
+
+    #[test]
+    fn by_id_report_input_allows_rheology_source_override() {
+        let (pool, _dir) = by_ids_fixture_pool();
+        {
+            let conn = pool.get().expect("conn");
+            let mut exp = stored_experiment_for_by_ids("exp_aaaaaaaaaaaaaaaaaaaa", "Alpha");
+            exp.rheology_source = RheologyParameterSource::Instrument;
+            exp.rheology_parameters = vec![
+                report_rheology_row(RheologyParameterSource::Instrument, 1, 0.41, 0.333, 0.12),
+                report_rheology_row(RheologyParameterSource::Program, 1, 0.91, 9.333, 1.12),
+            ];
+            persist_experiment(&conn, &exp).expect("persist override rheology");
+        }
+
+        let mut request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
+        request.settings.rheology_source_override = Some(RheologyParameterSource::Program);
+        let report = build_report_input_by_id_cached_with_job(&pool, &request, None)
+            .expect("build by-id report input with program override");
+
+        assert_eq!(report.settings.rheology_source, "program");
+        assert_eq!(report.cycle_results.len(), 1);
+        let cycle = &report.cycle_results[0];
+        assert!(
+            (cycle.n_prime - 0.72).abs() < 1e-9,
+            "program rheology must be calculated from raw points, got n'={}",
+            cycle.n_prime
+        );
+        assert!(
+            (cycle.k_prime - 9.333).abs() > 1e-6,
+            "program rheology must not reuse persisted program rows"
+        );
+        assert_ne!(cycle.bingham_pv, Some(1.12));
     }
 
     #[test]
@@ -3456,10 +3515,76 @@ mod tests {
 
         let alpha_cycle = &input.experiments[0].report_input.cycle_results[0];
         let beta_cycle = &input.experiments[1].report_input.cycle_results[0];
+        assert_eq!(
+            input.experiments[0].report_input.settings.rheology_source,
+            "instrument"
+        );
+        assert_eq!(
+            input.experiments[1].report_input.settings.rheology_source,
+            "program"
+        );
         assert_eq!(alpha_cycle.n_prime, 0.41);
         assert_eq!(alpha_cycle.k_prime, 0.333);
-        assert_eq!(beta_cycle.n_prime, 0.82);
-        assert_eq!(beta_cycle.k_prime, 8.444);
+        assert!(
+            (beta_cycle.n_prime - 0.72).abs() < 1e-9,
+            "saved program source must be calculated from raw points, got n'={}",
+            beta_cycle.n_prime
+        );
+        assert!(
+            (beta_cycle.k_prime - 8.444).abs() > 1e-6,
+            "saved program source must not reuse persisted program rows"
+        );
+    }
+
+    #[test]
+    fn comparison_report_input_allows_global_rheology_source_override() {
+        let (conn, mut exp_a, mut exp_b) = by_ids_fixture_db();
+        exp_a.rheology_source = RheologyParameterSource::Instrument;
+        exp_a.rheology_parameters = vec![
+            report_rheology_row(RheologyParameterSource::Instrument, 1, 0.41, 0.333, 0.12),
+            report_rheology_row(RheologyParameterSource::Program, 1, 0.91, 9.333, 1.12),
+        ];
+        exp_b.rheology_source = RheologyParameterSource::Instrument;
+        exp_b.rheology_parameters = vec![
+            report_rheology_row(RheologyParameterSource::Instrument, 1, 0.52, 0.444, 0.22),
+            report_rheology_row(RheologyParameterSource::Program, 1, 0.82, 8.444, 1.22),
+        ];
+        persist_experiment(&conn, &exp_a).expect("persist alpha sources");
+        persist_experiment(&conn, &exp_b).expect("persist beta sources");
+
+        let mut request = valid_by_ids_request();
+        request.settings.rheology_source_override = Some(RheologyParameterSource::Program);
+        let input =
+            build_comparison_report_input_by_ids(&conn, &request).expect("build comparison input");
+
+        let alpha_cycle = &input.experiments[0].report_input.cycle_results[0];
+        let beta_cycle = &input.experiments[1].report_input.cycle_results[0];
+        assert_eq!(
+            input.experiments[0].report_input.settings.rheology_source,
+            "program"
+        );
+        assert_eq!(
+            input.experiments[1].report_input.settings.rheology_source,
+            "program"
+        );
+        assert!(
+            (alpha_cycle.n_prime - 0.72).abs() < 1e-9,
+            "program override must calculate alpha from raw points, got n'={}",
+            alpha_cycle.n_prime
+        );
+        assert!(
+            (beta_cycle.n_prime - 0.72).abs() < 1e-9,
+            "program override must calculate beta from raw points, got n'={}",
+            beta_cycle.n_prime
+        );
+        assert!(
+            (alpha_cycle.k_prime - 9.333).abs() > 1e-6,
+            "program override must not reuse alpha persisted program rows"
+        );
+        assert!(
+            (beta_cycle.k_prime - 8.444).abs() > 1e-6,
+            "program override must not reuse beta persisted program rows"
+        );
     }
 
     #[test]

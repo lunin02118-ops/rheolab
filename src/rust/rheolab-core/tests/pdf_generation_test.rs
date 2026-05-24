@@ -1,7 +1,7 @@
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use rheolab_core::report_generator::generate_pdf_report;
 use std::fs::File;
 use std::io::Write;
-use base64::{Engine as _, engine::general_purpose::STANDARD};
 
 #[test]
 fn test_pdf_generation_with_svg() {
@@ -11,13 +11,14 @@ fn test_pdf_generation_with_svg() {
   <circle cx="50" cy="50" r="40" stroke="green" stroke-width="4" fill="yellow" />
   <text x="10" y="150" font-family="Arial" font-size="20" fill="black">Hello SVG Chart!</text>
 </svg>"#;
-    
+
     // Base64 encode SVG
     let svg_base64 = STANDARD.encode(svg_content);
     let chart_image = format!("data:image/svg+xml;base64,{}", svg_base64);
 
     // Construct JSON input
-    let json_input = format!(r#"{{
+    let json_input = format!(
+        r#"{{
         "metadata": {{
             "filename": "test_report_svg",
             "test_date": "2023-10-27",
@@ -62,21 +63,23 @@ fn test_pdf_generation_with_svg() {
             }}
         ],
         "chart_image_base64": "{}"
-    }}"#, chart_image);
+    }}"#,
+        chart_image
+    );
 
     println!("Generating PDF with SVG chart...");
     let result = generate_pdf_report(&json_input);
-    
+
     match result {
         Ok(pdf_bytes) => {
             let output_path = "test_output_svg.pdf";
             let mut file = File::create(output_path).expect("Failed to create file");
             file.write_all(&pdf_bytes).expect("Failed to write PDF");
             println!("PDF generated successfully: {}", output_path);
-            
+
             // Verify PDF header
             assert!(pdf_bytes.starts_with(b"%PDF-"), "Output is not a valid PDF");
-        },
+        }
         Err(e) => {
             panic!("PDF generation failed: {}", e);
         }

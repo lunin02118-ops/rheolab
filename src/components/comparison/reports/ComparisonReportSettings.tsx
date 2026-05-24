@@ -7,7 +7,13 @@
  * @module comparison/reports/ComparisonReportSettings
  */
 
+import { useState } from 'react';
 import { FileDown, FileSpreadsheet, Settings2, FileText } from 'lucide-react';
+import type { RheologyParameterSource } from '@/types';
+import { ProgramRheologyConfirmDialog } from '@/components/reports/ProgramRheologyConfirmDialog';
+
+export type ComparisonReportRheologySourceMode = RheologyParameterSource;
+type PendingExport = 'pdf' | 'excel' | null;
 
 export interface ComparisonReportSettingsProps {
     language: 'ru' | 'en';
@@ -23,6 +29,8 @@ export interface ComparisonReportSettingsProps {
     setShowWaterAnalysis: (v: boolean) => void;
     showRheology: boolean;
     setShowRheology: (v: boolean) => void;
+    rheologySourceMode: ComparisonReportRheologySourceMode;
+    setRheologySourceMode: (v: ComparisonReportRheologySourceMode) => void;
     canUseCalibration: boolean;
 
     isExporting: boolean;
@@ -43,6 +51,7 @@ export function ComparisonReportSettings({
     showRecipe, setShowRecipe,
     showWaterAnalysis, setShowWaterAnalysis,
     showRheology, setShowRheology,
+    rheologySourceMode, setRheologySourceMode,
     canUseCalibration,
     isExporting, isExcelExporting,
     exportError, onClearError,
@@ -50,6 +59,34 @@ export function ComparisonReportSettings({
     experimentCount,
 }: ComparisonReportSettingsProps) {
     const disabled = experimentCount === 0;
+    const [pendingExport, setPendingExport] = useState<PendingExport>(null);
+    const needsProgramRheologyConfirmation = showRheology && rheologySourceMode === 'program';
+
+    const requestPdfExport = () => {
+        if (needsProgramRheologyConfirmation) {
+            setPendingExport('pdf');
+            return;
+        }
+        onDownloadPdf();
+    };
+
+    const requestExcelExport = () => {
+        if (needsProgramRheologyConfirmation) {
+            setPendingExport('excel');
+            return;
+        }
+        onDownloadExcel();
+    };
+
+    const confirmPendingExport = () => {
+        const kind = pendingExport;
+        setPendingExport(null);
+        if (kind === 'pdf') {
+            onDownloadPdf();
+        } else if (kind === 'excel') {
+            onDownloadExcel();
+        }
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -130,6 +167,29 @@ export function ComparisonReportSettings({
                             onChange={setShowRheology}
                             testId="ComparisonReportRheologyToggle"
                         />
+                        {showRheology && (
+                            <div className="pt-2">
+                                <label className="text-xs font-semibold text-foreground mb-2 block">
+                                    {language === 'ru' ? 'Таблица реологии в отчёте' : 'Rheology table in report'}
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <SourceButton
+                                        label={language === 'ru' ? 'Прибор' : 'Instrument table'}
+                                        value="instrument"
+                                        selected={rheologySourceMode === 'instrument'}
+                                        onSelect={setRheologySourceMode}
+                                        testId="ComparisonReportRheologySourceInstrument"
+                                    />
+                                    <SourceButton
+                                        label={language === 'ru' ? 'Расчёт' : 'Calculation'}
+                                        value="program"
+                                        selected={rheologySourceMode === 'program'}
+                                        onSelect={setRheologySourceMode}
+                                        testId="ComparisonReportRheologySourceProgram"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Counter */}
@@ -142,7 +202,7 @@ export function ComparisonReportSettings({
                     {/* Export buttons */}
                     <div className="grid grid-cols-2 gap-3 pt-4 mt-auto">
                         <button
-                            onClick={onDownloadPdf}
+                            onClick={requestPdfExport}
                             disabled={isExporting || disabled}
                             data-testid="ComparisonReportPdfButton"
                             className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-lg shadow-blue-900/20 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -156,7 +216,7 @@ export function ComparisonReportSettings({
                         </button>
 
                         <button
-                            onClick={onDownloadExcel}
+                            onClick={requestExcelExport}
                             disabled={isExcelExporting || disabled}
                             data-testid="ComparisonReportExcelButton"
                             className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-lg shadow-emerald-900/20 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -188,11 +248,42 @@ export function ComparisonReportSettings({
                     )}
                 </div>
             </div>
+            <ProgramRheologyConfirmDialog
+                open={pendingExport !== null}
+                language={language}
+                onConfirm={confirmPendingExport}
+                onCancel={() => setPendingExport(null)}
+            />
         </div>
     );
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
+
+interface SourceButtonProps {
+    label: string;
+    value: ComparisonReportRheologySourceMode;
+    selected: boolean;
+    onSelect: (v: ComparisonReportRheologySourceMode) => void;
+    testId: string;
+}
+
+function SourceButton({ label, value, selected, onSelect, testId }: SourceButtonProps) {
+    return (
+        <button
+            type="button"
+            onClick={() => onSelect(value)}
+            data-testid={testId}
+            className={`px-2 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                selected
+                    ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-500/60 text-blue-700 dark:text-blue-400'
+                    : 'bg-background border-border text-foreground hover:border-blue-400'
+            }`}
+        >
+            {label}
+        </button>
+    );
+}
 
 interface ToggleRowProps {
     label: string;

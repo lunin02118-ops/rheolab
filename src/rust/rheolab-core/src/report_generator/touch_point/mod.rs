@@ -25,17 +25,17 @@ pub(crate) const DEFAULT_SMOOTHING_WINDOW_MIN: f64 = 3.0;
 
 // ─── Sub-modules ────────────────────────────────────────────────────────────
 
-mod types;
-mod helpers;
 mod algorithm;
+mod helpers;
+mod types;
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
-pub use types::{
-    TouchPointInput, TouchPointType, TouchPointAnomaly, TouchPointResult, SmartTouchPointOptions,
-};
-pub use helpers::{find_dominant_shear_rate, filter_by_shear_rate, find_viscosity_peak};
 pub use algorithm::calculate_smart_touch_points;
+pub use helpers::{filter_by_shear_rate, find_dominant_shear_rate, find_viscosity_peak};
+pub use types::{
+    SmartTouchPointOptions, TouchPointAnomaly, TouchPointInput, TouchPointResult, TouchPointType,
+};
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 

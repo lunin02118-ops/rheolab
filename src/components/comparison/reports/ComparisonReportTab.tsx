@@ -7,13 +7,16 @@
  * @module comparison/reports/ComparisonReportTab
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { FileText, Layers } from 'lucide-react';
 
 import { ChartErrorBoundary } from '@/components/shared/ChartErrorBoundary';
 import { ComparisonChartUPlot as ComparisonChart } from '@/components/comparison/comparison-chart-uplot';
-import { ComparisonReportSettings } from './ComparisonReportSettings';
+import {
+    ComparisonReportSettings,
+    type ComparisonReportRheologySourceMode,
+} from './ComparisonReportSettings';
 import { useComparisonReportExport } from './hooks/useComparisonReportExport';
 
 import { useComparisonStore } from '@/lib/store/comparison-store';
@@ -49,14 +52,11 @@ export function ComparisonReportTab() {
     const [showRecipe, setShowRecipe] = useState(true);
     const [showWaterAnalysis, setShowWaterAnalysis] = useState(false);
     const [showRheology, setShowRheology] = useState(true);
+    const [rheologySourceMode, setRheologySourceMode] =
+        useState<ComparisonReportRheologySourceMode>('program');
     const { isInitialized, result } = useLicense();
     const canUseCalibration = isInitialized && (result?.license?.features?.calibrationAnalysis ?? false);
-
-    useEffect(() => {
-        if (!canUseCalibration && showCalibration) {
-            setShowCalibration(false);
-        }
-    }, [canUseCalibration, showCalibration]);
+    const effectiveShowCalibration = showCalibration && canUseCalibration;
 
     // Unit system derived the same way as in single-exp ReportsPanel.
     const unitSystem: 'SI' | 'SI_Pas' | 'Imperial' = useMemo(() => {
@@ -88,13 +88,15 @@ export function ComparisonReportTab() {
         unitSystem,
         companyName,
         companyLogo,
-        showCalibration: showCalibration && canUseCalibration,
+        showCalibration: effectiveShowCalibration,
         showRawData,
         showRecipe,
         showWaterAnalysis,
         showRheology,
+        rheologySourceOverride: rheologySourceMode,
         reportViscosityRates,
         isExpert,
+        expertSettings,
     });
 
     return (
@@ -106,7 +108,7 @@ export function ComparisonReportTab() {
             <ComparisonReportSettings
                 language={language}
                 setLanguage={setReportLanguage}
-                showCalibration={showCalibration}
+                showCalibration={effectiveShowCalibration}
                 setShowCalibration={setShowCalibration}
                 showRawData={showRawData}
                 setShowRawData={setShowRawData}
@@ -116,6 +118,8 @@ export function ComparisonReportTab() {
                 setShowWaterAnalysis={setShowWaterAnalysis}
                 showRheology={showRheology}
                 setShowRheology={setShowRheology}
+                rheologySourceMode={rheologySourceMode}
+                setRheologySourceMode={setRheologySourceMode}
                 canUseCalibration={canUseCalibration}
                 isExporting={isExporting}
                 isExcelExporting={isExcelExporting}

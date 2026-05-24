@@ -1,7 +1,7 @@
 //! Tests for the formatters module.
 
-use super::*;
 use super::super::types::{CycleInfo, StepInfo};
+use super::*;
 
 #[test]
 fn test_format_number() {
@@ -148,9 +148,9 @@ fn test_time_axis_unit_all_formats() {
 #[test]
 fn test_format_time_value_seconds() {
     assert_eq!(format_time_value(0.0, "seconds"), "0");
-    assert_eq!(format_time_value(9.0, "seconds"), "540");      // 9 min → 540 s
-    assert_eq!(format_time_value(9.5, "seconds"), "570");      // 9.5 min → 570 s
-    assert_eq!(format_time_value(22.4, "seconds"), "1344");    // 22.4 min → 1344 s
+    assert_eq!(format_time_value(9.0, "seconds"), "540"); // 9 min → 540 s
+    assert_eq!(format_time_value(9.5, "seconds"), "570"); // 9.5 min → 570 s
+    assert_eq!(format_time_value(22.4, "seconds"), "1344"); // 22.4 min → 1344 s
     assert_eq!(format_time_value(f64::NAN, "seconds"), "-");
 }
 
@@ -169,7 +169,7 @@ fn test_format_time_value_hhmmss() {
     assert_eq!(format_time_value(0.0, "hh:mm:ss"), "00:00:00");
     assert_eq!(format_time_value(9.0, "hh:mm:ss"), "00:09:00");
     assert_eq!(format_time_value(9.5, "hh:mm:ss"), "00:09:30");
-    assert_eq!(format_time_value(22.4, "hh:mm:ss"), "00:22:24");   // 22:24
+    assert_eq!(format_time_value(22.4, "hh:mm:ss"), "00:22:24"); // 22:24
     assert_eq!(format_time_value(60.0, "hh:mm:ss"), "01:00:00");
     assert_eq!(format_time_value(72.5, "hh:mm:ss"), "01:12:30");
 }
@@ -184,13 +184,17 @@ fn test_format_time_value_default_falls_back_to_minutes() {
 
 // ─── resolve_units() — end-to-end preset validation ────────────────
 
-fn input_with(unit_system: &str, rheology_units: Option<super::super::types::RheologyUnits>)
-    -> super::super::types::ReportInput
-{
+fn input_with(
+    unit_system: &str,
+    rheology_units: Option<super::super::types::RheologyUnits>,
+) -> super::super::types::ReportInput {
     use super::super::types::{ReportInput, ReportMetadata, ReportSettings};
     ReportInput {
         raw_data: vec![],
-        metadata: ReportMetadata { filename: "t".into(), ..Default::default() },
+        metadata: ReportMetadata {
+            filename: "t".into(),
+            ..Default::default()
+        },
         cycle_results: vec![],
         recipe: vec![],
         water_params: None,
@@ -252,13 +256,22 @@ fn resolve_units_mixed_custom_preset_reproduces_user_ui() {
     // unit_system is 'Imperial' (because viscosity is cP) but the
     // per-category overrides must win for K'/PV/YP.
     let units = resolve_units(&input_with("Imperial", Some(ru)));
-    assert!(units.use_targets, "per-category override must take precedence");
-    assert_eq!(units.k, "Pa·s^n",
-        "K' label must follow rheology_units.consistency, NOT unit_system='Imperial'");
-    assert_eq!(units.pv, "Pa·s",
-        "PV label must follow rheology_units.plastic_viscosity, NOT get_pv_unit('Imperial')");
-    assert_eq!(units.yp, "Pa",
-        "YP label must follow rheology_units.yield_point, NOT get_yp_unit('Imperial')");
+    assert!(
+        units.use_targets,
+        "per-category override must take precedence"
+    );
+    assert_eq!(
+        units.k, "Pa·s^n",
+        "K' label must follow rheology_units.consistency, NOT unit_system='Imperial'"
+    );
+    assert_eq!(
+        units.pv, "Pa·s",
+        "PV label must follow rheology_units.plastic_viscosity, NOT get_pv_unit('Imperial')"
+    );
+    assert_eq!(
+        units.yp, "Pa",
+        "YP label must follow rheology_units.yield_point, NOT get_yp_unit('Imperial')"
+    );
     assert_eq!(units.viscosity, "cP");
     assert_eq!(units.time_format, "minutes");
 }
@@ -273,7 +286,7 @@ fn resolve_units_mixed_seconds_time_format() {
         temperature: "°C".into(),
         pressure: "bar".into(),
         consistency: "Pa·s^n".into(),
-        plastic_viscosity: "cP".into(),   // unusual but legal
+        plastic_viscosity: "cP".into(), // unusual but legal
         yield_point: "Pa".into(),
         time_format: "seconds".into(),
     };
@@ -288,16 +301,19 @@ fn resolve_units_empty_fields_fall_back_per_category() {
     // doesn't care about must fall back to the unit_system-derived
     // label individually (NOT disable the whole override).
     let ru = super::super::types::RheologyUnits {
-        viscosity: "cP".into(),            // set
+        viscosity: "cP".into(), // set
         temperature: "".into(),
         pressure: "".into(),
-        consistency: "".into(),             // empty → fall back to get_k_unit
-        plastic_viscosity: "".into(),       // empty → fall back to get_pv_unit
-        yield_point: "".into(),             // empty → fall back to get_yp_unit
-        time_format: "".into(),             // empty → "minutes" default
+        consistency: "".into(),       // empty → fall back to get_k_unit
+        plastic_viscosity: "".into(), // empty → fall back to get_pv_unit
+        yield_point: "".into(),       // empty → fall back to get_yp_unit
+        time_format: "".into(),       // empty → "minutes" default
     };
     let units = resolve_units(&input_with("Imperial", Some(ru)));
-    assert!(units.use_targets, "presence of the struct (not fullness) flips use_targets");
+    assert!(
+        units.use_targets,
+        "presence of the struct (not fullness) flips use_targets"
+    );
     // Empty `consistency` → Imperial default (with fixed label).
     assert_eq!(units.k, "lbf·s^n/100ft²");
     assert_eq!(units.pv, "cP");
@@ -372,11 +388,20 @@ fn test_viscosity_excel_format() {
 
 #[test]
 fn test_format_date() {
-    assert_eq!(format_date(&Some("2026-01-03".to_string()), "ru"), "03.01.2026");
-    assert_eq!(format_date(&Some("2026-01-03".to_string()), "en"), "01/03/2026");
+    assert_eq!(
+        format_date(&Some("2026-01-03".to_string()), "ru"),
+        "03.01.2026"
+    );
+    assert_eq!(
+        format_date(&Some("2026-01-03".to_string()), "en"),
+        "01/03/2026"
+    );
     assert_eq!(format_date(&None, "ru"), "-");
     assert_eq!(format_date(&Some("".to_string()), "en"), "-");
-    assert_eq!(format_date(&Some("2026-01-03T12:30:00Z".to_string()), "ru"), "03.01.2026");
+    assert_eq!(
+        format_date(&Some("2026-01-03T12:30:00Z".to_string()), "ru"),
+        "03.01.2026"
+    );
 }
 
 #[test]
@@ -384,12 +409,21 @@ fn test_build_ramp_string() {
     let cycles = vec![CycleInfo {
         cycle_type: "ramp".to_string(),
         steps: vec![
-            StepInfo { avg_shear_rate: 5.6 },
-            StepInfo { avg_shear_rate: 100.0 },
-            StepInfo { avg_shear_rate: 170.4 },
+            StepInfo {
+                avg_shear_rate: 5.6,
+            },
+            StepInfo {
+                avg_shear_rate: 100.0,
+            },
+            StepInfo {
+                avg_shear_rate: 170.4,
+            },
         ],
     }];
-    assert_eq!(build_ramp_string(&cycles), Some("6 - 100 - 170".to_string()));
+    assert_eq!(
+        build_ramp_string(&cycles),
+        Some("6 - 100 - 170".to_string())
+    );
 }
 
 #[test]

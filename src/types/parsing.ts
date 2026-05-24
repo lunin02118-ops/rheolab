@@ -3,7 +3,7 @@
  * diagnostics surface.
  */
 import type { ColumnarData } from './rheology';
-import type { RheologyParameterRow } from './experiment';
+import type { RheologyParameterRow, RheologyParameterSource } from './experiment';
 
 // Re-export from the parser module for convenience.
 export type { RheoDataPoint, ParsingMetadata } from '@/lib/parsing/types';
@@ -40,6 +40,8 @@ export interface ParseResult {
         filename: string;
         /** Present when the result was loaded from the local experiment DB. */
         experimentId?: string;
+        /** Default rheology parameter source saved for this experiment. */
+        rheologySource?: RheologyParameterSource;
         sheetName?: string;
         instrumentType?: string;
         geometry?: string;

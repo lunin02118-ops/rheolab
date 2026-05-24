@@ -1,13 +1,31 @@
 //! Determinism + assembly-shape tests for the template builders.
 
-use super::*;
 use super::super::super::types::{DataPoint, ReportMetadata, ReportSettings};
+use super::*;
 
 fn minimal_report_input() -> ReportInput {
     ReportInput {
         raw_data: vec![
-            DataPoint { time_sec: 0.0, viscosity_cp: 100.0, temperature_c: Some(25.0), shear_rate: Some(100.0), shear_stress_pa: None, speed_rpm: None, pressure_bar: None, bath_temperature_c: None },
-            DataPoint { time_sec: 60.0, viscosity_cp: 150.0, temperature_c: Some(50.0), shear_rate: Some(75.0), shear_stress_pa: None, speed_rpm: None, pressure_bar: None, bath_temperature_c: None },
+            DataPoint {
+                time_sec: 0.0,
+                viscosity_cp: 100.0,
+                temperature_c: Some(25.0),
+                shear_rate: Some(100.0),
+                shear_stress_pa: None,
+                speed_rpm: None,
+                pressure_bar: None,
+                bath_temperature_c: None,
+            },
+            DataPoint {
+                time_sec: 60.0,
+                viscosity_cp: 150.0,
+                temperature_c: Some(50.0),
+                shear_rate: Some(75.0),
+                shear_stress_pa: None,
+                speed_rpm: None,
+                pressure_bar: None,
+                bath_temperature_c: None,
+            },
         ],
         metadata: ReportMetadata {
             filename: "test.pdf".to_string(),
@@ -74,11 +92,40 @@ fn body_does_not_emit_globals() {
     let input = minimal_report_input();
     let body = build_single_experiment_body(&input, false, None, None, false);
     // Tokens that must live in globals, not body.
-    assert!(!body.contains("#set page("),   "body leaks '#set page('");
-    assert!(!body.contains("#let section_header"),   "body leaks section_header");
-    assert!(!body.contains("#let report_header"),    "body leaks report_header");
-    assert!(!body.contains("#let report_footer"),    "body leaks report_footer");
-    assert!(!body.contains("#let label(content)"),   "body leaks label helper");
+    assert!(!body.contains("#set page("), "body leaks '#set page('");
+    assert!(
+        !body.contains("#let section_header"),
+        "body leaks section_header"
+    );
+    assert!(
+        !body.contains("#let report_header"),
+        "body leaks report_header"
+    );
+    assert!(
+        !body.contains("#let report_footer"),
+        "body leaks report_footer"
+    );
+    assert!(
+        !body.contains("#let label(content)"),
+        "body leaks label helper"
+    );
+}
+
+#[test]
+fn body_prints_rheology_data_source() {
+    let mut input = minimal_report_input();
+    input.settings.rheology_source = "instrument".to_string();
+
+    let body = build_single_experiment_body(&input, false, None, None, true);
+
+    assert!(
+        body.contains("Источник данных:"),
+        "report must show the rheology data source label"
+    );
+    assert!(
+        body.contains("Прибор"),
+        "instrument source must be visible in the report"
+    );
 }
 
 /// Globals must contain exactly the expected tokens so comparison
@@ -87,10 +134,28 @@ fn body_does_not_emit_globals() {
 fn globals_contain_required_tokens() {
     let input = minimal_report_input();
     let globals = build_typst_globals(&input, 2);
-    assert!(globals.contains("#set page(paper: \"a4\""), "missing base page set");
-    assert!(globals.contains("#let section_header"), "missing section_header helper");
-    assert!(globals.contains("#let label(content)"), "missing label helper");
-    assert!(globals.contains("#let report_header"), "missing report_header");
-    assert!(globals.contains("#let report_footer"), "missing report_footer");
-    assert!(globals.contains("header: report_header"), "missing header binding on page");
+    assert!(
+        globals.contains("#set page(paper: \"a4\""),
+        "missing base page set"
+    );
+    assert!(
+        globals.contains("#let section_header"),
+        "missing section_header helper"
+    );
+    assert!(
+        globals.contains("#let label(content)"),
+        "missing label helper"
+    );
+    assert!(
+        globals.contains("#let report_header"),
+        "missing report_header"
+    );
+    assert!(
+        globals.contains("#let report_footer"),
+        "missing report_footer"
+    );
+    assert!(
+        globals.contains("header: report_header"),
+        "missing header binding on page"
+    );
 }

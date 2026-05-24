@@ -35,6 +35,18 @@ function makeExpRecord(overrides: Record<string, any> = {}): Record<string, any>
         viscosityMin: 50,
         pressureMax: 10,
         metrics: { maxViscosity: 100, maxTemp: 90 },
+        rheologySource: 'instrument',
+        rheologyParameters: [{
+            source: 'instrument',
+            cycleNo: 1,
+            nPrime: 0.61,
+            kPrimePaSn: 0.22,
+        }, {
+            source: 'program',
+            cycleNo: 1,
+            nPrime: 0.72,
+            kPrimePaSn: 0.33,
+        }],
         ...overrides,
     };
 }
@@ -135,6 +147,18 @@ describe('mapExperimentToParseResult', () => {
         }));
         expect(result.data[0].bath_temperature_c).toBeUndefined();
     });
+
+    it('restores parsed instrument rheology rows from saved experiment payload', () => {
+        const result = mapExperimentToParseResult(makeExpRecord());
+
+        expect(result.metadata.rheologySource).toBe('instrument');
+        expect(result.instrumentRheology).toEqual([expect.objectContaining({
+            source: 'instrument',
+            cycleNo: 1,
+            nPrime: 0.61,
+            kPrimePaSn: 0.22,
+        })]);
+    });
 });
 
 // ── mapExperimentDetailMetaToParseResult ──────────────────────────────────
@@ -176,6 +200,13 @@ describe('mapExperimentDetailMetaToParseResult', () => {
             laboratory: { id: 'lab_1', name: 'Lab' },
             parsedBy: 'native',
             parseSource: 'xlsx',
+            rheologySource: 'instrument',
+            rheologyParameters: [{
+                source: 'instrument',
+                cycleNo: 2,
+                nPrime: 0.52,
+                kPrimePaSn: 0.18,
+            }],
         });
 
         expect(result.data).toEqual([]);
@@ -183,6 +214,13 @@ describe('mapExperimentDetailMetaToParseResult', () => {
         expect(result.summary.pointCount).toBe(1234);
         expect(result.summary.timeRange?.durationMinutes).toBe(10);
         expect(result.metadata.filenameMetadata?.laboratoryName).toBe('Lab');
+        expect(result.metadata.rheologySource).toBe('instrument');
+        expect(result.instrumentRheology).toEqual([expect.objectContaining({
+            source: 'instrument',
+            cycleNo: 2,
+            nPrime: 0.52,
+            kPrimePaSn: 0.18,
+        })]);
         expect(isMetadataOnlyParseResult(result)).toBe(true);
     });
 });

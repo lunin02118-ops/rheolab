@@ -1,14 +1,17 @@
 //! Workbook (XLSX/XLS) parsing for the rheolab parser.
-use std::io::{Read, Seek};
-use calamine::Reader;
-use crate::types::RheoPoint as RheoDataPoint;
-use super::super::types::{ColumnMapping, ParsingResult, ParsingMetadata};
-use super::super::header_detector::{detect_header, detect_header_bsl_fast, find_raw_data_sections};
-use super::super::row_mapper::map_row;
 use super::super::date_detector::detect_date;
-use super::super::instrument_detector::detect_instrument;
 use super::super::geometry_verifier::{detect_geometry, physics_geometry};
-use super::{instrument_rheology, merge_mappings, build_row_mapper_config, calculate_sheet_score};
+use super::super::header_detector::{
+    detect_header, detect_header_bsl_fast, find_raw_data_sections,
+};
+use super::super::instrument_detector::detect_instrument;
+use super::super::row_mapper::map_row;
+use super::super::text_encoding::{normalize_cell, normalize_rows};
+use super::super::types::{ColumnMapping, ParsingMetadata, ParsingResult};
+use super::{build_row_mapper_config, calculate_sheet_score, instrument_rheology, merge_mappings};
+use crate::types::RheoPoint as RheoDataPoint;
+use calamine::Reader;
+use std::io::{Read, Seek};
 
 fn rows_from_range(range: &calamine::Range<calamine::DataType>) -> Vec<Vec<String>> {
     range
@@ -24,6 +27,7 @@ fn rows_from_range(range: &calamine::Range<calamine::DataType>) -> Vec<Vec<Strin
                     calamine::DataType::DateTime(v) => v.to_string(),
                     _ => "".to_string(),
                 })
+                .map(|s| normalize_cell(&s))
                 .collect::<Vec<String>>()
         })
         .collect()
@@ -32,8 +36,10 @@ fn rows_from_range(range: &calamine::Range<calamine::DataType>) -> Vec<Vec<Strin
 fn select_best_instrument_rheology(
     candidates: Vec<(i32, Vec<super::super::types::RheologyParameterRow>)>,
 ) -> Vec<super::super::types::RheologyParameterRow> {
-    let mut best_by_cycle =
-        std::collections::BTreeMap::<i32, (i32, i32, super::super::types::RheologyParameterRow)>::new();
+    let mut best_by_cycle = std::collections::BTreeMap::<
+        i32,
+        (i32, i32, super::super::types::RheologyParameterRow),
+    >::new();
 
     for (priority, rows) in candidates {
         for row in rows {
@@ -52,10 +58,7 @@ fn select_best_instrument_rheology(
         }
     }
 
-    best_by_cycle
-        .into_values()
-        .map(|(_, _, row)| row)
-        .collect()
+    best_by_cycle.into_values().map(|(_, _, row)| row).collect()
 }
 
 fn instrument_rheology_quality(row: &super::super::types::RheologyParameterRow) -> i32 {
@@ -160,6 +163,7 @@ fn process_sheet_with_override(
                     calamine::DataType::DateTime(v) => v.to_string(),
                     _ => "".to_string(),
                 })
+                .map(|s| normalize_cell(&s))
                 .collect::<Vec<String>>()
         })
         .collect();
@@ -226,7 +230,10 @@ fn process_sheet_with_override(
                 let mut found = 0usize;
                 for (row_idx, row) in section_rows.iter().enumerate() {
                     if let Some(cell) = row.get(tcol) {
-                        let normalized = cell.trim().replace(',', ".").replace(char::is_whitespace, "");
+                        let normalized = cell
+                            .trim()
+                            .replace(',', ".")
+                            .replace(char::is_whitespace, "");
                         if !normalized.is_empty() && normalized.parse::<f64>().is_ok() {
                             found = row_idx.saturating_sub(1);
                             break;
@@ -282,7 +289,9 @@ fn process_sheet_with_override(
     if !combined_data.is_empty() {
         unique_data.push(combined_data[0].clone());
         for point in combined_data.iter().skip(1) {
-            let last = unique_data.last().expect("non-empty: element pushed before loop");
+            let last = unique_data
+                .last()
+                .expect("non-empty: element pushed before loop");
             if (point.time_sec - last.time_sec).abs() > 1e-6 {
                 unique_data.push(point.clone());
             }
@@ -293,10 +302,6 @@ fn process_sheet_with_override(
     if let Some(phys) = physics_geometry(&combined_data) {
         match &geometry {
             None => {
-                geometry = Some(phys.geometry);
-                geometry_source = Some("physics".to_string());
-            }
-            Some(ctx_geo) if *ctx_geo != phys.geometry => {
                 geometry = Some(phys.geometry);
                 geometry_source = Some("physics".to_string());
             }
@@ -330,7 +335,7 @@ pub(super) fn parse_workbook<R: Read + Seek>(
     let mut global_geometry: Option<String> = None;
     for sheet_name in &sheet_names {
         if let Some(Ok(range)) = workbook.worksheet_range(sheet_name) {
-            let rows: Vec<Vec<String>> = range
+            let rows: Vec<Vec<String>> = normalize_rows(range
                 .rows()
                 .take(50)
                 .map(|row| {
@@ -343,7 +348,7 @@ pub(super) fn parse_workbook<R: Read + Seek>(
                         })
                         .collect::<Vec<String>>()
                 })
-                .collect();
+                .collect());
             if let Some(geo) = detect_geometry(&rows) {
                 global_geometry = Some(geo);
                 break;
@@ -409,6 +414,7 @@ fn process_sheet(
                     calamine::DataType::DateTime(v) => v.to_string(),
                     _ => "".to_string(),
                 })
+                .map(|s| normalize_cell(&s))
                 .collect::<Vec<String>>()
         })
         .collect();
@@ -503,7 +509,9 @@ fn process_sheet(
     if !combined_data.is_empty() {
         unique_data.push(combined_data[0].clone());
         for p in combined_data.iter().skip(1) {
-            let last = unique_data.last().expect("non-empty: element pushed before loop");
+            let last = unique_data
+                .last()
+                .expect("non-empty: element pushed before loop");
             if (p.time_sec - last.time_sec).abs() > 1e-6 {
                 unique_data.push(p.clone());
             }
@@ -514,10 +522,6 @@ fn process_sheet(
     if let Some(phys) = physics_geometry(&combined_data) {
         match &geometry {
             None => {
-                geometry = Some(phys.geometry);
-                geometry_source = Some("physics".to_string());
-            }
-            Some(ctx_geo) if *ctx_geo != phys.geometry => {
                 geometry = Some(phys.geometry);
                 geometry_source = Some("physics".to_string());
             }

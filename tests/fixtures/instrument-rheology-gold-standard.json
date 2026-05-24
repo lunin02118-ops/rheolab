@@ -1,0 +1,91 @@
+{
+  "_meta": {
+    "description": "Gold standard for instrument-reported rheology parameter tables parsed from real vendor reports",
+    "version": "1.0",
+    "created": "2026-05-21",
+    "columns": {
+      "cycle_no": "Cycle number assigned to parsed instrument rheology row",
+      "source_sheet": "Workbook sheet where the source row was found",
+      "source_row": "1-based workbook row number of the source row",
+      "n_prime": "Power-law n'",
+      "kv_pasn": "Kv normalized to Pa*s^n",
+      "k_prime_pasn": "K' normalized to Pa*s^n",
+      "k_slot_pasn": "K slot normalized to Pa*s^n",
+      "k_pipe_pasn": "K pipe normalized to Pa*s^n",
+      "r2": "Power-law R²",
+      "viscosities": "Calculated apparent viscosities in cP keyed by shear rate",
+      "bingham_pv_pas": "Bingham PV normalized to Pa*s",
+      "bingham_yp_pa": "Bingham YP normalized to Pa",
+      "bingham_r2": "Bingham R²"
+    }
+  },
+  "Отчёт Grace.xlsx": {
+    "expectedRows": 13,
+    "sourceSheet": "1908 buff2",
+    "sourceRows": [39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51],
+    "rows": [
+      { "cycle_no": 1, "time_min": 13.0, "temp_c": 105.0, "pressure_bar": 30.9574602321, "n_prime": 0.454658, "kv_pasn": 17.50538705185884, "k_prime_pasn": 16.300469322167572, "k_slot_pasn": 18.99383922636233, "r2": 0.989068, "viscosities": { "40": 2540.62, "100": 1541.44, "170": 1154.13 } },
+      { "cycle_no": 2, "time_min": 23.0, "temp_c": 110.0, "pressure_bar": 31.164302950800003, "n_prime": 0.454405, "kv_pasn": 12.981293899447241, "k_prime_pasn": 12.087401065261568, "k_slot_pasn": 14.085303504535567, "r2": 0.925312, "viscosities": { "40": 1882.29, "100": 1141.76, "170": 854.75 } },
+      { "cycle_no": 3, "time_min": 33.0, "temp_c": 108.9, "pressure_bar": 31.2332505237, "n_prime": 0.464082, "kv_pasn": 11.168559743331775, "k_prime_pasn": 10.411818474586543, "k_slot_pasn": 12.110462591999285, "r2": 0.979451, "viscosities": { "40": 1677.21, "100": 1026.42, "170": 772.36 } },
+      { "cycle_no": 4, "time_min": 43.0, "temp_c": 107.2, "pressure_bar": 31.2332505237, "n_prime": 0.538811, "kv_pasn": 7.287732603487991, "k_prime_pasn": 6.857621364255112, "k_slot_pasn": 7.850704858154113, "r2": 0.97017, "viscosities": { "40": 1432.37, "100": 938.7, "170": 734.93 } },
+      { "cycle_no": 5, "time_min": 53.0, "temp_c": 106.7, "pressure_bar": 31.2332505237, "n_prime": 0.783613, "kv_pasn": 2.3057160058098023, "k_prime_pasn": 2.239907462657331, "k_slot_pasn": 2.3999180213400035, "r2": 0.674063, "viscosities": { "40": 1080.26, "100": 885.97, "170": 789.87 } },
+      { "cycle_no": 6, "time_min": 63.0, "temp_c": 106.7, "pressure_bar": 31.371145669500002, "n_prime": 0.878875, "kv_pasn": 1.3883398198047985, "k_prime_pasn": 1.365942392259134, "k_slot_pasn": 1.4209410093416905, "r2": 0.703135, "viscosities": { "40": 908.92, "100": 813.44, "170": 762.8 } },
+      { "cycle_no": 7, "time_min": 73.1, "temp_c": 106.7, "pressure_bar": 31.371145669500002, "n_prime": 1.029457, "kv_pasn": 0.7157663007153282, "k_prime_pasn": 0.7186146973220484, "k_slot_pasn": 0.7115600199639353, "r2": 0.051545, "viscosities": { "40": 793.23, "100": 814.93, "170": 827.77 } },
+      { "cycle_no": 8, "time_min": 83.1, "temp_c": 106.7, "pressure_bar": 31.371145669500002, "n_prime": 1.324587, "kv_pasn": 0.203629953416042, "k_prime_pasn": 0.2127889681563262, "k_slot_pasn": 0.1900769673091632, "r2": 0.833602, "viscosities": { "40": 629.41, "100": 847.43, "170": 1006.71 } },
+      { "cycle_no": 9, "time_min": 93.1, "temp_c": 106.7, "pressure_bar": 31.371145669500002, "n_prime": 1.512784, "kv_pasn": 0.08218167651327199, "k_prime_pasn": 0.0881111677853552, "k_slot_pasn": 0.0734952399291204, "r2": 0.885803, "viscosities": { "40": 487.27, "100": 779.52, "170": 1023.28 } },
+      { "cycle_no": 10, "time_min": 103.1, "temp_c": 107.2, "pressure_bar": 31.371145669500002, "n_prime": 1.614204, "kv_pasn": 0.0443342469999412, "k_prime_pasn": 0.0481967474918578, "k_slot_pasn": 0.0387202866345362, "r2": 0.954267, "viscosities": { "40": 373.19, "100": 655.15, "170": 907.58 } },
+      { "cycle_no": 11, "time_min": 113.1, "temp_c": 106.7, "pressure_bar": 31.371145669500002, "n_prime": 1.864488, "kv_pasn": 0.014075838534940401, "k_prime_pasn": 0.015835438052455398, "k_slot_pasn": 0.0115793618317232, "r2": 0.921772, "viscosities": { "40": 280.96, "100": 620.38, "170": 981.47 } },
+      { "cycle_no": 12, "time_min": 123.1, "temp_c": 106.7, "pressure_bar": 31.371145669500002, "n_prime": 2.639474, "kv_pasn": 0.0004582140784386, "k_prime_pasn": 0.0005736055025804001, "k_slot_pasn": 0.0003107428807802, "r2": 0.89465, "viscosities": { "40": 131.54, "100": 590.85, "170": 1410.23 } },
+      { "cycle_no": 13, "time_min": 133.1, "temp_c": 107.2, "pressure_bar": 31.371145669500002, "n_prime": 3.342966, "kv_pasn": 0.0000205885113614, "k_prime_pasn": 0.0000282493527982, "k_slot_pasn": 0.000011491262155200001, "r2": 0.89612, "viscosities": { "40": 65.62, "100": 561.53, "170": 1946.73 } }
+    ]
+  },
+  "Отчёт BSL.xlsx": {
+    "expectedRows": 3,
+    "sourceSheet": "Степенной закон",
+    "sourceRows": [5, 6, 7],
+    "rows": [
+      { "cycle_no": 1, "n_prime": 0.5461, "kv_pasn": 0.39492116409293804, "k_prime_pasn": 0.37195779188613004, "k_slot_pasn": 0.42510487935393004, "k_pipe_pasn": 0.412354366387556, "r2": 0.86962, "viscosities": { "1": 41.31, "2": 52.57, "3": 425.1 } },
+      { "cycle_no": 2, "n_prime": 0.52729, "kv_pasn": 0.41590229357797404, "k_prime_pasn": 0.390789097742964, "k_slot_pasn": 0.44855663020233405, "k_pipe_pasn": 0.434757539564298, "r2": 0.86462, "viscosities": { "1": 39.58, "2": 50.86, "3": 448.55 } },
+      { "cycle_no": 3, "n_prime": 0.4981, "kv_pasn": 0.467115018582982, "k_prime_pasn": 0.437299981316136, "k_slot_pasn": 0.505155884342592, "k_pipe_pasn": 0.4890824814030061, "r2": 0.80715, "viscosities": { "1": 38.37, "2": 50.08, "3": 505.15 } }
+    ]
+  },
+  "Отчёт Chandler.xls": {
+    "expectedRows": 3,
+    "sourceSheet": "Unformatted Data",
+    "sourceRows": [83, 88, 93],
+    "maxSourceRow": 99,
+    "rows": [
+      { "cycle_no": 1, "n_prime": 0.4075362737, "kv_pasn": 9.062848350944877, "k_prime_pasn": 8.391348939281158, "k_slot_pasn": 9.857519379308759, "r2": 0.9909810344, "viscosities": { "40": 991.6, "100": 607.2, "170": 501.67 }, "bingham_pv_pas": 0.35092670102665746, "bingham_yp_pa": 25.627019850499774, "bingham_r2": 0.9996042848 },
+      { "cycle_no": 2, "n_prime": 0.4540934817, "kv_pasn": 7.778933633134033, "k_prime_pasn": 7.24300044280777, "k_slot_pasn": 8.440673309964229, "r2": 0.9988869241, "viscosities": { "40": 1015.12, "100": 641.62, "170": 539.09 }, "bingham_pv_pas": 0.39262268643315973, "bingham_yp_pa": 24.89997942201818, "bingham_r2": 0.9910426127 },
+      { "cycle_no": 3, "n_prime": 0.5299451409, "kv_pasn": 5.791348058599025, "k_prime_pasn": 5.443444107029946, "k_slot_pasn": 6.244365481857385, "r2": 0.9977583417, "viscosities": { "40": 1005.3, "100": 672.73, "170": 581.44 }, "bingham_pv_pas": 0.45102286515941636, "bingham_yp_pa": 22.17119698956386, "bingham_r2": 0.9786780088 }
+    ]
+  },
+  "Brookfeild 4.xlsx": {
+    "expectedRows": 6,
+    "sourceSheet": "Лист1",
+    "sourceRows": [2, 3, 4, 5, 6, 7],
+    "rows": [
+      { "cycle_no": 1, "temp_c": 321.8, "n_prime": 0.39764, "r2": 0.95239, "viscosities": { "40": 1853.7678153467248, "100": 1067.4614356450422, "170": 775.423541535587, "511": 399.6021173633582 } },
+      { "cycle_no": 2, "temp_c": 321.8, "n_prime": 0.36358, "r2": 0.95143, "viscosities": { "40": 1619.0112926703673, "100": 903.634695806657, "170": 644.6598089181218, "511": 319.9924034626732 } },
+      { "cycle_no": 3, "temp_c": 321.8, "n_prime": 0.43763, "r2": 0.90526, "viscosities": { "40": 1383.5525510427817, "100": 826.4301194780828, "170": 613.2090798442658, "511": 330.2261605751918 } },
+      { "cycle_no": 4, "temp_c": 321.8, "n_prime": 0.52209, "r2": 0.89292, "viscosities": { "40": 1269.0480415377267, "100": 819.0276312873626, "170": 635.5719318830057, "511": 375.60997851624836 } },
+      { "cycle_no": 5, "temp_c": 321.8, "n_prime": 0.76533, "r2": 0.91047, "viscosities": { "40": 761.8424692981237, "100": 614.441579837856, "170": 542.5017566013235, "511": 419.0206869393437 } },
+      { "cycle_no": 6, "temp_c": 321.8, "n_prime": 1.64354, "r2": 0.8626, "viscosities": { "40": 443.2141654578212, "100": 799.289201253142, "170": 1124.6232154879976, "511": 2283.5006079808722 } }
+    ]
+  },
+  "Отчёт brookfild.xls": {
+    "expectedRows": 8,
+    "sourceSheet": "Power Law Data",
+    "sourceRows": [2, 3, 4, 5, 6, 7, 8, 9],
+    "rows": [
+      { "cycle_no": 1, "temp_c": 76.1, "n_prime": 0.55942, "k_prime_pasn": 6.71973, "r2": 0.9229, "viscosities": { "40": 1322.867151182581, "100": 883.4700338104863, "170": 699.2953454978795, "511": 430.6017030937034 } },
+      { "cycle_no": 2, "temp_c": 78.7, "n_prime": 0.51234, "k_prime_pasn": 7.544979, "r2": 0.85018, "viscosities": { "40": 1248.5256239586283, "100": 798.6160523166532, "170": 616.5344013401535, "511": 360.47030929422294 } },
+      { "cycle_no": 3, "temp_c": 79.2, "n_prime": 0.81441, "k_prime_pasn": 2.61394, "r2": 0.94412, "viscosities": { "40": 1318.1635576584292, "100": 1112.0277235780495, "170": 1007.7355959926491, "511": 821.5609336288312 } },
+      { "cycle_no": 4, "temp_c": 81.3, "n_prime": 1.46185, "k_prime_pasn": 0.11036600000000002, "r2": 0.87371, "viscosities": { "40": 606.3825704650008, "100": 925.8386411034744, "170": 1182.9547624350462, "511": 1966.6156704921395 } },
+      { "cycle_no": 5, "temp_c": 81.6, "n_prime": 1.7959, "k_prime_pasn": 0.017414, "r2": 0.90661, "viscosities": { "40": 328.0787391423949, "100": 680.2969754496135, "170": 1037.7980173068793, "511": 2491.9007140747053 } },
+      { "cycle_no": 6, "temp_c": 82.6, "n_prime": 1.55038, "k_prime_pasn": 0.020979, "r2": 0.89032, "viscosities": { "40": 159.78152467455794, "100": 264.57254988126783, "170": 354.3066145954918, "511": 649.3001122845715 } },
+      { "cycle_no": 7, "temp_c": 83.1, "n_prime": 1.22972, "k_prime_pasn": 0.049111, "r2": 0.958, "viscosities": { "40": 114.60511427822688, "100": 141.45515448567164, "170": 159.79290917973967, "511": 205.7582353085366 } },
+      { "cycle_no": 8, "temp_c": 83.7, "n_prime": 1.05485, "k_prime_pasn": 0.075198, "r2": 0.97242, "viscosities": { "40": 92.06176154136216, "100": 96.80689485229222, "170": 99.66585881251211, "511": 105.86762647676994 } }
+    ]
+  }
+}

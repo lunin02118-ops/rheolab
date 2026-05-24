@@ -5,7 +5,7 @@
 //! as API/ISO/Custom, and merging ramp-down + ramp-up pairs into a single
 //! symmetric cycle.
 
-use crate::types::{RheoStep, RheoCycle};
+use crate::types::{RheoCycle, RheoStep};
 
 /// Build a [`RheoCycle`] from its component steps and assign a classification.
 ///
@@ -16,7 +16,8 @@ pub(super) fn create_cycle(steps: Vec<RheoStep>, id: i32) -> RheoCycle {
     let duration: f64 = steps.iter().map(|s| s.duration).sum();
 
     // Classify cycle type based on pattern (matching TypeScript logic)
-    let rates: Vec<i32> = steps.iter()
+    let rates: Vec<i32> = steps
+        .iter()
         .map(|s| (s.avg_shear_rate / 5.0).round() as i32 * 5)
         .collect();
 
@@ -39,9 +40,8 @@ fn classify_cycle_type(rates: &[i32], id: i32) -> (String, String) {
     }
 
     // Helper: check if rates contain a value (with tolerance)
-    let has_rate = |target: i32, tol: i32| -> bool {
-        rates.iter().any(|&r| (r - target).abs() <= tol)
-    };
+    let has_rate =
+        |target: i32, tol: i32| -> bool { rates.iter().any(|&r| (r - target).abs() <= tol) };
 
     // Get max rate for mixing step detection
     let max_rate = *rates.iter().max().unwrap_or(&0);
@@ -68,7 +68,11 @@ fn classify_cycle_type(rates: &[i32], id: i32) -> (String, String) {
     let is_symmetric = is_symmetric_pattern(&body_rates);
 
     // Check monotonicity
-    let rates_to_check = if body_rates.len() >= 3 { &body_rates } else { rates };
+    let rates_to_check = if body_rates.len() >= 3 {
+        &body_rates
+    } else {
+        rates
+    };
     let is_monotonic = is_monotonic_pattern(rates_to_check);
 
     // API RP 39 pattern check
@@ -77,19 +81,26 @@ fn classify_cycle_type(rates: &[i32], id: i32) -> (String, String) {
     let is_api_pattern = is_symmetric && has_api_rates && !has_low_rates;
 
     // ISO 13503-1 pattern check
-    let unique_rates: std::collections::HashSet<i32> = rates_to_check.iter()
-        .map(|&r| (r / 10) * 10)
-        .collect();
+    let unique_rates: std::collections::HashSet<i32> =
+        rates_to_check.iter().map(|&r| (r / 10) * 10).collect();
     let has_enough_levels = unique_rates.len() >= 3;
     let has_anomalous_rates = rates_to_check.iter().any(|&r| r > 200 && r < 400);
-    let is_iso_pattern = is_monotonic && rates.len() >= 3 && has_enough_levels && !has_anomalous_rates;
+    let is_iso_pattern =
+        is_monotonic && rates.len() >= 3 && has_enough_levels && !has_anomalous_rates;
 
     // Classify
     if is_api_pattern {
         ("API".to_string(), "API RP 39 Cycle".to_string())
     } else if is_iso_pattern {
-        let direction = if rates_to_check.first() > rates_to_check.last() { "Ramp ↓" } else { "Ramp ↑" };
-        ("ISO".to_string(), format!("ISO 13503-1 Cycle ({})", direction))
+        let direction = if rates_to_check.first() > rates_to_check.last() {
+            "Ramp ↓"
+        } else {
+            "Ramp ↑"
+        };
+        (
+            "ISO".to_string(),
+            format!("ISO 13503-1 Cycle ({})", direction),
+        )
     } else {
         ("Custom".to_string(), format!("Cycle {}", id))
     }
@@ -161,9 +172,11 @@ pub(super) fn merge_symmetric_cycles(cycles: Vec<RheoCycle>) -> Vec<RheoCycle> {
         }
 
         // Guarded: curr_rates / next_rates are non-empty (checked above).
-        let is_ramp_down = curr_rates.first().expect("non-empty: guarded") > curr_rates.last().expect("non-empty: guarded");
+        let is_ramp_down = curr_rates.first().expect("non-empty: guarded")
+            > curr_rates.last().expect("non-empty: guarded");
         // Ramp Up: first < last
-        let is_ramp_up = next_rates.first().expect("non-empty: guarded") < next_rates.last().expect("non-empty: guarded");
+        let is_ramp_up = next_rates.first().expect("non-empty: guarded")
+            < next_rates.last().expect("non-empty: guarded");
 
         if is_ramp_down && is_ramp_up {
             let end_rate = *curr_rates.last().expect("non-empty: guarded");
@@ -176,8 +189,8 @@ pub(super) fn merge_symmetric_cycles(cycles: Vec<RheoCycle>) -> Vec<RheoCycle> {
             // TS Logic: Math.abs(endRate - startRate) < 10 ||
             //           (endRate > startRate && nextRates[1] > startRate)
 
-            let is_continuous = (end_rate - start_rate).abs() < 10.0 ||
-                               (end_rate > start_rate && next_rates.len() > 1 && next_rates[1] > start_rate);
+            let is_continuous = (end_rate - start_rate).abs() < 10.0
+                || (end_rate > start_rate && next_rates.len() > 1 && next_rates[1] > start_rate);
 
             if is_continuous {
                 // Merge steps

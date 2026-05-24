@@ -1,9 +1,6 @@
 //! Input/output types for smart touch-point calculation.
 
-use super::{
-    DEFAULT_TREND_WINDOW_MIN, DEFAULT_SHEAR_RATE_TOLERANCE,
-    DEFAULT_SMOOTHING_WINDOW_MIN,
-};
+use super::{DEFAULT_SHEAR_RATE_TOLERANCE, DEFAULT_SMOOTHING_WINDOW_MIN, DEFAULT_TREND_WINDOW_MIN};
 
 #[derive(Debug, Clone)]
 pub struct TouchPointInput {

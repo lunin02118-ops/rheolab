@@ -1,10 +1,20 @@
 use crate::types::RheoPoint;
 
+const R1_ROTOR_RADIUS_CM: f64 = 1.8415;
+const R1B1_BOB_RADIUS_CM: f64 = 1.7245;
+const R1B2_BOB_RADIUS_CM: f64 = 1.2276;
+const R1B5_BOB_RADIUS_CM: f64 = 1.5987;
+const R1B1_RATIO: f64 = 0.9365;
+const R1B2_RATIO: f64 = 0.6666;
+const R1B5_RATIO: f64 = 0.8682;
+
 pub fn detect_geometry(rows: &[Vec<String>]) -> Option<String> {
     // Scan up to 100 rows — some instruments store geometry metadata
     // deeper than row 50 (e.g. BSL header blocks, Grace multi-section files).
     let scan_limit = std::cmp::min(rows.len(), 100);
-    let full_text = rows.iter().take(scan_limit)
+    let full_text = rows
+        .iter()
+        .take(scan_limit)
         .map(|r| r.join(" ").to_lowercase())
         .collect::<Vec<_>>()
         .join(" ");
@@ -51,12 +61,112 @@ pub fn detect_geometry(rows: &[Vec<String>]) -> Option<String> {
         // Check B5/B2 first as they are more specific than B1 (which might match other things)
         // Use spaces to avoid partial matches
         let text_padded = format!(" {} ", full_text);
-        if text_padded.contains(" b5 ") || text_padded.contains(" b 5 ") { return Some("R1B5".to_string()); }
-        if text_padded.contains(" b2 ") || text_padded.contains(" b 2 ") { return Some("R1B2".to_string()); }
-        if text_padded.contains(" b1 ") || text_padded.contains(" b 1 ") { return Some("R1B1".to_string()); }
+        if text_padded.contains(" b5 ") || text_padded.contains(" b 5 ") {
+            return Some("R1B5".to_string());
+        }
+        if text_padded.contains(" b2 ") || text_padded.contains(" b 2 ") {
+            return Some("R1B2".to_string());
+        }
+        if text_padded.contains(" b1 ") || text_padded.contains(" b 1 ") {
+            return Some("R1B1".to_string());
+        }
+    }
+
+    if let Some(geometry) = detect_geometry_from_dimensions(&rows[..scan_limit]) {
+        return Some(geometry);
     }
 
     None
+}
+
+fn detect_geometry_from_dimensions(rows: &[Vec<String>]) -> Option<String> {
+    let mut rotor_radius_cm = None;
+    let mut bob_radius_cm = None;
+    let mut radius_ratio = None;
+
+    for row in rows {
+        let label = row.first().map(|s| s.as_str()).unwrap_or_default();
+        let normalized = label
+            .replace('\u{00A0}', " ")
+            .replace(',', ".")
+            .to_lowercase();
+
+        if (normalized.contains("rotor") || normalized.contains("ротор"))
+            && (normalized.contains("radius") || normalized.contains("радиус"))
+        {
+            rotor_radius_cm = single_numeric_value_after_label(row);
+        } else if (normalized.contains("bob") || normalized.contains("боб"))
+            && (normalized.contains("radius") || normalized.contains("радиус"))
+        {
+            bob_radius_cm = single_numeric_value_after_label(row);
+        } else if normalized.contains("radii ratio")
+            || normalized.contains("radius ratio")
+            || normalized.contains("отнош")
+        {
+            radius_ratio = single_numeric_value_after_label(row);
+        }
+    }
+
+    if let Some(rb) = bob_radius_cm {
+        let rotor_is_r1 = rotor_radius_cm
+            .map(|rc| approx_abs(rc, R1_ROTOR_RADIUS_CM, 0.02))
+            .unwrap_or(true);
+        if rotor_is_r1 {
+            if approx_abs(rb, R1B1_BOB_RADIUS_CM, 0.005) {
+                return Some("R1B1".to_string());
+            }
+            if approx_abs(rb, R1B2_BOB_RADIUS_CM, 0.005) {
+                return Some("R1B2".to_string());
+            }
+            if approx_abs(rb, R1B5_BOB_RADIUS_CM, 0.005) {
+                return Some("R1B5".to_string());
+            }
+        }
+    }
+
+    if let Some(ratio) = radius_ratio {
+        if approx_abs(ratio, R1B1_RATIO, 0.005) {
+            return Some("R1B1".to_string());
+        }
+        if approx_abs(ratio, R1B2_RATIO, 0.005) {
+            return Some("R1B2".to_string());
+        }
+        if approx_abs(ratio, R1B5_RATIO, 0.005) {
+            return Some("R1B5".to_string());
+        }
+    }
+
+    None
+}
+
+fn single_numeric_value_after_label(row: &[String]) -> Option<f64> {
+    let values = row
+        .iter()
+        .skip(1)
+        .filter_map(|cell| parse_number(cell))
+        .filter(|value| value.is_finite() && *value > 0.0 && *value < 100.0)
+        .collect::<Vec<_>>();
+
+    if values.len() == 1 {
+        Some(values[0])
+    } else {
+        None
+    }
+}
+
+fn parse_number(value: &str) -> Option<f64> {
+    value
+        .trim()
+        .replace('\u{00A0}', "")
+        .replace(' ', "")
+        .replace(',', ".")
+        .parse::<f64>()
+        .ok()
+        .filter(|v| v.is_finite())
+}
+
+fn approx_abs(actual: f64, expected: f64, tolerance: f64) -> bool {
+    (actual - expected).abs() <= tolerance
 }
 
 /// Minimum number of valid RPM+stress+viscosity triples required before we trust
@@ -137,4 +247,51 @@ pub fn physics_geometry(data: &[RheoPoint]) -> Option<PhysicsGeometry> {
         avg_k: median_k,
         n_points,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_geometry_from_explicit_rotor_and_bob_names() {
+        let rows = vec![
+            vec!["Rotor Number:".to_string(), "R1".to_string()],
+            vec!["Bob Number:".to_string(), "B5".to_string()],
+        ];
+
+        assert_eq!(detect_geometry(&rows), Some("R1B5".to_string()));
+    }
+
+    #[test]
+    fn detects_geometry_from_single_bob_radius_when_name_is_absent() {
+        let rows = vec![
+            vec!["Rotor Radius (cm)".to_string(), "1.8415".to_string()],
+            vec!["Bob Radius (cm)".to_string(), "1.5987".to_string()],
+        ];
+
+        assert_eq!(detect_geometry(&rows), Some("R1B5".to_string()));
+    }
+
+    #[test]
+    fn detects_r1b2_from_standard_bob_radius() {
+        let rows = vec![
+            vec!["Rotor Radius, cm".to_string(), "1.8415".to_string()],
+            vec!["Bob Radius, cm".to_string(), "1.2276".to_string()],
+        ];
+
+        assert_eq!(detect_geometry(&rows), Some("R1B2".to_string()));
+    }
+
+    #[test]
+    fn does_not_guess_from_reference_table_with_multiple_geometry_columns() {
+        let rows = vec![vec![
+            "Bob Radius, cm".to_string(),
+            "1.7245".to_string(),
+            "1.2276".to_string(),
+            "1.5987".to_string(),
+        ]];
+
+        assert_eq!(detect_geometry(&rows), None);
+    }
 }

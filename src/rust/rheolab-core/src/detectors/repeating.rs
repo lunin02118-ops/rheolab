@@ -1,7 +1,7 @@
 //! Repeating-sequence detection — identifies custom protocols whose rate
 //! pattern repeats (e.g. SWB: 100→150→125→100, 100→150→125→100, …).
 
-use crate::types::{RheoStep, RheoCycle};
+use crate::types::{RheoCycle, RheoStep};
 
 /// Checks if this looks like a repeating sequence pattern (3+ distinct rates).
 ///
@@ -11,22 +11,35 @@ use crate::types::{RheoStep, RheoCycle};
 /// - `max < 3 × min` (otherwise it would be an SST pattern)
 /// - rejects pure monotonic ramps and symmetric ramps (low ramp changes)
 pub fn is_repeating_sequence_pattern(steps: &[RheoStep]) -> bool {
-    if steps.len() < 6 { return false; }
+    if steps.len() < 6 {
+        return false;
+    }
 
-    let rates: Vec<i32> = steps.iter().map(|s| (s.avg_shear_rate / 10.0).round() as i32 * 10).collect();
+    let rates: Vec<i32> = steps
+        .iter()
+        .map(|s| (s.avg_shear_rate / 10.0).round() as i32 * 10)
+        .collect();
     let mut unique_rates = rates.clone();
     unique_rates.sort();
     unique_rates.dedup();
 
     // Must have 3-4 distinct rate levels
-    if unique_rates.len() < 3 || unique_rates.len() > 5 { return false; }
+    if unique_rates.len() < 3 || unique_rates.len() > 5 {
+        return false;
+    }
 
     // Guarded: unique_rates.len() >= 3 checked above.
-    let min_rate = *unique_rates.first().expect("non-empty: len >= 3 checked above") as f64;
-    let max_rate = *unique_rates.last().expect("non-empty: len >= 3 checked above") as f64;
+    let min_rate = *unique_rates
+        .first()
+        .expect("non-empty: len >= 3 checked above") as f64;
+    let max_rate = *unique_rates
+        .last()
+        .expect("non-empty: len >= 3 checked above") as f64;
 
     // Max rate should be < 3x min rate (otherwise would be SST)
-    if max_rate >= min_rate * 3.0 { return false; }
+    if max_rate >= min_rate * 3.0 {
+        return false;
+    }
 
     // SPECIAL CHECK for November-like patterns
     let has_low_rate = unique_rates.iter().any(|&r| (30..=50).contains(&r));
@@ -55,12 +68,17 @@ pub fn is_repeating_sequence_pattern(steps: &[RheoStep]) -> bool {
         let low_rate_threshold = min_rate * 1.15;
 
         let has_high_start = step_rates.iter().take(3).any(|r| *r >= high_rate_threshold);
-        let has_high_end = step_rates.iter().rev().take(3).any(|r| *r >= high_rate_threshold);
+        let has_high_end = step_rates
+            .iter()
+            .rev()
+            .take(3)
+            .any(|r| *r >= high_rate_threshold);
 
         let mid_start = steps.len() / 3;
         let mid_end = steps.len() * 2 / 3;
-        let has_low_middle = step_rates[mid_start..=mid_end.min(step_rates.len()-1)]
-            .iter().any(|r| *r <= low_rate_threshold);
+        let has_low_middle = step_rates[mid_start..=mid_end.min(step_rates.len() - 1)]
+            .iter()
+            .any(|r| *r <= low_rate_threshold);
 
         // Symmetric ramp pattern — not a repeating sequence
         if has_high_start && has_low_middle && has_high_end {
@@ -71,8 +89,12 @@ pub fn is_repeating_sequence_pattern(steps: &[RheoStep]) -> bool {
         let mut is_monotonic_down = true;
         let mut is_monotonic_up = true;
         for i in 1..step_rates.len() {
-            if step_rates[i] > step_rates[i - 1] + 10.0 { is_monotonic_down = false; }
-            if step_rates[i] < step_rates[i - 1] - 10.0 { is_monotonic_up = false; }
+            if step_rates[i] > step_rates[i - 1] + 10.0 {
+                is_monotonic_down = false;
+            }
+            if step_rates[i] < step_rates[i - 1] - 10.0 {
+                is_monotonic_up = false;
+            }
         }
 
         if is_monotonic_down || is_monotonic_up {
@@ -88,17 +110,24 @@ pub fn is_repeating_sequence_pattern(steps: &[RheoStep]) -> bool {
 /// Search for the best repeating pattern of lengths 3..=6, scored by repeat
 /// count and coverage.  Returns `None` if no pattern repeats at least twice.
 pub fn detect_repeating_sequence_cycles_internal(steps: &[RheoStep]) -> Option<Vec<RheoCycle>> {
-    if steps.len() < 6 { return None; }
+    if steps.len() < 6 {
+        return None;
+    }
 
     // Round rates for pattern matching (same as TS: Math.round(rate / 5) * 5)
-    let rates: Vec<i32> = steps.iter().map(|s| ((s.avg_shear_rate / 5.0).round() as i32) * 5).collect();
+    let rates: Vec<i32> = steps
+        .iter()
+        .map(|s| ((s.avg_shear_rate / 5.0).round() as i32) * 5)
+        .collect();
 
     // Try pattern lengths from 3 to 6 steps
     for pattern_len in 3..=6 {
         let mut best_phase_result: Option<(Vec<RheoCycle>, f64)> = None;
 
         for offset in 0..pattern_len {
-            if offset + pattern_len > rates.len() { continue; }
+            if offset + pattern_len > rates.len() {
+                continue;
+            }
 
             let pattern: Vec<i32> = rates[offset..offset + pattern_len].to_vec();
 
@@ -131,7 +160,8 @@ pub fn detect_repeating_sequence_cycles_internal(steps: &[RheoStep]) -> Option<V
             // If pattern repeats at least 2 times, evaluate it
             if repeat_count >= 2 {
                 // Calculate baseline (mode — most frequent rate)
-                let mut rate_counts: std::collections::HashMap<i32, i32> = std::collections::HashMap::new();
+                let mut rate_counts: std::collections::HashMap<i32, i32> =
+                    std::collections::HashMap::new();
                 for r in &pattern {
                     *rate_counts.entry(*r).or_insert(0) += 1;
                 }
@@ -165,19 +195,28 @@ pub fn detect_repeating_sequence_cycles_internal(steps: &[RheoStep]) -> Option<V
                 };
 
                 if is_better {
-                    let cycles: Vec<RheoCycle> = cycle_indices.iter().enumerate().map(|(idx, &start_idx)| {
-                        let cycle_steps = steps[start_idx..start_idx + pattern_len].to_vec();
-                        let duration: f64 = cycle_steps.iter().map(|s| s.duration).sum();
-                        let pattern_str: Vec<String> = pattern.iter().map(|r| r.to_string()).collect();
-                        RheoCycle {
-                            id: (idx + 1) as i32,
-                            cycle_index: Some((idx + 1) as i32),
-                            cycle_type: "Custom".to_string(),
-                            steps: cycle_steps,
-                            description: format!("Custom Cycle {} ({})", idx + 1, pattern_str.join("→")),
-                            duration,
-                        }
-                    }).collect();
+                    let cycles: Vec<RheoCycle> = cycle_indices
+                        .iter()
+                        .enumerate()
+                        .map(|(idx, &start_idx)| {
+                            let cycle_steps = steps[start_idx..start_idx + pattern_len].to_vec();
+                            let duration: f64 = cycle_steps.iter().map(|s| s.duration).sum();
+                            let pattern_str: Vec<String> =
+                                pattern.iter().map(|r| r.to_string()).collect();
+                            RheoCycle {
+                                id: (idx + 1) as i32,
+                                cycle_index: Some((idx + 1) as i32),
+                                cycle_type: "Custom".to_string(),
+                                steps: cycle_steps,
+                                description: format!(
+                                    "Custom Cycle {} ({})",
+                                    idx + 1,
+                                    pattern_str.join("→")
+                                ),
+                                duration,
+                            }
+                        })
+                        .collect();
                     best_phase_result = Some((cycles, score));
                 }
             }

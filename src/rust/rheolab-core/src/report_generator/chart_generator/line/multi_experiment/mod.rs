@@ -26,8 +26,8 @@
 //!
 //! See `docs/adr/ADR-0010-comparison-report-generation.md` §4.3.
 
-use plotters::prelude::*;
 use super::super::common::*;
+use plotters::prelude::*;
 
 mod dash_inject;
 mod individual_axis;

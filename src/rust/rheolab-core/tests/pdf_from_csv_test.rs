@@ -1,6 +1,8 @@
 use rheolab_core::report_generator::generate_pdf_report;
 use rheolab_core::schedule_detector::{detect_schedule, ScheduleConfig};
-use rheolab_core::{detect_anchor_cycles_internal, calculate_grace_internal, ExpertSettings, GraceInputParams};
+use rheolab_core::{
+    calculate_grace_internal, detect_anchor_cycles_internal, ExpertSettings, GraceInputParams,
+};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -10,7 +12,7 @@ fn test_full_pipeline_simulation() {
     // 1. Load Real Data File (Simulate User Upload)
     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     d.push("../../../tests/fixtures/8958 SWB Mamontovskoe_(lake_274_pad) 3.4(WG-9000F)-2.8(WCL)-0.5(HT-3)@96C 30.10.25.csv");
-    
+
     if !d.exists() {
         println!("Skipping test: fixture not found at {:?}", d);
         return;
@@ -19,7 +21,8 @@ fn test_full_pipeline_simulation() {
     println!("Loading file: {:?}", d);
     let mut file = File::open(&d).expect("Failed to open CSV file");
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer).expect("Failed to read CSV file");
+    file.read_to_end(&mut buffer)
+        .expect("Failed to read CSV file");
     // Handle potential non-UTF8 encoding (Windows-1251 is common for Russian files, but we'll try lossy utf8 first)
     let content = String::from_utf8_lossy(&buffer);
 
@@ -33,24 +36,32 @@ fn test_full_pipeline_simulation() {
     // Col 7: Pressure
 
     let mut data_points = Vec::new();
-    
+
     for line in content.lines() {
         // Skip empty lines or headers without time
-        if !line.contains(":") { continue; }
+        if !line.contains(":") {
+            continue;
+        }
 
         let parts: Vec<&str> = line.split(',').collect();
-        if parts.len() < 8 { continue; }
+        if parts.len() < 8 {
+            continue;
+        }
 
         // Try to parse Time (HH:MM:SS)
         let time_parts: Vec<&str> = parts[0].split(':').collect();
-        if time_parts.len() != 3 { continue; }
-        
+        if time_parts.len() != 3 {
+            continue;
+        }
+
         let h: Result<f64, _> = time_parts[0].parse();
         let m: Result<f64, _> = time_parts[1].parse();
         let s: Result<f64, _> = time_parts[2].parse();
 
-        if h.is_err() || m.is_err() || s.is_err() { continue; }
-        
+        if h.is_err() || m.is_err() || s.is_err() {
+            continue;
+        }
+
         let time_sec = h.unwrap() * 3600.0 + m.unwrap() * 60.0 + s.unwrap();
 
         // Parse other columns
@@ -62,7 +73,7 @@ fn test_full_pipeline_simulation() {
 
         // Filter valid points (optional, but good for cleanliness)
         if shear_rate >= 0.0 {
-             data_points.push(rheolab_core::types::RheoPoint {
+            data_points.push(rheolab_core::types::RheoPoint {
                 time_sec,
                 viscosity_cp,
                 temperature_c: temp_c,
@@ -97,16 +108,18 @@ fn test_full_pipeline_simulation() {
         let mut cycle_points = Vec::new();
         for step in &cycle.steps {
             for p in &step.points {
-                 if let (Some(rate), Some(stress)) = (p.shear_rate, p.shear_stress) {
-                     if rate > 0.0 && stress > 0.0 {
+                if let (Some(rate), Some(stress)) = (p.shear_rate, p.shear_stress) {
+                    if rate > 0.0 && stress > 0.0 {
                         cycle_points.push((rate, stress));
-                     }
-                 }
+                    }
+                }
             }
         }
 
-        let avg_temp = cycle.steps.iter().map(|s| s.avg_temperature).sum::<f64>() / cycle.steps.len() as f64;
-        let avg_pressure = cycle.steps.iter().map(|s| s.avg_pressure).sum::<f64>() / cycle.steps.len() as f64;
+        let avg_temp =
+            cycle.steps.iter().map(|s| s.avg_temperature).sum::<f64>() / cycle.steps.len() as f64;
+        let avg_pressure =
+            cycle.steps.iter().map(|s| s.avg_pressure).sum::<f64>() / cycle.steps.len() as f64;
         let start_time = cycle.steps.first().map(|s| s.start_time).unwrap_or(0.0);
         let end_time = cycle.steps.last().map(|s| s.end_time).unwrap_or(0.0);
 
@@ -118,14 +131,10 @@ fn test_full_pipeline_simulation() {
             pressure_bar: avg_pressure,
         };
 
-        if let Some(result) = calculate_grace_internal(
-            &cycle_points,
-            "R1B5",
-            &settings,
-            &params
-        ) {
+        if let Some(result) = calculate_grace_internal(&cycle_points, "R1B5", &settings, &params) {
             // Manually map GraceCycleResult to ReportInput's CycleResult JSON structure
-            let result_json = format!(r#"{{
+            let result_json = format!(
+                r#"{{
                 "cycle_no": {},
                 "time_min": {},
                 "temp_c": {},
@@ -139,7 +148,7 @@ fn test_full_pipeline_simulation() {
                 "bingham_pv": {},
                 "bingham_yp": {},
                 "bingham_r2": {}
-            }}"#, 
+            }}"#,
                 result.cycle_no,
                 result.time_min,
                 result.temp_c,
@@ -161,17 +170,23 @@ fn test_full_pipeline_simulation() {
     println!("Calculated results for {} cycles", cycle_results_json.len());
 
     // 6. Prepare Report Input JSON
-    
+
     // A. Generate Real Chart SVG from Data
     let svg_width = 800.0;
     let svg_height = 400.0;
     let margin = 40.0;
-    
+
     // Find ranges
     let min_time = data_points.first().map(|p| p.time_sec).unwrap_or(0.0);
     let max_time = data_points.last().map(|p| p.time_sec).unwrap_or(100.0);
-    let max_visc = data_points.iter().map(|p| p.viscosity_cp).fold(0.0, f64::max);
-    let max_temp = data_points.iter().map(|p| p.temperature_c).fold(0.0, f64::max);
+    let max_visc = data_points
+        .iter()
+        .map(|p| p.viscosity_cp)
+        .fold(0.0, f64::max);
+    let max_temp = data_points
+        .iter()
+        .map(|p| p.temperature_c)
+        .fold(0.0, f64::max);
 
     // Scales
     let x_scale = (svg_width - 2.0 * margin) / (max_time - min_time).max(1.0);
@@ -196,7 +211,8 @@ fn test_full_pipeline_simulation() {
         }
     }
 
-    let real_svg = format!(r##"<svg viewBox="0 0 {} {}" xmlns="http://www.w3.org/2000/svg">
+    let real_svg = format!(
+        r##"<svg viewBox="0 0 {} {}" xmlns="http://www.w3.org/2000/svg">
         <rect width="100%" height="100%" fill="white"/>
         <!-- Grid -->
         <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="#eee" stroke-width="1"/>
@@ -216,17 +232,33 @@ fn test_full_pipeline_simulation() {
         <text x="{}" y="{}" font-family="Arial" font-size="12" fill="black">Time (s)</text>
         <text x="{}" y="{}" font-family="Arial" font-size="12" fill="blue">Viscosity (cP)</text>
         <text x="{}" y="{}" font-family="Arial" font-size="12" fill="red">Temperature (C)</text>
-    </svg>"##, 
-        svg_width, svg_height,
-        margin, margin, margin, svg_height - margin, // Y axis line
-        margin, svg_height - margin, svg_width - margin, svg_height - margin, // X axis line
-        path_visc, 
+    </svg>"##,
+        svg_width,
+        svg_height,
+        margin,
+        margin,
+        margin,
+        svg_height - margin, // Y axis line
+        margin,
+        svg_height - margin,
+        svg_width - margin,
+        svg_height - margin, // X axis line
+        path_visc,
         path_temp,
-        margin, margin, margin, svg_height - margin,
-        margin, svg_height - margin, svg_width - margin, svg_height - margin,
-        svg_width / 2.0, svg_height - 10.0,
-        10.0, 20.0,
-        svg_width - 100.0, 20.0
+        margin,
+        margin,
+        margin,
+        svg_height - margin,
+        margin,
+        svg_height - margin,
+        svg_width - margin,
+        svg_height - margin,
+        svg_width / 2.0,
+        svg_height - 10.0,
+        10.0,
+        20.0,
+        svg_width - 100.0,
+        20.0
     );
 
     let chart_base64 = base64::encode(&real_svg);
@@ -264,7 +296,8 @@ fn test_full_pipeline_simulation() {
         )
     }).collect();
 
-    let json_input = format!(r#"{{
+    let json_input = format!(
+        r#"{{
         "metadata": {{
             "filename": "8958 SWB Mamontovskoe.csv",
             "test_date": "2025-10-30",
@@ -283,7 +316,11 @@ fn test_full_pipeline_simulation() {
         "recipe": [],
         "raw_data": [{}],
         "chart_image_base64": "{}"
-    }}"#, cycle_results_json.join(","), raw_data_json.join(","), chart_data_uri);
+    }}"#,
+        cycle_results_json.join(","),
+        raw_data_json.join(","),
+        chart_data_uri
+    );
 
     // 7. Generate PDF (Simulate Report Generation)
     println!("Generating PDF from pipeline data...");
@@ -294,16 +331,16 @@ fn test_full_pipeline_simulation() {
             // Output to outputs folder
             let mut output_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
             output_path.push("../../../outputs/pipeline_report_v2.pdf");
-            
+
             let mut file = File::create(&output_path).expect("Failed to create output file");
             file.write_all(&pdf_bytes).expect("Failed to write PDF");
             println!("PDF generated successfully: {:?}", output_path);
             println!("PDF size: {} bytes", pdf_bytes.len());
             println!("SVG size: {} chars", real_svg.len());
-            
+
             assert!(pdf_bytes.starts_with(b"%PDF-"), "Output is not a valid PDF");
             assert!(pdf_bytes.len() > 1000, "PDF seems too small");
-        },
+        }
         Err(e) => {
             panic!("PDF generation failed: {}", e);
         }

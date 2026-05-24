@@ -1,10 +1,10 @@
 // PDF Report Generator with Native Plotters Charts
-use serde_json;
+use super::chart_generator::{generate_chart_svg, ChartConfig, ChartLineStyles, ChartPoint};
+use super::formatters::{convert_viscosity, get_viscosity_unit, resolve_units, time_axis_unit};
 use super::types::*;
 use super::typst_renderer::compile_to_pdf;
-use super::chart_generator::{ChartPoint, ChartConfig, ChartLineStyles, generate_chart_svg};
-use super::formatters::{convert_viscosity, get_viscosity_unit, resolve_units, time_axis_unit};
 use base64::prelude::*;
+use serde_json;
 use std::collections::HashMap;
 
 pub(crate) mod template;
@@ -13,12 +13,16 @@ pub(crate) mod template;
 // `#[allow(unused_imports)]` keeps the warning suppressed between phases
 // 1.D (lands the helpers) and 1.E (starts consuming them).
 #[allow(unused_imports)]
-pub(crate) use template::{build_typst_globals, build_single_experiment_body};
+pub(crate) use template::{build_single_experiment_body, build_typst_globals};
 
 fn split_data_uri_payload(value: &str) -> (Option<&str>, &str) {
     let trimmed = value.trim();
     if let Some((header, payload)) = trimmed.split_once(',') {
-        if header.trim_start().to_ascii_lowercase().starts_with("data:") {
+        if header
+            .trim_start()
+            .to_ascii_lowercase()
+            .starts_with("data:")
+        {
             return (Some(header), payload.trim());
         }
     }
@@ -38,7 +42,8 @@ fn sniff_logo_file_name(bytes: &[u8]) -> Option<&'static str> {
 
     if let Ok(text) = std::str::from_utf8(bytes) {
         let trimmed = text.trim_start_matches('\u{feff}').trim_start();
-        if trimmed.starts_with("<svg") || (trimmed.starts_with("<?xml") && trimmed.contains("<svg")) {
+        if trimmed.starts_with("<svg") || (trimmed.starts_with("<?xml") && trimmed.contains("<svg"))
+        {
             return Some("logo.svg");
         }
     }
@@ -94,7 +99,7 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
     let (has_chart, config_out, ranges_out) = if !input.raw_data.is_empty() {
         let is_ru = input.settings.language == "ru";
         let unit_system = &input.settings.unit_system;
-        let visc_unit   = get_viscosity_unit(unit_system);
+        let visc_unit = get_viscosity_unit(unit_system);
         // Resolve per-category target units — `time_format` drives the X-axis
         // unit suffix and tick-label rendering so the chart matches the
         // dashboard's selected time display.  When `rheology_units` is
@@ -108,35 +113,76 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
         // touch-point algorithm (which compares against `viscosity_threshold`
         // given in mPa·s) stays numerically consistent.
         let first_time = input.raw_data.first().map(|f| f.time_sec).unwrap_or(0.0);
-        let chart_points: Vec<ChartPoint> = input.raw_data.iter().map(|p| {
-            ChartPoint {
+        let chart_points: Vec<ChartPoint> = input
+            .raw_data
+            .iter()
+            .map(|p| ChartPoint {
                 time_min: (p.time_sec - first_time) / 60.0,
                 viscosity_cp: p.viscosity_cp,
                 temperature_c: p.temperature_c,
                 shear_rate: p.shear_rate,
                 pressure_bar: p.pressure_bar,
                 bath_temperature_c: p.bath_temperature_c,
-            }
-        }).collect();
-        
+            })
+            .collect();
 
         // Prepare labels — viscosity unit follows the global display setting.
-        let l_visc = if is_ru { format!("Вязкость ({})", visc_unit) } else { format!("Viscosity ({})", visc_unit) };
-        let l_temp = if is_ru { "Температура (°C)" } else { "Temperature (°C)" };
-        let l_shear = if is_ru { "Скорость сдвига (1/с)" } else { "Shear Rate (1/s)" };
-        let l_press = if is_ru { "Давление (бар)" } else { "Pressure (bar)" };
+        let l_visc = if is_ru {
+            format!("Вязкость ({})", visc_unit)
+        } else {
+            format!("Viscosity ({})", visc_unit)
+        };
+        let l_temp = if is_ru {
+            "Температура (°C)"
+        } else {
+            "Temperature (°C)"
+        };
+        let l_shear = if is_ru {
+            "Скорость сдвига (1/с)"
+        } else {
+            "Shear Rate (1/s)"
+        };
+        let l_press = if is_ru {
+            "Давление (бар)"
+        } else {
+            "Pressure (bar)"
+        };
         let l_time = if is_ru {
             format!("Время ({})", time_unit)
         } else {
             format!("Time ({})", time_unit)
         };
-        
-        let n_visc = if is_ru { "Вязкость" } else { "Viscosity" };
-        let n_temp = if is_ru { "Температура" } else { "Temperature" };
-        let n_shear = if is_ru { "Скор. сдвига" } else { "Shear Rate" };
-        let n_press = if is_ru { "Давление" } else { "Pressure" };
-        let l_bath_temp = if is_ru { "Темп. бани (°C)" } else { "Bath Temp (°C)" };
-        let n_bath_temp = if is_ru { "Темп. бани" } else { "Bath Temp" };
+
+        let n_visc = if is_ru {
+            "Вязкость"
+        } else {
+            "Viscosity"
+        };
+        let n_temp = if is_ru {
+            "Температура"
+        } else {
+            "Temperature"
+        };
+        let n_shear = if is_ru {
+            "Скор. сдвига"
+        } else {
+            "Shear Rate"
+        };
+        let n_press = if is_ru {
+            "Давление"
+        } else {
+            "Pressure"
+        };
+        let l_bath_temp = if is_ru {
+            "Темп. бани (°C)"
+        } else {
+            "Bath Temp (°C)"
+        };
+        let n_bath_temp = if is_ru {
+            "Темп. бани"
+        } else {
+            "Bath Temp"
+        };
 
         // Build LEFT axis label — follows user's per-line axis settings directly.
         // axis_mode ('individual' vs 'shared') does not override placement here;
@@ -168,21 +214,33 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
 
         // Calculate touch points if enabled (algorithm runs in storage unit mPa·s).
         let touch_points_raw = if input.settings.show_touch_points {
-            template::calculate_touch_points_for_chart(&chart_points, &input.settings, is_ru, unit_system)
+            template::calculate_touch_points_for_chart(
+                &chart_points,
+                &input.settings,
+                is_ru,
+                unit_system,
+            )
         } else {
             vec![]
         };
         // Convert touch-point viscosity to display unit so they align with the
         // (also converted) chart data series on the y-axis.
-        let touch_points: Vec<_> = touch_points_raw.into_iter().map(|tp| super::chart_generator::ChartTouchPoint {
-            time: tp.time,
-            viscosity: convert_viscosity(tp.viscosity, unit_system),
-            label: tp.label,
-            color: tp.color,
-        }).collect();
+        let touch_points: Vec<_> = touch_points_raw
+            .into_iter()
+            .map(|tp| super::chart_generator::ChartTouchPoint {
+                time: tp.time,
+                viscosity: convert_viscosity(tp.viscosity, unit_system),
+                label: tp.label,
+                color: tp.color,
+            })
+            .collect();
 
         // Convert line settings if provided
-        let line_styles = input.settings.line_settings.as_ref().map(|ls| ChartLineStyles::from(ls));
+        let line_styles = input
+            .settings
+            .line_settings
+            .as_ref()
+            .map(|ls| ChartLineStyles::from(ls));
 
         // ── Dynamic SVG height ───────────────────────────────────────────────────
         // Goal: rendered chart image fills the available body height exactly, so
@@ -221,9 +279,11 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
         // regardless of how many axes the user enables or which mode is selected.
         // This keeps the header, footer, and chart frame constant.
         const MIN_EXTRA: usize = 1;
-        let n_extra_max: usize = (n_left_top.saturating_sub(1)).max(n_right_top.saturating_sub(1)).max(MIN_EXTRA);
-        let text_width_pt = A4_LANDSCAPE_W_PT
-            - 2.0 * (PAGE_BASE_MARGIN_PT + n_extra_max as f64 * AXIS_SPACING_PT);
+        let n_extra_max: usize = (n_left_top.saturating_sub(1))
+            .max(n_right_top.saturating_sub(1))
+            .max(MIN_EXTRA);
+        let text_width_pt =
+            A4_LANDSCAPE_W_PT - 2.0 * (PAGE_BASE_MARGIN_PT + n_extra_max as f64 * AXIS_SPACING_PT);
         let svg_h_dynamic = ((CHART_BODY_TARGET_PT * SVG_W) / text_width_pt)
             .round()
             .clamp(400.0, 900.0) as u32;
@@ -239,22 +299,25 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
             axis_mode: input.settings.axis_mode.clone(),
             width: 1040,
             height: svg_h_dynamic, // computed so rendered chart fills available body height
-            
+
             label_left,
             label_right,
             label_bottom: l_time.to_string(),
-            
+
             name_viscosity: n_visc.to_string(),
             name_temperature: n_temp.to_string(),
             name_shear_rate: n_shear.to_string(),
             name_pressure: n_press.to_string(),
             name_bath_temperature: n_bath_temp.to_string(),
-            
+
             touch_points,
             viscosity_threshold: if input.settings.show_touch_points {
                 // Threshold is stored in mPa·s; convert to display unit so it aligns
                 // with the converted viscosity series drawn on the chart.
-                Some(convert_viscosity(input.settings.viscosity_threshold, unit_system))
+                Some(convert_viscosity(
+                    input.settings.viscosity_threshold,
+                    unit_system,
+                ))
             } else {
                 None
             },
@@ -265,20 +328,23 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
 
         // Build a display-unit view of the data for rendering. LTTB is disabled
         // for PDF, so length/order match `chart_points` exactly.
-        let display_chart_points: Vec<ChartPoint> = chart_points.iter().map(|p| ChartPoint {
-            time_min: p.time_min,
-            viscosity_cp: convert_viscosity(p.viscosity_cp, unit_system),
-            temperature_c: p.temperature_c,
-            shear_rate: p.shear_rate,
-            pressure_bar: p.pressure_bar,
-            bath_temperature_c: p.bath_temperature_c,
-        }).collect();
+        let display_chart_points: Vec<ChartPoint> = chart_points
+            .iter()
+            .map(|p| ChartPoint {
+                time_min: p.time_min,
+                viscosity_cp: convert_viscosity(p.viscosity_cp, unit_system),
+                temperature_c: p.temperature_c,
+                shear_rate: p.shear_rate,
+                pressure_bar: p.pressure_bar,
+                bath_temperature_c: p.bath_temperature_c,
+            })
+            .collect();
 
         // Generate chart - safe wrapper to debug panics
         let svg_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             generate_chart_svg(&display_chart_points, &chart_config)
         }));
-        
+
         let (svg_string, ranges) = match svg_result {
             Ok(res) => res?, // Normal result or error
             Err(e) => {
@@ -294,7 +360,7 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
                 return Err(format!("Panic in chart gen: {}", msg));
             }
         };
-        
+
         files.insert("chart.svg".to_string(), svg_string.into_bytes());
         (true, Some(chart_config), Some(ranges))
     } else {
@@ -302,7 +368,13 @@ pub fn generate_pdf_from_input(input: &ReportInput) -> Result<Vec<u8>, String> {
     };
 
     // Compile Typst
-    let typst_src = template::generate_typst_template(&input, &files, has_chart, config_out.as_ref(), ranges_out.as_ref());
+    let typst_src = template::generate_typst_template(
+        &input,
+        &files,
+        has_chart,
+        config_out.as_ref(),
+        ranges_out.as_ref(),
+    );
     compile_to_pdf(&typst_src, files)
 }
 
@@ -363,7 +435,10 @@ mod tests {
 
     #[test]
     fn detects_svg_logo_data_uri() {
-        assert_eq!(company_logo_asset_name(&svg_logo_data_uri()), Some("logo.svg"));
+        assert_eq!(
+            company_logo_asset_name(&svg_logo_data_uri()),
+            Some("logo.svg")
+        );
     }
 
     #[test]
@@ -378,12 +453,17 @@ mod tests {
         let input = minimal_input(None);
         let files = HashMap::new();
         let chart_config = minimal_chart_config();
-        let src = template::generate_typst_template(&input, &files, true, Some(&chart_config), None);
+        let src =
+            template::generate_typst_template(&input, &files, true, Some(&chart_config), None);
 
-        assert!(src.contains("margin: (top: 3.5cm, bottom: 2cm, x: 1cm)"),
-            "global experiment page margins must remain the baseline");
-        assert!(src.contains("flipped: true, margin: (top: 3.5cm, bottom: 2cm"),
-            "single-report chart page must align header height with experiment pages");
+        assert!(
+            src.contains("margin: (top: 3.5cm, bottom: 2cm, x: 1cm)"),
+            "global experiment page margins must remain the baseline"
+        );
+        assert!(
+            src.contains("flipped: true, margin: (top: 3.5cm, bottom: 2cm"),
+            "single-report chart page must align header height with experiment pages"
+        );
         assert!(!src.contains("top: 2.5cm"));
         assert!(!src.contains("bottom: 1.2cm"));
     }

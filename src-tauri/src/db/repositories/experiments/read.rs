@@ -329,6 +329,7 @@ pub(crate) fn load_experiment_detail_meta_by_id(
                     rheology_source: RheologyParameterSource::from_db(
                         row.get::<_, String>(38)?.as_str(),
                     ),
+                    rheology_parameters: Vec::new(),
                 })
             },
         )
@@ -340,6 +341,7 @@ pub(crate) fn load_experiment_detail_meta_by_id(
     };
 
     meta.reagents = load_reagents_for_experiment(conn, &meta.id)?;
+    meta.rheology_parameters = load_rheology_parameters_for_experiment(conn, &meta.id)?;
     Ok(Some(meta))
 }
 

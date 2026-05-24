@@ -96,10 +96,18 @@ pub struct ComparisonChartConfig {
     pub chart_height: u32,
 }
 
-fn default_time_format() -> String { "minutes".to_string() }
-fn default_downsample_mode() -> String { "smart".to_string() }
-fn default_chart_width() -> u32 { 1400 }
-fn default_chart_height() -> u32 { 700 }
+fn default_time_format() -> String {
+    "minutes".to_string()
+}
+fn default_downsample_mode() -> String {
+    "smart".to_string()
+}
+fn default_chart_width() -> u32 {
+    1400
+}
+fn default_chart_height() -> u32 {
+    700
+}
 
 /// Which metrics are visible on the comparison chart.  Mirrors the four
 /// `*Metric` props on `ComparisonChartUPlot`.
@@ -170,7 +178,9 @@ pub struct SectionToggles {
     pub show_rheology: bool,
 }
 
-fn default_show_rheology() -> bool { true }
+fn default_show_rheology() -> bool {
+    true
+}
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 

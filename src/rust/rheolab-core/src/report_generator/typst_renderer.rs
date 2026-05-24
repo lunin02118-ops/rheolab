@@ -34,21 +34,22 @@ impl TypstWrapper {
             .expect("bundled Roboto Regular font is statically included and must be a valid TTF");
         let font_bold = Font::new(Bytes::from_static(FONT_ROBOTO_BOLD), 0)
             .expect("bundled Roboto Bold font is statically included and must be a valid TTF");
-        
+
         let fonts = vec![font_reg, font_bold];
 
         let book = FontBook::from_fonts(fonts.iter());
-        
+
         // Init Library
         let library = Library::default();
 
         let source = Source::detached(source_text);
-        
+
         // Fixed date for reproducibility
         let now = Datetime::from_ymd(2024, 1, 1);
 
         // Convert files to Bytes
-        let files_map = files.into_iter()
+        let files_map = files
+            .into_iter()
             .map(|(k, v)| (k, Bytes::from(v)))
             .collect();
 
@@ -88,7 +89,8 @@ impl World for TypstWrapper {
         // Simple mapping: check if file path matches any key in our map
         // Typst paths are usually relative. We assume flat structure for now.
         let path = id.vpath().as_rooted_path();
-        let path_str = path.file_name()
+        let path_str = path
+            .file_name()
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_default();
 
@@ -97,7 +99,7 @@ impl World for TypstWrapper {
         } else {
             // Try full path match as fallback
             let full_path = path.to_string_lossy().to_string();
-             if let Some(content) = self.files.get(&full_path) {
+            if let Some(content) = self.files.get(&full_path) {
                 Ok(content.clone())
             } else {
                 Err(FileError::NotFound(path.to_path_buf()))
@@ -114,7 +116,10 @@ impl World for TypstWrapper {
     }
 }
 
-pub fn compile_to_pdf(source_text: &str, files: HashMap<String, Vec<u8>>) -> Result<Vec<u8>, String> {
+pub fn compile_to_pdf(
+    source_text: &str,
+    files: HashMap<String, Vec<u8>>,
+) -> Result<Vec<u8>, String> {
     let world = TypstWrapper::new(source_text, files);
     let warned = typst::compile(&world);
 
@@ -127,7 +132,8 @@ pub fn compile_to_pdf(source_text: &str, files: HashMap<String, Vec<u8>>) -> Res
         Err(errors) => {
             let source = world.source(world.main()).ok();
 
-            let msg = errors.iter()
+            let msg = errors
+                .iter()
                 .map(|e| {
                     let mut parts = vec![e.message.to_string()];
 
@@ -135,17 +141,33 @@ pub fn compile_to_pdf(source_text: &str, files: HashMap<String, Vec<u8>>) -> Res
                     if let Some(src) = &source {
                         if let Some(range) = src.range(e.span) {
                             let text = src.text();
-                            let line_num = text[..range.start.min(text.len())].matches('\n').count() + 1;
-                            let line_start = text[..range.start.min(text.len())].rfind('\n').map(|i| i + 1).unwrap_or(0);
-                            let line_end = text[range.start.min(text.len())..].find('\n').map(|i| range.start + i).unwrap_or(text.len());
+                            let line_num =
+                                text[..range.start.min(text.len())].matches('\n').count() + 1;
+                            let line_start = text[..range.start.min(text.len())]
+                                .rfind('\n')
+                                .map(|i| i + 1)
+                                .unwrap_or(0);
+                            let line_end = text[range.start.min(text.len())..]
+                                .find('\n')
+                                .map(|i| range.start + i)
+                                .unwrap_or(text.len());
                             let line_content = &text[line_start..line_end.min(text.len())];
                             parts.push(format!("  at line {}: {}", line_num, line_content.trim()));
 
                             // Show 2 lines before and after for context
                             let context_start = if line_num > 3 {
-                                text.match_indices('\n').nth(line_num.saturating_sub(4)).map(|(i, _)| i + 1).unwrap_or(0)
-                            } else { 0 };
-                            let context_end = text.match_indices('\n').nth(line_num + 1).map(|(i, _)| i).unwrap_or(text.len());
+                                text.match_indices('\n')
+                                    .nth(line_num.saturating_sub(4))
+                                    .map(|(i, _)| i + 1)
+                                    .unwrap_or(0)
+                            } else {
+                                0
+                            };
+                            let context_end = text
+                                .match_indices('\n')
+                                .nth(line_num + 1)
+                                .map(|(i, _)| i)
+                                .unwrap_or(text.len());
                             let context = &text[context_start..context_end.min(text.len())];
                             parts.push(format!("  context:\n{}", context));
                         }

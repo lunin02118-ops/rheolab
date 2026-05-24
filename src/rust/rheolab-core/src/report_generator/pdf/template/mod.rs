@@ -11,18 +11,18 @@
 //!
 //! The top-level `generate_typst_template` composes these fragments and
 //! then emits the final `#grid(...)` page-1 layout + supporting `#let` rules.
-pub(crate) mod helpers;
-mod stats;
 mod chart_page;
+pub(crate) mod helpers;
 mod raw_data;
+mod stats;
 mod touch_points;
 
 #[cfg(test)]
 mod tests;
 
-use super::super::types::*;
-use super::super::formatters::{format_date, format_number, build_ramp_string};
 use super::super::chart_generator::{ChartConfig, ChartRanges};
+use super::super::formatters::{build_ramp_string, format_date, format_number};
+use super::super::types::*;
 use super::company_logo_asset_name;
 use std::collections::HashMap;
 
@@ -60,18 +60,27 @@ pub(super) fn generate_typst_template(
 /// `#pagebreak()` separators — they must NOT re-emit this prelude.
 ///
 /// `total_pages` is inlined into the footer's `"Page N / TOTAL"` counter.
-pub(crate) fn build_typst_globals(
-    input: &ReportInput,
-    total_pages: usize,
-) -> String {
+pub(crate) fn build_typst_globals(input: &ReportInput, total_pages: usize) -> String {
     let is_ru = input.settings.language == "ru";
     let date_str = format_date(&input.metadata.test_date, &input.settings.language);
 
     let company_name = input.metadata.company_name.as_deref().unwrap_or("RheoLab");
-    let report_title_right = if is_ru { "Отчет о тестировании жидкости ГРП" } else { "Frac Fluid Test Report" };
-    let test_id = input.metadata.test_id.as_deref().unwrap_or(input.metadata.filename.as_str());
+    let report_title_right = if is_ru {
+        "Отчет о тестировании жидкости ГРП"
+    } else {
+        "Frac Fluid Test Report"
+    };
+    let test_id = input
+        .metadata
+        .test_id
+        .as_deref()
+        .unwrap_or(input.metadata.filename.as_str());
 
-    let f_generated = if is_ru { "Сгенерировано:" } else { "Generated:" };
+    let f_generated = if is_ru {
+        "Сгенерировано:"
+    } else {
+        "Generated:"
+    };
     let f_page = if is_ru { "Страница" } else { "Page" };
 
     let logo_block = input
@@ -82,7 +91,8 @@ pub(crate) fn build_typst_globals(
         .map(|file_name| format!(r#"image("{file_name}", width: 40pt)"#))
         .unwrap_or_else(|| "none".to_string());
 
-    format!(r##"
+    format!(
+        r##"
 #set page(paper: "a4", margin: (x: 28pt, y: 30pt))
 #set text(font: "Roboto", size: 7pt, fill: rgb("#334155"))
 
@@ -180,32 +190,109 @@ pub(crate) fn build_single_experiment_body(
     let date_str = format_date(&input.metadata.test_date, &input.settings.language);
 
     // ── Translations ─────────────────────────────────────────────────────
-    let t_passport = if is_ru { "Паспорт теста" } else { "Test Passport" };
-    let t_recipe = if is_ru { "Рецептура жидкости" } else { "Fluid Recipe" };
-    let t_cal = if is_ru { "Калибровка" } else { "Calibration" };
-    let t_water = if is_ru { "Анализ воды" } else { "Water Analysis" };
-    let t_stats = if is_ru { "Реологическая статистика" } else { "Rheological Statistics" };
+    let t_passport = if is_ru {
+        "Паспорт теста"
+    } else {
+        "Test Passport"
+    };
+    let t_recipe = if is_ru {
+        "Рецептура жидкости"
+    } else {
+        "Fluid Recipe"
+    };
+    let t_cal = if is_ru {
+        "Калибровка"
+    } else {
+        "Calibration"
+    };
+    let t_water = if is_ru {
+        "Анализ воды"
+    } else {
+        "Water Analysis"
+    };
+    let t_stats = if is_ru {
+        "Реологическая статистика"
+    } else {
+        "Rheological Statistics"
+    };
+    let l_data_source = if is_ru {
+        "Источник данных:"
+    } else {
+        "Data source:"
+    };
+    let v_data_source = match input.settings.rheology_source.as_str() {
+        "instrument" => {
+            if is_ru {
+                "Прибор"
+            } else {
+                "Instrument"
+            }
+        }
+        _ => {
+            if is_ru {
+                "Программа"
+            } else {
+                "Program"
+            }
+        }
+    };
 
-    let l_file = if is_ru { "ID / Файл:" } else { "ID / File:" };
+    let l_file = if is_ru {
+        "ID / Файл:"
+    } else {
+        "ID / File:"
+    };
     let l_date = if is_ru { "Дата:" } else { "Date:" };
-    let l_oper = if is_ru { "Оператор:" } else { "Operator:" };
-    let l_lab = if is_ru { "Лаборатория:" } else { "Laboratory:" };
-    let l_field = if is_ru { "Месторождение:" } else { "Field:" };
+    let l_oper = if is_ru {
+        "Оператор:"
+    } else {
+        "Operator:"
+    };
+    let l_lab = if is_ru {
+        "Лаборатория:"
+    } else {
+        "Laboratory:"
+    };
+    let l_field = if is_ru {
+        "Месторождение:"
+    } else {
+        "Field:"
+    };
     let l_well = if is_ru { "Скважина:" } else { "Well:" };
-    let l_inst = if is_ru { "Прибор:" } else { "Instrument:" };
-    let l_source = if is_ru { "Источник воды:" } else { "Water Source:" };
+    let l_inst = if is_ru {
+        "Прибор:"
+    } else {
+        "Instrument:"
+    };
+    let l_source = if is_ru {
+        "Источник воды:"
+    } else {
+        "Water Source:"
+    };
 
     // Calibration labels
-    let l_c_date = if is_ru { "Дата калибровки:" } else { "Cal. Date:" };
+    let l_c_date = if is_ru {
+        "Дата калибровки:"
+    } else {
+        "Cal. Date:"
+    };
     let l_c_r2 = "R²:";
     let l_c_slope = "Slope / Intercept:";
     let l_c_hyst = "Hyst / STDEV:";
     let l_c_status = if is_ru { "Статус:" } else { "Status:" };
 
     // Recipe headers
-    let h_name = if is_ru { "Наименование" } else { "Name" };
+    let h_name = if is_ru {
+        "Наименование"
+    } else {
+        "Name"
+    };
     let h_lot = if is_ru { "Лот.номер" } else { "Lot No" };
-    let h_type = if is_ru { "Тип\\ реагента" } else { "Type" };
+    let h_type = if is_ru {
+        "Тип\\ реагента"
+    } else {
+        "Type"
+    };
     let h_unit = if is_ru { "ЕИ" } else { "Unit" };
     let h_conc = if is_ru { "Конц." } else { "Conc." };
 
@@ -229,9 +316,14 @@ pub(crate) fn build_single_experiment_body(
             let v_c_stdev = format_number(cal.stdev, 2);
             let v_c_status = escape_typst(cal.status.as_deref().unwrap_or("-"));
 
-            let status_color = if v_c_status == "PASS" { "rgb(\"#10B981\")" } else { "rgb(\"#EF4444\")" };
+            let status_color = if v_c_status == "PASS" {
+                "rgb(\"#10B981\")"
+            } else {
+                "rgb(\"#EF4444\")"
+            };
 
-            cal_block = format!(r##"
+            cal_block = format!(
+                r##"
                 #section_header("{t_cal}")
                 #v(5pt)
                 #grid(
@@ -245,12 +337,20 @@ pub(crate) fn build_single_experiment_body(
                 )
                 #v(20pt)
             "##,
-                t_cal=t_cal,
-                l_c_date=l_c_date, v_c_date=v_c_date,
-                l_c_r2=l_c_r2, v_c_r2=v_c_r2,
-                l_c_slope=l_c_slope, v_c_slope=v_c_slope, v_c_inter=v_c_inter,
-                l_c_hyst=l_c_hyst, v_c_hyst=v_c_hyst, v_c_stdev=v_c_stdev,
-                l_c_status=l_c_status, v_c_status=v_c_status, status_color=status_color
+                t_cal = t_cal,
+                l_c_date = l_c_date,
+                v_c_date = v_c_date,
+                l_c_r2 = l_c_r2,
+                v_c_r2 = v_c_r2,
+                l_c_slope = l_c_slope,
+                v_c_slope = v_c_slope,
+                v_c_inter = v_c_inter,
+                l_c_hyst = l_c_hyst,
+                v_c_hyst = v_c_hyst,
+                v_c_stdev = v_c_stdev,
+                l_c_status = l_c_status,
+                v_c_status = v_c_status,
+                status_color = status_color
             );
         }
     }
@@ -275,9 +375,18 @@ pub(crate) fn build_single_experiment_body(
     let mut w_values = String::new();
 
     for (label, val, unit) in water_params_list {
-        w_header.push_str(&format!("[#text(weight: \"bold\", size: 8pt, fill: rgb(\"#1E293B\"))[{}]], ", label));
-        w_units.push_str(&format!("[#text(weight: \"regular\", fill: rgb(\"#64748B\"), size: 7pt)[{}]], ", unit));
-        w_values.push_str(&format!("[#text(weight: \"regular\", fill: rgb(\"#0F172A\"), size: 7.5pt)[{}]], ", format_number(val, 1)));
+        w_header.push_str(&format!(
+            "[#text(weight: \"bold\", size: 8pt, fill: rgb(\"#1E293B\"))[{}]], ",
+            label
+        ));
+        w_units.push_str(&format!(
+            "[#text(weight: \"regular\", fill: rgb(\"#64748B\"), size: 7pt)[{}]], ",
+            unit
+        ));
+        w_values.push_str(&format!(
+            "[#text(weight: \"regular\", fill: rgb(\"#0F172A\"), size: 7.5pt)[{}]], ",
+            format_number(val, 1)
+        ));
     }
 
     // ── 4. Recipe ────────────────────────────────────────────────────────
@@ -305,22 +414,40 @@ pub(crate) fn build_single_experiment_body(
     );
 
     // ── 7. Chart page + raw-data page ────────────────────────────────────
-    let chart_page = chart_page::build_chart_page(input, has_chart, chart_config, chart_ranges, is_ru);
+    let chart_page =
+        chart_page::build_chart_page(input, has_chart, chart_config, chart_ranges, is_ru);
     let raw_data_page = raw_data::build_raw_data_page(input, is_ru);
 
     // ── 8. Ramp block (above stats table) ────────────────────────────────
     let ramp_block = if let Some(ramp) = build_ramp_string(&input.cycles) {
-        let ramp_label = if is_ru { "Скорость сдвига" } else { "Shear Rate" };
-        format!(r##"
+        let ramp_label = if is_ru {
+            "Скорость сдвига"
+        } else {
+            "Shear Rate"
+        };
+        format!(
+            r##"
             #text(size: 8pt, weight: "bold", fill: rgb("#0F172A"))[{}: {} (1/s)]
             #v(5pt)
-        "##, ramp_label, ramp)
+        "##,
+            ramp_label, ramp
+        )
     } else {
         String::new()
     };
+    let rheology_source_block = format!(
+        r##"
+#text(size: 8pt, weight: "bold", fill: rgb("#0F172A"))[{label} ]
+#text(size: 8pt, fill: rgb("#334155"))[{value}]
+#v(5pt)
+"##,
+        label = escape_typst(l_data_source),
+        value = escape_typst(v_data_source),
+    );
 
     // ── 9. Assemble body (globals emitted separately) ────────────────────
-    format!(r##"
+    format!(
+        r##"
 // --- Page 1 Content ---
 #v(-20pt)
 #grid(
@@ -395,6 +522,7 @@ pub(crate) fn build_single_experiment_body(
 // --- Statistics ---
 #section_header("{t_stats}")
 #v(5pt)
+{rheology_source_block}
 {ramp_block}
 
 
@@ -418,31 +546,43 @@ pub(crate) fn build_single_experiment_body(
 
 {raw_data_page}
 "##,
-        t_passport=t_passport, t_water=t_water, t_recipe=t_recipe, t_stats=t_stats,
-        l_file=l_file, p_file=escape_typst(p_file),
-        l_date=l_date, date_str=date_str,
-        l_oper=l_oper, p_oper=escape_typst(p_oper),
-        l_lab=l_lab, p_lab=escape_typst(p_lab),
-        l_field=l_field, p_field=escape_typst(p_field),
-        l_well=l_well, p_well=escape_typst(p_well),
-        l_inst=l_inst, p_inst=escape_typst(p_inst),
-        l_source=l_source, water_source=escape_typst(water_source),
-
-        cal_block=cal_block,
-
-        w_header=w_header, w_units=w_units, w_values=w_values,
-
-        h_name=h_name, h_lot=h_lot, h_type=h_type, h_unit=h_unit, h_conc=h_conc,
-        recipe_rows=recipe_rows,
-        touch_points_block=touch_points_block,
-
-        stats_columns=stats.columns,
-        stats_headers=stats.headers,
-        stats_rows=stats.rows,
-
-        chart_page=chart_page,
-        raw_data_page=raw_data_page,
-        ramp_block=ramp_block
+        t_passport = t_passport,
+        t_water = t_water,
+        t_recipe = t_recipe,
+        t_stats = t_stats,
+        l_file = l_file,
+        p_file = escape_typst(p_file),
+        l_date = l_date,
+        date_str = date_str,
+        l_oper = l_oper,
+        p_oper = escape_typst(p_oper),
+        l_lab = l_lab,
+        p_lab = escape_typst(p_lab),
+        l_field = l_field,
+        p_field = escape_typst(p_field),
+        l_well = l_well,
+        p_well = escape_typst(p_well),
+        l_inst = l_inst,
+        p_inst = escape_typst(p_inst),
+        l_source = l_source,
+        water_source = escape_typst(water_source),
+        cal_block = cal_block,
+        w_header = w_header,
+        w_units = w_units,
+        w_values = w_values,
+        h_name = h_name,
+        h_lot = h_lot,
+        h_type = h_type,
+        h_unit = h_unit,
+        h_conc = h_conc,
+        recipe_rows = recipe_rows,
+        touch_points_block = touch_points_block,
+        stats_columns = stats.columns,
+        stats_headers = stats.headers,
+        stats_rows = stats.rows,
+        chart_page = chart_page,
+        raw_data_page = raw_data_page,
+        ramp_block = ramp_block,
+        rheology_source_block = rheology_source_block
     )
 }
-

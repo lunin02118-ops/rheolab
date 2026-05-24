@@ -69,13 +69,13 @@ export type ComparisonByIdsTouchPointConfig = { enabled: boolean; viscosityThres
 
 export type ComparisonReportByIdsRequest = { experimentIds: string[]; settings: ComparisonReportByIdsSettings }
 
-export type ComparisonReportByIdsSettings = { language: string; unitSystem: string; companyName?: string | null; companyLogoBase64?: string | null; generatedAt?: string | null; comparisonChart: ComparisonByIdsChartConfig; sectionToggles: ComparisonByIdsSectionToggles; reportSettings: ComparisonByIdsReportSettings; analysisSettings?: ComparisonByIdsAnalysisSettings; detectionSettings?: ComparisonByIdsDetectionSettings }
+export type ComparisonReportByIdsSettings = { language: string; unitSystem: string; companyName?: string | null; companyLogoBase64?: string | null; generatedAt?: string | null; rheologySourceOverride?: RheologyParameterSource | null; comparisonChart: ComparisonByIdsChartConfig; sectionToggles: ComparisonByIdsSectionToggles; reportSettings: ComparisonByIdsReportSettings; analysisSettings?: ComparisonByIdsAnalysisSettings; detectionSettings?: ComparisonByIdsDetectionSettings }
 
 export type ConflictItem = { id: string; mergeEventId: string | null; experimentId: string | null; fieldName: string; localValue: string | null; incomingValue: string | null; resolution: string | null; status: string; createdAt: string; resolvedAt: string | null }
 
 export type ExperimentDeleteResponse = { success: boolean; error?: string | null }
 
-export type ExperimentDetailMeta = { id: string; createdAt: string; updatedAt: string; name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; calibration: JsonValue | null; reagents: StoredExperimentReagent[]; summary: ExperimentDetailSummary; user: StoredExperimentUser | null; laboratory: StoredExperimentLaboratory | null; parsedBy?: string | null; parseSource?: string | null; extraFields?: JsonValue | null; rheologySource?: RheologyParameterSource }
+export type ExperimentDetailMeta = { id: string; createdAt: string; updatedAt: string; name: string; fieldName: string | null; operatorName: string | null; wellNumber: string | null; testId: string | null; originalFilename: string; testDate: string; instrumentType: string; geometry: string | null; geometrySource: string | null; waterSource: string; waterParams: JsonValue | null; fluidType: string; testGroup: string; testSubGroup: string | null; testCategory?: string | null; testType?: string | null; dominantPattern?: string | null; metrics: JsonValue; calibration: JsonValue | null; reagents: StoredExperimentReagent[]; summary: ExperimentDetailSummary; user: StoredExperimentUser | null; laboratory: StoredExperimentLaboratory | null; parsedBy?: string | null; parseSource?: string | null; extraFields?: JsonValue | null; rheologySource?: RheologyParameterSource; rheologyParameters?: RheologyParameterRow[] }
 
 export type ExperimentDetailMetaResponse = { success: boolean; experiment?: ExperimentDetailMeta | null; error?: string | null }
 
@@ -503,7 +503,7 @@ crossingViscosityMaxCp: number | null;
 /**
  * Observed minimum of `touchViscosityAtTargetCp` in centipoise.
  */
-viscosityAtTargetMinCp: number | null; 
+viscosityAtTargetMinCp: number | null;
 /**
  * Observed maximum of `touchViscosityAtTargetCp` in centipoise.
  */

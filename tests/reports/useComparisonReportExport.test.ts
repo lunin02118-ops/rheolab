@@ -32,6 +32,7 @@ import { useComparisonReportExport, type UseComparisonReportExportOptions } from
 import type { Experiment } from '@/types';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import type { ComparisonDisplaySettings } from '@/lib/store/comparison-store';
+import type { ExpertSettings } from '@/lib/store/analysis-settings-store';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────
 
@@ -77,6 +78,21 @@ function makeChartSettings(): ChartSettings {
     } as unknown as ChartSettings;
 }
 
+function makeExpertSettings(overrides: Partial<ExpertSettings> = {}): ExpertSettings {
+    return {
+        pointsToAverage: 7,
+        viscosityShearRates: [40, 100, 220],
+        stepSplitting: false,
+        splitStartDuration: 5,
+        splitEndDuration: 6,
+        minDurationForSplit: 45,
+        aiModel: 'test-model',
+        forceAiParsing: false,
+        timeShiftEnabled: false,
+        ...overrides,
+    };
+}
+
 function makeOptions(overrides: Partial<UseComparisonReportExportOptions> = {}): UseComparisonReportExportOptions {
     return {
         experiments: [makeExperiment('1', 'First'), makeExperiment('2', 'Second')],
@@ -93,6 +109,7 @@ function makeOptions(overrides: Partial<UseComparisonReportExportOptions> = {}):
         showRheology: true,
         reportViscosityRates: [40, 100],
         isExpert: false,
+        expertSettings: makeExpertSettings(),
         ...overrides,
     };
 }
@@ -139,12 +156,65 @@ describe('useComparisonReportExport', () => {
             expect(request.settings.reportSettings.shearRateAxis).toBe('right');
             expect(request.settings.reportSettings.rheologyUnits?.viscosity).toBe('cP');
             expect(request.settings.analysisSettings?.viscosityShearRates).toEqual([40, 100]);
+            expect(request.settings.analysisSettings?.pointsToAverage).toBe(1);
+            expect(request.settings.detectionSettings).toEqual({
+                stepSplitting: true,
+                splitStartDuration: 30,
+                splitEndDuration: 30,
+                minDurationForSplit: 90,
+            });
 
             expect(saveBytes).toHaveBeenCalledTimes(1);
             const saveArgs = vi.mocked(saveBytes).mock.calls[0][0];
             expect(saveArgs.filename).toMatch(/^comparison-report_\d{4}-\d{2}-\d{2}\.pdf$/);
             expect(saveArgs.mimeType).toBe('application/pdf');
             expect(saveArgs.filters[0]).toEqual({ name: 'PDF Document', extensions: ['pdf'] });
+        });
+
+        it('forwards expert analysis settings into by-id comparison reports', async () => {
+            const expertSettings = makeExpertSettings({
+                pointsToAverage: 11,
+                stepSplitting: false,
+                splitStartDuration: 12,
+                splitEndDuration: 13,
+                minDurationForSplit: 140,
+            });
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    isExpert: true,
+                    expertSettings,
+                    reportViscosityRates: [40, 220],
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            const request = vi.mocked(generateComparisonPdfReportByIdsBytes).mock.calls[0][0];
+            expect(request.settings.analysisSettings).toEqual({
+                pointsToAverage: 11,
+                viscosityShearRates: [40, 220],
+            });
+            expect(request.settings.detectionSettings).toEqual({
+                stepSplitting: false,
+                splitStartDuration: 12,
+                splitEndDuration: 13,
+                minDurationForSplit: 140,
+            });
+        });
+
+        it('forwards rheology source override into by-id comparison reports', async () => {
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({ rheologySourceOverride: 'program' })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            const request = vi.mocked(generateComparisonPdfReportByIdsBytes).mock.calls[0][0];
+            expect(request.settings.rheologySourceOverride).toBe('program');
         });
 
         it('surfaces generator errors onto exportError', async () => {

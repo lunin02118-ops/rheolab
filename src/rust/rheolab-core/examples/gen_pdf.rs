@@ -1,5 +1,5 @@
-use std::fs;
 use rheolab_core::report_generator::pdf::generate_pdf_report;
+use std::fs;
 
 fn main() {
     let json_path = "../../../tests/fixtures/report_data.json";
@@ -13,7 +13,7 @@ fn main() {
         Ok(bytes) => {
             fs::write(output_path, bytes).expect("Failed to write PDF");
             println!("PDF saved to: {}", output_path);
-        },
+        }
         Err(e) => {
             eprintln!("Error generating PDF: {}", e);
         }

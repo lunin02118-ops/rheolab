@@ -11,8 +11,8 @@
 //! owns the type contract (`types.rs`) and utility helpers (sheet-name
 //! sanitisation) that both the Excel and PDF paths share.
 
-pub mod types;
 pub mod summary;
+pub mod types;
 
 #[cfg(feature = "excel")]
 pub mod excel_comparison;
@@ -20,11 +20,11 @@ pub mod excel_comparison;
 #[cfg(feature = "pdf")]
 pub mod pdf_comparison;
 
-pub use types::{
-    ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics,
-    ComparisonReportInput, SectionToggles, TouchPointConfig,
-};
 pub use summary::{build_summaries, ExperimentSummary};
+pub use types::{
+    ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics, ComparisonReportInput,
+    SectionToggles, TouchPointConfig,
+};
 
 #[cfg(feature = "excel")]
 pub use excel_comparison::generate_comparison_excel;
@@ -187,8 +187,8 @@ mod tests {
     fn identical_sanitised_names_collide_and_dedupe() {
         // Two raw names that sanitise to the same value must get _2 / _3.
         let mut seen: Vec<String> = Vec::new();
-        let a = allocate_sheet_name("Report/1", &mut seen);   // → "Report1"
-        let b = allocate_sheet_name("Report[1]", &mut seen);  // → "Report1_2"
+        let a = allocate_sheet_name("Report/1", &mut seen); // → "Report1"
+        let b = allocate_sheet_name("Report[1]", &mut seen); // → "Report1_2"
         assert_eq!(a, "Report1");
         assert_eq!(b, "Report1_2");
     }

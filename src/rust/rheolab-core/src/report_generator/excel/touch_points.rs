@@ -3,8 +3,8 @@
 //! Translates the generic [`super::super::touch_point::calculate_smart_touch_points`]
 //! output into [`TouchPoint`] rows labelled for display inside the spreadsheet.
 
-use super::super::types::{DataPoint, ReportSettings, TouchPoint};
 use super::super::formatters::{convert_viscosity, get_viscosity_unit};
+use super::super::types::{DataPoint, ReportSettings, TouchPoint};
 
 pub(super) fn calculate_touch_points(
     raw_data: &[DataPoint],
@@ -12,8 +12,7 @@ pub(super) fn calculate_touch_points(
     is_ru: bool,
 ) -> Vec<TouchPoint> {
     use super::super::touch_point::{
-        TouchPointInput, TouchPointType, SmartTouchPointOptions,
-        calculate_smart_touch_points,
+        calculate_smart_touch_points, SmartTouchPointOptions, TouchPointInput, TouchPointType,
     };
 
     // Convert DataPoint → TouchPointInput (time_sec → time_min)
@@ -78,8 +77,8 @@ pub(super) fn calculate_touch_points(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::super::types::DataPoint;
+    use super::*;
 
     /// Build a minimal descending ramp that crosses 500 mPa·s around t = 2 min.
     fn ramp_data() -> Vec<DataPoint> {
@@ -110,29 +109,41 @@ mod tests {
     #[test]
     fn threshold_label_uses_mpa_s_for_si() {
         let tps = calculate_touch_points(&ramp_data(), &settings_with("SI"), false);
-        assert!(tps.iter().any(|tp| tp.label == "Threshold 500 mPa·s"),
-                "expected mPa·s label, got {:?}", tps.iter().map(|t| &t.label).collect::<Vec<_>>());
+        assert!(
+            tps.iter().any(|tp| tp.label == "Threshold 500 mPa·s"),
+            "expected mPa·s label, got {:?}",
+            tps.iter().map(|t| &t.label).collect::<Vec<_>>()
+        );
     }
 
     #[test]
     fn threshold_label_uses_pa_s_with_4_decimals_for_si_pas() {
         let tps = calculate_touch_points(&ramp_data(), &settings_with("SI_Pas"), false);
-        assert!(tps.iter().any(|tp| tp.label == "Threshold 0.5000 Pa·s"),
-                "expected Pa·s label with 4 decimals, got {:?}", tps.iter().map(|t| &t.label).collect::<Vec<_>>());
+        assert!(
+            tps.iter().any(|tp| tp.label == "Threshold 0.5000 Pa·s"),
+            "expected Pa·s label with 4 decimals, got {:?}",
+            tps.iter().map(|t| &t.label).collect::<Vec<_>>()
+        );
     }
 
     #[test]
     fn threshold_label_uses_cp_for_imperial() {
         let tps = calculate_touch_points(&ramp_data(), &settings_with("Imperial"), false);
-        assert!(tps.iter().any(|tp| tp.label == "Threshold 500 cP"),
-                "expected cP label, got {:?}", tps.iter().map(|t| &t.label).collect::<Vec<_>>());
+        assert!(
+            tps.iter().any(|tp| tp.label == "Threshold 500 cP"),
+            "expected cP label, got {:?}",
+            tps.iter().map(|t| &t.label).collect::<Vec<_>>()
+        );
     }
 
     #[test]
     fn threshold_label_ru_localized() {
         let tps = calculate_touch_points(&ramp_data(), &settings_with("SI_Pas"), true);
-        assert!(tps.iter().any(|tp| tp.label == "Порог 0.5000 Pa·s"),
-                "expected Russian label with Pa·s, got {:?}", tps.iter().map(|t| &t.label).collect::<Vec<_>>());
+        assert!(
+            tps.iter().any(|tp| tp.label == "Порог 0.5000 Pa·s"),
+            "expected Russian label with Pa·s, got {:?}",
+            tps.iter().map(|t| &t.label).collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -140,10 +151,15 @@ mod tests {
         // Algorithm reports viscosity at the crossing in mPa·s; wrapper must NOT convert.
         // stats.rs::write_touch_points_table applies display conversion at render.
         let tps = calculate_touch_points(&ramp_data(), &settings_with("SI_Pas"), false);
-        let threshold_tp = tps.iter().find(|tp| tp.label.contains("Threshold"))
+        let threshold_tp = tps
+            .iter()
+            .find(|tp| tp.label.contains("Threshold"))
             .expect("threshold touch point present");
         // Value should be in mPa·s range (hundreds), NOT sub-1 Pa·s range.
-        assert!(threshold_tp.viscosity >= 400.0 && threshold_tp.viscosity <= 600.0,
-                "expected storage-unit value around 500 mPa·s, got {}", threshold_tp.viscosity);
+        assert!(
+            threshold_tp.viscosity >= 400.0 && threshold_tp.viscosity <= 600.0,
+            "expected storage-unit value around 500 mPa·s, got {}",
+            threshold_tp.viscosity
+        );
     }
 }

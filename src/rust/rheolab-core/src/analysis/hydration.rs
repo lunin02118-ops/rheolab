@@ -18,14 +18,18 @@ pub fn evaluate_hydration(data: &[RheoPoint]) -> Option<HydrationMetrics> {
 
     // Sort by time
     let mut sorted = data.to_vec();
-    sorted.sort_by(|a, b| a.time_sec.partial_cmp(&b.time_sec).unwrap_or(std::cmp::Ordering::Equal));
-    
+    sorted.sort_by(|a, b| {
+        a.time_sec
+            .partial_cmp(&b.time_sec)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
     let start_time = sorted[0].time_sec;
 
     // 1. Find maximum viscosity and time to reach it
     let mut max_viscosity = 0.0;
     let mut time_to_max = 0.0;
-    
+
     for point in &sorted {
         if point.viscosity_cp > max_viscosity {
             max_viscosity = point.viscosity_cp;
@@ -40,8 +44,9 @@ pub fn evaluate_hydration(data: &[RheoPoint]) -> Option<HydrationMetrics> {
     // 3. Average viscosity in 55-60 minute range
     let start_55 = start_time + 55.0 * 60.0;
     let end_60 = start_time + 60.0 * 60.0;
-    
-    let points_55_to_60: Vec<&RheoPoint> = sorted.iter()
+
+    let points_55_to_60: Vec<&RheoPoint> = sorted
+        .iter()
         .filter(|p| p.time_sec >= start_55 && p.time_sec <= end_60)
         .collect();
 
@@ -51,7 +56,9 @@ pub fn evaluate_hydration(data: &[RheoPoint]) -> Option<HydrationMetrics> {
     } else {
         // If no data in this range, use last available value if test is long enough.
         // Guarded: sorted is non-empty (data.len() >= 5 checked at top of evaluate_hydration).
-        let last_point = sorted.last().expect("non-empty: data.len() >= 5 checked at entry");
+        let last_point = sorted
+            .last()
+            .expect("non-empty: data.len() >= 5 checked at entry");
         if last_point.time_sec - start_time >= 50.0 * 60.0 {
             last_point.viscosity_cp
         } else {
@@ -61,7 +68,11 @@ pub fn evaluate_hydration(data: &[RheoPoint]) -> Option<HydrationMetrics> {
 
     // 4. Determine subgroup based on average temperature
     let avg_temp = sorted.iter().map(|p| p.temperature_c).sum::<f64>() / sorted.len() as f64;
-    let subgroup = if avg_temp < 15.0 { "cold_water_5c" } else { "standard_25c" };
+    let subgroup = if avg_temp < 15.0 {
+        "cold_water_5c"
+    } else {
+        "standard_25c"
+    };
 
     Some(HydrationMetrics {
         max_viscosity: (max_viscosity * 100.0).round() / 100.0,
@@ -111,11 +122,19 @@ pub fn is_hydration_test(data: &[RheoPoint]) -> bool {
     }
 
     let mut sorted = data.to_vec();
-    sorted.sort_by(|a, b| a.time_sec.partial_cmp(&b.time_sec).unwrap_or(std::cmp::Ordering::Equal));
-    
+    sorted.sort_by(|a, b| {
+        a.time_sec
+            .partial_cmp(&b.time_sec)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
     let start_time = sorted[0].time_sec;
     // Guarded: sorted is non-empty (data.len() >= 10 checked at top of is_hydration_test).
-    let duration = sorted.last().expect("non-empty: data.len() >= 10 checked at entry").time_sec - start_time;
+    let duration = sorted
+        .last()
+        .expect("non-empty: data.len() >= 10 checked at entry")
+        .time_sec
+        - start_time;
 
     // Hydration tests are typically 60+ minutes (45 min threshold)
     if duration < 45.0 * 60.0 {
@@ -127,25 +146,26 @@ pub fn is_hydration_test(data: &[RheoPoint]) -> bool {
     let has_varied_shear_rate = sorted.windows(2).any(|w| {
         let p_prev = &w[0];
         let p_curr = &w[1];
-        
+
         // Check if shear_rate exists (shear_rate is Option<f64>)
         let sr_prev = p_prev.shear_rate.unwrap_or(0.0);
         let sr_curr = p_curr.shear_rate.unwrap_or(0.0);
-        
+
         // Skip if either is missing
         if sr_prev == 0.0 || sr_curr == 0.0 {
             return false;
         }
-        
+
         (sr_curr - sr_prev).abs() > 10.0
     });
 
     // Hydration tests typically don't have varied shear rates
     // If first point has no shear rate, we assume it's hydration
-    let first_has_shear_rate = sorted.first()
+    let first_has_shear_rate = sorted
+        .first()
         .and_then(|p| p.shear_rate)
         .map(|sr| sr > 0.0)
         .unwrap_or(false);
-    
+
     !has_varied_shear_rate || !first_has_shear_rate
 }

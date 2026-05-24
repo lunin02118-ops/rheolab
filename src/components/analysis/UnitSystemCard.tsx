@@ -61,7 +61,6 @@ const UNIT_ROWS: UnitRow<string>[] = [
         key: 'consistency', label: 'K\' / Ks / Kp',
         options: [
             { value: 'Pa·s^n',           label: 'Па·с^n' },
-            { value: 'eq.cP',            label: 'eq.cP' },
             { value: 'lbf·s^n/100ft²',   label: 'lbf·s^n/100ft²' },
         ] satisfies { value: ConsistencyUnit; label: string }[],
     },

@@ -5,7 +5,6 @@ import type { GraceCycleResult } from '@/lib/analysis/types';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 import { useChartSettingsStore, timeUnitLabel } from '@/lib/store/chart-settings-store';
-import type { UnitSystem } from '@/lib/store/display-settings-store';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { CycleRow } from './CycleRow';
 import { CycleStepsDetail } from './CycleStepsDetail';
@@ -13,15 +12,15 @@ import { CycleStepsDetail } from './CycleStepsDetail';
 interface CycleResultsTableProps {
     cycles: RheoCycle[];
     results: Map<number, GraceCycleResult>;
+    preferResultTiming?: boolean;
     onEditCycle?: (cycleId: number) => void;
 }
 
-export const CycleResultsTable = memo(function CycleResultsTable({ cycles, results, onEditCycle }: CycleResultsTableProps) {
+export const CycleResultsTable = memo(function CycleResultsTable({ cycles, results, preferResultTiming = false, onEditCycle }: CycleResultsTableProps) {
     const { isExpert } = useUIMode();
     const expertSettings = useAnalysisSettingsStore(s => s.expertSettings);
     const rUnits = useChartSettingsStore(s => s.settings.rheologyUnits);
     const viscUnit = rUnits.viscosity;
-    const unitSystem: UnitSystem = viscUnit === 'Pa·s' ? 'SI_Pas' : viscUnit === 'cP' ? 'Imperial' : 'SI';
     const [expandedCycles, setExpandedCycles] = useState<Set<number>>(new Set());
 
     // In basic mode, force default shear rates [40, 100, 170] like C# WPF version
@@ -113,8 +112,9 @@ export const CycleResultsTable = memo(function CycleResultsTable({ cycles, resul
                                         isExpanded={isExpanded}
                                         isExpert={isExpert}
                                         viscosityRates={viscosityRates}
-                                        unitSystem={unitSystem}
+                                        rheologyUnits={rUnits}
                                         timeFormat={rUnits.timeFormat}
+                                        preferResultTiming={preferResultTiming}
                                         onToggle={() => toggleCycle(cycle.id)}
                                         onEdit={onEditCycle ? () => onEditCycle(cycle.id) : undefined}
                                     />

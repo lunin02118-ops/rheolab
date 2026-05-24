@@ -4,8 +4,8 @@
 //! [`super::mod`] lean and means the individual section writers never need
 //! to know which `excel_formats::*` string-constant to pass.
 
-use rust_xlsxwriter::{Format, FormatAlign, FormatBorder, Color};
 use super::super::formatters::excel_formats;
+use rust_xlsxwriter::{Color, Format, FormatAlign, FormatBorder};
 
 /// All cell formats used by the Excel report.
 ///
@@ -18,22 +18,22 @@ use super::super::formatters::excel_formats;
 /// section writers in sibling modules inside `excel/` are the only
 /// legitimate consumers.
 pub(crate) struct Styles {
-    pub(super) header:             Format,
-    pub(super) section_title:      Format,
-    pub(super) cell:               Format,
-    pub(super) unit:               Format,
-    pub(super) number:             Format,
-    pub(super) fmt_time:           Format,
-    pub(super) fmt_temperature:    Format,
-    pub(super) fmt_pressure:       Format,
-    pub(super) fmt_n_prime:        Format,
-    pub(super) fmt_k_prime:        Format,
-    pub(super) fmt_r_squared:      Format,
-    pub(super) fmt_viscosity_fixed:Format,
-    pub(super) fmt_viscosity_pas:  Format,
-    pub(super) fmt_pv:             Format,
-    pub(super) fmt_yp:             Format,
-    pub(super) fmt_bingham_r2:     Format,
+    pub(super) header: Format,
+    pub(super) section_title: Format,
+    pub(super) cell: Format,
+    pub(super) unit: Format,
+    pub(super) number: Format,
+    pub(super) fmt_time: Format,
+    pub(super) fmt_temperature: Format,
+    pub(super) fmt_pressure: Format,
+    pub(super) fmt_n_prime: Format,
+    pub(super) fmt_k_prime: Format,
+    pub(super) fmt_r_squared: Format,
+    pub(super) fmt_viscosity_fixed: Format,
+    pub(super) fmt_viscosity_pas: Format,
+    pub(super) fmt_pv: Format,
+    pub(super) fmt_yp: Format,
+    pub(super) fmt_bingham_r2: Format,
 }
 
 impl Styles {
@@ -76,17 +76,17 @@ impl Styles {
                 .set_align(FormatAlign::Center)
         };
 
-        let fmt_time            = stat(excel_formats::TIME);
-        let fmt_temperature     = stat(excel_formats::TEMPERATURE);
-        let fmt_pressure        = stat(excel_formats::PRESSURE);
-        let fmt_n_prime         = stat(excel_formats::N_PRIME);
-        let fmt_k_prime         = stat(excel_formats::K_PRIME);
-        let fmt_r_squared       = stat(excel_formats::R_SQUARED);
+        let fmt_time = stat(excel_formats::TIME);
+        let fmt_temperature = stat(excel_formats::TEMPERATURE);
+        let fmt_pressure = stat(excel_formats::PRESSURE);
+        let fmt_n_prime = stat(excel_formats::N_PRIME);
+        let fmt_k_prime = stat(excel_formats::K_PRIME);
+        let fmt_r_squared = stat(excel_formats::R_SQUARED);
         let fmt_viscosity_fixed = stat(excel_formats::VISCOSITY_FIXED);
-        let fmt_viscosity_pas   = stat(excel_formats::VISCOSITY_PAS);
-        let fmt_pv              = stat(excel_formats::PV);
-        let fmt_yp              = stat(excel_formats::YP);
-        let fmt_bingham_r2      = stat(excel_formats::BINGHAM_R2);
+        let fmt_viscosity_pas = stat(excel_formats::VISCOSITY_PAS);
+        let fmt_pv = stat(excel_formats::PV);
+        let fmt_yp = stat(excel_formats::YP);
+        let fmt_bingham_r2 = stat(excel_formats::BINGHAM_R2);
 
         let number = Format::new()
             .set_num_format(excel_formats::DEFAULT)
@@ -95,10 +95,22 @@ impl Styles {
             .set_align(FormatAlign::VerticalCenter);
 
         Styles {
-            header, section_title, cell, unit, number,
-            fmt_time, fmt_temperature, fmt_pressure,
-            fmt_n_prime, fmt_k_prime, fmt_r_squared,
-            fmt_viscosity_fixed, fmt_viscosity_pas, fmt_pv, fmt_yp, fmt_bingham_r2,
+            header,
+            section_title,
+            cell,
+            unit,
+            number,
+            fmt_time,
+            fmt_temperature,
+            fmt_pressure,
+            fmt_n_prime,
+            fmt_k_prime,
+            fmt_r_squared,
+            fmt_viscosity_fixed,
+            fmt_viscosity_pas,
+            fmt_pv,
+            fmt_yp,
+            fmt_bingham_r2,
         }
     }
 }

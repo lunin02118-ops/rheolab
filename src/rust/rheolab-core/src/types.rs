@@ -16,7 +16,11 @@ pub struct RheoPoint {
     pub pressure_bar: Option<f64>,
     #[serde(default, alias = "speed_rpm", alias = "speedRpm")]
     pub rpm: Option<f64>,
-    #[serde(default, alias = "bathTemperatureC", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        alias = "bathTemperatureC",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub bath_temperature_c: Option<f64>,
 }
 
@@ -36,7 +40,11 @@ pub struct ColumnarData {
     pub pressure_bar: Vec<Option<f64>>,
     #[serde(rename = "speedRpm")]
     pub rpm: Vec<Option<f64>>,
-    #[serde(rename = "bathTemperatureC", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(
+        rename = "bathTemperatureC",
+        skip_serializing_if = "Vec::is_empty",
+        default
+    )]
     pub bath_temperature_c: Vec<Option<f64>>,
 }
 
@@ -74,7 +82,11 @@ impl ColumnarData {
             shear_stress,
             pressure_bar,
             rpm,
-            bath_temperature_c: if has_bath { bath_temperature_c } else { Vec::new() },
+            bath_temperature_c: if has_bath {
+                bath_temperature_c
+            } else {
+                Vec::new()
+            },
         }
     }
 }

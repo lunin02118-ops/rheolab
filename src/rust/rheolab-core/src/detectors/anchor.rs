@@ -1,10 +1,10 @@
 //! Anchor-based cycle detection — the primary strategy for splitting a
 //! schedule into rheological cycles using mixing steps as anchor points.
 
-use crate::types::{RheoStep, RheoCycle};
-use super::{DURATION_MIXING_MIN, SHEAR_RATE_MIXING_MIN};
-use super::mixing::is_mixing_step;
 use super::classify::{create_cycle, merge_symmetric_cycles};
+use super::mixing::is_mixing_step;
+use super::{DURATION_MIXING_MIN, SHEAR_RATE_MIXING_MIN};
+use crate::types::{RheoCycle, RheoStep};
 
 /// Detects rheological cycles using anchor-based strategy (internal Rust version).
 ///
@@ -89,28 +89,34 @@ pub fn detect_anchor_cycles_internal(steps: &[RheoStep]) -> Vec<RheoCycle> {
             let typical_duration = step.duration.max(prev_step.duration).max(30.0);
 
             if time_gap > typical_duration * 5.0 {
-                 if current_cycle_steps.len() >= 3 {
-                    cycles.push(create_cycle(std::mem::take(&mut current_cycle_steps), cycle_id_counter));
+                if current_cycle_steps.len() >= 3 {
+                    cycles.push(create_cycle(
+                        std::mem::take(&mut current_cycle_steps),
+                        cycle_id_counter,
+                    ));
                     cycle_id_counter += 1;
-                 } else {
+                } else {
                     current_cycle_steps.clear();
-                 }
-                 current_cycle_steps.push(step);
-                 continue;
+                }
+                current_cycle_steps.push(step);
+                continue;
             }
         }
 
         if is_mixing {
-             // Check if current cycle has body content (non-mixing steps)
-             let has_body = current_cycle_steps.iter().any(|s|
+            // Check if current cycle has body content (non-mixing steps)
+            let has_body = current_cycle_steps.iter().any(|s| {
                 s.avg_shear_rate < SHEAR_RATE_MIXING_MIN || s.duration < DURATION_MIXING_MIN
-             );
+            });
 
-             if current_cycle_steps.len() >= 3 && has_body {
-                 cycles.push(create_cycle(std::mem::take(&mut current_cycle_steps), cycle_id_counter));
-                 cycle_id_counter += 1;
-             }
-             current_cycle_steps.push(step);
+            if current_cycle_steps.len() >= 3 && has_body {
+                cycles.push(create_cycle(
+                    std::mem::take(&mut current_cycle_steps),
+                    cycle_id_counter,
+                ));
+                cycle_id_counter += 1;
+            }
+            current_cycle_steps.push(step);
         } else {
             current_cycle_steps.push(step);
         }

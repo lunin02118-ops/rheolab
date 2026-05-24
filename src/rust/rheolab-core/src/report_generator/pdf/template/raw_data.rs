@@ -3,10 +3,8 @@
 //! Emits the full Typst block for the optional “Raw Measurement Data” page.
 //! Returns an empty string when the user disabled raw data or there is
 //! nothing to show — callers can always embed the result unconditionally.
+use super::super::super::formatters::{convert_viscosity, get_viscosity_unit, viscosity_decimals};
 use super::super::super::types::ReportInput;
-use super::super::super::formatters::{
-    convert_viscosity, get_viscosity_unit, viscosity_decimals,
-};
 
 /// Maximum number of rows Typst is asked to render.  Anything above this is
 /// truncated and a user-visible notice is appended — avoids pathological
@@ -22,19 +20,47 @@ pub(super) fn build_raw_data_page(input: &ReportInput, is_ru: bool) -> String {
     let visc_unit = get_viscosity_unit(unit_system);
     let visc_dec = viscosity_decimals(unit_system) as usize;
 
-    let t_raw = if is_ru { "Сырые данные измерений" } else { "Raw Measurement Data" };
+    let t_raw = if is_ru {
+        "Сырые данные измерений"
+    } else {
+        "Raw Measurement Data"
+    };
     let h_rd_no = "\\#";
-    let h_rd_time = if is_ru { "Время (сек)" } else { "Time (sec)" };
+    let h_rd_time = if is_ru {
+        "Время (сек)"
+    } else {
+        "Time (sec)"
+    };
     let h_rd_visc = if is_ru {
         format!("Вязкость ({})", visc_unit)
     } else {
         format!("Viscosity ({})", visc_unit)
     };
-    let h_rd_temp = if is_ru { "Температура (°C)" } else { "Temperature (°C)" };
-    let h_rd_shear = if is_ru { "Скорость\\ сдвига (1/с)" } else { "Shear Rate\\ (1/s)" };
-    let h_rd_stress = if is_ru { "Напряжение\\ сдвига (Па)" } else { "Shear Stress\\ (Pa)" };
-    let h_rd_rpm = if is_ru { "Обороты\\ (об/мин)" } else { "Speed\\ (RPM)" };
-    let h_rd_press = if is_ru { "Давление (бар)" } else { "Pressure (bar)" };
+    let h_rd_temp = if is_ru {
+        "Температура (°C)"
+    } else {
+        "Temperature (°C)"
+    };
+    let h_rd_shear = if is_ru {
+        "Скорость\\ сдвига (1/с)"
+    } else {
+        "Shear Rate\\ (1/s)"
+    };
+    let h_rd_stress = if is_ru {
+        "Напряжение\\ сдвига (Па)"
+    } else {
+        "Shear Stress\\ (Pa)"
+    };
+    let h_rd_rpm = if is_ru {
+        "Обороты\\ (об/мин)"
+    } else {
+        "Speed\\ (RPM)"
+    };
+    let h_rd_press = if is_ru {
+        "Давление (бар)"
+    } else {
+        "Pressure (bar)"
+    };
 
     let total_count = input.raw_data.len();
     let display_data = if total_count > MAX_RAW_ROWS {
@@ -45,8 +71,14 @@ pub(super) fn build_raw_data_page(input: &ReportInput, is_ru: bool) -> String {
     let truncated = total_count > MAX_RAW_ROWS;
 
     // Detect whether any row carries bath temperature
-    let has_bath_col = display_data.iter().any(|dp| dp.bath_temperature_c.is_some());
-    let h_rd_bath = if is_ru { "Темп. бани (°C)" } else { "Bath Temp (°C)" };
+    let has_bath_col = display_data
+        .iter()
+        .any(|dp| dp.bath_temperature_c.is_some());
+    let h_rd_bath = if is_ru {
+        "Темп. бани (°C)"
+    } else {
+        "Bath Temp (°C)"
+    };
 
     // Build raw data rows — write directly into a pre-allocated buffer.
     // Avoids 6 temporary String allocations per row (1 outer format + 5 optional fields).
@@ -60,15 +92,24 @@ pub(super) fn build_raw_data_page(input: &ReportInput, is_ru: bool) -> String {
     macro_rules! write_opt {
         ($dst:expr, $val:expr) => {
             match $val {
-                Some(v) => { let _ = write!($dst, "{:.1}", v); }
-                None    => $dst.push('-'),
+                Some(v) => {
+                    let _ = write!($dst, "{:.1}", v);
+                }
+                None => $dst.push('-'),
             }
         };
     }
 
     for (i, dp) in display_data.iter().enumerate() {
         let visc_converted = convert_viscosity(dp.viscosity_cp, unit_system);
-        let _ = write!(raw_rows, "[{}], [{:.1}], [{:.dec$}], [", i + 1, dp.time_sec, visc_converted, dec = visc_dec);
+        let _ = write!(
+            raw_rows,
+            "[{}], [{:.1}], [{:.dec$}], [",
+            i + 1,
+            dp.time_sec,
+            visc_converted,
+            dec = visc_dec
+        );
         write_opt!(raw_rows, dp.temperature_c);
         if has_bath_col {
             raw_rows.push_str("], [");
@@ -87,13 +128,22 @@ pub(super) fn build_raw_data_page(input: &ReportInput, is_ru: bool) -> String {
 
     let truncation_note = if truncated {
         let note_text = if is_ru {
-            format!("Показаны первые {} из {} точек. Полные данные доступны в Excel-отчёте.", MAX_RAW_ROWS, total_count)
+            format!(
+                "Показаны первые {} из {} точек. Полные данные доступны в Excel-отчёте.",
+                MAX_RAW_ROWS, total_count
+            )
         } else {
-            format!("Showing first {} of {} points. Full data available in Excel report.", MAX_RAW_ROWS, total_count)
+            format!(
+                "Showing first {} of {} points. Full data available in Excel report.",
+                MAX_RAW_ROWS, total_count
+            )
         };
-        format!(r##"
+        format!(
+            r##"
 #v(8pt)
-#text(size: 7pt, fill: rgb("#94A3B8"), style: "italic")[{note}]"##, note = note_text)
+#text(size: 7pt, fill: rgb("#94A3B8"), style: "italic")[{note}]"##,
+            note = note_text
+        )
     } else {
         String::new()
     };
@@ -109,7 +159,8 @@ pub(super) fn build_raw_data_page(input: &ReportInput, is_ru: bool) -> String {
         String::new()
     };
 
-    format!(r##"
+    format!(
+        r##"
 #pagebreak()
 #section_header("{t_raw}")
 #v(5pt)

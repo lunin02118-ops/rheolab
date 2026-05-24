@@ -1,7 +1,7 @@
 //! SST (Stress-Sweep Test) detection — identifies two-level alternating rate
 //! patterns that characterise thixotropic-behaviour tests.
 
-use crate::types::{RheoStep, RheoCycle};
+use crate::types::{RheoCycle, RheoStep};
 
 /// Internal structure for SST phase grouping.
 ///
@@ -41,30 +41,39 @@ struct SSTPhase {
 /// Invalid: 100→50→100→50   (high=100 < 200)
 /// ```
 pub fn is_sst_pattern(steps: &[RheoStep]) -> bool {
-    if steps.len() < 3 { return false; }
+    if steps.len() < 3 {
+        return false;
+    }
 
     // Filter out short ramp steps for detection
     let significant_steps: Vec<&RheoStep> = steps.iter().filter(|s| s.duration > 20.0).collect();
-    if significant_steps.len() < 2 { return false; }
+    if significant_steps.len() < 2 {
+        return false;
+    }
 
     let rates: Vec<f64> = significant_steps.iter().map(|s| s.avg_shear_rate).collect();
 
     // Find unique rates (rounded to nearest 50)
-    let mut unique_rates: Vec<i32> = rates.iter()
+    let mut unique_rates: Vec<i32> = rates
+        .iter()
         .map(|r| (r / 50.0).round() as i32 * 50)
         .collect();
     unique_rates.sort();
     unique_rates.dedup();
 
     // SST typically has exactly 2 distinct rate levels
-    if unique_rates.len() != 2 { return false; }
+    if unique_rates.len() != 2 {
+        return false;
+    }
 
     let low_rate = unique_rates[0] as f64;
     let high_rate = unique_rates[1] as f64;
 
     // SST requires: highRate >= low * 3 AND highRate >= 200
     let is_valid_sst_ratio = high_rate >= low_rate * 3.0 && high_rate >= 200.0;
-    if !is_valid_sst_ratio { return false; }
+    if !is_valid_sst_ratio {
+        return false;
+    }
 
     // Count phase transitions (High <-> Low)
     let midpoint = (low_rate + high_rate) / 2.0;
@@ -107,10 +116,13 @@ pub fn is_sst_pattern(steps: &[RheoStep]) -> bool {
 /// Internal SST cycle detection — works with native Rust types (no JsValue).
 /// Called directly from Tauri commands and from the WASM binding in `lib.rs`.
 pub fn detect_sst_cycles_internal(steps: &[RheoStep]) -> Vec<RheoCycle> {
-    if steps.is_empty() { return Vec::new(); }
+    if steps.is_empty() {
+        return Vec::new();
+    }
 
     // Find unique rates
-    let mut unique_rates: Vec<i32> = steps.iter()
+    let mut unique_rates: Vec<i32> = steps
+        .iter()
         .map(|s| (s.avg_shear_rate / 50.0).round() as i32 * 50)
         .collect();
     unique_rates.sort();
@@ -167,11 +179,22 @@ pub fn detect_sst_cycles_internal(steps: &[RheoStep]) -> Vec<RheoCycle> {
     while i < phases.len().saturating_sub(1) {
         let phase1 = &phases[i];
         let phase2 = &phases[i + 1];
-        let mut cycle_steps: Vec<RheoStep> = phase1.steps.iter().chain(phase2.steps.iter()).cloned().collect();
+        let mut cycle_steps: Vec<RheoStep> = phase1
+            .steps
+            .iter()
+            .chain(phase2.steps.iter())
+            .cloned()
+            .collect();
         cycle_steps.retain(|s| {
-            if s.duration > 20.0 { return true; }
-            if phase1.steps.len() == 1 && phase1.steps[0].id == s.id { return true; }
-            if phase2.steps.len() == 1 && phase2.steps[0].id == s.id { return true; }
+            if s.duration > 20.0 {
+                return true;
+            }
+            if phase1.steps.len() == 1 && phase1.steps[0].id == s.id {
+                return true;
+            }
+            if phase2.steps.len() == 1 && phase2.steps[0].id == s.id {
+                return true;
+            }
             false
         });
         let duration: f64 = cycle_steps.iter().map(|s| s.duration).sum();

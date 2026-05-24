@@ -1,6 +1,6 @@
 //! Chart types, helpers, and math utilities.
-use plotters::prelude::*;
 use super::super::types::ChartLineSettings;
+use plotters::prelude::*;
 /// Chart data point
 #[derive(Debug, Clone)]
 pub struct ChartPoint {
@@ -43,22 +43,22 @@ pub struct ChartConfig {
     pub axis_mode: String,
     pub width: u32,
     pub height: u32,
-    
+
     // Predetermined labels to simplify generator logic
     pub label_left: String,
     pub label_right: String,
     pub label_bottom: String,
-    
+
     // Series names for legend
     pub name_viscosity: String,
     pub name_temperature: String,
     pub name_shear_rate: String,
     pub name_pressure: String,
     pub name_bath_temperature: String,
-    
+
     // Touch points for vertical lines
     pub touch_points: Vec<ChartTouchPoint>,
-    
+
     /// Viscosity threshold for horizontal dashed line (cP)
     pub viscosity_threshold: Option<f64>,
 
@@ -91,27 +91,27 @@ impl Default for ChartLineStyles {
     fn default() -> Self {
         Self {
             viscosity: ChartLineStyle {
-                color: RGBColor(59, 130, 246),  // #3b82f6 Blue
+                color: RGBColor(59, 130, 246), // #3b82f6 Blue
                 width: 2,
                 style: "solid".to_string(),
             },
             temperature: ChartLineStyle {
-                color: RGBColor(220, 38, 38),   // #dc2626 Red
+                color: RGBColor(220, 38, 38), // #dc2626 Red
                 width: 2,
                 style: "solid".to_string(),
             },
             shear_rate: ChartLineStyle {
-                color: RGBColor(168, 85, 247),  // #a855f7 Purple
+                color: RGBColor(168, 85, 247), // #a855f7 Purple
                 width: 2,
                 style: "solid".to_string(),
             },
             pressure: ChartLineStyle {
-                color: RGBColor(34, 197, 94),   // #22C55E Green
+                color: RGBColor(34, 197, 94), // #22C55E Green
                 width: 2,
                 style: "solid".to_string(),
             },
             bath_temperature: ChartLineStyle {
-                color: RGBColor(234, 88, 12),   // #ea580c Orange
+                color: RGBColor(234, 88, 12), // #ea580c Orange
                 width: 2,
                 style: "dashed".to_string(),
             },
@@ -127,7 +127,9 @@ impl From<&ChartLineSettings> for ChartLineStyles {
             temperature: parse_line_style(&settings.temperature),
             shear_rate: parse_line_style(&settings.shear_rate),
             pressure: parse_line_style(&settings.pressure),
-            bath_temperature: settings.bath_temperature.as_ref()
+            bath_temperature: settings
+                .bath_temperature
+                .as_ref()
                 .map(|s| parse_line_style(s))
                 .unwrap_or(ChartLineStyle {
                     color: RGBColor(234, 88, 12),
@@ -170,7 +172,7 @@ pub struct ChartTouchPoint {
 }
 
 // Grid color constant
-pub(crate) const C_GRID: RGBColor = RGBColor(200, 200, 200);       // Light Gray
+pub(crate) const C_GRID: RGBColor = RGBColor(200, 200, 200); // Light Gray
 
 /// Info for one independent metric axis (used in individual axis mode)
 #[derive(Debug, Clone)]
@@ -210,37 +212,57 @@ pub struct ChartRanges {
     pub individual_axes: Vec<IndividualAxisInfo>,
 }
 
-
 // Helper: Raw Min/Max
 pub(crate) fn get_raw_min_max(vals: &[f64], default_min: f64, default_max: f64) -> (f64, f64) {
-    if vals.is_empty() { return (default_min, default_max); }
+    if vals.is_empty() {
+        return (default_min, default_max);
+    }
     let min = vals.iter().fold(f64::INFINITY, |a, &b| a.min(b));
     let max = vals.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
-    if min.is_infinite() || max.is_infinite() { return (default_min, default_max); }
+    if min.is_infinite() || max.is_infinite() {
+        return (default_min, default_max);
+    }
     // Add tiny padding to prevent hitting edges exactly if data is flat
-    if min == max { (min - 1.0, max + 1.0) } else { (min, max) }
+    if min == max {
+        (min - 1.0, max + 1.0)
+    } else {
+        (min, max)
+    }
 }
 
 /// Calculate major step size — ported from chart-ticks.tsx calculateMajorStep()
 /// Picks from standard "nice" values: 1, 2, 5, 10, 20, 50, ...
 fn calculate_major_step(range: f64, target_ticks: usize) -> f64 {
-    if range <= 0.0 { return 1.0; }
+    if range <= 0.0 {
+        return 1.0;
+    }
     let raw_step = range / (target_ticks.max(2) - 1) as f64;
     let magnitude = 10f64.powf(raw_step.log10().floor());
     let normalized = raw_step / magnitude;
-    let nice = if normalized <= 1.5 { 1.0 }
-               else if normalized <= 3.0 { 2.0 }
-               else if normalized <= 7.0 { 5.0 }
-               else { 10.0 };
+    let nice = if normalized <= 1.5 {
+        1.0
+    } else if normalized <= 3.0 {
+        2.0
+    } else if normalized <= 7.0 {
+        5.0
+    } else {
+        10.0
+    };
     nice * magnitude
 }
 
 /// Minor divisions based on major step — ported from chart-ticks.tsx getMinorDivisions()
 /// Scientific convention: steps of 2/20/200 → 4 divisions, others → 5.
 fn get_minor_divisions(major_step: f64) -> usize {
-    if major_step <= 0.0 { return 5; }
+    if major_step <= 0.0 {
+        return 5;
+    }
     let normalized = major_step / 10f64.powf(major_step.log10().floor());
-    if (normalized - 2.0).abs() < 0.01 { 4 } else { 5 }
+    if (normalized - 2.0).abs() < 0.01 {
+        4
+    } else {
+        5
+    }
 }
 
 /// Calculate nice scale with major and minor steps.
@@ -248,7 +270,12 @@ fn get_minor_divisions(major_step: f64) -> usize {
 /// so chart lines never touch the axis borders (used for Y axes).
 /// For X (time) axis use padding=false so the first/last data points reach the axis.
 /// Returns (nice_min, nice_max, major_step, minor_step)
-pub(crate) fn calculate_nice_scale(min: f64, max: f64, target_major_ticks: usize, padding: bool) -> (f64, f64, f64, f64) {
+pub(crate) fn calculate_nice_scale(
+    min: f64,
+    max: f64,
+    target_major_ticks: usize,
+    padding: bool,
+) -> (f64, f64, f64, f64) {
     let range = max - min;
     if range < 1e-10 {
         return (min - 1.0, max + 1.0, 1.0, 0.2);
@@ -257,7 +284,7 @@ pub(crate) fn calculate_nice_scale(min: f64, max: f64, target_major_ticks: usize
     let minor_divisions = get_minor_divisions(major_step);
     let minor_step = major_step / minor_divisions as f64;
     let nice_min_base = (min / major_step).floor() * major_step;
-    let nice_max_base = (max / major_step).ceil()  * major_step;
+    let nice_max_base = (max / major_step).ceil() * major_step;
     let (nice_min, nice_max) = if padding {
         // Add one extra step when data is within 15% of a tick from the edge
         // so chart lines never touch the top or bottom border.
@@ -292,35 +319,62 @@ pub(crate) fn lttb_downsample_chart(data: &[ChartPoint], threshold: usize) -> Ve
     }
 
     // ── Per-channel normalisers ────────────────────────────────────────────
-    let v_min = data.iter().map(|p| p.viscosity_cp).fold(f64::INFINITY, f64::min);
-    let v_rng = (data.iter().map(|p| p.viscosity_cp).fold(f64::NEG_INFINITY, f64::max) - v_min)
+    let v_min = data
+        .iter()
+        .map(|p| p.viscosity_cp)
+        .fold(f64::INFINITY, f64::min);
+    let v_rng = (data
+        .iter()
+        .map(|p| p.viscosity_cp)
+        .fold(f64::NEG_INFINITY, f64::max)
+        - v_min)
         .max(f64::EPSILON);
 
     macro_rules! opt_norm_range {
         ($field:ident) => {{
-            let mn = data.iter().filter_map(|p| p.$field).fold(f64::INFINITY, f64::min);
-            let mx = data.iter().filter_map(|p| p.$field).fold(f64::NEG_INFINITY, f64::max);
-            if mx > mn + f64::EPSILON { Some((mn, (mx - mn).max(f64::EPSILON))) } else { None }
+            let mn = data
+                .iter()
+                .filter_map(|p| p.$field)
+                .fold(f64::INFINITY, f64::min);
+            let mx = data
+                .iter()
+                .filter_map(|p| p.$field)
+                .fold(f64::NEG_INFINITY, f64::max);
+            if mx > mn + f64::EPSILON {
+                Some((mn, (mx - mn).max(f64::EPSILON)))
+            } else {
+                None
+            }
         }};
     }
 
-    let t_norm  = opt_norm_range!(temperature_c);
+    let t_norm = opt_norm_range!(temperature_c);
     let sr_norm = opt_norm_range!(shear_rate);
-    let p_norm  = opt_norm_range!(pressure_bar);
-    let b_norm  = opt_norm_range!(bath_temperature_c);
+    let p_norm = opt_norm_range!(pressure_bar);
+    let b_norm = opt_norm_range!(bath_temperature_c);
 
     /// Normalise `v` to [0,1] using precomputed min and range.
     #[inline]
-    fn nv(v: f64, min: f64, rng: f64) -> f64 { (v - min) / rng }
+    fn nv(v: f64, min: f64, rng: f64) -> f64 {
+        (v - min) / rng
+    }
 
     // Collect all-channel normalised Y values for a point into a fixed-size array.
     let yn = |p: &ChartPoint| -> [f64; 5] {
         [
             nv(p.viscosity_cp, v_min, v_rng),
-            t_norm .map_or(0.0, |(mn, rng)| p.temperature_c    .map_or(0.0, |v| nv(v, mn, rng))),
-            sr_norm.map_or(0.0, |(mn, rng)| p.shear_rate        .map_or(0.0, |v| nv(v, mn, rng))),
-            p_norm .map_or(0.0, |(mn, rng)| p.pressure_bar      .map_or(0.0, |v| nv(v, mn, rng))),
-            b_norm .map_or(0.0, |(mn, rng)| p.bath_temperature_c.map_or(0.0, |v| nv(v, mn, rng))),
+            t_norm.map_or(0.0, |(mn, rng)| {
+                p.temperature_c.map_or(0.0, |v| nv(v, mn, rng))
+            }),
+            sr_norm.map_or(0.0, |(mn, rng)| {
+                p.shear_rate.map_or(0.0, |v| nv(v, mn, rng))
+            }),
+            p_norm.map_or(0.0, |(mn, rng)| {
+                p.pressure_bar.map_or(0.0, |v| nv(v, mn, rng))
+            }),
+            b_norm.map_or(0.0, |(mn, rng)| {
+                p.bath_temperature_c.map_or(0.0, |v| nv(v, mn, rng))
+            }),
         ]
     };
 
@@ -333,10 +387,10 @@ pub(crate) fn lttb_downsample_chart(data: &[ChartPoint], threshold: usize) -> Ve
 
     for i in 0..(threshold - 2) {
         let bucket_start = ((i as f64 + 1.0) * bucket_size) as usize + 1;
-        let bucket_end   = (((i as f64 + 2.0) * bucket_size) as usize + 1).min(n - 1);
+        let bucket_end = (((i as f64 + 2.0) * bucket_size) as usize + 1).min(n - 1);
 
         let next_start = bucket_end;
-        let next_end   = (((i as f64 + 3.0) * bucket_size) as usize + 1).min(n);
+        let next_end = (((i as f64 + 3.0) * bucket_size) as usize + 1).min(n);
         let next_count = (next_end - next_start).max(1) as f64;
 
         // Next-bucket centroid (normalised coords)
@@ -345,16 +399,20 @@ pub(crate) fn lttb_downsample_chart(data: &[ChartPoint], threshold: usize) -> Ve
         for j in next_start..next_end {
             avg_x += data[j].time_min;
             let yj = yn(&data[j]);
-            for ch in 0..5 { avg_y[ch] += yj[ch]; }
+            for ch in 0..5 {
+                avg_y[ch] += yj[ch];
+            }
         }
         avg_x /= next_count;
-        for ch in 0..5 { avg_y[ch] /= next_count; }
+        for ch in 0..5 {
+            avg_y[ch] /= next_count;
+        }
 
         let ax = data[a].time_min;
         let ay = yn(&data[a]);
 
         let mut max_score = -1.0f64;
-        let mut max_idx   = bucket_start;
+        let mut max_idx = bucket_start;
 
         for j in bucket_start..bucket_end {
             let jx = data[j].time_min;
@@ -363,15 +421,13 @@ pub(crate) fn lttb_downsample_chart(data: &[ChartPoint], threshold: usize) -> Ve
             // Sum of triangle areas across all active channels
             let score: f64 = (0..5)
                 .map(|ch| {
-                    ((ax - avg_x) * (jy[ch] - ay[ch])
-                        - (ax - jx) * (avg_y[ch] - ay[ch]))
-                    .abs()
+                    ((ax - avg_x) * (jy[ch] - ay[ch]) - (ax - jx) * (avg_y[ch] - ay[ch])).abs()
                 })
                 .sum();
 
             if score > max_score {
                 max_score = score;
-                max_idx   = j;
+                max_idx = j;
             }
         }
 

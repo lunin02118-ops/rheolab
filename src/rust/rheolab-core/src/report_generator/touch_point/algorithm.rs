@@ -2,7 +2,7 @@
 //! centred moving-average smoothing, gap-aware slope check, and optional
 //! target-time point.
 
-use super::helpers::{find_dominant_shear_rate, filter_by_shear_rate, find_viscosity_peak};
+use super::helpers::{filter_by_shear_rate, find_dominant_shear_rate, find_viscosity_peak};
 use super::types::{
     SmartTouchPointOptions, TouchPointAnomaly, TouchPointInput, TouchPointResult, TouchPointType,
 };
@@ -123,9 +123,7 @@ pub fn calculate_smart_touch_points(
         let mut interval_samples: Vec<f64> = Vec::with_capacity(100);
         let sample_start = search_points.len().saturating_sub(100).max(1);
         for i in sample_start..search_points.len() {
-            interval_samples.push(
-                search_points[i].time_min - search_points[i - 1].time_min,
-            );
+            interval_samples.push(search_points[i].time_min - search_points[i - 1].time_min);
         }
         interval_samples.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let median_interval = if interval_samples.is_empty() {
@@ -155,9 +153,7 @@ pub fn calculate_smart_touch_points(
                 }
                 // Find right boundary (scan forward from i)
                 let mut w_hi = i;
-                while w_hi + 1 < search_points.len()
-                    && search_points[w_hi + 1].time_min <= t_hi
-                {
+                while w_hi + 1 < search_points.len() && search_points[w_hi + 1].time_min <= t_hi {
                     w_hi += 1;
                 }
                 // Collect, sort, median
@@ -222,7 +218,9 @@ pub fn calculate_smart_touch_points(
                         let mut walk_idx = run_start;
                         let mut gap_found = false;
                         for _ in 0..total_lookback {
-                            if walk_idx == 0 { break; }
+                            if walk_idx == 0 {
+                                break;
+                            }
                             let dt = search_points[walk_idx].time_min
                                 - search_points[walk_idx - 1].time_min;
                             if dt > gap_threshold {
@@ -255,8 +253,7 @@ pub fn calculate_smart_touch_points(
                     // the delayed smoothed-curve crossing.
                     let mut first_idx = run_start;
                     while first_idx > 0
-                        && search_points[first_idx - 1].viscosity_cp
-                            <= options.viscosity_threshold
+                        && search_points[first_idx - 1].viscosity_cp <= options.viscosity_threshold
                     {
                         first_idx -= 1;
                     }
@@ -304,8 +301,8 @@ pub fn calculate_smart_touch_points(
                         anomaly = Some(TouchPointAnomaly::ShearRateJump);
                     } else if dt.abs() > 0.001 {
                         let fraction = (options.target_time - prev.time_min) / dt;
-                        exact_visc = prev.viscosity_cp
-                            + fraction * (p.viscosity_cp - prev.viscosity_cp);
+                        exact_visc =
+                            prev.viscosity_cp + fraction * (p.viscosity_cp - prev.viscosity_cp);
                     }
                 }
                 results.push(TouchPointResult {

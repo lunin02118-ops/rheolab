@@ -2195,6 +2195,7 @@ dependencies = [
  "chrono",
  "criterion",
  "csv",
+ "encoding_rs",
  "insta",
  "plotters",
  "proptest",

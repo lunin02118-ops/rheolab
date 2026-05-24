@@ -2,7 +2,7 @@
 //! extraction. None of these touch Calamine; they operate on raw `Vec<Vec<String>>`.
 
 pub(super) fn parse_delimited_rows(data: &[u8]) -> Result<Vec<Vec<String>>, String> {
-    let text = String::from_utf8_lossy(data);
+    let text = super::super::text_encoding::decode_text(data);
     let lines: Vec<&str> = text.lines().collect();
 
     if lines.is_empty() {
@@ -36,7 +36,11 @@ pub(super) fn parse_delimited_rows(data: &[u8]) -> Result<Vec<Vec<String>>, Stri
             rdr.records()
                 .next()
                 .and_then(|r| r.ok())
-                .map(|rec| rec.iter().map(|f| f.trim().to_string()).collect::<Vec<_>>())
+                .map(|rec| {
+                    rec.iter()
+                        .map(super::super::text_encoding::normalize_cell)
+                        .collect::<Vec<_>>()
+                })
                 .unwrap_or_else(|| vec!["".to_string()])
         })
         .collect())

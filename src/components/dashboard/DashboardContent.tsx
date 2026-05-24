@@ -1,6 +1,5 @@
 import { memo, useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
-import { BarChart3, Table, Droplets, Save, Settings, FileText } from 'lucide-react';
-import { Logo } from '@/components/ui/logo';
+import { AlertCircle, BarChart3, ClipboardList, Table, Droplets, Save, Settings, FileText } from 'lucide-react';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
 import { RheologyChart } from '@/components/charts/rheology-chart-uplot';
 import { ChartErrorBoundary } from '@/components/shared/ChartErrorBoundary';
@@ -28,6 +27,12 @@ import { useLicense } from '@/hooks/useLicense';
 import type { RheoStep } from '@/lib/analysis/types';
 import type { RecipeComponent } from '@/components/analysis/recipe-panel';
 import type { WaterParams } from '@/components/analysis/water-analysis-panel';
+import type { RheologyParameterRow } from '@/types';
+import {
+    cycleTimingMinutes,
+    finiteOr,
+    rheologyParameterRowToGraceCycleResult,
+} from '@/lib/analysis/rheology-parameter-mapping';
 
 // Define explicit types for props
 export interface DashboardContentProps {
@@ -55,6 +60,79 @@ export interface DashboardContentProps {
     onRequireFullData?: () => Promise<boolean>;
 }
 
+type DashboardTab = 'chart' | 'table' | 'recipe' | 'water' | 'calibration' | 'report';
+export type AnalysisRheologySource = 'program' | 'instrument';
+const EMPTY_RHEOLOGY_ROWS: readonly RheologyParameterRow[] = [];
+const TAB_BUTTON_BASE = 'flex items-center gap-2 px-4 py-2 rounded-lg border font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30';
+const tabButtonClass = (isActive: boolean) => `${TAB_BUTTON_BASE} ${
+    isActive
+        ? 'border-border bg-card text-foreground shadow-sm'
+        : 'border-transparent bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
+}`;
+
+interface InstrumentRheologyView {
+    cycles: RheoCycle[];
+    results: Map<number, GraceCycleResult>;
+}
+
+function makeSyntheticInstrumentCycle(row: RheologyParameterRow, id: number): RheoCycle {
+    const startMin = finiteOr(row.timeMin, 0);
+    const endMin = finiteOr(row.endTimeMin, startMin);
+    const startSec = startMin * 60;
+    const endSec = endMin * 60;
+    const duration = Math.max(0, Math.round(endSec - startSec));
+
+    return {
+        id,
+        cycleIndex: row.cycleNo,
+        type: 'Custom',
+        steps: [],
+        description: row.sourceSheet ? `Прибор: ${row.sourceSheet}` : 'Расчёт прибора',
+        duration,
+        isSST: false,
+    };
+}
+
+function buildInstrumentRheologyView(
+    rows: readonly RheologyParameterRow[],
+    cycles: readonly RheoCycle[],
+): InstrumentRheologyView {
+    const viewCycles: RheoCycle[] = [];
+    const results = new Map<number, GraceCycleResult>();
+    const usedDisplayIds = new Set<number>();
+    let nextSyntheticId = -1;
+    const allocateSyntheticId = () => {
+        while (usedDisplayIds.has(nextSyntheticId) || cycles.some(cycle => cycle.id === nextSyntheticId)) {
+            nextSyntheticId -= 1;
+        }
+        const id = nextSyntheticId;
+        usedDisplayIds.add(id);
+        nextSyntheticId -= 1;
+        return id;
+    };
+
+    const sortedRows = [...rows].sort((a, b) => {
+        const cycleDiff = a.cycleNo - b.cycleNo;
+        if (cycleDiff !== 0) return cycleDiff;
+        return (a.sourceRow ?? 0) - (b.sourceRow ?? 0);
+    });
+
+    sortedRows.forEach((row) => {
+        const cycle = cycles.find(candidate =>
+            !usedDisplayIds.has(candidate.id)
+            && ((candidate.cycleIndex ?? candidate.id) === row.cycleNo || candidate.id === row.cycleNo),
+        );
+        const uniqueDisplayId = cycle?.id ?? allocateSyntheticId();
+        const viewCycle = cycle ?? makeSyntheticInstrumentCycle(row, uniqueDisplayId);
+
+        usedDisplayIds.add(uniqueDisplayId);
+        viewCycles.push(viewCycle);
+        results.set(uniqueDisplayId, rheologyParameterRowToGraceCycleResult(row, cycleTimingMinutes(cycle)));
+    });
+
+    return { cycles: viewCycles, results };
+}
+
 function DashboardContentInner({
     parseResult,
     cycles,
@@ -76,10 +154,15 @@ function DashboardContentInner({
     patternOverride,
     setPatternOverride,
     isMetadataOnly = false,
-    isFullDataLoading = false
+    isFullDataLoading = false,
+    onRequireFullData
 }: DashboardContentProps) {
-    const [activeTab, setActiveTab] = useState<'chart' | 'table' | 'recipe' | 'water' | 'calibration' | 'report'>('chart');
+    const [activeTab, setActiveTab] = useState<DashboardTab>('chart');
     const [editingCycleId, setEditingCycleId] = useState<number | null>(null);
+    const [rheologySourceSelection, setRheologySourceSelection] = useState<{
+        key: string;
+        source: AnalysisRheologySource;
+    }>({ key: '', source: 'program' });
 
     useEffect(() => {
         return () => {
@@ -97,7 +180,7 @@ function DashboardContentInner({
     // Ref for the tab bar — used to scroll it into view on tab switch.
     const tabsRef = useRef<HTMLDivElement>(null);
 
-    const switchTab = useCallback((tab: typeof activeTab) => {
+    const switchTab = useCallback((tab: DashboardTab) => {
         setActiveTab(tab);
         requestAnimationFrame(() => {
             if (tabsRef.current) {
@@ -113,17 +196,12 @@ function DashboardContentInner({
     // Check if calibration is available (developer license only + data present)
     const hasCalibrationData = !!parseResult?.metadata?.calibration;
     const canUseCalibration = isInitialized && (result?.license?.features?.calibrationAnalysis ?? false) && hasCalibrationData;
-
-    useEffect(() => {
-        if (activeTab === 'calibration' && !canUseCalibration) {
-            setActiveTab('chart');
-        }
-    }, [activeTab, canUseCalibration]);
+    const effectiveActiveTab: DashboardTab = activeTab === 'calibration' && !canUseCalibration ? 'chart' : activeTab;
 
     // Keep source points as-is to avoid an extra full-array remap before chart processing.
     const binarySeries = useExperimentSeriesOverview(
         parseResult?.metadata?.experimentId,
-        activeTab === 'chart',
+        effectiveActiveTab === 'chart',
     );
     const { requestWindow, resetWindow } = binarySeries;
     const handleChartViewportRangeChange = useCallback((range: { xMinSec: number; xMaxSec: number }) => {
@@ -136,11 +214,36 @@ function DashboardContentInner({
 
     const chartData = useMemo(() => {
         if (!parseResult) return [];
-        if (activeTab === 'chart' && (binarySeries.columnarData || parseResult.columnarData)) {
+        if (effectiveActiveTab === 'chart' && (binarySeries.columnarData || parseResult.columnarData)) {
             return [];
         }
         return rawPointsFromParseResult(parseResult);
-    }, [activeTab, binarySeries.columnarData, parseResult]);
+    }, [effectiveActiveTab, binarySeries.columnarData, parseResult]);
+
+    const instrumentRheologyRows = parseResult?.instrumentRheology ?? EMPTY_RHEOLOGY_ROWS;
+    const instrumentRheologyView = useMemo(
+        () => buildInstrumentRheologyView(instrumentRheologyRows, cycles),
+        [cycles, instrumentRheologyRows],
+    );
+    const parseResultKey = `${parseResult?.metadata?.experimentId ?? ''}|${parseResult?.metadata?.filename ?? ''}`;
+    const savedRheologySource = parseResult?.metadata?.rheologySource;
+    const defaultRheologySource: AnalysisRheologySource =
+        savedRheologySource === 'instrument' || savedRheologySource === 'program'
+            ? savedRheologySource
+            : 'program';
+    const rheologySource: AnalysisRheologySource =
+        rheologySourceSelection.key === parseResultKey ? rheologySourceSelection.source : defaultRheologySource;
+    const setRheologySource = useCallback((source: AnalysisRheologySource) => {
+        setRheologySourceSelection({ key: parseResultKey, source });
+    }, [parseResultKey]);
+    const handleEditCycle = useCallback(async (cycleId: number) => {
+        if (isFullDataLoading) return;
+        if (isMetadataOnly) {
+            const loaded = await onRequireFullData?.();
+            if (!loaded) return;
+        }
+        setEditingCycleId(cycleId);
+    }, [isFullDataLoading, isMetadataOnly, onRequireFullData]);
 
     if (!parseResult) {
         return null;
@@ -150,6 +253,10 @@ function DashboardContentInner({
     const chartColumnarData = binarySeries.columnarData ?? parseResult.columnarData ?? null;
     const currentGeometrySource = geometryOverride ? 'manual' : parseResult.metadata?.geometrySource || 'unknown';
     const experimentId = parseResult.metadata?.experimentId;
+    const hasInstrumentRheology = instrumentRheologyRows.length > 0;
+    const displayedCycleResults = rheologySource === 'instrument' ? instrumentRheologyView.results : cycleResults;
+    const displayedCycles = rheologySource === 'instrument' ? instrumentRheologyView.cycles : cycles;
+    const displayedCycleCount = displayedCycles.length;
 
     return (
         <div className="space-y-6">
@@ -217,11 +324,8 @@ function DashboardContentInner({
                     onClick={() => switchTab('chart')}
                     data-testid="ChartTabButton"
                     role="tab"
-                    aria-selected={activeTab === 'chart'}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'chart'
-                        ? 'bg-blue-600 text-foreground'
-                        : 'bg-secondary text-muted-foreground hover:text-foreground'
-                        }`}
+                    aria-selected={effectiveActiveTab === 'chart'}
+                    className={tabButtonClass(effectiveActiveTab === 'chart')}
                 >
                     <BarChart3 className="w-4 h-4" />
                     График
@@ -230,11 +334,8 @@ function DashboardContentInner({
                     onClick={() => switchTab('table')}
                     data-testid="TableTabButton"
                     role="tab"
-                    aria-selected={activeTab === 'table'}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'table'
-                        ? 'bg-blue-600 text-foreground'
-                        : 'bg-secondary text-muted-foreground hover:text-foreground'
-                        }`}
+                    aria-selected={effectiveActiveTab === 'table'}
+                    className={tabButtonClass(effectiveActiveTab === 'table')}
                 >
                     <Table className="w-4 h-4" />
                     Таблица данных
@@ -244,13 +345,10 @@ function DashboardContentInner({
                     onClick={() => switchTab('recipe')}
                     data-testid="RecipeTabButton"
                     role="tab"
-                    aria-selected={activeTab === 'recipe'}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'recipe'
-                        ? 'bg-purple-600 text-foreground'
-                        : 'bg-secondary text-muted-foreground hover:text-foreground'
-                        }`}
+                    aria-selected={effectiveActiveTab === 'recipe'}
+                    className={tabButtonClass(effectiveActiveTab === 'recipe')}
                 >
-                    <Logo className="w-4 h-4" />
+                    <ClipboardList className="w-4 h-4" />
                     Рецептура
                 </button>
 
@@ -258,11 +356,8 @@ function DashboardContentInner({
                     onClick={() => switchTab('water')}
                     data-testid="WaterTabButton"
                     role="tab"
-                    aria-selected={activeTab === 'water'}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'water'
-                        ? 'bg-cyan-600 text-foreground'
-                        : 'bg-secondary text-muted-foreground hover:text-foreground'
-                        }`}
+                    aria-selected={effectiveActiveTab === 'water'}
+                    className={tabButtonClass(effectiveActiveTab === 'water')}
                 >
                     <Droplets className="w-4 h-4" />
                     Анализ воды
@@ -273,11 +368,8 @@ function DashboardContentInner({
                         onClick={() => switchTab('calibration')}
                         data-testid="CalibrationTabButton"
                         role="tab"
-                        aria-selected={activeTab === 'calibration'}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'calibration'
-                            ? 'bg-amber-600 text-foreground'
-                            : 'bg-secondary text-muted-foreground hover:text-foreground'
-                            }`}
+                        aria-selected={effectiveActiveTab === 'calibration'}
+                        className={tabButtonClass(effectiveActiveTab === 'calibration')}
                     >
                         <Settings className="w-4 h-4" />
                         Калибровка
@@ -288,11 +380,8 @@ function DashboardContentInner({
                     onClick={() => switchTab('report')}
                     data-testid="ReportTabButton"
                     role="tab"
-                    aria-selected={activeTab === 'report'}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'report'
-                        ? 'bg-purple-600 text-foreground'
-                        : 'bg-secondary text-muted-foreground hover:text-foreground'
-                        }`}
+                    aria-selected={effectiveActiveTab === 'report'}
+                    className={tabButtonClass(effectiveActiveTab === 'report')}
                 >
                     <FileText className="w-4 h-4" />
                     Отчёт
@@ -311,7 +400,7 @@ function DashboardContentInner({
 
             {/* Content Area */}
             <section className="bg-card rounded-xl border border-border overflow-hidden">
-                {activeTab === 'chart' && (
+                {effectiveActiveTab === 'chart' && (
                     <div data-testid="DashboardChartContainer">
                         <ChartErrorBoundary height={600}>
                             <RheologyChart
@@ -334,23 +423,23 @@ function DashboardContentInner({
                     </div>
                 )}
 
-                {activeTab !== 'chart' && (
+                {effectiveActiveTab !== 'chart' && (
                     <Suspense fallback={<div className="flex h-48 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /></div>}>
-                        {activeTab === 'table' && isMetadataOnly && experimentId && (
+                        {effectiveActiveTab === 'table' && isMetadataOnly && experimentId && (
                             <RawDataTableById experimentId={experimentId} pageSize={25} />
                         )}
 
-                        {activeTab === 'table' && isMetadataOnly && !experimentId && (
+                        {effectiveActiveTab === 'table' && isMetadataOnly && !experimentId && (
                             <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
                                 Не удалось открыть таблицу: отсутствует id эксперимента
                             </div>
                         )}
 
-                        {activeTab === 'table' && !isMetadataOnly && (
+                        {effectiveActiveTab === 'table' && !isMetadataOnly && (
                             <RawDataTable data={chartData} pageSize={25} />
                         )}
 
-                        {activeTab === 'recipe' && (
+                        {effectiveActiveTab === 'recipe' && (
                             <div className="w-full">
                                 <RecipePanel
                                     recipe={editedRecipe}
@@ -359,7 +448,7 @@ function DashboardContentInner({
                             </div>
                         )}
 
-                        {activeTab === 'water' && (
+                        {effectiveActiveTab === 'water' && (
                             <div className="w-full">
                                 <WaterAnalysisPanel
                                     waterSource={editedWaterSource}
@@ -370,13 +459,13 @@ function DashboardContentInner({
                             </div>
                         )}
 
-                        {activeTab === 'calibration' && canUseCalibration && (
+                        {effectiveActiveTab === 'calibration' && canUseCalibration && (
                             <div className="w-full">
                                 <CalibrationPanel calibration={parseResult.metadata?.calibration} />
                             </div>
                         )}
 
-                        {activeTab === 'report' && (!isMetadataOnly || experimentId) && (
+                        {effectiveActiveTab === 'report' && (!isMetadataOnly || experimentId) && (
                             <div className="w-full">
                                 <ReportTab
                                     parseResult={parseResult}
@@ -390,7 +479,7 @@ function DashboardContentInner({
                             </div>
                         )}
 
-                        {activeTab === 'report' && isMetadataOnly && !experimentId && (
+                        {effectiveActiveTab === 'report' && isMetadataOnly && !experimentId && (
                             <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
                                 Не удалось открыть отчёт: отсутствует id эксперимента
                             </div>
@@ -400,34 +489,86 @@ function DashboardContentInner({
             </section>
 
             {/* Rheology Results (only visible on chart tab) */}
-            {activeTab === 'chart' && (
+            {effectiveActiveTab === 'chart' && (
                 <section className="cv-auto">
                     <CollapsibleCard
                         title={
                             <span className="flex items-center gap-2">
                                 Реологический анализ
-                                {patternOverride && <span className="ml-2 text-purple-700 dark:text-purple-400">(Применён паттерн)</span>}
-                                <span className="text-xs text-muted-foreground font-normal">({cycles.length} циклов)</span>
+                                {patternOverride && rheologySource === 'program' && <span className="ml-2 text-purple-700 dark:text-purple-400">(Применён паттерн)</span>}
+                                <span className="text-xs text-muted-foreground font-normal">({displayedCycleCount} циклов)</span>
                             </span>
                         }
                         headerActions={
-                            patternOverride ? (
-                                <button
-                                    onClick={() => setPatternOverride(null)}
-                                    className="text-xs px-2 py-1 bg-secondary hover:bg-secondary text-foreground/80 rounded border border-border transition-colors"
-                                >
-                                    Сбросить к стандартным
-                                </button>
-                            ) : undefined
+                            <>
+                                <div className="inline-flex overflow-hidden rounded-lg border border-border bg-background">
+                                    <button
+                                        type="button"
+                                        onClick={() => setRheologySource('program')}
+                                        data-testid="AnalysisRheologySourceProgram"
+                                        className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                                            rheologySource === 'program'
+                                                ? 'bg-cyan-500 text-white'
+                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                        }`}
+                                    >
+                                        Расчёт
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setRheologySource('instrument')}
+                                        data-testid="AnalysisRheologySourceInstrument"
+                                        title={hasInstrumentRheology
+                                            ? 'Показать реологические параметры, распарсенные из отчёта прибора'
+                                            : 'Таблица реологических расчётов не найдена при парсинге'}
+                                        className={`px-3 py-1.5 text-xs font-medium border-l border-border transition-colors ${
+                                            rheologySource === 'instrument'
+                                                ? hasInstrumentRheology
+                                                    ? 'bg-cyan-500 text-white'
+                                                    : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                        }`}
+                                    >
+                                        Прибор
+                                    </button>
+                                </div>
+                                {patternOverride && rheologySource === 'program' && (
+                                    <button
+                                        onClick={() => setPatternOverride(null)}
+                                        className="text-xs px-2 py-1 bg-secondary hover:bg-secondary text-foreground/80 rounded border border-border transition-colors"
+                                    >
+                                        Сбросить к стандартным
+                                    </button>
+                                )}
+                            </>
                         }
                         defaultOpen={true}
                     >
                         <Suspense fallback={null}>
-                            <CycleResultsTable
-                                cycles={cycles}
-                                results={cycleResults}
-                                onEditCycle={isExpert ? (cycleId) => setEditingCycleId(cycleId) : undefined}
-                            />
+                            {rheologySource === 'instrument' && !hasInstrumentRheology ? (
+                                <div
+                                    data-testid="InstrumentRheologyUnavailable"
+                                    className="m-4 flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm"
+                                >
+                                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                                    <div>
+                                        <p className="font-semibold text-amber-800 dark:text-amber-300">
+                                            Таблица реологических расчётов не найдена
+                                        </p>
+                                        <p className="mt-1 text-muted-foreground">
+                                            В файле не найдена таблица реологических расчётов прибора. Используйте режим «Расчёт», чтобы посмотреть значения, рассчитанные RheoLab.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <CycleResultsTable
+                                    key={`${rheologySource}:${isExpert ? 'expert' : 'basic'}`}
+                                    cycles={displayedCycles}
+                                    results={displayedCycleResults}
+                                    preferResultTiming={rheologySource === 'instrument'}
+                                    onEditCycle={isExpert && rheologySource === 'program' ? handleEditCycle : undefined}
+                                />
+                            )}
                         </Suspense>
                     </CollapsibleCard>
                 </section>

@@ -109,10 +109,12 @@ pub fn process_cycle_for_calculation(cycle: &RheoCycle) -> Vec<RheoStep> {
     }
 
     // Find maximum shear rate (typically the mixing rate)
-    let max_rate = cycle.steps.iter()
+    let max_rate = cycle
+        .steps
+        .iter()
         .map(|s| s.avg_shear_rate)
         .fold(0.0, f64::max);
-    
+
     // Tolerance for matching mixing rate (10 s⁻¹)
     let mixing_rate_tolerance = 10.0;
     let is_mixing_rate = |rate: f64| (rate - max_rate).abs() < mixing_rate_tolerance;
@@ -121,7 +123,8 @@ pub fn process_cycle_for_calculation(cycle: &RheoCycle) -> Vec<RheoStep> {
     if cycle.cycle_type == "API" {
         // Find first non-mixing step
         let mut start_idx = 0;
-        while start_idx < cycle.steps.len() && is_mixing_rate(cycle.steps[start_idx].avg_shear_rate) {
+        while start_idx < cycle.steps.len() && is_mixing_rate(cycle.steps[start_idx].avg_shear_rate)
+        {
             start_idx += 1;
         }
 
@@ -133,9 +136,9 @@ pub fn process_cycle_for_calculation(cycle: &RheoCycle) -> Vec<RheoStep> {
 
         // Validate: need at least 3 steps in body for meaningful regression
         if start_idx > end_idx {
-             return cycle.steps.clone();
+            return cycle.steps.clone();
         }
-        
+
         let api_steps = cycle.steps[start_idx..=end_idx].to_vec();
         if api_steps.len() >= 3 {
             return api_steps;
@@ -148,22 +151,25 @@ pub fn process_cycle_for_calculation(cycle: &RheoCycle) -> Vec<RheoStep> {
     if cycle.cycle_type == "Custom" || cycle.cycle_type == "ISO" {
         // Count mixing steps at start
         let mut start_mix_count = 0;
-        while start_mix_count < cycle.steps.len() && is_mixing_rate(cycle.steps[start_mix_count].avg_shear_rate) {
+        while start_mix_count < cycle.steps.len()
+            && is_mixing_rate(cycle.steps[start_mix_count].avg_shear_rate)
+        {
             start_mix_count += 1;
         }
 
         // Count mixing steps at end
         let mut end_mix_count = 0;
-        while end_mix_count < cycle.steps.len() - start_mix_count && 
-              is_mixing_rate(cycle.steps[cycle.steps.len() - 1 - end_mix_count].avg_shear_rate) {
+        while end_mix_count < cycle.steps.len() - start_mix_count
+            && is_mixing_rate(cycle.steps[cycle.steps.len() - 1 - end_mix_count].avg_shear_rate)
+        {
             end_mix_count += 1;
         }
 
         let body_start = start_mix_count;
         let body_end = cycle.steps.len() - end_mix_count;
-        
+
         if body_end <= body_start {
-             return cycle.steps.clone();
+            return cycle.steps.clone();
         }
 
         let body_steps = &cycle.steps[body_start..body_end];
@@ -241,9 +247,9 @@ mod tests {
             create_test_step(2, 30.0, 30.0, 100.0),
         ];
         let cycle = create_test_cycle("SST", steps.clone());
-        
+
         let result = process_cycle_for_calculation(&cycle);
-        
+
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].avg_shear_rate, 500.0);
         assert_eq!(result[1].avg_shear_rate, 100.0);
@@ -253,34 +259,36 @@ mod tests {
     fn test_api_cycle_filters_mixing() {
         // API cycle: mixing(100) -> data(75, 50, 25) -> mixing(100)
         let steps = vec![
-            create_test_step(1, 0.0, 30.0, 100.0),    // Mixing (max rate)
-            create_test_step(2, 30.0, 30.0, 75.0),    // Data
-            create_test_step(3, 60.0, 30.0, 50.0),    // Data
-            create_test_step(4, 90.0, 30.0, 25.0),    // Data
-            create_test_step(5, 120.0, 30.0, 100.0),  // Mixing (max rate)
+            create_test_step(1, 0.0, 30.0, 100.0),   // Mixing (max rate)
+            create_test_step(2, 30.0, 30.0, 75.0),   // Data
+            create_test_step(3, 60.0, 30.0, 50.0),   // Data
+            create_test_step(4, 90.0, 30.0, 25.0),   // Data
+            create_test_step(5, 120.0, 30.0, 100.0), // Mixing (max rate)
         ];
         let cycle = create_test_cycle("API", steps);
-        
+
         let result = process_cycle_for_calculation(&cycle);
-        
+
         // Should filter out mixing steps at start and end
         assert_eq!(result.len(), 3);
-        assert!(!result.iter().any(|s| (s.avg_shear_rate - 100.0).abs() < 1.0));
+        assert!(!result
+            .iter()
+            .any(|s| (s.avg_shear_rate - 100.0).abs() < 1.0));
     }
 
     #[test]
     fn test_iso_cycle_ramp_down() {
         // ISO ramp down: 100 -> 75 -> 50 -> 25
         let steps = vec![
-            create_test_step(1, 0.0, 60.0, 100.0),   // Mixing
-            create_test_step(2, 60.0, 30.0, 75.0),   // Ramp
-            create_test_step(3, 90.0, 30.0, 50.0),   // Ramp
-            create_test_step(4, 120.0, 30.0, 25.0),  // Ramp
+            create_test_step(1, 0.0, 60.0, 100.0),  // Mixing
+            create_test_step(2, 60.0, 30.0, 75.0),  // Ramp
+            create_test_step(3, 90.0, 30.0, 50.0),  // Ramp
+            create_test_step(4, 120.0, 30.0, 25.0), // Ramp
         ];
         let cycle = create_test_cycle("ISO", steps);
-        
+
         let result = process_cycle_for_calculation(&cycle);
-        
+
         // Should include 1 mixing step for ramp down
         assert!(result.len() >= 3);
     }
@@ -295,9 +303,9 @@ mod tests {
             create_test_step(4, 120.0, 60.0, 100.0), // Mixing
         ];
         let cycle = create_test_cycle("Custom", steps);
-        
+
         let result = process_cycle_for_calculation(&cycle);
-        
+
         // Should extract body steps
         assert!(result.len() >= 2);
     }
@@ -309,4 +317,3 @@ mod tests {
         assert_eq!(result.len(), 0);
     }
 }
-

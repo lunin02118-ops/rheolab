@@ -15,10 +15,24 @@ mod tests {
     #[test]
     fn test_generate_chart_svg() {
         let points = vec![
-            ChartPoint { time_min: 0.0, viscosity_cp: 500.0, temperature_c: Some(20.0), shear_rate: Some(10.0), pressure_bar: None, bath_temperature_c: None },
-            ChartPoint { time_min: 10.0, viscosity_cp: 600.0, temperature_c: Some(25.0), shear_rate: Some(10.0), pressure_bar: None, bath_temperature_c: None },
+            ChartPoint {
+                time_min: 0.0,
+                viscosity_cp: 500.0,
+                temperature_c: Some(20.0),
+                shear_rate: Some(10.0),
+                pressure_bar: None,
+                bath_temperature_c: None,
+            },
+            ChartPoint {
+                time_min: 10.0,
+                viscosity_cp: 600.0,
+                temperature_c: Some(25.0),
+                shear_rate: Some(10.0),
+                pressure_bar: None,
+                bath_temperature_c: None,
+            },
         ];
-        
+
         let config = ChartConfig {
             show_temperature: true,
             show_shear_rate: true,
@@ -43,7 +57,7 @@ mod tests {
             skip_downsample: false,
             time_format: String::new(),
         };
-        
+
         let res = generate_chart_svg(&points, &config);
         assert!(res.is_ok());
         let (svg, _) = res.unwrap();
@@ -53,10 +67,24 @@ mod tests {
     #[test]
     fn test_generate_chart_with_custom_styles() {
         let points = vec![
-            ChartPoint { time_min: 0.0, viscosity_cp: 500.0, temperature_c: Some(20.0), shear_rate: None, pressure_bar: None, bath_temperature_c: None },
-            ChartPoint { time_min: 10.0, viscosity_cp: 600.0, temperature_c: Some(25.0), shear_rate: None, pressure_bar: None, bath_temperature_c: None },
+            ChartPoint {
+                time_min: 0.0,
+                viscosity_cp: 500.0,
+                temperature_c: Some(20.0),
+                shear_rate: None,
+                pressure_bar: None,
+                bath_temperature_c: None,
+            },
+            ChartPoint {
+                time_min: 10.0,
+                viscosity_cp: 600.0,
+                temperature_c: Some(25.0),
+                shear_rate: None,
+                pressure_bar: None,
+                bath_temperature_c: None,
+            },
         ];
-        
+
         let custom_styles = ChartLineStyles {
             viscosity: ChartLineStyle {
                 color: RGBColor(255, 0, 0), // Red
@@ -72,7 +100,7 @@ mod tests {
             pressure: ChartLineStyle::default(),
             bath_temperature: ChartLineStyle::default(),
         };
-        
+
         let config = ChartConfig {
             show_temperature: true,
             show_shear_rate: false,
@@ -97,7 +125,7 @@ mod tests {
             skip_downsample: false,
             time_format: String::new(),
         };
-        
+
         let res = generate_chart_svg(&points, &config);
         assert!(res.is_ok());
         let (svg, _) = res.unwrap();
@@ -108,10 +136,24 @@ mod tests {
     fn test_svg_stroke_format() {
         // This test prints the SVG to verify how Plotters formats stroke attributes
         let points = vec![
-            ChartPoint { time_min: 0.0, viscosity_cp: 500.0, temperature_c: Some(20.0), shear_rate: None, pressure_bar: None, bath_temperature_c: None },
-            ChartPoint { time_min: 10.0, viscosity_cp: 600.0, temperature_c: Some(25.0), shear_rate: None, pressure_bar: None, bath_temperature_c: None },
+            ChartPoint {
+                time_min: 0.0,
+                viscosity_cp: 500.0,
+                temperature_c: Some(20.0),
+                shear_rate: None,
+                pressure_bar: None,
+                bath_temperature_c: None,
+            },
+            ChartPoint {
+                time_min: 10.0,
+                viscosity_cp: 600.0,
+                temperature_c: Some(25.0),
+                shear_rate: None,
+                pressure_bar: None,
+                bath_temperature_c: None,
+            },
         ];
-        
+
         let custom_styles = ChartLineStyles {
             viscosity: ChartLineStyle {
                 color: RGBColor(59, 130, 246),
@@ -127,7 +169,7 @@ mod tests {
             pressure: ChartLineStyle::default(),
             bath_temperature: ChartLineStyle::default(),
         };
-        
+
         let config = ChartConfig {
             show_temperature: true,
             show_shear_rate: false,
@@ -152,18 +194,18 @@ mod tests {
             skip_downsample: false,
             time_format: String::new(),
         };
-        
+
         let res = generate_chart_svg(&points, &config);
         assert!(res.is_ok());
         let (svg, _) = res.unwrap();
-        
+
         // Print lines containing stroke to see exact format
         for line in svg.lines() {
             if line.contains("stroke") && (line.contains("3B82F6") || line.contains("F97316")) {
                 println!("SVG LINE: {}", line.trim());
             }
         }
-        
+
         // Also check if dasharray was applied
         let has_dasharray = svg.contains("stroke-dasharray");
         println!("Has stroke-dasharray: {}", has_dasharray);
@@ -176,15 +218,18 @@ mod tests {
                 panic!("DUPLICATE opacity in SVG line: {}", line.trim());
             }
         }
-        assert!(has_dasharray, "SVG should contain stroke-dasharray after post-processing");
+        assert!(
+            has_dasharray,
+            "SVG should contain stroke-dasharray after post-processing"
+        );
     }
 }
 
 #[cfg(test)]
 mod lttb_invariants {
+    use super::common::lttb_downsample_chart;
     use super::*;
     use proptest::prelude::*;
-    use super::common::lttb_downsample_chart;
 
     fn make_lttb_data(n: usize) -> Vec<ChartPoint> {
         (0..n)

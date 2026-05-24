@@ -1,5 +1,5 @@
 //! Report Data Types
-//! 
+//!
 //! Mirrors the TypeScript interfaces exactly for seamless serialization.
 
 use serde::{Deserialize, Serialize};
@@ -212,9 +212,15 @@ pub struct LineSettings {
     pub style: String,
 }
 
-fn default_line_color() -> String { "#3b82f6".to_string() }
-fn default_line_width() -> u8 { 2 }
-fn default_line_style() -> String { "solid".to_string() }
+fn default_line_color() -> String {
+    "#3b82f6".to_string()
+}
+fn default_line_width() -> u8 {
+    2
+}
+fn default_line_style() -> String {
+    "solid".to_string()
+}
 
 /// All chart line settings
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -289,6 +295,8 @@ pub struct ReportSettings {
     /// for the conversion table.  Absent → legacy `unit_system` path.
     #[serde(default)]
     pub rheology_units: Option<RheologyUnits>,
+    #[serde(default = "default_rheology_source")]
+    pub rheology_source: String,
 }
 
 /// Per-category display unit overrides mirrored from
@@ -325,15 +333,36 @@ pub struct RheologyUnits {
     pub time_format: String,
 }
 
-fn default_language() -> String { "ru".to_string() }
-fn default_unit_system() -> String { "SI".to_string() }
-fn default_viscosity_threshold() -> f64 { 200.0 }
-fn default_target_time() -> f64 { 10.0 }
-fn default_shear_rate_axis() -> String { "left".to_string() }
-fn default_pressure_axis() -> String { "right".to_string() }
-fn default_axis_mode() -> String { "individual".to_string() }
-fn default_viscosity_shear_rates() -> Vec<i32> { vec![40, 100, 170] }
-fn default_show_advanced_stats() -> bool { true }
+fn default_language() -> String {
+    "ru".to_string()
+}
+fn default_unit_system() -> String {
+    "SI".to_string()
+}
+fn default_viscosity_threshold() -> f64 {
+    200.0
+}
+fn default_target_time() -> f64 {
+    10.0
+}
+fn default_shear_rate_axis() -> String {
+    "left".to_string()
+}
+fn default_pressure_axis() -> String {
+    "right".to_string()
+}
+fn default_axis_mode() -> String {
+    "individual".to_string()
+}
+fn default_viscosity_shear_rates() -> Vec<i32> {
+    vec![40, 100, 170]
+}
+fn default_show_advanced_stats() -> bool {
+    true
+}
+fn default_rheology_source() -> String {
+    "program".to_string()
+}
 
 impl Default for ReportSettings {
     fn default() -> Self {
@@ -357,6 +386,7 @@ impl Default for ReportSettings {
             show_advanced_stats: default_show_advanced_stats(),
             line_settings: None,
             rheology_units: None,
+            rheology_source: default_rheology_source(),
         }
     }
 }

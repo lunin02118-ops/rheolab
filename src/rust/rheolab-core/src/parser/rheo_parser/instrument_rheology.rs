@@ -5,6 +5,8 @@ use super::super::types::RheologyParameterRow;
 const LBF_PER_100FT2_TO_PA: f64 = 0.478_802_589_8;
 const LBF_PER_FT2_TO_PA: f64 = 47.880_258_98;
 const PSI_TO_BAR: f64 = 0.068_947_572_9;
+const EXCEL_DATE_SERIAL_MIN: f64 = 30_000.0;
+const EXCEL_DATE_SERIAL_MAX: f64 = 60_000.0;
 
 #[derive(Debug, Clone, Default)]
 struct HeaderSpec {
@@ -67,11 +69,7 @@ fn dedupe_rows(rows: Vec<RheologyParameterRow>) -> Vec<RheologyParameterRow> {
     seen.into_values().collect()
 }
 
-fn detect_header(
-    rows: &[Vec<String>],
-    header_idx: usize,
-    sheet_name: &str,
-) -> Option<HeaderSpec> {
+fn detect_header(rows: &[Vec<String>], header_idx: usize, sheet_name: &str) -> Option<HeaderSpec> {
     let row = rows.get(header_idx)?;
     let prev = header_idx.checked_sub(1).and_then(|idx| rows.get(idx));
     let next = rows.get(header_idx + 1);
@@ -173,6 +171,10 @@ fn parse_rows_after_header(
     let start = header_idx + 1;
     for row_idx in start..rows.len() {
         let row = &rows[row_idx];
+        if is_instrument_table_boundary(row, !out.is_empty()) {
+            break;
+        }
+
         let Some(raw_n) = cell_number(row, spec.n_col) else {
             if row_idx > start {
                 blank_run += 1;
@@ -198,7 +200,15 @@ fn parse_rows_after_header(
         let pressure_bar = parse_pressure_bar(row, rows, header_idx, spec.pressure_col);
         let temp_c = cell_number(row, spec.temp_col).map(normalize_temperature);
 
-        let kv = parse_consistency(row, rows, header_idx, spec.kv_col, sheet_name, "kv", &mut units);
+        let kv = parse_consistency(
+            row,
+            rows,
+            header_idx,
+            spec.kv_col,
+            sheet_name,
+            "kv",
+            &mut units,
+        );
         let k_prime = parse_consistency(
             row,
             rows,
@@ -268,6 +278,53 @@ fn parse_rows_after_header(
         });
     }
     out
+}
+
+fn is_instrument_table_boundary(row: &[String], has_parsed_rows: bool) -> bool {
+    let text = normalize_row_text(row);
+    if text.is_empty() {
+        return false;
+    }
+
+    if is_raw_data_section(&text) || is_raw_data_header(&text) {
+        return true;
+    }
+
+    has_parsed_rows && is_section_divider(&text)
+}
+
+fn normalize_row_text(row: &[String]) -> String {
+    normalize_text(&row.join(" "))
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn is_section_divider(text: &str) -> bool {
+    let trimmed = text.trim();
+    trimmed.starts_with("--") && trimmed.ends_with("--") && trimmed.len() > 4
+}
+
+fn is_raw_data_section(text: &str) -> bool {
+    let trimmed = text.trim_matches('-').trim();
+    trimmed == "raw data"
+        || trimmed == "unformatted data"
+        || trimmed.contains("raw data")
+        || trimmed.contains("сырые данные")
+}
+
+fn is_raw_data_header(text: &str) -> bool {
+    let has_time = text.contains("elapsed time")
+        || text.contains("time (")
+        || text.contains("time,")
+        || text.contains("время");
+    let has_measurements = text.contains("shear rate")
+        || text.contains("shear stress")
+        || text.contains("sample temp")
+        || text.contains("viscosity")
+        || text.contains("вязк");
+
+    has_time && has_measurements
 }
 
 fn column_context(
@@ -343,7 +400,11 @@ fn is_kv_header(text: &str) -> bool {
 
 fn is_k_prime_header(text: &str, sheet_name: &str) -> bool {
     let t = text.trim();
-    t == "k'" || t.starts_with("k' ") || t.contains("kind") || t == "ki" || sheet_name.contains("power law data") && t == "k"
+    t == "k'"
+        || t.starts_with("k' ")
+        || t.contains("kind")
+        || t == "ki"
+        || sheet_name.contains("power law data") && t == "k"
 }
 
 fn is_k_slot_header(text: &str) -> bool {
@@ -362,7 +423,9 @@ fn is_r2_header(text: &str) -> bool {
 
 fn is_pv_header(text: &str, context: &str) -> bool {
     let t = text.trim();
-    t == "pv" || t.contains("plastic viscosity") || (context.contains("bingham") && t.contains("pv"))
+    t == "pv"
+        || t.contains("plastic viscosity")
+        || (context.contains("bingham") && t.contains("pv"))
 }
 
 fn is_yp_header(text: &str, context: &str) -> bool {
@@ -385,7 +448,10 @@ fn viscosity_rate_for_header(
     }
     extract_rate(text)
         .or_else(|| extract_rate(context))
-        .or_else(|| next.and_then(|row| row.get(col)).and_then(|cell| extract_rate(cell)))
+        .or_else(|| {
+            next.and_then(|row| row.get(col))
+                .and_then(|cell| extract_rate(cell))
+        })
 }
 
 fn numeric_viscosity_header(text: &str, context: &str) -> Option<String> {
@@ -434,7 +500,8 @@ fn format_rate(value: f64) -> String {
 }
 
 fn cell_number(row: &[String], col: Option<usize>) -> Option<f64> {
-    col.and_then(|idx| row.get(idx)).and_then(|cell| parse_number(cell))
+    col.and_then(|idx| row.get(idx))
+        .and_then(|cell| parse_number(cell))
 }
 
 fn parse_number(value: &str) -> Option<f64> {
@@ -490,6 +557,9 @@ fn parse_time_minutes(
         return Some(minutes);
     }
     let value = parse_number(cell)?;
+    if looks_like_excel_date_serial(value) {
+        return None;
+    }
     let context = normalize_text(&column_context(
         header_idx.checked_sub(1).and_then(|i| rows.get(i)),
         rows.get(header_idx)?,
@@ -505,6 +575,12 @@ fn parse_time_minutes(
     } else {
         Some(value / 60.0)
     }
+}
+
+fn looks_like_excel_date_serial(value: f64) -> bool {
+    // Workbook model-summary sheets sometimes store a calendar date serial in a
+    // column labelled as time. It is not an elapsed experiment time.
+    (EXCEL_DATE_SERIAL_MIN..=EXCEL_DATE_SERIAL_MAX).contains(&value)
 }
 
 fn parse_hms_minutes(value: &str) -> Option<f64> {
@@ -568,7 +644,10 @@ fn consistency_factor(context: &str, sheet_name: &str) -> Option<(f64, String)> 
     let sheet = normalize_text(sheet_name);
     if context.contains("па") || context.contains("pa") {
         Some((1.0, "Pa*s^n".into()))
-    } else if context.contains("poise") || context.contains("puase") || sheet.contains("power law data") {
+    } else if context.contains("poise")
+        || context.contains("puase")
+        || sheet.contains("power law data")
+    {
         Some((0.1, "P".into()))
     } else if context.contains("100") && context.contains("ft") {
         Some((LBF_PER_100FT2_TO_PA, "lbf/100ft2".into()))
@@ -632,5 +711,56 @@ fn bingham_factor(context: &str) -> (f64, String) {
         (LBF_PER_FT2_TO_PA, "lbf/ft2".into())
     } else {
         (1.0, "SI".into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn power_law_rows(cycles: usize) -> Vec<Vec<String>> {
+        let mut rows = vec![vec![
+            "Shear Ramp".into(),
+            "Cycle No".into(),
+            "Time (min)".into(),
+            "Temp (°C)".into(),
+            "Press' (Psi)".into(),
+            "n' ".into(),
+            "Kv (lbf - s^n / 100 ft2)".into(),
+            "Coef Detn. (R^2)".into(),
+            "K' (lbf - s^n / 100 ft2)".into(),
+            "K' Slot (lbf - s^n / 100 ft2)".into(),
+            "Visc@ 40(1/s) cP".into(),
+        ]];
+
+        for cycle in 1..=cycles {
+            rows.push(vec![
+                "1".into(),
+                cycle.to_string(),
+                (cycle * 10).to_string(),
+                "105".into(),
+                "449".into(),
+                "0.45".into(),
+                "36.5".into(),
+                "0.99".into(),
+                "34.0".into(),
+                "39.6".into(),
+                "2540".into(),
+            ]);
+        }
+
+        rows
+    }
+
+    #[test]
+    fn extracts_power_law_rows_without_fixed_table_height() {
+        let short = extract_from_sheet(&power_law_rows(2), "Grace");
+        let long = extract_from_sheet(&power_law_rows(4), "Grace");
+
+        assert_eq!(short.len(), 2);
+        assert_eq!(long.len(), 4);
+        assert_eq!(long[3].cycle_no, 4);
+        assert!(long[0].k_prime_pasn.is_some_and(|value| value > 0.0));
+        assert_eq!(long[0].viscosities.get("40").copied(), Some(2540.0));
     }
 }

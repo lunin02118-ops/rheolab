@@ -1,5 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react';
-import { Logo } from '@/components/ui/logo';
+import { ClipboardList, Plus, Trash2 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useCatalogStore } from '@/lib/store/catalog-store';
 
@@ -109,8 +108,8 @@ export const RecipePanel = React.memo(function RecipePanel({ recipe: externalRec
         return (
             <div className="bg-card/50 border border-border rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
-                        <Logo className="w-5 h-5" />
+                    <div className="p-2 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-lg">
+                        <ClipboardList className="w-5 h-5 text-foreground" />
                     </div>
                     <h3 className="font-semibold text-foreground">Рецептура</h3>
                 </div>
@@ -134,8 +133,8 @@ export const RecipePanel = React.memo(function RecipePanel({ recipe: externalRec
             {/* Header */}
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
-                        <Logo className="w-5 h-5" />
+                    <div className="p-2 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-lg">
+                        <ClipboardList className="w-5 h-5 text-foreground" />
                     </div>
                     <div>
                         <h3 className="font-semibold text-foreground">Рецептура</h3>

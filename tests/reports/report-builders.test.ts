@@ -3,7 +3,14 @@
  * Pure data-mapping helpers for PDF and Excel report generation.
  */
 import { describe, it, expect } from 'vitest';
-import { mapRawData, mapCycleResults } from '@/lib/reports/report-builders';
+import {
+    buildExcelReportInput,
+    buildPdfReportInput,
+    mapRawData,
+    mapCycleResults,
+    mapRheologyParameterRows,
+    type ReportBuildContext,
+} from '@/lib/reports/report-builders';
 import type { GraceCycleResult } from '@/lib/analysis/types';
 
 // ── mapRawData ─────────────────────────────────────────────────────────────
@@ -129,13 +136,105 @@ describe('mapCycleResults', () => {
         expect(mapCycleResults(map)).toHaveLength(2);
     });
 
-    it('uses timeMin from endTimeMin when timeMin is absent', () => {
+    it('preserves zero timeMin instead of treating it as absent', () => {
         const result = mapCycleResults(new Map([[1, makeGrace({ endTimeMin: 45 })]]));
-        expect(result[0].timeMin).toBe(45);
+        expect(result[0].timeMin).toBe(0);
     });
 
     it('maps tempC', () => {
         const result = mapCycleResults(new Map([[1, makeGrace({ tempC: 80 })]]));
         expect(result[0].tempC).toBe(80);
+    });
+});
+
+describe('mapRheologyParameterRows', () => {
+    it('uses the same row mapping as the analysis table for parsed instrument time and viscosities', () => {
+        const result = mapRheologyParameterRows([{
+            source: 'instrument',
+            cycleNo: 2,
+            timeMin: 755.8,
+            endTimeMin: 756.4,
+            nPrime: 0.61,
+            kPrimePaSn: 0.22,
+            viscosities: { '40': 1200, '100': 900 },
+        }]);
+
+        expect(result[0]).toMatchObject({
+            cycleNo: 2,
+            timeMin: 755.8,
+            nPrime: 0.61,
+            kPrime: 0.22,
+            viscAt40: 1200,
+            viscAt100: 900,
+        });
+    });
+});
+
+describe('report input builders', () => {
+    function makeContext(rheologySource: 'instrument' | 'program'): ReportBuildContext {
+        const line = {
+            color: '#111111',
+            width: 2,
+            style: 'solid',
+            unit: '',
+            visible: true,
+            axis: 'left',
+        };
+
+        return {
+            rawDataMapped: [],
+            cycleResultsMapped: [],
+            metadata: { filename: 'report' },
+            legacyFields: {},
+            editedRecipe: [],
+            editedWaterParams: null,
+            editedWaterSource: '',
+            cycles: [],
+            companyName: 'RheoLab',
+            companyLogo: null,
+            chartSettings: {
+                lines: {
+                    viscosity: line,
+                    temperature: line,
+                    shearRate: line,
+                    pressure: line,
+                    rpm: line,
+                    bathTemperature: line,
+                },
+                rheologyUnits: {
+                    viscosity: 'cP',
+                    temperature: '°C',
+                    pressure: 'bar',
+                    consistency: 'Pa·s^n',
+                    plasticViscosity: 'Pa·s',
+                    yieldPoint: 'Pa',
+                    timeFormat: 'minutes',
+                },
+                comparisonAxisMode: 'individual',
+            } as ReportBuildContext['chartSettings'],
+            language: 'ru',
+            unitSystem: 'SI',
+            showTouchPoints: false,
+            viscosityThreshold: 200,
+            showTargetTime: false,
+            targetTime: 10,
+            showCalibration: false,
+            showRawData: false,
+            showRecipe: false,
+            showWaterAnalysis: false,
+            reportViscosityRates: [40, 100, 170],
+            isExpert: false,
+            rheologySource,
+        };
+    }
+
+    it('passes selected rheology source to PDF settings', () => {
+        const input = buildPdfReportInput(makeContext('instrument'));
+        expect(input.settings.rheologySource).toBe('instrument');
+    });
+
+    it('passes selected rheology source to Excel settings', () => {
+        const input = buildExcelReportInput(makeContext('program'));
+        expect(input.settings.rheologySource).toBe('program');
     });
 });

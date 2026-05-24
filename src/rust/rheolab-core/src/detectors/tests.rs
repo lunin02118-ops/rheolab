@@ -4,13 +4,13 @@
 //! single detector function. Integration-style tests that run the full
 //! parse → detect → process pipeline live in `tests/golden_tests.rs`.
 
-use crate::types::RheoStep;
-use super::{
-    detect_sst_cycles_internal, is_sst_pattern,
-    is_repeating_sequence_pattern, detect_repeating_sequence_cycles_internal,
-};
-use super::mixing::is_mixing_step;
 use super::classify::create_cycle;
+use super::mixing::is_mixing_step;
+use super::{
+    detect_repeating_sequence_cycles_internal, detect_sst_cycles_internal,
+    is_repeating_sequence_pattern, is_sst_pattern,
+};
+use crate::types::RheoStep;
 
 fn create_test_step(id: i32, start: f64, duration: f64, rate: f64) -> RheoStep {
     RheoStep {
@@ -35,9 +35,9 @@ fn create_test_step(id: i32, start: f64, duration: f64, rate: f64) -> RheoStep {
 #[test]
 fn test_is_mixing_step_by_edge_rate() {
     let steps = vec![
-        create_test_step(1, 0.0, 60.0, 100.0),    // Mixing candidate
-        create_test_step(2, 60.0, 30.0, 50.0),    // Normal step
-        create_test_step(3, 90.0, 30.0, 25.0),    // Normal step
+        create_test_step(1, 0.0, 60.0, 100.0), // Mixing candidate
+        create_test_step(2, 60.0, 30.0, 50.0), // Normal step
+        create_test_step(3, 90.0, 30.0, 25.0), // Normal step
     ];
 
     // Edge rate = 100
@@ -48,9 +48,9 @@ fn test_is_mixing_step_by_edge_rate() {
 #[test]
 fn test_is_mixing_step_by_duration() {
     let steps = vec![
-        create_test_step(1, 0.0, 30.0, 50.0),     // Short step
-        create_test_step(2, 30.0, 120.0, 60.0),   // Very long step
-        create_test_step(3, 150.0, 30.0, 40.0),   // Short step
+        create_test_step(1, 0.0, 30.0, 50.0),   // Short step
+        create_test_step(2, 30.0, 120.0, 60.0), // Very long step
+        create_test_step(3, 150.0, 30.0, 40.0), // Short step
     ];
 
     // Step 2 is much longer than neighbors
@@ -110,7 +110,10 @@ fn test_is_repeating_sequence_pattern() {
 
     // Monotonic pattern should be rejected (each sub-sequence is just a ramp)
     let monotonic_result = is_repeating_sequence_pattern(&monotonic_steps);
-    assert!(!monotonic_result, "Monotonic ramp pattern should NOT be detected as repeating sequence");
+    assert!(
+        !monotonic_result,
+        "Monotonic ramp pattern should NOT be detected as repeating sequence"
+    );
 
     // Note: Positive test case covered by test_swb_pattern_150_125_100_repeated
 }
@@ -155,13 +158,20 @@ fn test_swb_pattern_150_125_100_repeated() {
 
     // Should detect as repeating pattern
     let result = is_repeating_sequence_pattern(&steps);
-    assert!(result, "SWB pattern should be detected as repeating sequence");
+    assert!(
+        result,
+        "SWB pattern should be detected as repeating sequence"
+    );
 
     // Should detect 3 cycles
     let cycles = detect_repeating_sequence_cycles_internal(&steps);
     assert!(cycles.is_some(), "Should detect cycles");
     let cycles = cycles.expect("Should detect cycles");
-    assert!(cycles.len() >= 2, "Should detect at least 2 cycles, got {}", cycles.len());
+    assert!(
+        cycles.len() >= 2,
+        "Should detect at least 2 cycles, got {}",
+        cycles.len()
+    );
 }
 
 #[test]
@@ -184,12 +194,20 @@ fn test_iso_pattern_150_125_100_descending() {
 
     // Should detect as repeating pattern (3 cycles of 3 steps each)
     let result = is_repeating_sequence_pattern(&steps);
-    assert!(result, "ISO descending pattern should be detected as repeating sequence");
+    assert!(
+        result,
+        "ISO descending pattern should be detected as repeating sequence"
+    );
 
     let cycles = detect_repeating_sequence_cycles_internal(&steps);
     assert!(cycles.is_some(), "Should detect cycles");
     let cycles = cycles.expect("Should detect cycles");
-    assert_eq!(cycles.len(), 3, "Should detect 3 cycles, got {}", cycles.len());
+    assert_eq!(
+        cycles.len(),
+        3,
+        "Should detect 3 cycles, got {}",
+        cycles.len()
+    );
 }
 
 #[test]
@@ -219,7 +237,12 @@ fn test_real_swb_mamontovskoe_pattern() {
     println!("Steps: {}", steps.len());
 
     for (i, s) in steps.iter().enumerate() {
-        println!("Step {}: rate={:.0}, dur={:.0}s", i + 1, s.avg_shear_rate, s.duration);
+        println!(
+            "Step {}: rate={:.0}, dur={:.0}s",
+            i + 1,
+            s.avg_shear_rate,
+            s.duration
+        );
     }
 
     let is_repeating = is_repeating_sequence_pattern(&steps);
@@ -230,14 +253,24 @@ fn test_real_swb_mamontovskoe_pattern() {
 
     if let Some(ref cycles) = cycles {
         for (i, c) in cycles.iter().enumerate() {
-            let rates: Vec<String> = c.steps.iter().map(|s| format!("{:.0}", s.avg_shear_rate)).collect();
+            let rates: Vec<String> = c
+                .steps
+                .iter()
+                .map(|s| format!("{:.0}", s.avg_shear_rate))
+                .collect();
             println!("Cycle {}: {}", i + 1, rates.join("→"));
         }
     }
 
-    assert!(is_repeating, "SWB Mamontovskoe pattern should be detected as repeating sequence");
+    assert!(
+        is_repeating,
+        "SWB Mamontovskoe pattern should be detected as repeating sequence"
+    );
     assert!(cycles.is_some(), "Should detect cycles");
-    assert!(cycles.expect("Should detect cycles").len() >= 3, "Should detect at least 3 cycles");
+    assert!(
+        cycles.expect("Should detect cycles").len() >= 3,
+        "Should detect at least 3 cycles"
+    );
 }
 
 // Reference: `detect_sst_cycles_internal` is currently only exercised via

@@ -10,10 +10,11 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import type { Experiment } from '@/types';
+import type { Experiment, RheologyParameterSource } from '@/types';
 import type { ComparisonReportByIdsRequest } from '@/types/tauri';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import type { ComparisonDisplaySettings } from '@/lib/store/comparison-store';
+import type { ExpertSettings } from '@/lib/store/analysis-settings-store';
 import type {
     ComparisonChartConfig,
     ComparisonSectionToggles,
@@ -58,9 +59,11 @@ export interface UseComparisonReportExportOptions {
     showRecipe: boolean;
     showWaterAnalysis: boolean;
     showRheology: boolean;
+    rheologySourceOverride?: RheologyParameterSource;
 
     reportViscosityRates: number[];
     isExpert: boolean;
+    expertSettings: ExpertSettings;
 }
 
 // ── Internal helpers ───────────────────────────────────────────────────────
@@ -136,6 +139,11 @@ function buildComparisonChartConfig(
         experimentColors: [...EXPERIMENT_COLORS],
         timeFormat: chartSettings.rheologyUnits?.timeFormat,
     };
+}
+
+function toFiniteNumber(value: unknown, fallback: number): number {
+    const n = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(n) ? n : fallback;
 }
 
 const DEFAULT_SECTION_TOGGLES: ComparisonSectionToggles = {
@@ -235,6 +243,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             companyName: options.companyName || undefined,
             companyLogoBase64: options.companyLogo ?? undefined,
             generatedAt: new Date().toISOString(),
+            rheologySourceOverride: options.rheologySourceOverride,
             comparisonChart: comparisonChartConfig,
             sectionToggles: {
                 ...DEFAULT_SECTION_TOGGLES,
@@ -264,8 +273,26 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
                 },
             },
             analysisSettings: {
-                pointsToAverage: 0,
+                pointsToAverage: Math.max(
+                    0,
+                    Math.round(toFiniteNumber(options.isExpert ? options.expertSettings.pointsToAverage : 1, 1)),
+                ),
                 viscosityShearRates: options.reportViscosityRates,
+            },
+            detectionSettings: {
+                stepSplitting: options.isExpert ? Boolean(options.expertSettings.stepSplitting) : true,
+                splitStartDuration: Math.max(
+                    0,
+                    toFiniteNumber(options.isExpert ? options.expertSettings.splitStartDuration : 30, 30),
+                ),
+                splitEndDuration: Math.max(
+                    0,
+                    toFiniteNumber(options.isExpert ? options.expertSettings.splitEndDuration : 30, 30),
+                ),
+                minDurationForSplit: Math.max(
+                    0,
+                    toFiniteNumber(options.isExpert ? options.expertSettings.minDurationForSplit : 90, 90),
+                ),
             },
         },
     }), [
@@ -280,8 +307,10 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         options.showRecipe,
         options.showWaterAnalysis,
         options.showRheology,
-        options.chartSettings,
+        options.rheologySourceOverride,
         options.isExpert,
+        options.expertSettings,
+        options.chartSettings,
         options.reportViscosityRates,
     ]);
 
@@ -299,6 +328,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             showRecipe: options.showRecipe,
             showWaterAnalysis: options.showWaterAnalysis,
             showRheology: options.showRheology,
+            rheologySourceOverride: options.rheologySourceOverride,
             showTouchPoints: options.displaySettings.showTouchPoints,
             viscosityThreshold: options.displaySettings.viscosityThreshold,
             showTargetTime: options.displaySettings.showTargetTime,
@@ -319,6 +349,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             options.showRecipe,
             options.showWaterAnalysis,
             options.showRheology,
+            options.rheologySourceOverride,
             options.displaySettings.showTouchPoints,
             options.displaySettings.viscosityThreshold,
             options.displaySettings.showTargetTime,

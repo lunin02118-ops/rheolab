@@ -8,8 +8,12 @@
 import type { PdfReportInput, ExcelReportInput } from '@/lib/analysis/report-types/types';
 import type { RheoCycle, GraceCycleResult } from '@/lib/analysis/types';
 import type { RecipeComponent } from '@/lib/parsing/types';
-import type { WaterParams } from '@/types';
+import type { RheologyParameterRow, RheologyParameterSource, WaterParams } from '@/types';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
+import {
+    finiteOr,
+    rheologyParameterRowToGraceCycleResult,
+} from '@/lib/analysis/rheology-parameter-mapping';
 
 // ── Local type aliases ──────────────────────────────────────────────────
 
@@ -72,25 +76,41 @@ export function mapRawData(data: Array<{
     }));
 }
 
-export function mapCycleResults(cycleResults: Map<number, GraceCycleResult>): CycleResultRow[] {
-    return Array.from(cycleResults.values()).map((r: GraceCycleResult) => ({
+function optionalFinite(value: number | null | undefined): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function mapGraceCycleResultToCycleResultRow(r: GraceCycleResult): CycleResultRow {
+    return {
         cycleNo: r.cycleNo,
-        timeMin: r.timeMin || r.endTimeMin || 0,
-        tempC: r.tempC || 25,
-        pressure_bar: r.pressure_bar,
-        nPrime: r.n_prime || 0,
-        kPrime: r.K_prime_PaSn || 0,
-        kSlot: isFinite(r.K_prime_slot_PaSn) ? r.K_prime_slot_PaSn : undefined,
-        kPipe: isFinite(r.K_pipe_PaSn) ? r.K_pipe_PaSn : undefined,
-        r2: r.r2 || 0,
-        viscAt40: r.viscAt40,
-        viscAt100: r.viscAt100,
-        viscAt170: r.viscAt170,
+        timeMin: finiteOr(r.timeMin, finiteOr(r.endTimeMin, 0)),
+        tempC: finiteOr(r.tempC, 25),
+        pressure_bar: finiteOr(r.pressure_bar, 0),
+        nPrime: finiteOr(r.n_prime, 0),
+        kPrime: finiteOr(r.K_prime_PaSn, 0),
+        kSlot: optionalFinite(r.K_prime_slot_PaSn),
+        kPipe: optionalFinite(r.K_pipe_PaSn),
+        r2: finiteOr(r.r2, 0),
+        viscAt40: optionalFinite(r.viscAt40),
+        viscAt100: optionalFinite(r.viscAt100),
+        viscAt170: optionalFinite(r.viscAt170),
         viscosities: r.viscosities || {},
-        binghamPv: r.bingham_PV_PaS,
-        binghamYp: r.bingham_YP_Pa,
-        binghamR2: r.bingham_r2,
-    }));
+        binghamPv: optionalFinite(r.bingham_PV_PaS),
+        binghamYp: optionalFinite(r.bingham_YP_Pa),
+        binghamR2: optionalFinite(r.bingham_r2),
+    };
+}
+
+export function mapCycleResults(cycleResults: Map<number, GraceCycleResult>): CycleResultRow[] {
+    return Array.from(cycleResults.values()).map(mapGraceCycleResultToCycleResultRow);
+}
+
+export function mapRheologyParameterRows(rows: readonly RheologyParameterRow[]): CycleResultRow[] {
+    return [...rows]
+        .sort((a, b) => a.cycleNo - b.cycleNo)
+        .map(row => mapGraceCycleResultToCycleResultRow(
+            rheologyParameterRowToGraceCycleResult(row),
+        ));
 }
 
 // ── Line settings builder (shared between PDF and Excel) ────────────────
@@ -219,6 +239,7 @@ export interface ReportBuildContext {
     showWaterAnalysis: boolean;
     reportViscosityRates: number[];
     isExpert: boolean;
+    rheologySource: RheologyParameterSource;
 }
 
 // ── PDF builder ─────────────────────────────────────────────────────────
@@ -274,6 +295,7 @@ export function buildPdfReportInput(ctx: ReportBuildContext): PdfReportInput {
             viscosityThreshold: ctx.viscosityThreshold,
             showTargetTime: ctx.showTargetTime,
             targetTime: ctx.targetTime,
+            rheologySource: ctx.rheologySource,
             showCalibration: ctx.showCalibration,
             showRawData: ctx.showRawData,
             viscosityShearRates: ctx.reportViscosityRates,
@@ -354,6 +376,7 @@ export function buildExcelReportInput(ctx: ReportBuildContext): ExcelReportInput
             viscosityThreshold: ctx.viscosityThreshold,
             showTargetTime: ctx.showTargetTime,
             targetTime: ctx.targetTime,
+            rheologySource: ctx.rheologySource,
             language: ctx.language,
             viscosityShearRates: ctx.reportViscosityRates,
             showAdvancedStats: true,

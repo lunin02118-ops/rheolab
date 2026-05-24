@@ -6,9 +6,8 @@
 //! [`super::layout::write_chart_data_to_sheet`]).
 
 use rust_xlsxwriter::{
-    Chart, ChartFont, ChartFormat,
-    ChartLegendPosition, ChartLine, ChartLineDashType, ChartMarker, ChartMarkerType,
-    ChartSolidFill, ChartType, Color, Format, FormatAlign, FormatBorder,
+    Chart, ChartFont, ChartFormat, ChartLegendPosition, ChartLine, ChartLineDashType, ChartMarker,
+    ChartMarkerType, ChartSolidFill, ChartType, Color, Format, FormatAlign, FormatBorder,
     Worksheet, XlsxError,
 };
 
@@ -36,8 +35,13 @@ pub(super) fn write_overlap_chart_sheet(
     // ── Build chart ──────────────────────────────────────────────────
     let mut chart = Chart::new(ChartType::ScatterStraight);
 
-    let title_text = if is_ru { "Вязкость vs Время" } else { "Viscosity vs Time" };
-    chart.title()
+    let title_text = if is_ru {
+        "Вязкость vs Время"
+    } else {
+        "Viscosity vs Time"
+    };
+    chart
+        .title()
         .set_name(title_text)
         .set_font(ChartFont::new().set_name("Arial").set_size(12));
 
@@ -46,11 +50,16 @@ pub(super) fn write_overlap_chart_sheet(
 
     // ── One series per experiment — references hidden data sheet ─────
     for (i, entry) in input.experiments.iter().enumerate() {
-        if i >= data.exp_columns.len() { break; }
+        if i >= data.exp_columns.len() {
+            break;
+        }
         let (col_time, col_visc, last) = data.exp_columns[i];
-        if last == 0 && entry.report_input.raw_data.is_empty() { continue; }
+        if last == 0 && entry.report_input.raw_data.is_empty() {
+            continue;
+        }
 
-        let color_rgb = cfg.experiment_colors
+        let color_rgb = cfg
+            .experiment_colors
             .get(i % cfg.experiment_colors.len().max(1))
             .map(|h| parse_color_hex(h))
             .unwrap_or(DEFAULT_PALETTE[i % DEFAULT_PALETTE.len()]);
@@ -64,7 +73,8 @@ pub(super) fn write_overlap_chart_sheet(
             .set_width(scaled_line_width(visc_ls.width as f64))
             .set_dash_type(style_to_dash(&visc_ls.style));
 
-        chart.add_series()
+        chart
+            .add_series()
             .set_name(&entry.display_name)
             .set_categories((data_sheet_name, 0, col_time, last, col_time))
             .set_values((data_sheet_name, 0, col_visc, last, col_visc))
@@ -87,11 +97,10 @@ pub(super) fn write_overlap_chart_sheet(
     // don't lose any information by dropping the on-chart text.
     if let Some((tc, vc)) = data.threshold_cells {
         let mut thresh_line = ChartLine::new();
-        thresh_line
-            .set_color(Color::RGB(0x808080))
-            .set_width(0.75);
+        thresh_line.set_color(Color::RGB(0x808080)).set_width(0.75);
 
-        chart.add_series()
+        chart
+            .add_series()
             .set_categories((data_sheet_name, 0, tc, 1, tc))
             .set_values((data_sheet_name, 0, vc, 1, vc))
             .set_format(ChartFormat::new().set_line(&thresh_line))
@@ -116,7 +125,8 @@ pub(super) fn write_overlap_chart_sheet(
     // accessibility / hover context, just not the legend rail.
     let (tp_tc, tp_vc) = data.tp_cols;
     for tp in &data.touch_points {
-        let color_rgb = cfg.experiment_colors
+        let color_rgb = cfg
+            .experiment_colors
             .get(tp.exp_index % cfg.experiment_colors.len().max(1))
             .map(|h| parse_color_hex(h))
             .unwrap_or(DEFAULT_PALETTE[tp.exp_index % DEFAULT_PALETTE.len()]);
@@ -141,19 +151,31 @@ pub(super) fn write_overlap_chart_sheet(
                 if is_ru {
                     format!("{} — порог", &input.experiments[tp.exp_index].display_name)
                 } else {
-                    format!("{} — threshold", &input.experiments[tp.exp_index].display_name)
+                    format!(
+                        "{} — threshold",
+                        &input.experiments[tp.exp_index].display_name
+                    )
                 }
             }
             TouchPointType::Target => {
                 if is_ru {
-                    format!("{} — на {} мин", &input.experiments[tp.exp_index].display_name, cfg.touch_point.target_time as i32)
+                    format!(
+                        "{} — на {} мин",
+                        &input.experiments[tp.exp_index].display_name,
+                        cfg.touch_point.target_time as i32
+                    )
                 } else {
-                    format!("{} — at {} min", &input.experiments[tp.exp_index].display_name, cfg.touch_point.target_time as i32)
+                    format!(
+                        "{} — at {} min",
+                        &input.experiments[tp.exp_index].display_name,
+                        cfg.touch_point.target_time as i32
+                    )
                 }
             }
         };
 
-        chart.add_series()
+        chart
+            .add_series()
             .set_name(&tp_label)
             .set_categories((data_sheet_name, tp.data_row, tp_tc, tp.data_row, tp_tc))
             .set_values((data_sheet_name, tp.data_row, tp_vc, tp.data_row, tp_vc))
@@ -170,41 +192,73 @@ pub(super) fn write_overlap_chart_sheet(
     for sm in &data.secondary_metrics {
         // Metric-specific line style defaults (same as single-exp chart).
         let (default_dash, default_width) = match sm.metric.as_str() {
-            "temperature"      => (ChartLineDashType::Dash,     1.5),
-            "shear_rate"       => (ChartLineDashType::Solid,     0.75),
-            "pressure"         => (ChartLineDashType::RoundDot, 1.5),
-            "bath_temperature" => (ChartLineDashType::Dash,     1.5),
-            _                  => (ChartLineDashType::Solid,     1.0),
+            "temperature" => (ChartLineDashType::Dash, 1.5),
+            "shear_rate" => (ChartLineDashType::Solid, 0.75),
+            "pressure" => (ChartLineDashType::RoundDot, 1.5),
+            "bath_temperature" => (ChartLineDashType::Dash, 1.5),
+            _ => (ChartLineDashType::Solid, 1.0),
         };
 
         // Resolve user-override line_settings for the metric (if any).
         let user_ls = match sm.metric.as_str() {
-            "temperature"      => Some(&cfg.line_settings.temperature),
-            "shear_rate"       => Some(&cfg.line_settings.shear_rate),
-            "pressure"         => Some(&cfg.line_settings.pressure),
-            "bath_temperature" => cfg.line_settings.bath_temperature.as_ref()
-                                    .or(Some(&cfg.line_settings.temperature)),
+            "temperature" => Some(&cfg.line_settings.temperature),
+            "shear_rate" => Some(&cfg.line_settings.shear_rate),
+            "pressure" => Some(&cfg.line_settings.pressure),
+            "bath_temperature" => cfg
+                .line_settings
+                .bath_temperature
+                .as_ref()
+                .or(Some(&cfg.line_settings.temperature)),
             _ => None,
         };
 
         let metric_label = match sm.metric.as_str() {
-            "temperature"      => if is_ru { "Темп." }          else { "Temp" },
-            "shear_rate"       => if is_ru { "Скор.сдвига" }    else { "SR" },
-            "pressure"         => if is_ru { "Давл." }          else { "Press" },
-            "bath_temperature" => if is_ru { "Темп.бани" }      else { "Bath" },
-            _                  => "",
+            "temperature" => {
+                if is_ru {
+                    "Темп."
+                } else {
+                    "Temp"
+                }
+            }
+            "shear_rate" => {
+                if is_ru {
+                    "Скор.сдвига"
+                } else {
+                    "SR"
+                }
+            }
+            "pressure" => {
+                if is_ru {
+                    "Давл."
+                } else {
+                    "Press"
+                }
+            }
+            "bath_temperature" => {
+                if is_ru {
+                    "Темп.бани"
+                } else {
+                    "Bath"
+                }
+            }
+            _ => "",
         };
 
         for (i, entry) in input.experiments.iter().enumerate() {
-            if i >= sm.exp_cols.len() { break; }
+            if i >= sm.exp_cols.len() {
+                break;
+            }
             let (data_col, last_row) = sm.exp_cols[i];
-            if last_row == 0 && entry.report_input.raw_data.is_empty() { continue; }
+            if last_row == 0 && entry.report_input.raw_data.is_empty() {
+                continue;
+            }
 
             // Category column = the experiment's time column from primary data.
             let (col_time, _, _) = data.exp_columns[i];
 
             // Use experiment colour with metric dash style.
-            let color_rgb = cfg.experiment_colors
+            let color_rgb = cfg
+                .experiment_colors
                 .get(i % cfg.experiment_colors.len().max(1))
                 .map(|h| parse_color_hex(h))
                 .unwrap_or(DEFAULT_PALETTE[i % DEFAULT_PALETTE.len()]);
@@ -240,7 +294,10 @@ pub(super) fn write_overlap_chart_sheet(
 
     // ── Axes ─────────────────────────────────────────────────────────
     let mut grid_line = ChartLine::new();
-    grid_line.set_color(Color::Black).set_transparency(80).set_width(0.5);
+    grid_line
+        .set_color(Color::Black)
+        .set_transparency(80)
+        .set_width(0.5);
 
     let mut axis_font = ChartFont::new();
     axis_font.set_name("Arial").set_size(9);
@@ -248,11 +305,33 @@ pub(super) fn write_overlap_chart_sheet(
     label_font.set_name("Arial").set_size(10);
 
     let (x_label, x_num_fmt) = match time_fmt.as_str() {
-        "seconds"  => (if is_ru { "Время (сек)" } else { "Time (sec)" }, "#,##0"),
-        "hh:mm:ss" => (if is_ru { "Время (чч:мм:сс)" } else { "Time (hh:mm:ss)" }, "[h]:mm:ss"),
-        _          => (if is_ru { "Время (мин)" } else { "Time (min)" }, "0"),
+        "seconds" => (
+            if is_ru {
+                "Время (сек)"
+            } else {
+                "Time (sec)"
+            },
+            "#,##0",
+        ),
+        "hh:mm:ss" => (
+            if is_ru {
+                "Время (чч:мм:сс)"
+            } else {
+                "Time (hh:mm:ss)"
+            },
+            "[h]:mm:ss",
+        ),
+        _ => (
+            if is_ru {
+                "Время (мин)"
+            } else {
+                "Time (min)"
+            },
+            "0",
+        ),
     };
-    chart.x_axis()
+    chart
+        .x_axis()
         .set_name(x_label)
         .set_name_font(&label_font)
         .set_font(&axis_font)
@@ -263,22 +342,49 @@ pub(super) fn write_overlap_chart_sheet(
         .set_major_gridlines_line(&grid_line);
 
     // ── Left Y axis — viscosity + any left-side secondary metrics ────
-    let mut left_parts: Vec<&str> = vec![
-        if is_ru { "Вязкость (сП)" } else { "Viscosity (cP)" }
-    ];
+    let mut left_parts: Vec<&str> = vec![if is_ru {
+        "Вязкость (сП)"
+    } else {
+        "Viscosity (cP)"
+    }];
     for sm in &data.secondary_metrics {
         if !sm.on_right {
             left_parts.push(match sm.metric.as_str() {
-                "temperature"      => if is_ru { "Температура (°C)" }         else { "Temperature (°C)" },
-                "shear_rate"       => if is_ru { "Скорость сдвига (1/с)" }    else { "Shear Rate (1/s)" },
-                "pressure"         => if is_ru { "Давление (бар)" }           else { "Pressure (bar)" },
-                "bath_temperature" => if is_ru { "Темп. бани (°C)" }          else { "Bath Temp (°C)" },
-                _                  => "",
+                "temperature" => {
+                    if is_ru {
+                        "Температура (°C)"
+                    } else {
+                        "Temperature (°C)"
+                    }
+                }
+                "shear_rate" => {
+                    if is_ru {
+                        "Скорость сдвига (1/с)"
+                    } else {
+                        "Shear Rate (1/s)"
+                    }
+                }
+                "pressure" => {
+                    if is_ru {
+                        "Давление (бар)"
+                    } else {
+                        "Pressure (bar)"
+                    }
+                }
+                "bath_temperature" => {
+                    if is_ru {
+                        "Темп. бани (°C)"
+                    } else {
+                        "Bath Temp (°C)"
+                    }
+                }
+                _ => "",
             });
         }
     }
     let y_label = left_parts.join(" / ");
-    chart.y_axis()
+    chart
+        .y_axis()
         .set_name(&y_label)
         .set_name_font(&label_font)
         .set_font(&axis_font)
@@ -291,17 +397,42 @@ pub(super) fn write_overlap_chart_sheet(
     for sm in &data.secondary_metrics {
         if sm.on_right {
             right_parts.push(match sm.metric.as_str() {
-                "temperature"      => if is_ru { "Температура (°C)" }         else { "Temperature (°C)" },
-                "shear_rate"       => if is_ru { "Скорость сдвига (1/с)" }    else { "Shear Rate (1/s)" },
-                "pressure"         => if is_ru { "Давление (бар)" }           else { "Pressure (bar)" },
-                "bath_temperature" => if is_ru { "Темп. бани (°C)" }          else { "Bath Temp (°C)" },
-                _                  => "",
+                "temperature" => {
+                    if is_ru {
+                        "Температура (°C)"
+                    } else {
+                        "Temperature (°C)"
+                    }
+                }
+                "shear_rate" => {
+                    if is_ru {
+                        "Скорость сдвига (1/с)"
+                    } else {
+                        "Shear Rate (1/s)"
+                    }
+                }
+                "pressure" => {
+                    if is_ru {
+                        "Давление (бар)"
+                    } else {
+                        "Pressure (bar)"
+                    }
+                }
+                "bath_temperature" => {
+                    if is_ru {
+                        "Темп. бани (°C)"
+                    } else {
+                        "Bath Temp (°C)"
+                    }
+                }
+                _ => "",
             });
         }
     }
     if !right_parts.is_empty() {
         let y2_label = right_parts.join(" / ");
-        chart.y2_axis()
+        chart
+            .y2_axis()
             .set_name(&y2_label)
             .set_name_font(&label_font)
             .set_font(&axis_font)
@@ -405,13 +536,13 @@ pub(super) fn write_overlap_chart_sheet(
     // A is the widest column because it holds the experiment / test
     // name. B–G accommodate the seven Summary columns; the Touch-points
     // tables only use A–C and inherit A's width unchanged.
-    sheet.set_column_width(0, 32.0)?;  // A — Эксперимент / Test Name
-    sheet.set_column_width(1, 12.0)?;  // B — Точек / Время (мин)
-    sheet.set_column_width(2, 18.0)?;  // C — Длительность (мин) / Вязкость
-    sheet.set_column_width(3, 18.0)?;  // D — Макс. вязкость
-    sheet.set_column_width(4, 18.0)?;  // E — Финал. вязкость
-    sheet.set_column_width(5, 16.0)?;  // F — Сред. темп. (°C)
-    sheet.set_column_width(6, 16.0)?;  // G — Сред. давл. (бар)
+    sheet.set_column_width(0, 32.0)?; // A — Эксперимент / Test Name
+    sheet.set_column_width(1, 12.0)?; // B — Точек / Время (мин)
+    sheet.set_column_width(2, 18.0)?; // C — Длительность (мин) / Вязкость
+    sheet.set_column_width(3, 18.0)?; // D — Макс. вязкость
+    sheet.set_column_width(4, 18.0)?; // E — Финал. вязкость
+    sheet.set_column_width(5, 16.0)?; // F — Сред. темп. (°C)
+    sheet.set_column_width(6, 16.0)?; // G — Сред. давл. (бар)
 
     let visc_unit_label = super::super::super::formatters::get_viscosity_unit(unit_system);
 
@@ -428,29 +559,49 @@ pub(super) fn write_overlap_chart_sheet(
     if !input.experiments.is_empty() {
         let summaries = build_summaries(&input.experiments);
 
-        let summary_title = if is_ru { "Сводная таблица" } else { "Summary" };
+        let summary_title = if is_ru {
+            "Сводная таблица"
+        } else {
+            "Summary"
+        };
         sheet.merge_range(row, 0, row, 6, summary_title, &section_title_fmt)?;
         row += 1;
 
-        let h_exp  = if is_ru { "Эксперимент" }        else { "Experiment" };
-        let h_pts  = if is_ru { "Точек" }              else { "Points" };
-        let h_dur  = if is_ru { "Длительность (мин)" } else { "Duration (min)" };
-        let h_maxv = if is_ru {
-            format!("Макс. вязкость ({})",  visc_unit_label)
+        let h_exp = if is_ru {
+            "Эксперимент"
         } else {
-            format!("Max viscosity ({})",   visc_unit_label)
+            "Experiment"
+        };
+        let h_pts = if is_ru { "Точек" } else { "Points" };
+        let h_dur = if is_ru {
+            "Длительность (мин)"
+        } else {
+            "Duration (min)"
+        };
+        let h_maxv = if is_ru {
+            format!("Макс. вязкость ({})", visc_unit_label)
+        } else {
+            format!("Max viscosity ({})", visc_unit_label)
         };
         let h_finv = if is_ru {
             format!("Финал. вязкость ({})", visc_unit_label)
         } else {
             format!("Final viscosity ({})", visc_unit_label)
         };
-        let h_avgt = if is_ru { "Сред. темп. (°C)" }   else { "Avg temp (°C)" };
-        let h_avgp = if is_ru { "Сред. давл. (бар)" }  else { "Avg pressure (bar)" };
+        let h_avgt = if is_ru {
+            "Сред. темп. (°C)"
+        } else {
+            "Avg temp (°C)"
+        };
+        let h_avgp = if is_ru {
+            "Сред. давл. (бар)"
+        } else {
+            "Avg pressure (bar)"
+        };
 
-        sheet.write_string_with_format(row, 0, h_exp,  &hdr_fmt)?;
-        sheet.write_string_with_format(row, 1, h_pts,  &hdr_fmt)?;
-        sheet.write_string_with_format(row, 2, h_dur,  &hdr_fmt)?;
+        sheet.write_string_with_format(row, 0, h_exp, &hdr_fmt)?;
+        sheet.write_string_with_format(row, 1, h_pts, &hdr_fmt)?;
+        sheet.write_string_with_format(row, 2, h_dur, &hdr_fmt)?;
         sheet.write_string_with_format(row, 3, &h_maxv, &hdr_fmt)?;
         sheet.write_string_with_format(row, 4, &h_finv, &hdr_fmt)?;
         sheet.write_string_with_format(row, 5, h_avgt, &hdr_fmt)?;
@@ -472,12 +623,14 @@ pub(super) fn write_overlap_chart_sheet(
             sheet.write_number_with_format(row, 1, s.data_points as f64, vf)?;
             sheet.write_number_with_format(row, 2, s.duration_min, nf)?;
             sheet.write_number_with_format(
-                row, 3,
+                row,
+                3,
                 convert_viscosity(s.max_viscosity_cp, unit_system),
                 vf,
             )?;
             sheet.write_number_with_format(
-                row, 4,
+                row,
+                4,
                 convert_viscosity(s.final_viscosity_cp, unit_system),
                 vf,
             )?;
@@ -513,8 +666,16 @@ pub(super) fn write_overlap_chart_sheet(
         let threshold_visc = convert_viscosity(cfg.touch_point.viscosity_threshold, unit_system);
 
         // Shared column headers for the 3-column touch-points layout.
-        let h_name = if is_ru { "Название теста" } else { "Test Name" };
-        let h_time = if is_ru { "Время (мин)" } else { "Time (min)" };
+        let h_name = if is_ru {
+            "Название теста"
+        } else {
+            "Test Name"
+        };
+        let h_time = if is_ru {
+            "Время (мин)"
+        } else {
+            "Time (min)"
+        };
         let h_visc = if is_ru {
             format!("Вязкость ({})", visc_unit_label)
         } else {
@@ -524,23 +685,28 @@ pub(super) fn write_overlap_chart_sheet(
         // Split rows once: threshold-crossings go into the first table,
         // target-time readings into the second.  Preserve the original
         // per-experiment order within each bucket.
-        let threshold_rows: Vec<&TouchPointResult> = data.touch_points.iter()
+        let threshold_rows: Vec<&TouchPointResult> = data
+            .touch_points
+            .iter()
             .filter(|r| matches!(r.tp_type, TouchPointType::Threshold))
             .collect();
-        let target_rows: Vec<&TouchPointResult> = data.touch_points.iter()
+        let target_rows: Vec<&TouchPointResult> = data
+            .touch_points
+            .iter()
             .filter(|r| matches!(r.tp_type, TouchPointType::Target))
             .collect();
 
         // Emit ONE three-column table with the supplied title + filtered
         // row slice.  Returns the row index just below the last data row
         // so the caller can chain a second table below.
-        let write_table = |
-            sheet: &mut Worksheet,
-            row_start: u32,
-            title: &str,
-            rows: &[&TouchPointResult],
-        | -> Result<u32, XlsxError> {
-            if rows.is_empty() { return Ok(row_start); }
+        let write_table = |sheet: &mut Worksheet,
+                           row_start: u32,
+                           title: &str,
+                           rows: &[&TouchPointResult]|
+         -> Result<u32, XlsxError> {
+            if rows.is_empty() {
+                return Ok(row_start);
+            }
             let mut r = row_start;
 
             // Section title (spans the 3 used columns).
@@ -573,9 +739,15 @@ pub(super) fn write_overlap_chart_sheet(
 
         // ── Table 1: Threshold crossings ────────────────────────────
         let threshold_title = if is_ru {
-            format!("Точки касания (порог {} {})", threshold_visc as i64, visc_unit_label)
+            format!(
+                "Точки касания (порог {} {})",
+                threshold_visc as i64, visc_unit_label
+            )
         } else {
-            format!("Threshold Crossings (threshold {} {})", threshold_visc as i64, visc_unit_label)
+            format!(
+                "Threshold Crossings (threshold {} {})",
+                threshold_visc as i64, visc_unit_label
+            )
         };
         row = write_table(sheet, row, &threshold_title, &threshold_rows)?;
 
@@ -587,9 +759,15 @@ pub(super) fn write_overlap_chart_sheet(
 
         // ── Table 2: Viscosity at set time ──────────────────────────
         let target_title = if is_ru {
-            format!("Вязкость в заданное время ({} мин)", cfg.touch_point.target_time as i32)
+            format!(
+                "Вязкость в заданное время ({} мин)",
+                cfg.touch_point.target_time as i32
+            )
         } else {
-            format!("Viscosity at Set Time ({} min)", cfg.touch_point.target_time as i32)
+            format!(
+                "Viscosity at Set Time ({} min)",
+                cfg.touch_point.target_time as i32
+            )
         };
         row = write_table(sheet, row, &target_title, &target_rows)?;
     }

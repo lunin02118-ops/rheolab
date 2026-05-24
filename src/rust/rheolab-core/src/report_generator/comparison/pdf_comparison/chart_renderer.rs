@@ -7,15 +7,15 @@
 //! labels) and the populated [`ChartConfig`].
 
 use super::super::super::chart_generator::{
-    ChartConfig, ChartLineStyles, ChartPoint, ChartRanges, ChartTouchPoint,
-    line::{generate_multi_experiment_chart_svg, ExperimentSeries},
     common::parse_hex_color,
+    line::{generate_multi_experiment_chart_svg, ExperimentSeries},
+    ChartConfig, ChartLineStyles, ChartPoint, ChartRanges, ChartTouchPoint,
 };
 use super::super::super::formatters::{
     convert_viscosity, get_viscosity_unit, resolve_units, time_axis_unit,
 };
 use super::super::super::touch_point::{
-    TouchPointInput, SmartTouchPointOptions, calculate_smart_touch_points,
+    calculate_smart_touch_points, SmartTouchPointOptions, TouchPointInput,
 };
 use super::super::types::ComparisonReportInput;
 use super::touch_points::canonical_to_internal;
@@ -32,18 +32,29 @@ pub(super) fn render_comparison_chart(
     // display units and wrapped as `ExperimentSeries`.
     let mut series: Vec<ExperimentSeries> = Vec::with_capacity(input.experiments.len());
     for (i, entry) in input.experiments.iter().enumerate() {
-        let first_time = entry.report_input.raw_data.first().map(|p| p.time_sec).unwrap_or(0.0);
-        let points: Vec<ChartPoint> = entry.report_input.raw_data.iter().map(|p| ChartPoint {
-            time_min: (p.time_sec - first_time) / 60.0,
-            viscosity_cp: convert_viscosity(p.viscosity_cp, unit_system),
-            temperature_c: p.temperature_c,
-            shear_rate: p.shear_rate,
-            pressure_bar: p.pressure_bar,
-            bath_temperature_c: p.bath_temperature_c,
-        }).collect();
+        let first_time = entry
+            .report_input
+            .raw_data
+            .first()
+            .map(|p| p.time_sec)
+            .unwrap_or(0.0);
+        let points: Vec<ChartPoint> = entry
+            .report_input
+            .raw_data
+            .iter()
+            .map(|p| ChartPoint {
+                time_min: (p.time_sec - first_time) / 60.0,
+                viscosity_cp: convert_viscosity(p.viscosity_cp, unit_system),
+                temperature_c: p.temperature_c,
+                shear_rate: p.shear_rate,
+                pressure_bar: p.pressure_bar,
+                bath_temperature_c: p.bath_temperature_c,
+            })
+            .collect();
 
         // Pick palette colour, cycling through the list.
-        let color_hex = cfg.experiment_colors
+        let color_hex = cfg
+            .experiment_colors
             .get(i % cfg.experiment_colors.len().max(1))
             .cloned()
             .unwrap_or_else(|| "#3B82F6".to_string());
@@ -61,25 +72,66 @@ pub(super) fn render_comparison_chart(
     // (see `pdf/mod.rs::build_report`) so the comparison chart replicates
     // exactly what the user sees in the in-app dashboard.
     let visc_unit = get_viscosity_unit(unit_system);
-    let l_visc      = if is_ru { format!("Вязкость ({})", visc_unit) } else { format!("Viscosity ({})", visc_unit) };
-    let l_temp      = if is_ru { "Температура (°C)".to_string() }      else { "Temperature (°C)".to_string() };
-    let l_shear     = if is_ru { "Скорость сдвига (1/с)".to_string() } else { "Shear Rate (1/s)".to_string() };
-    let l_press     = if is_ru { "Давление (бар)".to_string() }         else { "Pressure (bar)".to_string() };
-    let l_bath_temp = if is_ru { "Темп. бани (°C)".to_string() }        else { "Bath Temp (°C)".to_string() };
+    let l_visc = if is_ru {
+        format!("Вязкость ({})", visc_unit)
+    } else {
+        format!("Viscosity ({})", visc_unit)
+    };
+    let l_temp = if is_ru {
+        "Температура (°C)".to_string()
+    } else {
+        "Temperature (°C)".to_string()
+    };
+    let l_shear = if is_ru {
+        "Скорость сдвига (1/с)".to_string()
+    } else {
+        "Shear Rate (1/s)".to_string()
+    };
+    let l_press = if is_ru {
+        "Давление (бар)".to_string()
+    } else {
+        "Pressure (bar)".to_string()
+    };
+    let l_bath_temp = if is_ru {
+        "Темп. бани (°C)".to_string()
+    } else {
+        "Bath Temp (°C)".to_string()
+    };
 
     // Short names used for per-metric axis titles in individual mode.
-    let n_visc      = if is_ru { "Вязкость"      } else { "Viscosity" };
-    let n_temp      = if is_ru { "Температура"   } else { "Temperature" };
-    let n_shear     = if is_ru { "Скор. сдвига"  } else { "Shear Rate" };
-    let n_press     = if is_ru { "Давление"      } else { "Pressure" };
-    let n_bath_temp = if is_ru { "Темп. бани"    } else { "Bath Temp" };
+    let n_visc = if is_ru {
+        "Вязкость"
+    } else {
+        "Viscosity"
+    };
+    let n_temp = if is_ru {
+        "Температура"
+    } else {
+        "Temperature"
+    };
+    let n_shear = if is_ru {
+        "Скор. сдвига"
+    } else {
+        "Shear Rate"
+    };
+    let n_press = if is_ru {
+        "Давление"
+    } else {
+        "Pressure"
+    };
+    let n_bath_temp = if is_ru {
+        "Темп. бани"
+    } else {
+        "Bath Temp"
+    };
 
     // Time-axis label follows the anchor experiment's `rheology_units.
     // time_format` so the comparison chart matches the dashboard the user
     // just saw.  If the anchor has no `rheology_units` override,
     // `resolve_units` returns `"minutes"` and this reduces to the legacy
     // "Время (мин)" / "Time (min)" label.
-    let time_fmt = input.experiments
+    let time_fmt = input
+        .experiments
         .first()
         .map(|e| resolve_units(&e.report_input).time_format)
         .unwrap_or_else(|| "minutes".to_string());
@@ -105,23 +157,27 @@ pub(super) fn render_comparison_chart(
     // string mismatch in one slot doesn't silently drop the entire
     // metric from the chart — the user-facing symptom of the
     // 2026-04-25 bug report ("Раздельные оси не работают!").
-    let in_left  = |key: &str| canonical_to_internal(&cfg.metrics.left_secondary) == key;
-    let in_right = |key: &str|
-        canonical_to_internal(&cfg.metrics.secondary)  == key
-        || canonical_to_internal(&cfg.metrics.tertiary) == key;
-    let in_any   = |key: &str| in_left(key) || in_right(key);
+    let in_left = |key: &str| canonical_to_internal(&cfg.metrics.left_secondary) == key;
+    let in_right = |key: &str| {
+        canonical_to_internal(&cfg.metrics.secondary) == key
+            || canonical_to_internal(&cfg.metrics.tertiary) == key
+    };
+    let in_any = |key: &str| in_left(key) || in_right(key);
 
-    let show_temperature      = in_any("temperature");
-    let show_shear_rate       = in_any("shear_rate");
-    let show_pressure         = in_any("pressure");
+    let show_temperature = in_any("temperature");
+    let show_shear_rate = in_any("shear_rate");
+    let show_pressure = in_any("pressure");
     let show_bath_temperature = in_any("bath_temperature");
 
     // Side for movable secondaries.  Default to "right" when the metric is
     // requested on neither side (shouldn't normally happen).
-    let shear_rate_axis =
-        if in_left("shear_rate") { "left" } else { "right" }.to_string();
-    let pressure_axis =
-        if in_left("pressure") { "left" } else { "right" }.to_string();
+    let shear_rate_axis = if in_left("shear_rate") {
+        "left"
+    } else {
+        "right"
+    }
+    .to_string();
+    let pressure_axis = if in_left("pressure") { "left" } else { "right" }.to_string();
 
     // ── Axis labels — mirror single-exp `build_report` exactly ────────────
     // Left label: viscosity + whatever other left-side metrics the user
@@ -158,10 +214,13 @@ pub(super) fn render_comparison_chart(
     if cfg.touch_point.enabled && cfg.touch_point.viscosity_threshold > 0.0 {
         for (i, entry) in input.experiments.iter().enumerate() {
             let raw = &entry.report_input.raw_data;
-            if raw.len() < 3 { continue; }
+            if raw.len() < 3 {
+                continue;
+            }
 
             let first_time_sec = raw.first().map(|p| p.time_sec).unwrap_or(0.0);
-            let inputs: Vec<TouchPointInput> = raw.iter()
+            let inputs: Vec<TouchPointInput> = raw
+                .iter()
                 .filter(|p| p.time_sec.is_finite() && p.viscosity_cp.is_finite())
                 .map(|p| TouchPointInput {
                     time_min: (p.time_sec - first_time_sec) / 60.0,
@@ -180,7 +239,8 @@ pub(super) fn render_comparison_chart(
                 },
             );
 
-            let color = cfg.experiment_colors
+            let color = cfg
+                .experiment_colors
                 .get(i % cfg.experiment_colors.len().max(1))
                 .map(|h| parse_hex_color(h))
                 .unwrap_or_else(|| parse_hex_color("#3B82F6"));
@@ -241,14 +301,17 @@ pub(super) fn render_comparison_chart(
         label_bottom: l_time.to_string(),
         // Full metric names used by the per-axis title overlay in
         // individual mode — same as the single-exp report.
-        name_viscosity:        n_visc.to_string(),
-        name_temperature:      n_temp.to_string(),
-        name_shear_rate:       n_shear.to_string(),
-        name_pressure:         n_press.to_string(),
+        name_viscosity: n_visc.to_string(),
+        name_temperature: n_temp.to_string(),
+        name_shear_rate: n_shear.to_string(),
+        name_pressure: n_press.to_string(),
         name_bath_temperature: n_bath_temp.to_string(),
         touch_points: chart_touch_points,
         viscosity_threshold: if cfg.touch_point.enabled {
-            Some(convert_viscosity(cfg.touch_point.viscosity_threshold, unit_system))
+            Some(convert_viscosity(
+                cfg.touch_point.viscosity_threshold,
+                unit_system,
+            ))
         } else {
             None
         },
@@ -278,12 +341,36 @@ mod tests {
     fn mk_line_settings_realistic() -> crate::report_generator::types::ChartLineSettings {
         use crate::report_generator::types::{ChartLineSettings, LineSettings};
         ChartLineSettings {
-            viscosity:        LineSettings { color: "#3B82F6".into(), width: 2, style: "solid".into() },
-            temperature:      LineSettings { color: "#F97316".into(), width: 2, style: "dotted".into() },
-            shear_rate:       LineSettings { color: "#A855F7".into(), width: 2, style: "solid".into() },
-            pressure:         LineSettings { color: "#22C55E".into(), width: 2, style: "solid".into() },
-            rpm:              LineSettings { color: "#06B6D4".into(), width: 2, style: "solid".into() },
-            bath_temperature: Some(LineSettings { color: "#EA580C".into(), width: 2, style: "dashed".into() }),
+            viscosity: LineSettings {
+                color: "#3B82F6".into(),
+                width: 2,
+                style: "solid".into(),
+            },
+            temperature: LineSettings {
+                color: "#F97316".into(),
+                width: 2,
+                style: "dotted".into(),
+            },
+            shear_rate: LineSettings {
+                color: "#A855F7".into(),
+                width: 2,
+                style: "solid".into(),
+            },
+            pressure: LineSettings {
+                color: "#22C55E".into(),
+                width: 2,
+                style: "solid".into(),
+            },
+            rpm: LineSettings {
+                color: "#06B6D4".into(),
+                width: 2,
+                style: "solid".into(),
+            },
+            bath_temperature: Some(LineSettings {
+                color: "#EA580C".into(),
+                width: 2,
+                style: "dashed".into(),
+            }),
         }
     }
 
@@ -303,11 +390,15 @@ mod tests {
         let (_svg, _ranges, cfg) = render_comparison_chart(&input, true).unwrap();
 
         // Width must be fixed at 1040 (shared with single-exp).
-        assert_eq!(cfg.width, 1040, "SVG width must match single-exp SVG_W=1040");
+        assert_eq!(
+            cfg.width, 1040,
+            "SVG width must match single-exp SVG_W=1040"
+        );
         // Height must be in the [400, 900] range enforced by the dynamic clamp.
         assert!(
             (400..=900).contains(&cfg.height),
-            "SVG height={} must be in [400, 900] clamp range", cfg.height
+            "SVG height={} must be in [400, 900] clamp range",
+            cfg.height
         );
 
         // Pin the exact value so drift in MARGIN_CM or CHART_BODY_TARGET_PT
@@ -347,22 +438,38 @@ mod tests {
         let (_svg, ranges, cfg) = render_comparison_chart(&input, true).unwrap();
 
         assert!(cfg.show_shear_rate, "cfg.show_shear_rate must be true");
-        assert_eq!(cfg.shear_rate_axis, "left", "shear_rate_axis must be 'left'");
+        assert_eq!(
+            cfg.shear_rate_axis, "left",
+            "shear_rate_axis must be 'left'"
+        );
         assert!(cfg.show_temperature, "cfg.show_temperature must be true");
 
         // Chart ranges must expose three individual axes: viscosity (left,
         // idx 0), shear_rate (left, idx 1), temperature (right, idx 0).
         assert_eq!(
-            ranges.individual_axes.len(), 3,
+            ranges.individual_axes.len(),
+            3,
             "expected 3 individual axes (viscosity + shear_rate + temperature); got {}: {:?}",
             ranges.individual_axes.len(),
-            ranges.individual_axes.iter().map(|a| &a.metric).collect::<Vec<_>>(),
+            ranges
+                .individual_axes
+                .iter()
+                .map(|a| &a.metric)
+                .collect::<Vec<_>>(),
         );
-        let shear_axis = ranges.individual_axes.iter()
+        let shear_axis = ranges
+            .individual_axes
+            .iter()
             .find(|a| a.metric == "shear_rate")
             .expect("shear_rate axis must be present in individual_axes");
-        assert_eq!(shear_axis.side, "left", "shear_rate axis must be on the left side");
-        assert_eq!(shear_axis.side_idx, 1, "shear_rate axis must be second on the left (side_idx=1)");
+        assert_eq!(
+            shear_axis.side, "left",
+            "shear_rate axis must be on the left side"
+        );
+        assert_eq!(
+            shear_axis.side_idx, 1,
+            "shear_rate axis must be second on the left (side_idx=1)"
+        );
 
         // Also verify the Typst overlay actually emits a shear-rate tick
         // column — the bug report symptom is that the axis label is missing
@@ -394,9 +501,9 @@ mod tests {
     #[test]
     fn comparison_individual_axes_match_single_experiment() {
         use crate::report_generator::chart_generator::{
-            ChartConfig, ChartLineStyle, ChartLineStyles, ChartPoint,
-            line::{generate_chart_svg, generate_multi_experiment_chart_svg, ExperimentSeries},
             common::parse_hex_color,
+            line::{generate_chart_svg, generate_multi_experiment_chart_svg, ExperimentSeries},
+            ChartConfig, ChartLineStyle, ChartLineStyles, ChartPoint,
         };
 
         // Build a synthetic per-experiment trace shared by both renderers.
@@ -418,11 +525,31 @@ mod tests {
         // production layout once `pdf_comparison::render_comparison_chart`
         // has bridged the slot scheme onto these fields.
         let line_styles = ChartLineStyles {
-            viscosity:        ChartLineStyle { color: parse_hex_color("#3B82F6"), width: 2, style: "solid".into()  },
-            temperature:      ChartLineStyle { color: parse_hex_color("#F97316"), width: 2, style: "dotted".into() },
-            shear_rate:       ChartLineStyle { color: parse_hex_color("#A855F7"), width: 2, style: "solid".into()  },
-            pressure:         ChartLineStyle { color: parse_hex_color("#22C55E"), width: 2, style: "solid".into()  },
-            bath_temperature: ChartLineStyle { color: parse_hex_color("#EA580C"), width: 2, style: "dashed".into() },
+            viscosity: ChartLineStyle {
+                color: parse_hex_color("#3B82F6"),
+                width: 2,
+                style: "solid".into(),
+            },
+            temperature: ChartLineStyle {
+                color: parse_hex_color("#F97316"),
+                width: 2,
+                style: "dotted".into(),
+            },
+            shear_rate: ChartLineStyle {
+                color: parse_hex_color("#A855F7"),
+                width: 2,
+                style: "solid".into(),
+            },
+            pressure: ChartLineStyle {
+                color: parse_hex_color("#22C55E"),
+                width: 2,
+                style: "solid".into(),
+            },
+            bath_temperature: ChartLineStyle {
+                color: parse_hex_color("#EA580C"),
+                width: 2,
+                style: "dashed".into(),
+            },
         };
         let cfg = ChartConfig {
             show_temperature: true,
@@ -432,15 +559,16 @@ mod tests {
             shear_rate_axis: "left".into(),
             pressure_axis: "right".into(),
             axis_mode: "individual".into(),
-            width: 1400, height: 700,
-            label_left:  "Вязкость / Скор. сдвига".into(),
+            width: 1400,
+            height: 700,
+            label_left: "Вязкость / Скор. сдвига".into(),
             label_right: "Температура".into(),
-            label_bottom:"Время (мин)".into(),
-            name_viscosity:       "Вязкость".into(),
-            name_temperature:     "Температура".into(),
-            name_shear_rate:      "Скор. сдвига".into(),
-            name_pressure:        "Давление".into(),
-            name_bath_temperature:"Темп. бани".into(),
+            label_bottom: "Время (мин)".into(),
+            name_viscosity: "Вязкость".into(),
+            name_temperature: "Температура".into(),
+            name_shear_rate: "Скор. сдвига".into(),
+            name_pressure: "Давление".into(),
+            name_bath_temperature: "Темп. бани".into(),
             touch_points: vec![],
             viscosity_threshold: None,
             line_styles: Some(line_styles),
@@ -449,8 +577,8 @@ mod tests {
         };
 
         // Single-experiment path.
-        let (_svg_s, ranges_s) = generate_chart_svg(&points, &cfg)
-            .expect("single-experiment renderer must succeed");
+        let (_svg_s, ranges_s) =
+            generate_chart_svg(&points, &cfg).expect("single-experiment renderer must succeed");
 
         // Comparison path with N=1 experiment carrying the same trace.
         let exp = ExperimentSeries {
@@ -467,28 +595,58 @@ mod tests {
             ranges_m.individual_axes.len(),
             "axis count differs between single and comparison renderers: \
              single={:?} multi={:?}",
-            ranges_s.individual_axes.iter().map(|a| (&a.metric, &a.side, a.side_idx)).collect::<Vec<_>>(),
-            ranges_m.individual_axes.iter().map(|a| (&a.metric, &a.side, a.side_idx)).collect::<Vec<_>>(),
+            ranges_s
+                .individual_axes
+                .iter()
+                .map(|a| (&a.metric, &a.side, a.side_idx))
+                .collect::<Vec<_>>(),
+            ranges_m
+                .individual_axes
+                .iter()
+                .map(|a| (&a.metric, &a.side, a.side_idx))
+                .collect::<Vec<_>>(),
         );
-        for (s, m) in ranges_s.individual_axes.iter().zip(ranges_m.individual_axes.iter()) {
-            assert_eq!(s.metric,   m.metric,   "metric tag drift");
-            assert_eq!(s.side,     m.side,     "axis side drift");
+        for (s, m) in ranges_s
+            .individual_axes
+            .iter()
+            .zip(ranges_m.individual_axes.iter())
+        {
+            assert_eq!(s.metric, m.metric, "metric tag drift");
+            assert_eq!(s.side, m.side, "axis side drift");
             assert_eq!(s.side_idx, m.side_idx, "side_idx drift");
             // Tick scales must match to the same precision — the same
             // value pool must produce the same `calculate_nice_scale`
             // output in both pipelines.
-            assert!((s.min        - m.min       ).abs() < 1e-9, "{} min drift",        s.metric);
-            assert!((s.max        - m.max       ).abs() < 1e-9, "{} max drift",        s.metric);
-            assert!((s.step       - m.step      ).abs() < 1e-9, "{} step drift",       s.metric);
-            assert!((s.minor_step - m.minor_step).abs() < 1e-9, "{} minor_step drift", s.metric);
+            assert!((s.min - m.min).abs() < 1e-9, "{} min drift", s.metric);
+            assert!((s.max - m.max).abs() < 1e-9, "{} max drift", s.metric);
+            assert!((s.step - m.step).abs() < 1e-9, "{} step drift", s.metric);
+            assert!(
+                (s.minor_step - m.minor_step).abs() < 1e-9,
+                "{} minor_step drift",
+                s.metric
+            );
             // Same line_styles input must produce the same axis colour.
-            assert_eq!(s.color_hex.to_lowercase(), m.color_hex.to_lowercase(), "{} colour drift", s.metric);
+            assert_eq!(
+                s.color_hex.to_lowercase(),
+                m.color_hex.to_lowercase(),
+                "{} colour drift",
+                s.metric
+            );
         }
 
         // X-axis range parity (time scale built from the same points).
-        assert!((ranges_s.x_min - ranges_m.x_min).abs() < 1e-9, "x_min drift");
-        assert!((ranges_s.x_max - ranges_m.x_max).abs() < 1e-9, "x_max drift");
-        assert!((ranges_s.x_step - ranges_m.x_step).abs() < 1e-9, "x_step drift");
+        assert!(
+            (ranges_s.x_min - ranges_m.x_min).abs() < 1e-9,
+            "x_min drift"
+        );
+        assert!(
+            (ranges_s.x_max - ranges_m.x_max).abs() < 1e-9,
+            "x_max drift"
+        );
+        assert!(
+            (ranges_s.x_step - ranges_m.x_step).abs() < 1e-9,
+            "x_step drift"
+        );
     }
 
     /// Regression: the **production** UI dropdown emits the canonical
@@ -525,7 +683,10 @@ mod tests {
             cfg.show_shear_rate,
             "cfg.show_shear_rate must be true when metric key is 'shear_rate_s1' (production key)",
         );
-        assert_eq!(cfg.shear_rate_axis, "left", "shear_rate_axis must be 'left'");
+        assert_eq!(
+            cfg.shear_rate_axis, "left",
+            "shear_rate_axis must be 'left'"
+        );
 
         // With shear rate on the left and nothing on the right we expect
         // exactly two individual axes: viscosity (left, idx 0) and
@@ -536,7 +697,8 @@ mod tests {
             "individual_axes must contain a shear_rate axis (got {metrics:?})",
         );
         assert_eq!(
-            metrics.len(), 2,
+            metrics.len(),
+            2,
             "expected 2 individual axes (viscosity + shear_rate); got {}: {metrics:?}",
             metrics.len(),
         );
@@ -565,11 +727,15 @@ mod tests {
         // `<line>` drawn in the SVG at the computed x position.  Rather
         // than parse SVG geometry, check that both the viscosity and
         // shear-rate line_style colours appear in the SVG stroke stream.
-        let shear_color = ranges.individual_axes.iter()
+        let shear_color = ranges
+            .individual_axes
+            .iter()
             .find(|a| a.metric == "shear_rate")
             .map(|a| a.color_hex.clone())
             .expect("shear_rate axis must exist");
-        let visc_color = ranges.individual_axes.iter()
+        let visc_color = ranges
+            .individual_axes
+            .iter()
             .find(|a| a.metric == "viscosity")
             .map(|a| a.color_hex.clone())
             .expect("viscosity axis must exist");

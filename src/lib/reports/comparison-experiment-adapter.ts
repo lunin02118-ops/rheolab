@@ -14,11 +14,17 @@
  * @module reports/comparison-experiment-adapter
  */
 
-import type { Experiment, ColumnarData, WaterParams } from '@/types';
+import type {
+    Experiment,
+    ColumnarData,
+    RheologyParameterRow,
+    RheologyParameterSource,
+    WaterParams,
+} from '@/types';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import type { RecipeComponent } from '@/lib/parsing/types';
 import type { ReportBuildContext } from '@/lib/reports/report-builders';
-import { mapRawData, mapCycleResults } from '@/lib/reports/report-builders';
+import { mapRawData, mapCycleResults, mapRheologyParameterRows } from '@/lib/reports/report-builders';
 import { columnarToRawPoints, tauriRawRecordsToColumnar } from '@/lib/utils/columnar';
 import { analyzeData } from '@/lib/analysis/client';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
@@ -189,6 +195,40 @@ function extractWaterParams(exp: Experiment): Partial<WaterParams> | null {
     };
 }
 
+function isRheologySource(value: unknown): value is RheologyParameterSource {
+    return value === 'instrument' || value === 'program';
+}
+
+function extractRheologyRows(
+    record: Record<string, unknown>,
+    source: RheologyParameterSource,
+): RheologyParameterRow[] {
+    const storedRows = Array.isArray(record.rheologyParameters)
+        ? record.rheologyParameters
+        : [];
+
+    if (storedRows.length > 0) {
+        return storedRows
+            .filter((row): row is RheologyParameterRow => {
+                if (!row || typeof row !== 'object') return false;
+                return (row as { source?: unknown }).source === source;
+            })
+            .map((row) => ({ ...row, source }));
+    }
+
+    if (source !== 'instrument' || !Array.isArray(record.instrumentRheology)) {
+        return [];
+    }
+
+    return record.instrumentRheology
+        .filter((row): row is RheologyParameterRow => {
+            if (!row || typeof row !== 'object') return false;
+            const rowSource = (row as { source?: unknown }).source;
+            return rowSource === undefined || rowSource === 'instrument';
+        })
+        .map((row) => ({ ...row, source: 'instrument' }));
+}
+
 function extractCalibration(exp: Experiment): StoredCalibrationLite | undefined {
     const raw = safeRecord((exp as Record<string, unknown>).calibration);
     if (Object.keys(raw).length === 0) return undefined;
@@ -223,6 +263,7 @@ export interface ComparisonExperimentContextOverrides {
     showRecipe: boolean;
     showWaterAnalysis: boolean;
     showRheology: boolean;
+    rheologySourceOverride?: RheologyParameterSource;
     showTouchPoints: boolean;
     viscosityThreshold: number;
     showTargetTime: boolean;
@@ -273,6 +314,25 @@ export async function experimentToReportBuildContext(
     let cycleResultsMapped: ReportBuildContext['cycleResultsMapped'] = [];
     let cycles: ReportBuildContext['cycles'] = [];
 
+    const savedSource = isRheologySource(record.rheologySource)
+        ? record.rheologySource
+        : undefined;
+    const effectiveRheologySource = overrides.rheologySourceOverride ?? savedSource ?? 'program';
+    if (effectiveRheologySource === 'instrument') {
+        const instrumentRows = extractRheologyRows(record, 'instrument');
+        if (instrumentRows.length === 0) {
+            throw new Error(
+                `Для эксперимента "${exp.name || exp.id}" выбрана реология прибора, но таблица реологических расчётов не найдена.`,
+            );
+        }
+        cycleResultsMapped = mapRheologyParameterRows(instrumentRows);
+    } else {
+        const programRows = extractRheologyRows(record, 'program');
+        if (programRows.length > 0) {
+            cycleResultsMapped = mapRheologyParameterRows(programRows);
+        }
+    }
+
     if (columnar) {
         try {
             const geometryKey =
@@ -307,7 +367,9 @@ export async function experimentToReportBuildContext(
             const cached = analysisCacheGet(cacheKey);
             if (cached) {
                 cycles = cached.cycles;
-                cycleResultsMapped = cached.cycleResultsMapped;
+                if (cycleResultsMapped.length === 0) {
+                    cycleResultsMapped = cached.cycleResultsMapped;
+                }
             } else {
                 const rheoPoints = columnarToRheoPoints(columnar);
 
@@ -336,8 +398,11 @@ export async function experimentToReportBuildContext(
                 );
 
                 cycles = result.cycles;
-                cycleResultsMapped = mapCycleResults(result.results);
-                analysisCacheSet(cacheKey, { cycles, cycleResultsMapped });
+                const analysisCycleResultsMapped = mapCycleResults(result.results);
+                if (cycleResultsMapped.length === 0) {
+                    cycleResultsMapped = analysisCycleResultsMapped;
+                }
+                analysisCacheSet(cacheKey, { cycles, cycleResultsMapped: analysisCycleResultsMapped });
             }
         } catch (e) {
             console.warn(`[comparison-adapter] analysis failed for ${exp.id}:`, e);
@@ -402,5 +467,6 @@ export async function experimentToReportBuildContext(
         showWaterAnalysis: overrides.showWaterAnalysis,
         reportViscosityRates: overrides.reportViscosityRates,
         isExpert: overrides.isExpert,
+        rheologySource: effectiveRheologySource,
     };
 }

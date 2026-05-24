@@ -6,13 +6,13 @@
 //! `if input.settings.show_*` blocks from the monolithic version into a
 //! single call site per series.
 
-use rust_xlsxwriter::{
-    Chart, ChartFont, ChartFormat, ChartLegendPosition, ChartLine, ChartLineDashType,
-    ChartMarker, ChartType, Color, Worksheet, XlsxError,
-};
-use super::super::types::{LineSettings, ReportInput};
 use super::super::formatters::time_axis_unit;
+use super::super::types::{LineSettings, ReportInput};
 use super::raw_data::RAW_DATA_START_COL;
+use rust_xlsxwriter::{
+    Chart, ChartFont, ChartFormat, ChartLegendPosition, ChartLine, ChartLineDashType, ChartMarker,
+    ChartType, Color, Worksheet, XlsxError,
+};
 
 // ── helpers ─────────────────────────────────────────────────────────────
 
@@ -99,7 +99,7 @@ fn add_series(
     secondary_axis: bool,
 ) {
     let start_col = RAW_DATA_START_COL as u16;
-    let data_col  = start_col + data_col_offset;
+    let data_col = start_col + data_col_offset;
     let series = chart.add_series();
     series
         .set_name(name)
@@ -127,10 +127,15 @@ pub(super) fn build_chart(
     last_row: u32,
 ) -> Result<(), XlsxError> {
     // Chart title - base name only (touch points shown in the table)
-    let title_text = if is_ru { "Вязкость vs Время" } else { "Viscosity vs Time" };
+    let title_text = if is_ru {
+        "Вязкость vs Время"
+    } else {
+        "Viscosity vs Time"
+    };
 
     let mut chart = Chart::new(ChartType::ScatterSmooth);
-    chart.title()
+    chart
+        .title()
         .set_name(title_text)
         .set_font(ChartFont::new().set_name("Arial").set_size(12));
 
@@ -139,7 +144,11 @@ pub(super) fn build_chart(
     // Excel pixel formula: pixels = floor(col_width_chars * 7) + 5
     //   Col A (width=15) → 15*7+5 = 110 px
     //   Other cols (width=10) → 10*7+5 = 75 px
-    let bingham_cols = if input.settings.show_advanced_stats { 3 } else { 0 };
+    let bingham_cols = if input.settings.show_advanced_stats {
+        3
+    } else {
+        0
+    };
     let stats_col_count = 9 + input.settings.viscosity_shear_rates.len() + bingham_cols;
     let chart_width = (110 + (stats_col_count - 1) * 75) as u32;
     chart.set_width(chart_width);
@@ -147,7 +156,10 @@ pub(super) fn build_chart(
 
     // Common gridline style
     let mut grid_line = ChartLine::new();
-    grid_line.set_color(Color::Black).set_transparency(80).set_width(0.5);
+    grid_line
+        .set_color(Color::Black)
+        .set_transparency(80)
+        .set_width(0.5);
 
     let line_settings = input.settings.line_settings.as_ref();
 
@@ -156,14 +168,22 @@ pub(super) fn build_chart(
     apply_line_style(
         &mut visc_line,
         line_settings.map(|ls| &ls.viscosity),
-        0x3B82F6, 2.0, None,
+        0x3B82F6,
+        2.0,
+        None,
     );
     add_series(
         &mut chart,
         sheet_name,
-        if is_ru { "Вязкость" } else { "Viscosity" },
+        if is_ru {
+            "Вязкость"
+        } else {
+            "Viscosity"
+        },
         /* data_col_offset = */ 1,
-        last_row, &visc_line, false,
+        last_row,
+        &visc_line,
+        false,
     );
 
     // ── Series 2: Temperature (secondary axis when shown) ───────────────
@@ -172,14 +192,22 @@ pub(super) fn build_chart(
         apply_line_style(
             &mut temp_line,
             line_settings.map(|ls| &ls.temperature),
-            0xEF4444, 1.5, Some(ChartLineDashType::Dash),
+            0xEF4444,
+            1.5,
+            Some(ChartLineDashType::Dash),
         );
         add_series(
             &mut chart,
             sheet_name,
-            if is_ru { "Температура" } else { "Temperature" },
+            if is_ru {
+                "Температура"
+            } else {
+                "Temperature"
+            },
             /* data_col_offset = */ 2,
-            last_row, &temp_line, true,
+            last_row,
+            &temp_line,
+            true,
         );
     }
 
@@ -190,7 +218,9 @@ pub(super) fn build_chart(
         apply_line_style(
             &mut sr_line,
             line_settings.map(|ls| &ls.shear_rate),
-            0xA855F7, 0.75, None,
+            0xA855F7,
+            0.75,
+            None,
         );
         if line_settings.is_none() {
             // Preserve original transparency behaviour when no user-style given
@@ -199,9 +229,15 @@ pub(super) fn build_chart(
         add_series(
             &mut chart,
             sheet_name,
-            if is_ru { "Скорость сдвига" } else { "Shear Rate" },
+            if is_ru {
+                "Скорость сдвига"
+            } else {
+                "Shear Rate"
+            },
             /* data_col_offset = */ 3,
-            last_row, &sr_line, is_right,
+            last_row,
+            &sr_line,
+            is_right,
         );
     }
 
@@ -212,14 +248,22 @@ pub(super) fn build_chart(
         apply_line_style(
             &mut pressure_line,
             line_settings.map(|ls| &ls.pressure),
-            0x22C55E, 1.5, Some(ChartLineDashType::RoundDot),
+            0x22C55E,
+            1.5,
+            Some(ChartLineDashType::RoundDot),
         );
         add_series(
             &mut chart,
             sheet_name,
-            if is_ru { "Давление" } else { "Pressure" },
+            if is_ru {
+                "Давление"
+            } else {
+                "Pressure"
+            },
             /* data_col_offset = */ 6,
-            last_row, &pressure_line, is_right,
+            last_row,
+            &pressure_line,
+            is_right,
         );
     }
 
@@ -229,16 +273,24 @@ pub(super) fn build_chart(
         apply_line_style(
             &mut bath_line,
             line_settings.map(|ls| &ls.temperature),
-            0xF97316, 1.5, Some(ChartLineDashType::Dash),
+            0xF97316,
+            1.5,
+            Some(ChartLineDashType::Dash),
         );
         // Force dash style override even when user-style provided
         bath_line.set_dash_type(ChartLineDashType::Dash);
         add_series(
             &mut chart,
             sheet_name,
-            if is_ru { "Темп. бани" } else { "Bath Temp" },
+            if is_ru {
+                "Темп. бани"
+            } else {
+                "Bath Temp"
+            },
             /* data_col_offset = */ 7,
-            last_row, &bath_line, true,
+            last_row,
+            &bath_line,
+            true,
         );
     }
 
@@ -259,9 +311,10 @@ pub(super) fn build_chart(
     };
     let x_num_format = match time_format {
         "hh:mm:ss" => "[h]:mm:ss",
-        _          => "0", // minutes, seconds, and any unknown value
+        _ => "0", // minutes, seconds, and any unknown value
     };
-    chart.x_axis()
+    chart
+        .x_axis()
         .set_name(&x_axis_name)
         .set_num_format(x_num_format)
         .set_min(0.0)
@@ -271,15 +324,31 @@ pub(super) fn build_chart(
 
     // Left axis — dynamic label
     let mut left_axis_parts = Vec::new();
-    left_axis_parts.push(if is_ru { "Вязкость (сП)" } else { "Viscosity (cP)" });
-    if input.settings.show_shear_rate && input.settings.shear_rate_axis.trim().to_lowercase() == "left" {
-        left_axis_parts.push(if is_ru { "Скорость сдвига (1/с)" } else { "Shear Rate (1/s)" });
+    left_axis_parts.push(if is_ru {
+        "Вязкость (сП)"
+    } else {
+        "Viscosity (cP)"
+    });
+    if input.settings.show_shear_rate
+        && input.settings.shear_rate_axis.trim().to_lowercase() == "left"
+    {
+        left_axis_parts.push(if is_ru {
+            "Скорость сдвига (1/с)"
+        } else {
+            "Shear Rate (1/s)"
+        });
     }
-    if input.settings.show_pressure && input.settings.pressure_axis.trim().to_lowercase() == "left" {
-        left_axis_parts.push(if is_ru { "Давление (бар)" } else { "Pressure (bar)" });
+    if input.settings.show_pressure && input.settings.pressure_axis.trim().to_lowercase() == "left"
+    {
+        left_axis_parts.push(if is_ru {
+            "Давление (бар)"
+        } else {
+            "Pressure (bar)"
+        });
     }
     let y_axis_name = left_axis_parts.join(" / ");
-    chart.y_axis()
+    chart
+        .y_axis()
         .set_name(&y_axis_name)
         .set_num_format("0")
         .set_major_gridlines(true)
@@ -288,22 +357,39 @@ pub(super) fn build_chart(
     // Right axis — only when something is plotted on it
     let mut right_axis_parts = Vec::new();
     if input.settings.show_temperature {
-        right_axis_parts.push(if is_ru { "Температура (°C)" } else { "Temperature (C)" });
+        right_axis_parts.push(if is_ru {
+            "Температура (°C)"
+        } else {
+            "Temperature (C)"
+        });
     }
-    if input.settings.show_shear_rate && input.settings.shear_rate_axis.trim().to_lowercase() != "left" {
-        right_axis_parts.push(if is_ru { "Скорость сдвига (1/с)" } else { "Shear Rate (1/s)" });
+    if input.settings.show_shear_rate
+        && input.settings.shear_rate_axis.trim().to_lowercase() != "left"
+    {
+        right_axis_parts.push(if is_ru {
+            "Скорость сдвига (1/с)"
+        } else {
+            "Shear Rate (1/s)"
+        });
     }
-    if input.settings.show_pressure && input.settings.pressure_axis.trim().to_lowercase() != "left" {
-        right_axis_parts.push(if is_ru { "Давление (бар)" } else { "Pressure (bar)" });
+    if input.settings.show_pressure && input.settings.pressure_axis.trim().to_lowercase() != "left"
+    {
+        right_axis_parts.push(if is_ru {
+            "Давление (бар)"
+        } else {
+            "Pressure (bar)"
+        });
     }
     if has_bath && input.settings.show_bath_temperature {
-        right_axis_parts.push(if is_ru { "Темп. бани (°C)" } else { "Bath Temp (C)" });
+        right_axis_parts.push(if is_ru {
+            "Темп. бани (°C)"
+        } else {
+            "Bath Temp (C)"
+        });
     }
     if !right_axis_parts.is_empty() {
         let y2_axis_name = right_axis_parts.join(" / ");
-        chart.y2_axis()
-            .set_name(&y2_axis_name)
-            .set_num_format("0");
+        chart.y2_axis().set_name(&y2_axis_name).set_num_format("0");
     }
 
     chart.legend().set_position(ChartLegendPosition::Bottom);

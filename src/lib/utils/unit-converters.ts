@@ -13,10 +13,13 @@
  */
 
 import type {
+    ConsistencyUnit,
+    PlasticViscosityUnit,
     ViscosityUnit,
     TemperatureUnit,
     PressureUnit,
     LineUnit,
+    YieldPointUnit,
 } from '@/lib/store/chart-settings-types';
 
 // ── Viscosity (base: mPa·s) ────────────────────────────────────────────
@@ -49,6 +52,58 @@ export function viscosityToCp(displayValue: number, unit: ViscosityUnit): number
 
 export function viscosityDecimals(unit: ViscosityUnit): number {
     return unit === 'Pa·s' ? 4 : 1;
+}
+
+// ── Rheology model parameters ──────────────────────────────────────────
+
+const PA_TO_LBF_PER_100FT2 = 2.0885;
+
+/**
+ * Convert consistency index values stored in Pa·s^n to the selected display
+ * unit. K', Ks and Kp all share the same stress·time^n dimension.
+ */
+export function convertConsistencyIndex(valuePaSn: number, unit: ConsistencyUnit): number {
+    switch (unit) {
+        case 'lbf·s^n/100ft²':
+            return valuePaSn * PA_TO_LBF_PER_100FT2;
+        case 'Pa·s^n':
+        default:
+            return valuePaSn;
+    }
+}
+
+export function consistencyDecimals(_unit: ConsistencyUnit): number {
+    return 4;
+}
+
+/** Convert plastic viscosity stored in Pa·s to the selected display unit. */
+export function convertPlasticViscosity(valuePaS: number, unit: PlasticViscosityUnit): number {
+    switch (unit) {
+        case 'cP':
+            return valuePaS * 1000;
+        case 'Pa·s':
+        default:
+            return valuePaS;
+    }
+}
+
+export function plasticViscosityDecimals(unit: PlasticViscosityUnit): number {
+    return unit === 'cP' ? 1 : 4;
+}
+
+/** Convert yield point stored in Pa to the selected display unit. */
+export function convertYieldPoint(valuePa: number, unit: YieldPointUnit): number {
+    switch (unit) {
+        case 'lbf/100ft²':
+            return valuePa * PA_TO_LBF_PER_100FT2;
+        case 'Pa':
+        default:
+            return valuePa;
+    }
+}
+
+export function yieldPointDecimals(_unit: YieldPointUnit): number {
+    return 2;
 }
 
 // ── Temperature (base: °C) ──────────────────────────────────────────────

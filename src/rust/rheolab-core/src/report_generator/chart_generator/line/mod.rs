@@ -8,9 +8,9 @@
 //!
 //! Both share upstream LTTB downsampling and the common types/helpers in
 //! [`super::common`].
-mod shared;
 mod individual;
 pub mod multi_experiment;
+mod shared;
 
 pub use multi_experiment::{generate_multi_experiment_chart_svg, ExperimentSeries};
 

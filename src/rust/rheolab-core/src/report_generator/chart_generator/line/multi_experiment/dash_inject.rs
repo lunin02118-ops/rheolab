@@ -70,13 +70,23 @@ pub(super) fn inject_series_dasharray(
     while cursor < bytes.len() {
         // Find the next `<polyline` or `<path` opening tag — whichever
         // comes first.  Everything before it is copied verbatim.
-        let next_poly = svg[cursor..].find("<polyline").map(|i| (cursor + i, "<polyline".len()));
-        let next_path = svg[cursor..].find("<path").map(|i| (cursor + i, "<path".len()));
+        let next_poly = svg[cursor..]
+            .find("<polyline")
+            .map(|i| (cursor + i, "<polyline".len()));
+        let next_path = svg[cursor..]
+            .find("<path")
+            .map(|i| (cursor + i, "<path".len()));
         let (tag_start, tag_name_len) = match (next_poly, next_path) {
-            (Some(p), Some(q)) => if p.0 <= q.0 { p } else { q },
-            (Some(p), None)    => p,
-            (None,    Some(q)) => q,
-            (None,    None)    => {
+            (Some(p), Some(q)) => {
+                if p.0 <= q.0 {
+                    p
+                } else {
+                    q
+                }
+            }
+            (Some(p), None) => p,
+            (None, Some(q)) => q,
+            (None, None) => {
                 result.push_str(&svg[cursor..]);
                 break;
             }
@@ -89,7 +99,9 @@ pub(super) fn inject_series_dasharray(
         // Both polyline and path emitted by plotters are self-closing,
         // i.e. end in `/>`; we fall back to `>` defensively.
         let attr_start = tag_start + tag_name_len;
-        let close_rel = svg[attr_start..].find('>').unwrap_or(svg.len() - attr_start - 1);
+        let close_rel = svg[attr_start..]
+            .find('>')
+            .unwrap_or(svg.len() - attr_start - 1);
         let close_pos = attr_start + close_rel; // index of '>' in svg
 
         // `attrs` covers everything between the tag name and the closing
@@ -103,7 +115,7 @@ pub(super) fn inject_series_dasharray(
                 let dasharray = match style {
                     "dashed" => Some("8,4"),
                     "dotted" => Some("0.1,6"),
-                    _        => None,
+                    _ => None,
                 };
                 if let Some(d) = dasharray {
                     dash_inject = Some(if style == "dotted" {

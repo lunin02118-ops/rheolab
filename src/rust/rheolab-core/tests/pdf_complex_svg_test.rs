@@ -1,7 +1,7 @@
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use rheolab_core::report_generator::generate_pdf_report;
 use std::fs::File;
 use std::io::Write;
-use base64::{Engine as _, engine::general_purpose::STANDARD};
 
 #[test]
 fn test_pdf_with_recharts_like_svg() {
@@ -71,7 +71,8 @@ fn test_pdf_with_recharts_like_svg() {
     let chart_image = format!("data:image/svg+xml;base64,{}", svg_base64);
 
     // Construct JSON input with realistic data
-    let json_input = format!(r#"{{
+    let json_input = format!(
+        r#"{{
         "metadata": {{
             "filename": "complex_chart_test",
             "test_date": "2024-01-15",
@@ -128,24 +129,33 @@ fn test_pdf_with_recharts_like_svg() {
             }}
         ],
         "chart_image_base64": "{}"
-    }}"#, chart_image);
+    }}"#,
+        chart_image
+    );
 
     println!("Generating PDF with complex Recharts-like SVG chart...");
     println!("SVG content length: {} bytes", svg_content.len());
-    
+
     let result = generate_pdf_report(&json_input);
-    
+
     match result {
         Ok(pdf_bytes) => {
             let output_path = "test_output_complex_svg.pdf";
             let mut file = File::create(output_path).expect("Failed to create file");
             file.write_all(&pdf_bytes).expect("Failed to write PDF");
-            println!("PDF generated successfully: {} ({} bytes)", output_path, pdf_bytes.len());
-            
+            println!(
+                "PDF generated successfully: {} ({} bytes)",
+                output_path,
+                pdf_bytes.len()
+            );
+
             // Verify PDF header
             assert!(pdf_bytes.starts_with(b"%PDF-"), "Output is not a valid PDF");
-            assert!(pdf_bytes.len() > 10000, "PDF seems too small, chart may not be embedded");
-        },
+            assert!(
+                pdf_bytes.len() > 10000,
+                "PDF seems too small, chart may not be embedded"
+            );
+        }
         Err(e) => {
             panic!("PDF generation failed: {}", e);
         }
