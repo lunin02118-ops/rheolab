@@ -57,9 +57,7 @@ fn try_parse_calibration_from_text(data: &[u8]) -> Result<CalibrationReport, Str
             } else {
                 ','
             };
-            line.split(delimiter)
-                .map(normalize_cell)
-                .collect()
+            line.split(delimiter).map(normalize_cell).collect()
         })
         .collect();
 

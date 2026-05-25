@@ -419,19 +419,23 @@ pub(crate) fn build_single_experiment_body(
     let raw_data_page = raw_data::build_raw_data_page(input, is_ru);
 
     // ── 8. Ramp block (above stats table) ────────────────────────────────
-    let ramp_block = if let Some(ramp) = build_ramp_string(&input.cycles) {
-        let ramp_label = if is_ru {
-            "Скорость сдвига"
-        } else {
-            "Shear Rate"
-        };
-        format!(
-            r##"
+    let ramp_block = if input.settings.rheology_source.as_str() != "instrument" {
+        if let Some(ramp) = build_ramp_string(&input.cycles) {
+            let ramp_label = if is_ru {
+                "Скорость сдвига"
+            } else {
+                "Shear Rate"
+            };
+            format!(
+                r##"
             #text(size: 8pt, weight: "bold", fill: rgb("#0F172A"))[{}: {} (1/s)]
             #v(5pt)
         "##,
-            ramp_label, ramp
-        )
+                ramp_label, ramp
+            )
+        } else {
+            String::new()
+        }
     } else {
         String::new()
     };

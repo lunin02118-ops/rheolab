@@ -335,20 +335,22 @@ pub(super) fn parse_workbook<R: Read + Seek>(
     let mut global_geometry: Option<String> = None;
     for sheet_name in &sheet_names {
         if let Some(Ok(range)) = workbook.worksheet_range(sheet_name) {
-            let rows: Vec<Vec<String>> = normalize_rows(range
-                .rows()
-                .take(50)
-                .map(|row| {
-                    row.iter()
-                        .map(|c| match c {
-                            calamine::DataType::String(v) => v.clone(),
-                            calamine::DataType::Int(v) => v.to_string(),
-                            calamine::DataType::Float(v) => v.to_string(),
-                            _ => "".to_string(),
-                        })
-                        .collect::<Vec<String>>()
-                })
-                .collect());
+            let rows: Vec<Vec<String>> = normalize_rows(
+                range
+                    .rows()
+                    .take(50)
+                    .map(|row| {
+                        row.iter()
+                            .map(|c| match c {
+                                calamine::DataType::String(v) => v.clone(),
+                                calamine::DataType::Int(v) => v.to_string(),
+                                calamine::DataType::Float(v) => v.to_string(),
+                                _ => "".to_string(),
+                            })
+                            .collect::<Vec<String>>()
+                    })
+                    .collect(),
+            );
             if let Some(geo) = detect_geometry(&rows) {
                 global_geometry = Some(geo);
                 break;

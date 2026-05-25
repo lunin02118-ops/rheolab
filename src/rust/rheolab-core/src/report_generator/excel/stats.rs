@@ -18,6 +18,10 @@ use super::super::types::{ReportInput, TouchPoint};
 use super::styles::Styles;
 use rust_xlsxwriter::{Worksheet, XlsxError};
 
+fn should_render_rheology_ramp(input: &ReportInput) -> bool {
+    input.settings.rheology_source.as_str() != "instrument"
+}
+
 pub(super) fn write_touch_points_table(
     sheet: &mut Worksheet,
     touch_points: &[TouchPoint],
@@ -114,16 +118,21 @@ pub(super) fn write_statistics(
     sheet.write_string(*row, 0, &format!("{}: {}", source_label, source_value))?;
     *row += 1;
 
-    // Ramp info
-    if let Some(ramp) = build_ramp_string(&input.cycles) {
-        let ramp_label = if is_ru {
-            "Скорость сдвига"
-        } else {
-            "Shear Rate"
-        };
-        let ramp_text = format!("{}: {} (1/s)", ramp_label, ramp);
-        sheet.write_string(*row, 0, &ramp_text)?;
-        *row += 1;
+    // Ramp info belongs only to program-calculated rheology. Instrument
+    // reports do not expose the exact steps used by the device for its
+    // internal rheology table, so showing UI-detected cycles here would be
+    // misleading.
+    if should_render_rheology_ramp(input) {
+        if let Some(ramp) = build_ramp_string(&input.cycles) {
+            let ramp_label = if is_ru {
+                "Скорость сдвига"
+            } else {
+                "Shear Rate"
+            };
+            let ramp_text = format!("{}: {} (1/s)", ramp_label, ramp);
+            sheet.write_string(*row, 0, &ramp_text)?;
+            *row += 1;
+        }
     }
 
     // ── Headers ────────────────────────────────────────────────────────
@@ -321,4 +330,42 @@ pub(super) fn write_statistics(
         *row += 1;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::report_generator::types::{ReportInput, ReportMetadata, ReportSettings};
+
+    fn input_with_source(source: &str) -> ReportInput {
+        ReportInput {
+            raw_data: vec![],
+            metadata: ReportMetadata {
+                filename: "test.xlsx".to_string(),
+                ..Default::default()
+            },
+            cycle_results: vec![],
+            recipe: vec![],
+            water_params: None,
+            cycles: vec![],
+            settings: ReportSettings {
+                rheology_source: source.to_string(),
+                ..ReportSettings::default()
+            },
+            chart_image_base64: None,
+            axis_values: None,
+        }
+    }
+
+    #[test]
+    fn instrument_source_suppresses_rheology_ramp() {
+        assert!(!should_render_rheology_ramp(&input_with_source(
+            "instrument"
+        )));
+    }
+
+    #[test]
+    fn program_source_keeps_rheology_ramp() {
+        assert!(should_render_rheology_ramp(&input_with_source("program")));
+    }
 }

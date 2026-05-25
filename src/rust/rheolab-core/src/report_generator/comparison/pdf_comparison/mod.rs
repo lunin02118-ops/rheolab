@@ -155,7 +155,9 @@ pub(crate) fn build_comparison_typst_source(
 
 #[cfg(test)]
 pub(super) mod tests {
-    use super::super::super::types::{DataPoint, ReportInput, ReportMetadata, ReportSettings};
+    use super::super::super::types::{
+        CycleInfo, DataPoint, ReportInput, ReportMetadata, ReportSettings, StepInfo,
+    };
     use super::super::types::{
         ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics, SectionToggles,
         TouchPointConfig,
@@ -249,6 +251,26 @@ pub(super) mod tests {
             report_input: input,
             section_toggles: SectionToggles::default(),
         }
+    }
+
+    fn mk_rheology_input(test_id: &str, source: &str) -> ReportInput {
+        let mut input = mk_input(test_id, 3);
+        input.settings.rheology_source = source.to_string();
+        input.cycles = vec![CycleInfo {
+            cycle_type: "API".to_string(),
+            steps: vec![
+                StepInfo {
+                    avg_shear_rate: 75.0,
+                },
+                StepInfo {
+                    avg_shear_rate: 50.0,
+                },
+                StepInfo {
+                    avg_shear_rate: 25.0,
+                },
+            ],
+        }];
+        input
     }
 
     pub(super) fn mk_input_full(entries: Vec<ComparisonExperimentEntry>) -> ComparisonReportInput {
@@ -391,6 +413,54 @@ pub(super) mod tests {
 
         // Body markers should be present 3×.
         assert_eq!(src.matches("// --- Page 1 Content ---").count(), 3);
+    }
+
+    #[test]
+    fn comparison_hides_rheology_cycle_steps_for_instrument_source() {
+        let mut entry = mk_entry(
+            "e1",
+            "Instrument Exp",
+            mk_rheology_input("T-INST", "instrument"),
+        );
+        entry.section_toggles.show_rheology = true;
+        let entries = vec![entry];
+        let mut input = mk_input_full(entries);
+        input.language = "ru".into();
+
+        let (src, _) = build_comparison_typst_source(&input).expect("build source");
+
+        assert!(
+            src.contains("Источник данных:"),
+            "comparison report must still show the rheology data source"
+        );
+        assert!(
+            src.contains("Прибор"),
+            "comparison report must label instrument rheology source"
+        );
+        assert!(
+            !src.contains("75 - 50 - 25"),
+            "instrument rheology in comparison report must not show UI-detected cycle steps"
+        );
+    }
+
+    #[test]
+    fn comparison_keeps_rheology_cycle_steps_for_program_source() {
+        let mut entry = mk_entry("e1", "Program Exp", mk_rheology_input("T-PROG", "program"));
+        entry.section_toggles.show_rheology = true;
+        let entries = vec![entry];
+        let mut input = mk_input_full(entries);
+        input.language = "ru".into();
+
+        let (src, _) = build_comparison_typst_source(&input).expect("build source");
+
+        assert!(
+            src.contains("Скорость сдвига"),
+            "program-calculated rheology in comparison report should show calculation steps"
+        );
+        assert!(
+            src.contains("75 - 50 - 25"),
+            "program-calculated rheology in comparison report should show the cycle ramp"
+        );
     }
 
     #[test]

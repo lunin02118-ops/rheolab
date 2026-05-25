@@ -1,6 +1,6 @@
 //! Determinism + assembly-shape tests for the template builders.
 
-use super::super::super::types::{DataPoint, ReportMetadata, ReportSettings};
+use super::super::super::types::{CycleInfo, DataPoint, ReportMetadata, ReportSettings, StepInfo};
 use super::*;
 
 fn minimal_report_input() -> ReportInput {
@@ -40,6 +40,25 @@ fn minimal_report_input() -> ReportInput {
         chart_image_base64: None,
         axis_values: None,
     }
+}
+
+fn input_with_rheology_cycle() -> ReportInput {
+    let mut input = minimal_report_input();
+    input.cycles = vec![CycleInfo {
+        cycle_type: "API".to_string(),
+        steps: vec![
+            StepInfo {
+                avg_shear_rate: 75.0,
+            },
+            StepInfo {
+                avg_shear_rate: 50.0,
+            },
+            StepInfo {
+                avg_shear_rate: 25.0,
+            },
+        ],
+    }];
+    input
 }
 
 /// Determinism: running `generate_typst_template` twice must produce
@@ -125,6 +144,44 @@ fn body_prints_rheology_data_source() {
     assert!(
         body.contains("Прибор"),
         "instrument source must be visible in the report"
+    );
+}
+
+#[test]
+fn body_hides_rheology_cycle_steps_for_instrument_source() {
+    let mut input = input_with_rheology_cycle();
+    input.settings.rheology_source = "instrument".to_string();
+
+    let body = build_single_experiment_body(&input, false, None, None, true);
+
+    assert!(
+        body.contains("Источник данных:"),
+        "instrument report must still show the rheology data source"
+    );
+    assert!(
+        !body.contains("Скорость сдвига"),
+        "instrument rheology must not show UI-detected cycle steps"
+    );
+    assert!(
+        !body.contains("75 - 50 - 25"),
+        "instrument rheology must not show the program cycle ramp"
+    );
+}
+
+#[test]
+fn body_keeps_rheology_cycle_steps_for_program_source() {
+    let mut input = input_with_rheology_cycle();
+    input.settings.rheology_source = "program".to_string();
+
+    let body = build_single_experiment_body(&input, false, None, None, true);
+
+    assert!(
+        body.contains("Скорость сдвига"),
+        "program-calculated rheology should show the selected calculation steps"
+    );
+    assert!(
+        body.contains("75 - 50 - 25"),
+        "program-calculated rheology should show the cycle ramp"
     );
 }
 
