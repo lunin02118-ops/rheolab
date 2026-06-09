@@ -70,13 +70,19 @@ test.describe('Library — Filters', () => {
     await library.expectLoaded();
     await library.expectFiltersVisible();
 
-    // Check all filter inputs exist
+    // Filter inputs live inside collapsible groups that start collapsed on
+    // mount, so each group must be expanded before its inputs are visible.
+    await library.ensureFilterGroupOpen('Поиск', library.searchInput);
     await expect(library.searchInput).toBeVisible();
     await expect(library.nameFilter).toBeVisible();
+
+    await library.ensureFilterGroupOpen('Локация и объект', library.fieldFilter);
     await expect(library.fieldFilter).toBeVisible();
-    await expect(library.operatorFilter).toBeVisible();
     await expect(library.wellFilter).toBeVisible();
     await expect(library.waterFilter).toBeVisible();
+
+    await library.ensureFilterGroupOpen('Параметры теста', library.operatorFilter);
+    await expect(library.operatorFilter).toBeVisible();
   });
 
   test('library_search_filters_experiments', async ({ library }) => {
@@ -176,6 +182,9 @@ test.describe('Library — Fluid type filter', () => {
     await library.goto();
     await library.expectLoaded();
 
+    // The fluid type filter lives in the collapsible "Параметры теста" group.
+    await library.ensureFilterGroupOpen('Параметры теста', library.fluidTypeFilter);
+
     // The fluid type filter select must be present
     await expect(library.fluidTypeFilter).toBeVisible({ timeout: 10_000 });
 
@@ -210,7 +219,8 @@ test.describe('Library — Fluid type filter', () => {
     await library.goto();
     await library.expectLoaded();
 
-    // Open fluid type filter
+    // Open fluid type filter (inside the collapsible "Параметры теста" group)
+    await library.ensureFilterGroupOpen('Параметры теста', library.fluidTypeFilter);
     await library.fluidTypeFilter.click();
     await page.waitForTimeout(400);
 
@@ -232,6 +242,9 @@ test.describe('Library — Fluid type filter', () => {
   test('library_instrument_type_filter_visible', async ({ library }) => {
     await library.goto();
     await library.expectLoaded();
+
+    // The instrument type filter lives in the collapsible "Параметры теста" group.
+    await library.ensureFilterGroupOpen('Параметры теста', library.instrumentTypeFilter);
 
     // The instrument type filter must also be present
     await expect(library.instrumentTypeFilter).toBeVisible({ timeout: 10_000 });
