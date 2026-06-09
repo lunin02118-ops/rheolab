@@ -295,6 +295,47 @@ run(
     `Promoting ${CHANNEL}.json.tmp → ${CHANNEL}.json (atomic)`,
 );
 
+// ── 6. Prune stale artifacts ─────────────────────────────────────────────────
+// Policy: the server keeps ONLY the installer versions that are still referenced
+// by a live channel manifest (alpha/beta/stable). Since every published release
+// updates the channel manifests, this normally collapses to just the newest
+// build — so old versions can never be downloaded (directly or via cache) and
+// speak a dead protocol. The just-published version is always kept as a safety
+// net even if a manifest fails to parse, and the prune aborts (deleting nothing)
+// if it cannot resolve any version to keep.
+const prunePy = `
+import json, os, glob, shutil, sys
+UPD = "/var/www/license-server/releases/v1/update/windows-x86_64"
+ART = "/var/www/license-server/releases/artifacts"
+keep = set()
+for f in glob.glob(os.path.join(UPD, "*.json")):
+    try:
+        with open(f) as fh:
+            v = str(json.load(fh).get("version", "")).strip()
+        if v:
+            keep.add(v)
+    except Exception as e:
+        print("[prune] WARN could not parse", f, e)
+keep.add("${version}")
+keep.discard("")
+if not keep:
+    print("[prune] ABORT: no versions resolved to keep; deleting nothing")
+    sys.exit(1)
+print("[prune] keeping:", sorted(keep))
+removed = []
+for name in sorted(os.listdir(ART)):
+    p = os.path.join(ART, name)
+    if os.path.isdir(p) and name not in keep:
+        shutil.rmtree(p)
+        removed.append(name)
+print("[prune] removed:", removed if removed else "(none)")
+`;
+const pruneB64 = Buffer.from(prunePy, 'utf-8').toString('base64');
+run(
+    `ssh ${SSH_OPTS} ${HOST} "echo ${pruneB64} | base64 -d | python3"`,
+    'Pruning stale artifacts (keep only versions referenced by channel manifests)',
+);
+
 // ── Done + smoke test ───────────────────────────────────────────────────────────────────
 console.log(`
 ✅  Published v${version} [${CHANNEL}]${DRY_RUN ? ' (DRY RUN — nothing was actually uploaded)' : ''}
