@@ -336,7 +336,7 @@ export type LicenseStatus =
  * ships a build to `alpha`, validates it on their machine, then promotes it
  * to `beta`; once the dev team confirms, it moves to `stable`.
  */
-export type LicenseType = "trial" | "corporate" | "developer" |
+export type LicenseType = "trial" | "corporate" | "developer" | 
 /**
  * Top-tier personal licence for the project owner. Receives builds on
  * the `alpha` channel before Developer licences see them on `beta`.
@@ -503,10 +503,11 @@ crossingViscosityMaxCp: number | null;
 /**
  * Observed minimum of `touchViscosityAtTargetCp` in centipoise.
  */
-viscosityAtTargetMinCp: number | null;
+viscosityAtTargetMinCp: number | null; 
 /**
  * Observed maximum of `touchViscosityAtTargetCp` in centipoise.
  */
 viscosityAtTargetMaxCp: number | null }
 
 export type WaterSourcesResponse = { waterSources: string[] }
+
