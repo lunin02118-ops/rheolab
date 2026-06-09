@@ -31,10 +31,13 @@ impl BootstrapPaths {
         let backups_dir = app_data_dir.join("backups");
         std::fs::create_dir_all(&backups_dir)?;
 
+        #[cfg(any(debug_assertions, test))]
         let database_path = std::env::var("RHEOLAB_E2E_DB_PATH")
             .ok()
             .map(PathBuf::from)
             .unwrap_or_else(|| app_data_dir.join("rheolab.db"));
+        #[cfg(not(any(debug_assertions, test)))]
+        let database_path = app_data_dir.join("rheolab.db");
 
         Ok(Self {
             app_data_dir,

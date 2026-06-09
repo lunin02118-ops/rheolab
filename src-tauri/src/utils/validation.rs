@@ -159,6 +159,73 @@ pub fn validate_user_file_path(path_str: &str, must_exist: bool) -> Result<PathB
     Ok(path.to_path_buf())
 }
 
+/// Validate an existing user-selected import file using an allowlist.
+///
+/// This helper is intentionally stricter than `validate_user_file_path`: it
+/// canonicalizes the path, requires a regular file, enforces an extension
+/// allowlist, and applies a size cap. It is suitable for file-picker imports
+/// where the user may choose a file outside the application data directory.
+pub fn validate_existing_import_file(
+    path_str: &str,
+    allowed_extensions: &[&str],
+    max_bytes: u64,
+) -> Result<PathBuf> {
+    if path_str.is_empty() {
+        return Err(AppError::BadRequest("File path must not be empty".into()));
+    }
+    if path_str.contains('\0') {
+        return Err(AppError::BadRequest(
+            "File path must not contain null bytes".into(),
+        ));
+    }
+
+    let canonical = Path::new(path_str)
+        .canonicalize()
+        .map_err(|_| AppError::BadRequest("File not found".into()))?;
+
+    let metadata = canonical
+        .metadata()
+        .map_err(|_| AppError::BadRequest("Cannot read file metadata".into()))?;
+    if !metadata.is_file() {
+        return Err(AppError::BadRequest(
+            "Selected path must be a regular file".into(),
+        ));
+    }
+
+    let extension = canonical
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_ascii_lowercase());
+    let allowed = extension
+        .as_deref()
+        .map(|ext| {
+            allowed_extensions
+                .iter()
+                .any(|allowed| ext == allowed.trim_start_matches('.').to_ascii_lowercase())
+        })
+        .unwrap_or(false);
+    if !allowed {
+        let rendered = allowed_extensions
+            .iter()
+            .map(|ext| format!(".{}", ext.trim_start_matches('.')))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(AppError::BadRequest(format!(
+            "File must have one of the allowed extensions: {rendered}"
+        )));
+    }
+
+    if metadata.len() > max_bytes {
+        let mb = max_bytes / (1024 * 1024);
+        return Err(AppError::BadRequest(format!(
+            "File exceeds maximum allowed size of {} MB",
+            mb
+        )));
+    }
+
+    Ok(canonical)
+}
+
 // ── File size ────────────────────────────────────────────────────────────────
 
 /// Reject files larger than `max_bytes`.
@@ -306,6 +373,36 @@ mod tests {
     #[test]
     fn user_path_rejects_ssh_dir() {
         assert!(validate_user_file_path("/home/user/.ssh/id_rsa", false).is_err());
+    }
+
+    #[test]
+    fn import_file_accepts_allowed_extension() {
+        let tmp =
+            std::env::temp_dir().join(format!("_rheolab_import_ok_{}.json", std::process::id()));
+        std::fs::write(&tmp, "{}").unwrap();
+        let result = validate_existing_import_file(tmp.to_str().unwrap(), &["json"], 1024);
+        let _ = std::fs::remove_file(&tmp);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn import_file_rejects_unlisted_extension() {
+        let tmp =
+            std::env::temp_dir().join(format!("_rheolab_import_bad_{}.txt", std::process::id()));
+        std::fs::write(&tmp, "{}").unwrap();
+        let result = validate_existing_import_file(tmp.to_str().unwrap(), &["json"], 1024);
+        let _ = std::fs::remove_file(&tmp);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn import_file_rejects_oversized_file() {
+        let tmp =
+            std::env::temp_dir().join(format!("_rheolab_import_large_{}.json", std::process::id()));
+        std::fs::write(&tmp, vec![0u8; 1025]).unwrap();
+        let result = validate_existing_import_file(tmp.to_str().unwrap(), &["json"], 1024);
+        let _ = std::fs::remove_file(&tmp);
+        assert!(result.is_err());
     }
 
     // ── Path containment ─────────────────────────────────────────────

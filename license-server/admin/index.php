@@ -29,6 +29,7 @@ function validateCSRFToken(): bool {
 }
 
 const OFFLINE_REQUEST_PREFIX = 'RL-REQ1:';
+const LEGACY_ENTERPRISE_OFFLINE_REQUEST_PREFIX = 'RHEOLAB-OFFLINE-REQ-v1:';
 const OFFLINE_ACTIVATION_PREFIX = 'RL-ACT1:';
 
 function base64UrlDecode(string $value): string|false {
@@ -46,12 +47,21 @@ function base64UrlEncode(string $value): string {
 
 function decodeOfflineRequestCode(string $requestCode): array {
     $compact = preg_replace('/\s+/', '', trim($requestCode));
-    if (!str_starts_with($compact, OFFLINE_REQUEST_PREFIX)) {
+    $prefix = null;
+    foreach ([OFFLINE_REQUEST_PREFIX, LEGACY_ENTERPRISE_OFFLINE_REQUEST_PREFIX] as $candidate) {
+        if (str_starts_with($compact, $candidate)) {
+            $prefix = $candidate;
+            break;
+        }
+    }
+
+    if ($prefix === null) {
         throw new InvalidArgumentException(
             'Код запроса должен начинаться с ' . OFFLINE_REQUEST_PREFIX
+            . ' или ' . LEGACY_ENTERPRISE_OFFLINE_REQUEST_PREFIX
         );
     }
-    $encoded = substr($compact, strlen(OFFLINE_REQUEST_PREFIX));
+    $encoded = substr($compact, strlen($prefix));
     $json = base64UrlDecode($encoded);
     if ($json === false) {
         throw new InvalidArgumentException('Код запроса повреждён: не удалось декодировать base64url.');
@@ -67,7 +77,8 @@ function decodeOfflineRequestCode(string $requestCode): array {
         throw new InvalidArgumentException('В коде запроса нет корректного Machine ID.');
     }
 
-    if (($payload['requestType'] ?? '') !== 'corporate_offline_activation') {
+    $requestType = $payload['requestType'] ?? '';
+    if (!in_array($requestType, ['corporate_offline_activation', 'enterprise_offline_activation'], true)) {
         throw new InvalidArgumentException('Код запроса не является запросом корпоративной офлайн-активации.');
     }
 
@@ -93,7 +104,7 @@ function findExistingOfflineLicense(PDO $db, string $machineId): ?array {
 
 function createOfflineCorporateLicense(PDO $db, string $machineId, string $platform, string $appVersion): array {
     $customerName = 'Offline Corporate ' . substr($machineId, 0, 8);
-    $notes = 'Автоматически создана при офлайн-активации из RL-REQ1.';
+    $notes = 'Автоматически создана при офлайн-активации.';
 
     for ($attempt = 0; $attempt < 5; $attempt++) {
         $licenseKey = generateLicenseKey();
@@ -147,7 +158,7 @@ function buildOfflineActivationCode(array $license, array $request): string {
     $payload = buildSignedLicensePayload($license, $machineId);
     $payload['activationMode'] = 'offline';
     $payload['offlineAllowed'] = true;
-    $payload['fingerprintVersion'] = $request['fingerprintVersion'] ?? 2;
+    $payload['fingerprintVersion'] = $request['fingerprintVersion'] ?? $request['fingerpriontVersion'] ?? 2;
 
     $signed = signLicense($payload);
     $envelope = json_encode([
@@ -890,7 +901,7 @@ $revokedLicenseCount = count(array_filter(
                         <label>Код запроса клиента *</label>
                         <textarea
                             name="offline_request_code"
-                            placeholder="RL-REQ1:..."
+                            placeholder="RL-REQ1:... или RHEOLAB-OFFLINE-REQ-v1:..."
                             required
                         ><?= htmlspecialchars($offlineActivationRequestCode) ?></textarea>
                     </div>

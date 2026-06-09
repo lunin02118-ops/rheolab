@@ -852,6 +852,50 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn single_and_comparison_report_jobs_share_one_gate() {
+        let scheduler = Arc::new(JobScheduler::new());
+        let current = Arc::new(AtomicUsize::new(0));
+        let peak = Arc::new(AtomicUsize::new(0));
+
+        let first = {
+            let scheduler = Arc::clone(&scheduler);
+            let current = Arc::clone(&current);
+            let peak = Arc::clone(&peak);
+            tokio::spawn(async move {
+                scheduler
+                    .run_blocking(None, JobKind::SinglePdf, move |_ctx| {
+                        let now = current.fetch_add(1, Ordering::SeqCst) + 1;
+                        peak.fetch_max(now, Ordering::SeqCst);
+                        std::thread::sleep(Duration::from_millis(120));
+                        current.fetch_sub(1, Ordering::SeqCst);
+                        Ok::<_, AppError>(())
+                    })
+                    .await
+            })
+        };
+
+        let second = {
+            let scheduler = Arc::clone(&scheduler);
+            let current = Arc::clone(&current);
+            let peak = Arc::clone(&peak);
+            tokio::spawn(async move {
+                scheduler
+                    .run_blocking(None, JobKind::ComparisonExcel, move |_ctx| {
+                        let now = current.fetch_add(1, Ordering::SeqCst) + 1;
+                        peak.fetch_max(now, Ordering::SeqCst);
+                        current.fetch_sub(1, Ordering::SeqCst);
+                        Ok::<_, AppError>(())
+                    })
+                    .await
+            })
+        };
+
+        first.await.unwrap().unwrap();
+        second.await.unwrap().unwrap();
+        assert_eq!(peak.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
     async fn queued_job_can_be_cancelled() {
         let scheduler = Arc::new(JobScheduler::new());
         let first_started = Arc::new(AtomicBool::new(false));

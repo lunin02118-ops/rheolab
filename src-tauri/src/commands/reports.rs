@@ -64,24 +64,34 @@ use tauri::{AppHandle, State};
 /// keeping that crate tracing-free is intentional (it is the
 /// foundation crate; we measure it from the boundary instead).
 #[tracing::instrument(level = "info", skip_all, name = "reports::pdf::spawn_blocking")]
+#[cfg_attr(not(test), allow(dead_code))]
 async fn generate_pdf_bytes(input: ReportInput) -> Result<Vec<u8>> {
-    tokio::task::spawn_blocking(move || {
-        rheolab_core::report_generator::generate_pdf_from_input(&input)
-            .map_err(|error| AppError::Other(format!("PDF generation failed: {}", error)))
+    tokio::task::spawn_blocking(move || generate_pdf_bytes_sync(input))
+        .await
+        .map_err(AppError::Join)?
+}
+
+fn generate_pdf_bytes_sync(input: ReportInput) -> Result<Vec<u8>> {
+    rheolab_core::report_generator::generate_pdf_from_input(&input).map_err(|error| {
+        tracing::error!("PDF generation failed: {}", error);
+        AppError::Other("PDF generation failed".into())
     })
-    .await
-    .map_err(AppError::Join)?
 }
 
 /// Inner implementation used by tests — returns raw bytes.
 #[tracing::instrument(level = "info", skip_all, name = "reports::excel::spawn_blocking")]
+#[cfg_attr(not(test), allow(dead_code))]
 async fn generate_excel_bytes(input: ReportInput) -> Result<Vec<u8>> {
-    tokio::task::spawn_blocking(move || {
-        rheolab_core::report_generator::generate_excel_from_input(&input)
-            .map_err(|error| AppError::Other(format!("Excel generation failed: {:?}", error)))
+    tokio::task::spawn_blocking(move || generate_excel_bytes_sync(input))
+        .await
+        .map_err(AppError::Join)?
+}
+
+fn generate_excel_bytes_sync(input: ReportInput) -> Result<Vec<u8>> {
+    rheolab_core::report_generator::generate_excel_from_input(&input).map_err(|error| {
+        tracing::error!("Excel generation failed: {:?}", error);
+        AppError::Other("Excel generation failed".into())
     })
-    .await
-    .map_err(AppError::Join)?
 }
 
 /// Inner implementation used by tests — returns raw comparison PDF bytes.
@@ -96,15 +106,18 @@ async fn generate_excel_bytes(input: ReportInput) -> Result<Vec<u8>> {
     name = "reports::comparison::pdf::spawn_blocking",
     fields(n_experiments = input.experiments.len())
 )]
+#[cfg_attr(not(test), allow(dead_code))]
 async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
-    tokio::task::spawn_blocking(move || {
-        rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
-            tracing::error!("Comparison PDF generation failed: {}", error);
-            AppError::Other(format!("Comparison PDF generation failed: {}", error))
-        })
+    tokio::task::spawn_blocking(move || generate_comparison_pdf_bytes_sync(input))
+        .await
+        .map_err(AppError::Join)?
+}
+
+fn generate_comparison_pdf_bytes_sync(input: ComparisonReportInput) -> Result<Vec<u8>> {
+    rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
+        tracing::error!("Comparison PDF generation failed: {}", error);
+        AppError::Other("Comparison PDF generation failed".into())
     })
-    .await
-    .map_err(AppError::Join)?
 }
 
 /// Inner implementation used by tests — returns raw comparison XLSX bytes.
@@ -114,18 +127,23 @@ async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<V
     name = "reports::comparison::excel::spawn_blocking",
     fields(n_experiments = input.experiments.len())
 )]
+#[cfg_attr(not(test), allow(dead_code))]
 async fn generate_comparison_excel_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
-    tokio::task::spawn_blocking(move || {
-        rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
-            AppError::Other(format!("Comparison Excel generation failed: {}", error))
-        })
+    tokio::task::spawn_blocking(move || generate_comparison_excel_bytes_sync(input))
+        .await
+        .map_err(AppError::Join)?
+}
+
+fn generate_comparison_excel_bytes_sync(input: ComparisonReportInput) -> Result<Vec<u8>> {
+    rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
+        tracing::error!("Comparison Excel generation failed: {}", error);
+        AppError::Other("Comparison Excel generation failed".into())
     })
-    .await
-    .map_err(AppError::Join)?
 }
 
 #[tauri::command]
 pub async fn reports_generate_comparison_pdf(
+    app: AppHandle,
     state: State<'_, AppState>,
     input: ComparisonReportInput,
 ) -> Result<tauri::ipc::Response> {
@@ -135,22 +153,39 @@ pub async fn reports_generate_comparison_pdf(
     let features = current_features(&state).await;
     validate_comparison_direct_input(&input, &features, ReportFormat::Pdf)?;
 
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
-            tracing::debug!("[E2E] reports_generate_comparison_pdf: returning mock PDF bytes");
-            return Ok(tauri::ipc::Response::new(vec![
-                0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34,
-            ]));
-        }
-    }
+    let scheduler = state.job_scheduler.clone();
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+    let bytes = scheduler
+        .run_blocking(app_handle, JobKind::ComparisonPdf, move |ctx| {
+            #[cfg(debug_assertions)]
+            {
+                if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+                    tracing::debug!(
+                        "[E2E] reports_generate_comparison_pdf: returning mock PDF bytes"
+                    );
+                    let bytes = vec![0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34];
+                    ctx.record_output_bytes(bytes.len() as u64);
+                    return Ok(bytes);
+                }
+            }
 
-    let bytes = generate_comparison_pdf_bytes(input).await?;
+            let bytes = generate_comparison_pdf_bytes_sync(input)?;
+            ctx.record_output_bytes(bytes.len() as u64);
+            Ok(bytes)
+        })
+        .await?;
     Ok(tauri::ipc::Response::new(bytes))
 }
 
 #[tauri::command]
 pub async fn reports_generate_comparison_excel(
+    app: AppHandle,
     state: State<'_, AppState>,
     input: ComparisonReportInput,
 ) -> Result<tauri::ipc::Response> {
@@ -160,20 +195,39 @@ pub async fn reports_generate_comparison_excel(
     let features = current_features(&state).await;
     validate_comparison_direct_input(&input, &features, ReportFormat::Excel)?;
 
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
-            tracing::debug!("[E2E] reports_generate_comparison_excel: returning mock XLSX bytes");
-            return Ok(tauri::ipc::Response::new(vec![0x50, 0x4b, 0x03, 0x04]));
-        }
-    }
+    let scheduler = state.job_scheduler.clone();
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+    let bytes = scheduler
+        .run_blocking(app_handle, JobKind::ComparisonExcel, move |ctx| {
+            #[cfg(debug_assertions)]
+            {
+                if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+                    tracing::debug!(
+                        "[E2E] reports_generate_comparison_excel: returning mock XLSX bytes"
+                    );
+                    let bytes = vec![0x50, 0x4b, 0x03, 0x04];
+                    ctx.record_output_bytes(bytes.len() as u64);
+                    return Ok(bytes);
+                }
+            }
 
-    let bytes = generate_comparison_excel_bytes(input).await?;
+            let bytes = generate_comparison_excel_bytes_sync(input)?;
+            ctx.record_output_bytes(bytes.len() as u64);
+            Ok(bytes)
+        })
+        .await?;
     Ok(tauri::ipc::Response::new(bytes))
 }
 
 #[tauri::command]
 pub async fn reports_generate_pdf(
+    app: AppHandle,
     state: State<'_, AppState>,
     input: ReportInput,
 ) -> Result<tauri::ipc::Response> {
@@ -195,21 +249,39 @@ pub async fn reports_generate_pdf(
     // flow completes instantly without running Typst (which at opt-level=0
     // takes 5+ minutes).  Set RHEOLAB_E2E_MOCK_REPORTS=1 to activate.
     // Gated to debug builds only — never available in release (F-02).
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
-            tracing::debug!("[E2E] reports_generate_pdf: returning mock PDF bytes");
-            return Ok(tauri::ipc::Response::new(vec![
-                0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, // %PDF-1.4
-            ]));
-        }
-    }
-    let bytes = generate_pdf_bytes(input).await?;
+    let scheduler = state.job_scheduler.clone();
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+    let bytes = scheduler
+        .run_blocking(app_handle, JobKind::SinglePdf, move |ctx| {
+            #[cfg(debug_assertions)]
+            {
+                if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+                    tracing::debug!("[E2E] reports_generate_pdf: returning mock PDF bytes");
+                    let bytes = vec![
+                        0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, // %PDF-1.4
+                    ];
+                    ctx.record_output_bytes(bytes.len() as u64);
+                    return Ok(bytes);
+                }
+            }
+
+            let bytes = generate_pdf_bytes_sync(input)?;
+            ctx.record_output_bytes(bytes.len() as u64);
+            Ok(bytes)
+        })
+        .await?;
     Ok(tauri::ipc::Response::new(bytes))
 }
 
 #[tauri::command]
 pub async fn reports_generate_excel(
+    app: AppHandle,
     state: State<'_, AppState>,
     input: ReportInput,
 ) -> Result<tauri::ipc::Response> {
@@ -227,14 +299,31 @@ pub async fn reports_generate_excel(
     enforce_calibration_feature(&features, input.settings.show_calibration)?;
     // E2E fast-path: return a minimal PK ZIP header so the UI flow completes.
     // Gated to debug builds only — never available in release (F-02).
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
-            tracing::debug!("[E2E] reports_generate_excel: returning mock XLSX bytes");
-            return Ok(tauri::ipc::Response::new(vec![0x50, 0x4b, 0x03, 0x04]));
-        }
-    }
-    let bytes = generate_excel_bytes(input).await?;
+    let scheduler = state.job_scheduler.clone();
+    #[cfg(not(test))]
+    let app_handle = Some(app);
+    #[cfg(test)]
+    let app_handle = {
+        let _ = app;
+        Some(())
+    };
+    let bytes = scheduler
+        .run_blocking(app_handle, JobKind::SingleExcel, move |ctx| {
+            #[cfg(debug_assertions)]
+            {
+                if std::env::var("RHEOLAB_E2E_MOCK_REPORTS").is_ok() {
+                    tracing::debug!("[E2E] reports_generate_excel: returning mock XLSX bytes");
+                    let bytes = vec![0x50, 0x4b, 0x03, 0x04];
+                    ctx.record_output_bytes(bytes.len() as u64);
+                    return Ok(bytes);
+                }
+            }
+
+            let bytes = generate_excel_bytes_sync(input)?;
+            ctx.record_output_bytes(bytes.len() as u64);
+            Ok(bytes)
+        })
+        .await?;
     Ok(tauri::ipc::Response::new(bytes))
 }
 

@@ -1,0 +1,29 @@
+
+> website@0.0.1 dev
+> astro dev --host 127.0.0.1 --port 4321
+
+[2m08:11:24[22m [34m[types][39m Generated [2m0ms[22m
+[2m08:11:24[22m [34m[content][39m Syncing content
+[2m08:11:24[22m [34m[content][39m Synced content
+[2m08:11:24[22m [34m[vite][39m Re-optimizing dependencies because vite config has changed
+
+[42m[1m astro [22m[49m [32mv5.16.7[39m [2mready in[22m 228 [2mms[22m
+
+[2m┃[22m Local    [36mhttp://127.0.0.1:4321/[39m
+
+[2m08:11:24[22m [32mwatching for file changes...[39m
+
+[43m[30m update [39m[49m [33m▶ New version of Astro available: 6.3.8[39m
+  Run [36mnpx @astrojs/upgrade[39m to update
+
+[2m08:11:58[22m [34m[200][39m / [2m68ms[22m
+[2m08:13:18[22m [34m[200][39m / [2m8ms[22m
+[2m08:15:21[22m [34m[watch][39m /src/components/site/Contact.astro?astro&type=style&index=0&lang.css
+[2m08:15:21[22m [34m[watch][39m /src/components/site/Footer.astro?astro&type=style&index=0&lang.css
+[2m08:15:21[22m [34m[watch][39m /src/components/site/Hero.astro?astro&type=style&index=0&lang.css
+[2m08:23:01[22m [34m[watch][39m /src/components/site/Contact.astro?astro&type=style&index=0&lang.css
+[2m08:23:01[22m [34m[watch][39m /src/components/site/Footer.astro?astro&type=style&index=0&lang.css
+[2m08:23:01[22m [34m[watch][39m /src/components/site/Hero.astro?astro&type=style&index=0&lang.css
+[2m08:27:03[22m [34m[watch][39m /src/components/site/Contact.astro?astro&type=style&index=0&lang.css
+[2m08:27:03[22m [34m[watch][39m /src/components/site/Footer.astro?astro&type=style&index=0&lang.css
+[2m08:27:03[22m [34m[watch][39m /src/components/site/Hero.astro?astro&type=style&index=0&lang.css

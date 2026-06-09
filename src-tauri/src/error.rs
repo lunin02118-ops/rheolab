@@ -94,7 +94,7 @@ impl AppError {
             Self::Join(_) => "Internal processing error",
             Self::Serde(_) => "Data format error",
             Self::Http(_) => "Network error",
-            Self::Other(msg) => msg.as_str(),
+            Self::Other(_) => "Internal error",
             // Domain errors — their messages are intentionally user-visible.
             Self::BadRequest(msg) | Self::License(msg) | Self::Parse(msg) => msg.as_str(),
         }
@@ -135,3 +135,29 @@ impl From<&str> for AppError {
 
 /// Project-wide result alias — mirrors `std::io::Result` conventions.
 pub type Result<T> = std::result::Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::AppError;
+    use serde_json::json;
+
+    #[test]
+    fn other_error_serializes_generic_message() {
+        let value = serde_json::to_value(AppError::Other(
+            "internal path C:\\Users\\secret\\rheolab.db".into(),
+        ))
+        .expect("serialize AppError");
+
+        assert_eq!(value["kind"], json!("Other"));
+        assert_eq!(value["message"], json!("Internal error"));
+    }
+
+    #[test]
+    fn domain_errors_keep_user_visible_message() {
+        let value = serde_json::to_value(AppError::BadRequest("Неверный файл".into()))
+            .expect("serialize AppError");
+
+        assert_eq!(value["kind"], json!("BadRequest"));
+        assert_eq!(value["message"], json!("Неверный файл"));
+    }
+}

@@ -14,6 +14,11 @@ const { patchTauriUpdaterConfig } = require('./lib/tauri-updater-config');
 
 const repoRoot = path.resolve(__dirname, '../..');
 const DEV_INTEGRITY_SENTINEL = 'rheolab-dev-integrity-key-32chars!';
+const DEV_SECRET_SENTINELS = [
+  DEV_INTEGRITY_SENTINEL,
+  'rheolab-beta-channel-dev-key-000',
+  'rheolab-alpha-channel-dev-key-00',
+];
 const args = process.argv.slice(2);
 const skipQa = args.includes('--skip-qa');
 const skipBuild = args.includes('--skip-build');
@@ -305,6 +310,24 @@ function readSignatureFileIfPresent(artifactPath) {
   };
 }
 
+function verifyReleaseBinaryDoesNotContainDevSecrets() {
+  const binaryPath = path.join(repoRoot, 'src-tauri', 'target', 'release', 'rheolab-enterprise.exe');
+  if (!fs.existsSync(binaryPath)) {
+    throw new Error(`Release binary not found for dev-secret scan: ${binaryPath}`);
+  }
+
+  const bytes = fs.readFileSync(binaryPath);
+  const leaked = DEV_SECRET_SENTINELS.filter((sentinel) => bytes.includes(Buffer.from(sentinel)));
+  if (leaked.length > 0) {
+    throw new Error(
+      'Release binary contains development licensing sentinel(s):\n' +
+      leaked.map((value) => `  - ${value}`).join('\n') +
+      '\nRefusing to produce or publish a release manifest.',
+    );
+  }
+  console.log('[release] dev-secret binary scan passed');
+}
+
 function tryGetGitCommit() {
   const result = spawnSync('git', ['rev-parse', '--short', 'HEAD'], {
     cwd: repoRoot,
@@ -467,6 +490,7 @@ function main() {
 
     if (skipBuild) {
       console.log('[release] tauri build skipped (--skip-build): using existing artifacts');
+      verifyReleaseBinaryDoesNotContainDevSecrets();
     } else {
       verifyIntegrityKey();
       const tauriBuildArgs = ['scripts/dev/run-tauri-cli.js', 'build'];
@@ -474,6 +498,7 @@ function main() {
         tauriBuildArgs.push('--config', tempConfigPath);
       }
       run(process.execPath, tauriBuildArgs);
+      verifyReleaseBinaryDoesNotContainDevSecrets();
     }
 
     // ── MANDATORY release gate ─────────────────────────────────────────

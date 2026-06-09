@@ -1,6 +1,6 @@
 {
   "name": "rheolab-enterprise",
-  "version": "0.2.3-alpha.17",
+  "version": "0.2.3-alpha.18",
   "private": true,
   "type": "module",
   "scripts": {

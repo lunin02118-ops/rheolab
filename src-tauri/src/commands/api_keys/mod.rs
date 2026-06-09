@@ -5,6 +5,7 @@
 //! Keys are encrypted at rest with AES-256-GCM using a machine-derived key.
 //! Legacy XOR-obfuscated keys (OBFHEX: prefix) are transparently migrated on first read.
 
+use crate::commands::licensing::can_write_via_engine;
 use crate::error::Result;
 use crate::state::AppState;
 use aes_gcm::{
@@ -253,6 +254,9 @@ pub async fn api_keys_create(
     state: State<'_, AppState>,
     payload: ApiKeyCreatePayload,
 ) -> Result<ApiKeyMutationResponse> {
+    if !can_write_via_engine(&state).await {
+        return Ok(ApiKeyMutationResponse::err("Требуется активная лицензия"));
+    }
     commands::api_keys_create_impl(state, payload).await
 }
 
@@ -261,6 +265,9 @@ pub async fn api_keys_set_active(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<ApiKeyMutationResponse> {
+    if !can_write_via_engine(&state).await {
+        return Ok(ApiKeyMutationResponse::err("Требуется активная лицензия"));
+    }
     commands::api_keys_set_active_impl(state, id).await
 }
 
@@ -269,6 +276,9 @@ pub async fn api_keys_delete(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<ApiKeyDeleteResponse> {
+    if !can_write_via_engine(&state).await {
+        return Ok(ApiKeyDeleteResponse::err("Требуется активная лицензия"));
+    }
     commands::api_keys_delete_impl(state, id).await
 }
 

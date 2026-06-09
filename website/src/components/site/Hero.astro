@@ -3,6 +3,7 @@ import FixtureChart from '../FixtureChart.astro';
 import HeroBackdrop from './HeroBackdrop.astro';
 
 const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/RheoLab%20Enterprise_0.2.2_x64-setup.exe';
+const maxMessengerUrl = 'https://max.ru/u/f9LHodD0cOIISUUwQGYGe84r7_JeVeUe6wTTYM2nMaEV8zVloAizFJTxBOs';
 ---
 <section id="download" class="site-hero">
   <HeroBackdrop />
@@ -37,8 +38,14 @@ const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/
           </svg>
           Скачать бесплатно для Windows
         </a>
-        <a href="#contact" class="site-btn-secondary" style="background:#0f172a;border-color:rgba(255,255,255,0.1)">
-          Написать нам
+        <a
+          href={maxMessengerUrl}
+          class="site-btn-secondary"
+          style="background:#0f172a;border-color:rgba(255,255,255,0.1)"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Написать в MAX
         </a>
       </div>
 

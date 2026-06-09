@@ -31,7 +31,7 @@ use crate::commands::licensing::require_write_license;
 use crate::db::DbPool;
 use crate::error::{AppError, Result};
 use crate::state::AppState;
-use crate::utils::validation::{validate_file_size, validate_user_file_path};
+use crate::utils::validation::validate_existing_import_file;
 use chrono::Utc;
 use rusqlite::{params, OptionalExtension};
 use serde_json::{json, Value};
@@ -161,18 +161,7 @@ pub async fn sync_export_delta(
 pub async fn sync_import_delta(state: State<'_, AppState>, file_path: String) -> Result<Value> {
     require_write_license(&state).await?;
 
-    let source_path = validate_user_file_path(&file_path, true)?;
-    if source_path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .map(|ext| ext.eq_ignore_ascii_case("json"))
-        != Some(true)
-    {
-        return Err(AppError::BadRequest(
-            "Delta file must have a .json extension".into(),
-        ));
-    }
-    validate_file_size(&source_path, DELTA_IMPORT_MAX_BYTES)?;
+    let source_path = validate_existing_import_file(&file_path, &["json"], DELTA_IMPORT_MAX_BYTES)?;
 
     let db_pool = state.db_pool.clone();
     tokio::task::spawn_blocking(move || sync_import_delta_blocking(db_pool, source_path)).await?
