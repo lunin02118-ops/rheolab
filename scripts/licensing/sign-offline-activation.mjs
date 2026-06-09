@@ -3,12 +3,7 @@ import { readFileSync } from 'node:fs';
 import { sign, randomUUID } from 'node:crypto';
 
 const REQUEST_PREFIX = 'RL-REQ1:';
-const LEGACY_ENTERPRISE_REQUEST_PREFIX = 'RHEOLAB-OFFLINE-REQ-v1:';
 const ACTIVATION_PREFIX = 'RL-ACT1:';
-const SUPPORTED_REQUEST_TYPES = new Set([
-  'corporate_offline_activation',
-  'enterprise_offline_activation',
-]);
 
 function usage() {
   console.error(`Usage:
@@ -60,18 +55,13 @@ function privateKeyPem() {
 
 function decodeRequest(code) {
   const compact = code.replace(/\s+/g, '');
-  const prefix = [REQUEST_PREFIX, LEGACY_ENTERPRISE_REQUEST_PREFIX].find((candidate) =>
-    compact.startsWith(candidate)
-  );
-  if (!prefix) {
-    throw new Error(
-      `Request code must start with ${REQUEST_PREFIX} or ${LEGACY_ENTERPRISE_REQUEST_PREFIX}`
-    );
+  if (!compact.startsWith(REQUEST_PREFIX)) {
+    throw new Error(`Request code must start with ${REQUEST_PREFIX}`);
   }
 
-  const json = base64UrlDecode(compact.slice(prefix.length)).toString('utf8');
+  const json = base64UrlDecode(compact.slice(REQUEST_PREFIX.length)).toString('utf8');
   const request = JSON.parse(json);
-  if (!SUPPORTED_REQUEST_TYPES.has(request.requestType)) {
+  if (request.requestType !== 'corporate_offline_activation') {
     throw new Error(`Unsupported offline request type: ${request.requestType || '<missing>'}`);
   }
   if (!request.machineId || typeof request.machineId !== 'string') {
@@ -112,7 +102,7 @@ function main() {
     key: licenseKey,
     activationMode: 'offline',
     offlineAllowed: true,
-    fingerprintVersion: request.fingerprintVersion || request.fingerpriontVersion || 2,
+    fingerprintVersion: request.fingerprintVersion || 2,
   };
 
   const payload = JSON.stringify(payloadObject);
