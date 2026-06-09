@@ -179,6 +179,12 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Generate dev RSA keypair (test builds)
+        # Same gitignored test keys as linux-quality: desktop-parity and the
+        # cargo check below compile #[cfg(test)] licensing code that embeds
+        # keys/dev_public.der and signs with keys/dev_private.der.
+        run: node scripts/dev/ensure-dev-keys.mjs
+
       - name: Run desktop-core parity checks
         run: npm run -s test:desktop-core
 
