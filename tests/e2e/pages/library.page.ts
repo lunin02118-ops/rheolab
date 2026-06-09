@@ -241,7 +241,11 @@ export class LibraryPage {
     await card.hover();
     const loadBtn = card.getByTestId('LoadExperimentButton');
     await loadBtn.click();
-    await this.page.waitForURL('**/dashboard', { timeout: 15_000 });
+    // The Load link navigates to /dashboard?loadExperimentId=<id>; the dashboard
+    // then strips the query via history.replaceState once data is applied. Match
+    // /dashboard with an optional query string (but not /dashboard/<subpage>) so
+    // we accept both the initial and cleaned-up URLs.
+    await this.page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
   }
 
   /** Click "Add to comparison" on the first experiment card/row matching the name */

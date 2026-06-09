@@ -49,7 +49,20 @@ export class ReportsPage {
   async download(timeoutMs = 30_000): Promise<Download> {
     const downloadPromise = this.page.waitForEvent('download', { timeout: timeoutMs });
     await this.downloadButton.click();
+    // When the rheology source is the program-calculated table (the default when
+    // the instrument table is unavailable), a confirmation dialog must be
+    // accepted before the export actually runs.
+    await this.confirmProgramExportIfPresent();
     return downloadPromise;
+  }
+
+  /** Accept the program-rheology confirmation dialog if it is shown. */
+  async confirmProgramExportIfPresent() {
+    const dialog = this.page.getByTestId('ProgramRheologyConfirmDialog');
+    if (await dialog.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      // The footer renders Cancel first, then the confirm (OK) action last.
+      await dialog.locator('button').last().click();
+    }
   }
 
   /** Download PDF only: uncheck Excel, ensure PDF checked, click download. */

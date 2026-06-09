@@ -177,7 +177,7 @@ test.describe('Full multi-file workflow', () => {
 
         // Load experiment
         await library.loadExperimentByName(exp.name);
-        await page.waitForURL('**/dashboard', { timeout: 15_000 });
+        await page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
 
         // Wait for analysis to restore
         await dashboard.waitForAnalysis(60_000);
@@ -195,7 +195,7 @@ test.describe('Full multi-file workflow', () => {
       await library.goto();
       await library.search(EXPERIMENTS[0].name);
       await library.loadExperimentByName(EXPERIMENTS[0].name);
-      await page.waitForURL('**/dashboard', { timeout: 15_000 });
+      await page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
       await dashboard.waitForAnalysis(60_000);
 
       // Navigate to fresh dashboard and upload a new file — recipe should reset
@@ -262,7 +262,7 @@ test.describe('Full multi-file workflow', () => {
       await library.goto();
       await library.search(EXPERIMENTS[0].name);
       await library.loadExperimentByName(EXPERIMENTS[0].name);
-      await page.waitForURL('**/dashboard', { timeout: 15_000 });
+      await page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
       await dashboard.waitForAnalysis(60_000);
 
       // Navigate to Reports
@@ -287,7 +287,7 @@ test.describe('Full multi-file workflow', () => {
       await library.goto();
       await library.search(EXPERIMENTS[1].name);
       await library.loadExperimentByName(EXPERIMENTS[1].name);
-      await page.waitForURL('**/dashboard', { timeout: 15_000 });
+      await page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
       await dashboard.waitForAnalysis(60_000);
 
       // Navigate to Reports
@@ -317,7 +317,7 @@ test.describe('Full multi-file workflow', () => {
       await library.goto();
       await library.search(EXPERIMENTS[2].name);
       await library.loadExperimentByName(EXPERIMENTS[2].name);
-      await page.waitForURL('**/dashboard', { timeout: 15_000 });
+      await page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
       await dashboard.waitForAnalysis(60_000);
 
       await reports.goto();
@@ -339,7 +339,7 @@ test.describe('Full multi-file workflow', () => {
       await library.goto();
       await library.search(EXPERIMENTS[3].name);
       await library.loadExperimentByName(EXPERIMENTS[3].name);
-      await page.waitForURL('**/dashboard', { timeout: 15_000 });
+      await page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
       await dashboard.waitForAnalysis(60_000);
 
       await reports.goto();

@@ -90,7 +90,7 @@ test.describe('Database — Load experiment from library', () => {
     await library.loadExperimentByName(name);
 
     // 5. Should be back on dashboard with data loaded
-    await page.waitForURL('**/dashboard', { timeout: 15_000 });
+    await page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
     await dashboard.waitForAnalysis(30_000);
     await dashboard.expectChartVisible();
   });
@@ -130,7 +130,7 @@ test.describe('Database — Recipe & water persistence', () => {
     await library.loadExperimentByName(name);
 
     // 5. Check recipe tab has the reagent
-    await page.waitForURL('**/dashboard', { timeout: 15_000 });
+    await page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
     await dashboard.waitForAnalysis(30_000);
     await dashboard.switchTab('recipe');
 
@@ -302,6 +302,8 @@ test.describe('Database — Classification selects in save dialog', () => {
     await library.goto();
     await library.expectLoaded();
 
+    // Fluid type filter is inside the collapsible "Параметры теста" group.
+    await library.ensureFilterGroupOpen('Параметры теста', library.fluidTypeFilter);
     await library.fluidTypeFilter.click();
     await page.waitForTimeout(400);
     await page.locator('[role="option"]').filter({ hasText: 'Сшитый гель' }).first().click();
