@@ -173,3 +173,6 @@ findings.md
 progress.md
 task_plan.md
 src/rust/rheolab-core/test_output_*.pdf
+
+# Stray publish output logs
+_tmp_publish.log
