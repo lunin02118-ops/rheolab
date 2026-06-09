@@ -1,15 +1,11 @@
 name: V2 Desktop CI
 
 on:
-  # Only run on direct pushes to main; feature branches are covered by the
-  # pull_request trigger. This avoids the duplicate push+pull_request runs that
-  # competed for Windows runners and inflated the queue.
-  push:
-    branches: [main]
-  pull_request:
+  # Auto-runs (push / pull_request / schedule) are disabled by request: this
+  # workflow now runs ONLY when triggered manually from the Actions tab
+  # ("Run workflow") or via the API. To re-enable automatic CI, add back the
+  # push / pull_request (and optionally schedule) triggers.
   workflow_dispatch:
-  schedule:
-    - cron: "0 3 * * 1"
 
 concurrency:
   group: v2-desktop-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
