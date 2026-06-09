@@ -1,14 +1,14 @@
 name: V2 Desktop CI
 
 on:
-  push:
-  pull_request:
+  # Auto-runs (push / pull_request / schedule) are disabled by request: this
+  # workflow now runs ONLY when triggered manually from the Actions tab
+  # ("Run workflow") or via the API. To re-enable automatic CI, add back the
+  # push / pull_request (and optionally schedule) triggers.
   workflow_dispatch:
-  schedule:
-    - cron: "0 3 * * 1"
 
 concurrency:
-  group: v2-desktop-${{ github.ref }}
+  group: v2-desktop-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -18,20 +18,24 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Run gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
+          # gitleaks-action@v2 requires GITHUB_TOKEN to scan pull requests
+          # (breaking change). Without it the step errors out and secret
+          # scanning never actually runs.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
         # Non-blocking in first iteration (WP-1.6).
         # Remove continue-on-error once a clean baseline is established.
         continue-on-error: true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -64,10 +68,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -103,6 +107,13 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Generate dev RSA keypair (test builds)
+        # crypto.rs embeds keys/dev_public.der under #[cfg(test)] and the
+        # licensing tests sign with keys/dev_private.der. Both are gitignored
+        # (throwaway test keys), so cargo test below fails on a fresh checkout
+        # unless they are generated first.
+        run: node scripts/dev/ensure-dev-keys.mjs
 
       - name: TypeScript type-check
         run: npx tsc --noEmit
@@ -142,10 +153,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -167,6 +178,12 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Generate dev RSA keypair (test builds)
+        # Same gitignored test keys as linux-quality: desktop-parity and the
+        # cargo check below compile #[cfg(test)] licensing code that embeds
+        # keys/dev_public.der and signs with keys/dev_private.der.
+        run: node scripts/dev/ensure-dev-keys.mjs
 
       - name: Run desktop-core parity checks
         run: npm run -s test:desktop-core
@@ -261,10 +278,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -303,10 +320,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -370,10 +387,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm

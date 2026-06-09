@@ -108,12 +108,39 @@ function signLicense(array $data): array
 }
 
 /**
- * Проверка подписи
+ * Проверка подписи лицензии.
+ *
+ * Verifies with the PUBLIC half of the signing key via `openssl_verify` —
+ * NOT by re-signing the data and string-comparing signatures. The old
+ * re-sign approach only worked because RSA-PKCS#1 v1.5 is deterministic and
+ * would silently break the moment signing moved to a non-deterministic scheme
+ * (RSA-PSS / ECDSA). It also (pointlessly) required the private key to verify.
+ *
+ * The public key is derived from the loaded private key, so no extra key file
+ * is required on the server.
  */
 function verifySignature(array $data, string $signature): bool
 {
-    $result = signLicense($data);
-    return hash_equals($result['signature'], $signature);
+    // Reconstruct the exact canonical JSON that signLicenseRSA() signs.
+    $dataJson = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    $privateKey = loadPrivateKey();
+    $details = openssl_pkey_get_details($privateKey);
+    if ($details === false || !isset($details['key'])) {
+        return false;
+    }
+
+    $publicKey = openssl_pkey_get_public($details['key']);
+    if ($publicKey === false) {
+        return false;
+    }
+
+    $rawSignature = base64_decode($signature, true);
+    if ($rawSignature === false) {
+        return false;
+    }
+
+    return openssl_verify($dataJson, $rawSignature, $publicKey, OPENSSL_ALGO_SHA256) === 1;
 }
 
 /**

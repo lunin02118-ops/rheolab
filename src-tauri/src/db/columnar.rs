@@ -121,6 +121,31 @@ pub fn encode(raw_points: &[Value]) -> Result<Vec<u8>> {
     Ok(compressed)
 }
 
+/// Reject implausible header counts before any `Vec::with_capacity`.
+///
+/// A corrupted or maliciously-crafted blob could otherwise declare billions of
+/// points/channels and drive `with_capacity` into a multi-GB allocation (OOM)
+/// long before `read_exact` would hit the end of the buffer. The decoded
+/// payload can never contain more `f64` values than the decompressed buffer can
+/// physically hold (8 bytes each), nor more channels than it has bytes.
+fn validate_header_counts(total_len: usize, point_count: usize, channel_count: usize) -> Result<()> {
+    // Each channel's name section consumes at least a 2-byte length prefix.
+    if channel_count > total_len {
+        return Err(format!(
+            "Columnar blob declares {channel_count} channels but is only {total_len} bytes"
+        )
+        .into());
+    }
+    // Each declared value occupies 8 bytes (f64) in the buffer.
+    if channel_count.saturating_mul(point_count) > total_len / 8 {
+        return Err(format!(
+            "Columnar blob declares {channel_count}x{point_count} values, exceeding {total_len}-byte buffer"
+        )
+        .into());
+    }
+    Ok(())
+}
+
 /// Decode compressed columnar bytes back to array-of-structs `Vec<Value>`.
 ///
 /// Supports both:
@@ -153,6 +178,8 @@ pub fn decode(bytes: &[u8]) -> Result<Vec<Value>> {
 
     let point_count = cur.read_u32::<LittleEndian>().map_err(|e| e.to_string())?;
     let channel_count = cur.read_u32::<LittleEndian>().map_err(|e| e.to_string())?;
+
+    validate_header_counts(cur.get_ref().len(), point_count as usize, channel_count as usize)?;
 
     // Channel names.
     let mut channel_names: Vec<String> = Vec::with_capacity(channel_count as usize);
@@ -245,6 +272,8 @@ pub fn decode_typed(bytes: &[u8]) -> Result<HashMap<String, Vec<Option<f64>>>> {
 
     let point_count = cur.read_u32::<LittleEndian>().map_err(|e| e.to_string())? as usize;
     let channel_count = cur.read_u32::<LittleEndian>().map_err(|e| e.to_string())? as usize;
+
+    validate_header_counts(cur.get_ref().len(), point_count, channel_count)?;
 
     // Channel names.
     let mut channel_names: Vec<String> = Vec::with_capacity(channel_count);

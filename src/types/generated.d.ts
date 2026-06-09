@@ -499,7 +499,7 @@ crossingViscosityMinCp: number | null;
 /**
  * Observed maximum of `touchCrossingViscosityCp` in centipoise.
  */
-crossingViscosityMaxCp: number | null; 
+crossingViscosityMaxCp: number | null;
 /**
  * Observed minimum of `touchViscosityAtTargetCp` in centipoise.
  */

@@ -74,7 +74,7 @@ test.describe('Critical workflow', () => {
     // ── Step 6: Load from Library → verify chart ──
     await test.step('Load experiment from library', async () => {
       await library.loadExperimentByName(experimentName);
-      await page.waitForURL('**/dashboard', { timeout: 15_000 });
+      await page.waitForURL(/\/dashboard(\?.*)?$/, { timeout: 15_000 });
       await dashboard.waitForAnalysis(30_000);
       await dashboard.expectChartVisible();
     });

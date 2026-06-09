@@ -295,6 +295,43 @@ run(
     `Promoting ${CHANNEL}.json.tmp → ${CHANNEL}.json (atomic)`,
 );
 
+// ── 6. Prune stale artifacts ─────────────────────────────────────────────────
+// Keep only installer versions referenced by live channel manifests. This makes
+// "latest" and direct artifact browsing converge on currently published builds.
+// The just-published version is kept even if a manifest fails to parse.
+const prunePy = `
+import glob, json, os, shutil, sys
+UPD = "/var/www/license-server/releases/v1/update/windows-x86_64"
+ART = "/var/www/license-server/releases/artifacts"
+keep = set()
+for f in glob.glob(os.path.join(UPD, "*.json")):
+    try:
+        with open(f, encoding="utf-8") as fh:
+            v = str(json.load(fh).get("version", "")).strip()
+        if v:
+            keep.add(v)
+    except Exception as e:
+        print("[prune] WARN could not parse", f, e)
+keep.add("${version}")
+keep.discard("")
+if not keep:
+    print("[prune] ABORT: no versions resolved to keep; deleting nothing")
+    sys.exit(1)
+print("[prune] keeping:", sorted(keep))
+removed = []
+for name in sorted(os.listdir(ART)):
+    p = os.path.join(ART, name)
+    if os.path.isdir(p) and name not in keep:
+        shutil.rmtree(p)
+        removed.append(name)
+print("[prune] removed:", removed if removed else "(none)")
+`;
+const pruneB64 = Buffer.from(prunePy, 'utf-8').toString('base64');
+run(
+    `ssh ${SSH_OPTS} ${HOST} "echo ${pruneB64} | base64 -d | python3"`,
+    'Pruning stale artifacts (keep only versions referenced by channel manifests)',
+);
+
 // ── Done + smoke test ───────────────────────────────────────────────────────────────────
 console.log(`
 ✅  Published v${version} [${CHANNEL}]${DRY_RUN ? ' (DRY RUN — nothing was actually uploaded)' : ''}
