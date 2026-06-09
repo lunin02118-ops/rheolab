@@ -1,14 +1,18 @@
 name: V2 Desktop CI
 
 on:
+  # Only run on direct pushes to main; feature branches are covered by the
+  # pull_request trigger. This avoids the duplicate push+pull_request runs that
+  # competed for Windows runners and inflated the queue.
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
   schedule:
     - cron: "0 3 * * 1"
 
 concurrency:
-  group: v2-desktop-${{ github.ref }}
+  group: v2-desktop-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
