@@ -1,5 +1,6 @@
 ---
-const latestInstallerUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/RheoLab%20Enterprise_0.2.2_x64-setup.exe';
+import { latestDownloadPath } from '../../lib/downloads';
+
 const maxMessengerUrl = 'https://max.ru/u/f9LHodD0cOIISUUwQGYGe84r7_JeVeUe6wTTYM2nMaEV8zVloAizFJTxBOs';
 ---
 <footer class="site-footer">
@@ -20,7 +21,7 @@ const maxMessengerUrl = 'https://max.ru/u/f9LHodD0cOIISUUwQGYGe84r7_JeVeUe6wTTYM
       <div>
         <h4>Продукт</h4>
         <a href="/#features">Возможности</a>
-        <a href={latestInstallerUrl} data-download-latest>Скачать Windows</a>
+        <a href={latestDownloadPath} data-download-latest>Скачать Windows</a>
         <a href="/#contact">Контакты</a>
       </div>
       <div>

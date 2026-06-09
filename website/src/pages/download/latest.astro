@@ -1,6 +1,8 @@
 ---
-const manifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows-x86_64/stable.json';
-const fallbackUrl = 'https://license.vizbuka.ru/releases/artifacts/0.2.2/RheoLab%20Enterprise_0.2.2_x64-setup.exe';
+import { fallbackInstallerUrl, updateManifestUrl } from '../../lib/downloads';
+
+const manifestUrl = updateManifestUrl;
+const fallbackUrl = fallbackInstallerUrl;
 const canonicalUrl = new URL('/download/latest/', Astro.site).toString();
 const description = 'Страница автоматической загрузки актуального установщика RheoLab Enterprise для Windows.';
 const downloadSchema = {
