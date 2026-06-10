@@ -1,7 +1,6 @@
 ---
-import { fallbackInstallerUrl, updateManifestUrl } from '../../lib/downloads';
+import { fallbackInstallerUrl } from '../../lib/downloads';
 
-const manifestUrl = updateManifestUrl;
 const fallbackUrl = fallbackInstallerUrl;
 const canonicalUrl = new URL('/download/latest/', Astro.site).toString();
 const description = 'Страница автоматической загрузки актуального установщика RheoLab Enterprise для Windows.';
@@ -26,6 +25,9 @@ const downloadSchema = {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="description" content={description} />
+    <meta http-equiv="cache-control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/svg+xml" href="/brand/rheolab-app-icon.svg" />
     <link rel="apple-touch-icon" href="/brand/rheolab-app-icon.svg" />
@@ -59,35 +61,13 @@ const downloadSchema = {
       </noscript>
     </main>
 
-    <script is:inline define:vars={{ manifestUrl, fallbackUrl }}>
-      const fallbackLink = document.getElementById('fallback-link');
-
-      async function resolveInstallerUrl() {
-        const response = await fetch(manifestUrl, { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error(`Manifest request failed with ${response.status}`);
+    <script is:inline>
+      (function () {
+        var fallbackLink = document.getElementById('fallback-link');
+        if (fallbackLink && fallbackLink.href) {
+          window.location.replace(fallbackLink.href);
         }
-
-        const manifest = await response.json();
-        const installerUrl =
-          manifest?.platforms?.['windows-x86_64']?.url ||
-          manifest?.platforms?.['windows-x86_64']?.browser_download_url;
-
-        if (typeof installerUrl !== 'string' || installerUrl.length === 0) {
-          throw new Error('Installer URL missing in manifest');
-        }
-
-        return installerUrl;
-      }
-
-      function startDownload(url) {
-        fallbackLink?.setAttribute('href', url);
-        window.location.replace(url);
-      }
-
-      resolveInstallerUrl()
-        .catch(() => fallbackUrl)
-        .then(startDownload);
+      }());
     </script>
   </body>
 </html>

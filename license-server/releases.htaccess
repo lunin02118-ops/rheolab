@@ -23,11 +23,20 @@ Options -Indexes
     # Legacy endpoint (<=0.1.497): {target}/{arch}/{version}?channel=...
     # These clients predate the channel scheme — always stable.
     RewriteRule ^v1/update/([^/]+)/[^/]+/[0-9].+$ v1/update/$1/stable.json [L,QSA]
+
+    # Browsers, emails, and old site caches can still hold direct installer
+    # URLs after stale artifact directories are pruned. Missing installer
+    # files must land on the fresh download redirector instead of a dead 404.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^artifacts/[^/]+/RheoLab.*_x64-setup\.exe$ https://rheolab.site/download/latest/ [R=302,L,NE]
 </IfModule>
 <IfModule mod_headers.c>
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header always set Pragma "no-cache"
+    Header always set Expires "0"
+
     <FilesMatch "\.json$">
         Header set Access-Control-Allow-Origin "*"
-        Header set Cache-Control "no-cache, no-store, must-revalidate"
     </FilesMatch>
     <FilesMatch "\.exe$">
         Header set Content-Type "application/octet-stream"

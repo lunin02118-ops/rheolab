@@ -16,6 +16,12 @@ Options -Indexes
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "accelerometer=(self \"https://kinescope.io\"), autoplay=(self \"https://kinescope.io\"), camera=(), fullscreen=(self \"https://kinescope.io\"), geolocation=(), gyroscope=(self \"https://kinescope.io\"), magnetometer=(), microphone=(), payment=(), picture-in-picture=(self \"https://kinescope.io\"), usb=(), browsing-topics=()"
   Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; frame-src https://kinescope.io; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self' https://license.vizbuka.ru; upgrade-insecure-requests"
+
+  <FilesMatch "\.html$">
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header always set Pragma "no-cache"
+    Header always set Expires "0"
+  </FilesMatch>
 </IfModule>
 
 <IfModule mod_expires.c>
