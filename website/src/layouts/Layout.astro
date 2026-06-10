@@ -1,6 +1,6 @@
 ---
 import '../styles/fonts.css';
-import { latestInstallerUrl } from '../lib/version';
+import { fallbackInstallerUrl } from '../lib/downloads';
 
 interface Props {
   title: string;
@@ -78,7 +78,7 @@ const softwareApplicationSchema = {
   operatingSystem: 'Windows 10, Windows 11',
   description,
   url: canonicalUrl,
-  downloadUrl: latestInstallerUrl,
+  downloadUrl: fallbackInstallerUrl,
   inLanguage: 'ru-RU',
   publisher: {
     '@id': organizationId,

@@ -1,9 +1,8 @@
 ---
-import { latestInstallerUrl } from '../../lib/version';
+import { fallbackInstallerUrl, updateManifestUrl } from '../../lib/downloads';
 
-const manifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows-x86_64/stable.json';
-// No-JS fallback always resolves to the current release (see src/lib/version.ts).
-const fallbackUrl = latestInstallerUrl;
+const manifestUrl = updateManifestUrl;
+const fallbackUrl = fallbackInstallerUrl;
 const canonicalUrl = new URL('/download/latest/', Astro.site).toString();
 const description = 'Страница автоматической загрузки актуального установщика RheoLab Enterprise для Windows.';
 const downloadSchema = {
@@ -13,7 +12,7 @@ const downloadSchema = {
   description,
   url: canonicalUrl,
   inLanguage: 'ru-RU',
-  dateModified: new Date().toISOString().slice(0, 10),
+  dateModified: '2026-04-12',
   isPartOf: {
     '@id': new URL('/#website', Astro.site).toString(),
   },

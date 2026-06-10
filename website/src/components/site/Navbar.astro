@@ -1,5 +1,6 @@
 ---
-import { latestInstallerUrl } from '../../lib/version';
+import { latestDownloadPath } from '../../lib/downloads';
+
 const navLinks = [
   { href: '/#program', label: 'О программе' },
   { href: '/#features', label: 'Возможности' },
@@ -24,7 +25,7 @@ const navLinks = [
     </nav>
 
     <div class="site-nav-actions">
-      <a href={latestInstallerUrl} class="site-btn-primary" data-download-latest>
+      <a href={latestDownloadPath} class="site-btn-primary" data-download-latest>
         Скачать
       </a>
     </div>
@@ -52,7 +53,7 @@ const navLinks = [
         {navLinks.map((link) => (
           <a href={link.href}>{link.label}</a>
         ))}
-        <a href={latestInstallerUrl} data-download-latest>Скачать</a>
+        <a href={latestDownloadPath} data-download-latest>Скачать</a>
       </nav>
     </div>
   </div>

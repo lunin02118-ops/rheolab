@@ -1,5 +1,6 @@
 ---
 import Layout from './Layout.astro';
+import { updateManifestUrl } from '../lib/downloads';
 
 interface Props {
   title: string;
@@ -11,7 +12,6 @@ interface Props {
 }
 
 const { title, description, schema, includeSoftwareSchema, robots, ogType } = Astro.props;
-const updateManifestUrl = 'https://license.vizbuka.ru/releases/v1/update/windows-x86_64/stable.json';
 ---
 
 <Layout
