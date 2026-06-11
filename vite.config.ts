@@ -2,11 +2,37 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
+import { execSync } from 'node:child_process';
+
+// Local copy of resolveCommitHash() from scripts/version/lib.js.
+// lib.js is CommonJS and this config is ESM, so we duplicate the 8-line
+// helper here instead of importing it. Keep the two in sync if either changes.
+function resolveCommitHash(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+      .toString()
+      .trim();
+  } catch {
+    const ciHash = process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA;
+    if (ciHash && ciHash.length >= 7) return ciHash.slice(0, 7);
+    return 'dev';
+  }
+}
 
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
+  // BUILD_DATE / COMMIT_HASH are injected here so src/lib/version.ts stays
+  // byte-for-byte stable between version bumps (no churn). Outside a Vite
+  // build the consts fall back to 'dev' (see src/lib/version.ts).
+  define: {
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString().split('T')[0]),
+    __COMMIT_HASH__: JSON.stringify(resolveCommitHash()),
+  },
+
   plugins: [
     react(),
     // Bundle size visualizer — generates runtime/refactor-baseline/bundle.html

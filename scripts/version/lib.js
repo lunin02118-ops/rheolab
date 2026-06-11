@@ -272,9 +272,16 @@ function resolveCommitHash() {
 }
 
 /**
- * Writes the auto-generated TypeScript module consumed by the frontend. Always
- * rewrites because BUILD_DATE / COMMIT_HASH change every run; that is fine —
- * sync.js is meant to be idempotent w.r.t. version *content*, not byte-for-byte
+ * Writes the auto-generated TypeScript module consumed by the frontend.
+ *
+ * The emitted file is now byte-for-byte stable between version bumps: only
+ * APP_VERSION (the SSoT value) is baked in. BUILD_DATE / COMMIT_HASH are no
+ * longer written into source; they are injected at build time by Vite's
+ * `define` (see vite.config.ts) and fall back to 'dev' outside a Vite build.
+ *
+ * This kills the churn where every `version:sync` (a pre-hook of dev/build)
+ * rewrote version.ts with a fresh date/hash. The returned `buildDate` /
+ * `commitHash` are still computed for logging parity; they no longer affect
  * file contents.
  */
 function writeVersionTs(version) {
@@ -287,11 +294,19 @@ function writeVersionTs(version) {
  *
  * Source of truth: /version.json
  * Run \`npm run version:sync\` to regenerate this file.
+ *
+ * BUILD_DATE / COMMIT_HASH are injected at build time by Vite \`define\`
+ * (see vite.config.ts). Outside a Vite build they fall back to 'dev'.
  */
 
+declare const __BUILD_DATE__: string | undefined;
+declare const __COMMIT_HASH__: string | undefined;
+
 export const APP_VERSION = '${version}';
-export const BUILD_DATE = '${buildDate}';
-export const COMMIT_HASH = '${commitHash}';
+export const BUILD_DATE: string =
+    typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev';
+export const COMMIT_HASH: string =
+    typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 'dev';
 `;
     const previous = fs.existsSync(VERSION_TS_PATH)
         ? fs.readFileSync(VERSION_TS_PATH, 'utf8')

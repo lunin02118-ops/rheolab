@@ -4,8 +4,16 @@
  *
  * Source of truth: /version.json
  * Run `npm run version:sync` to regenerate this file.
+ *
+ * BUILD_DATE / COMMIT_HASH are injected at build time by Vite `define`
+ * (see vite.config.ts). Outside a Vite build they fall back to 'dev'.
  */
 
+declare const __BUILD_DATE__: string | undefined;
+declare const __COMMIT_HASH__: string | undefined;
+
 export const APP_VERSION = '0.2.3-alpha.19';
-export const BUILD_DATE = '2026-06-10';
-export const COMMIT_HASH = 'd041a5f';
+export const BUILD_DATE: string =
+    typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev';
+export const COMMIT_HASH: string =
+    typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 'dev';
