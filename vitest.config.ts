@@ -1,7 +1,20 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import fs from 'fs';
+
+// On Windows a lowercase drive letter in cwd (e.g. `d:\...` vs `D:\...`) makes
+// Node ESM treat the same files as different module URLs. Vitest then loads two
+// copies of @vitest/runner and every suite fails with
+// "Cannot read properties of undefined (reading 'config')" /
+// "Vitest failed to find the runner". Pin root/cwd to the canonical casing.
+const PROJECT_ROOT = fs.realpathSync.native(__dirname);
+if (process.platform === 'win32' && process.cwd() !== PROJECT_ROOT) {
+    process.chdir(PROJECT_ROOT);
+}
 
 export default defineConfig({
+    root: PROJECT_ROOT,
+
     test: {
         // Test environment
         environment: 'node',
