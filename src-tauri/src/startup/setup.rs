@@ -20,6 +20,17 @@ use crate::state::AppState;
 pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     log_to_file("Setup started");
 
+    // Panics before Tauri setup still go to stderr. Once we have the
+    // app log directory, install the crash hook so later panics write
+    // crash-*.log alongside the app logs.
+    let crash_dir = app
+        .path()
+        .app_log_dir()
+        .map_err(|e| format!("Failed to get app log dir for crash reports: {e}"))?
+        .join("crash");
+    crate::startup::crash_reporter::install_panic_hook(crash_dir);
+    log_to_file("Crash reporter installed");
+
     // Pre-startup restore: swap pending_restore.db → rheolab.db BEFORE
     // the connection pool is opened.  This avoids os error 32/1224
     // (file locked by own process) that occurred when restore was
