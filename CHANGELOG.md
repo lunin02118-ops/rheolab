@@ -6,6 +6,33 @@
 
 ---
 
+## [0.2.3-beta.1] — 2026-06-12
+
+> Beta-кандидат серии 0.2.3 после 19 alpha-итераций, deep-аудита и локальной release-readiness проверки.
+
+### Добавлено
+- **Crash diagnostics**: Rust panic hook пишет локальные `crash-*.log` рядом с app logs и ротирует последние 5 отчётов; отправка разработчикам остаётся только opt-in design-фазой.
+- **Release safety**: `release:prepare` теперь проверяет, что в сборку не попал dev `license_public.der`.
+- **Plan journal**: добавлен журнал планов внедрения для аудита и промоушена 0.2.3.
+
+### Исправлено
+- **Windows Vitest runner**: тесты больше не падают из-за разного регистра буквы диска (`d:\` vs `D:\`) и двойной загрузки `@vitest/runner`.
+- **Security / dev deps**: dev-only advisory `uuid@8.3.2` через `exceljs` закрыт `overrides` на `uuid@11.1.1`.
+- **Alpha 0.2.3 carry-over**: сохранены исправления офлайн-активации корпоративных лицензий, отчётов сравнения, источника реологических параметров и download/website hotfixes из alpha-линии.
+
+### Проверки
+- `npm run version:validate` — passed.
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed.
+- `cargo test --manifest-path src-tauri/Cargo.toml -- --test-threads=1` — passed.
+- `npm run test:e2e:smoke` — 13 passed.
+- `npm run test:release-gate` — passed, 7 exports / 4 fixtures.
+- `npm audit --omit=dev` — 0 vulnerabilities.
+- `cargo audit` — 884 dependencies / 0 advisories.
+
+---
+
 ## [0.2.3-alpha.16] — 2026-05-23
 
 > Hotfix смены экспертного паттерна для экспериментов, открытых из библиотеки.
