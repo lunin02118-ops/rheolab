@@ -1,6 +1,18 @@
-# Rheolab — pending follow-ups (not blocking current work)
+﻿# Rheolab — pending follow-ups (not blocking current work)
 
-## 0. [IN PROGRESS, 2026-04-22] Comparison Report Generation — ADR-0010
+## 0. [DONE, verified 2026-06-11] Comparison Report Generation — ADR-0010
+
+> Verified 2026-06-11 on branch advisor/001-repo-hygiene: all five phases are
+> shipped. Phase 1–3 source exists (ComparisonReportTab.tsx,
+> ComparisonReportSettings.tsx, hooks/useComparisonReportExport.ts under
+> src/components/comparison/reports/) and is covered by the green Vitest suite
+> (tests/reports/useComparisonReportExport.test.ts,
+> comparison-experiment-adapter.test.ts, comparison-report-settings.test.tsx).
+> Phase 4 Playwright + perf specs exist (tests/e2e/comparison/comparison-report.spec.ts,
+> comparison-report.tauri.spec.ts, comparison-reports.page.ts,
+> comparison-smoke-perf.tauri.spec.ts). Phase 5 release notes are recorded in
+> CHANGELOG.md (comparison-report entries); screenshots not separately
+> re-verified in this pass.
 
 **Plan**: `docs/adr/ADR-0010-comparison-report-generation.md` (approved).
 
@@ -12,12 +24,14 @@
 - UI: sub-tab "Отчёт" inside Comparison.
 
 **Phases**:
-- [ ] Phase 1 — Rust backend (comparison module, multi-exp chart SVG, reusable
+- [x] Phase 1 — Rust backend (comparison module, multi-exp chart SVG, reusable
       single-exp fragments, Tauri commands, unit tests).
-- [ ] Phase 2 — TS payload builders + `bridge.reports.generateComparison*`.
-- [ ] Phase 3 — UI sub-tab `ComparisonReportTab` + `useComparisonReportExport`.
-- [ ] Phase 4 — Playwright E2E + perf budget for comparison generation.
-- [ ] Phase 5 — i18n + docs + screenshots + release notes.
+- [x] Phase 2 — TS payload builders + `bridge.reports.generateComparison*`.
+- [x] Phase 3 — UI sub-tab `ComparisonReportTab` + `useComparisonReportExport`.
+- [x] Phase 4 — Playwright E2E + perf budget for comparison generation
+      (tests/e2e/comparison/comparison-report*.spec.ts; comparison-smoke-perf.tauri.spec.ts).
+- [x] Phase 5 — i18n + docs + screenshots + release notes (CHANGELOG.md comparison
+      entries; screenshots not separately re-verified 2026-06-11).
 
 **Acceptance after Phase 1**: `cargo test comparison_report` green, synthetic
 payload generates a real PDF + XLSX, inspected for:
@@ -27,7 +41,17 @@ payload generates a real PDF + XLSX, inspected for:
 
 
 
-## 2. Channel-header rewrites bypass HMAC validation (pre-existing SEC-TODO)
+## 2. [RESOLVED 2026-04-19] Channel-header rewrites bypass HMAC validation
+
+> Resolved 2026-04-19, re-verified 2026-06-11. The per-channel RewriteRules
+> were removed from `license-server/releases.htaccess`; every
+> `^v1/update/([^/]+)/update$` request is now routed through
+> `api/update-channel.php`, which validates the X-Update-Token HMAC before
+> selecting alpha/beta/stable. See the fix comment at the top of
+> `license-server/releases.htaccess` ("Fixed 2026-04-19; was tracked in
+> docs/LICENSING_CHANNELS.md as a hardening TODO."). Check:
+> `Select-String license-server\releases.htaccess -Pattern 'alpha.json|beta.json'`
+> matches only inside comments. The historical analysis below is kept as a record.
 
 **Location**: `license-server/releases.htaccess` (and the mirrored
 comment in `license-server/.htaccess`)
@@ -74,7 +98,14 @@ Route them through PHP too — the script falls back to stable when the
 token is missing, which matches the current user-visible behaviour for
 unauthenticated clients.
 
-## 1. Pre-existing regression in `test_stub_force_ai_uses_structured_mapping_for_fixture`
+## 1. [RESOLVED, verified 2026-06-11] Pre-existing regression in `test_stub_force_ai_uses_structured_mapping_for_fixture`
+
+> Verified green on HEAD 2026-06-11 (branch advisor/001-repo-hygiene):
+> `cargo test --manifest-path src-tauri/Cargo.toml --test ai_parsing test_stub_force_ai_uses_structured_mapping_for_fixture`
+> → `test result: ok. 1 passed; 0 failed`. The test now passes through the full
+> suite (`cargo test ... -- --test-threads=1` is green). The `--skip-qa`
+> release workaround below is no longer needed and must NOT be used — run the
+> full QA gate. The historical analysis is kept as a record.
 
 **Location**: `src-tauri/tests/ai_parsing.rs:487-504`
 **Observed**: 2026-04-19 during the 0.2.0-beta.8 release prepare-production run
@@ -169,7 +200,6 @@ c. Turn `data_quality` into a soft boost rather than a score cliff:
 3. Decide whether the fix belongs in `parse_with_stub_mapper`, in
    `mapping_from_candidate`, or in the AI-mapper→data-range inference.
 
-**Workaround for the beta.8 release**
-`npm run release:prepare -- --channel alpha --skip-qa` — justified because
-every other QA fast-lane check (lint, desktop-parity, gold_standard_test)
-was green in the same run.
+**Workaround for the beta.8 release** (obsolete as of 2026-06-11)
+The previous --skip-qa release workaround is removed: the test passes on HEAD,
+so releases must run the full QA gate (do NOT pass --skip-qa).
