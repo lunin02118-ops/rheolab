@@ -11,6 +11,7 @@ const {
   formatUpdaterIssues,
 } = require('./lib/release-policy');
 const { patchTauriUpdaterConfig } = require('./lib/tauri-updater-config');
+const { checkLicensePublicKey } = require('./check-license-key');
 
 const repoRoot = path.resolve(__dirname, '../..');
 const DEV_INTEGRITY_SENTINEL = 'rheolab-dev-integrity-key-32chars!';
@@ -435,6 +436,7 @@ function main() {
 
   const { version, tauriConfig } = verifyVersionSync();
   console.log(`[release] version sync OK: ${version}`);
+  checkLicensePublicKey();
   verifySigningEnvironment(releaseChannel);
 
   const updaterPatch = patchTauriUpdaterConfig({
