@@ -30,6 +30,13 @@ interface LicenseActivationDialogProps {
     blockMessage?: string;
 }
 
+interface LicenseActivationPanelProps {
+    forceBlock?: boolean;
+    blockMessage?: string;
+    onClose?: () => void;
+    active?: boolean;
+}
+
 function formatLicenseType(type: string) {
     switch (type) {
         case 'corporate':
@@ -45,12 +52,12 @@ function formatLicenseType(type: string) {
     }
 }
 
-export function LicenseActivationDialog({
-    open,
-    onOpenChange,
+export function LicenseActivationPanel({
     forceBlock = false,
     blockMessage,
-}: LicenseActivationDialogProps) {
+    onClose,
+    active = true,
+}: LicenseActivationPanelProps) {
     const { activate, activateOffline, createOfflineActivationRequest, result } = useLicense();
 
     const [licenseKey, setLicenseKey] = useState('');
@@ -67,7 +74,7 @@ export function LicenseActivationDialog({
 
     // Load Machine ID
     useEffect(() => {
-        if (!open) return;
+        if (!active) return;
         let cancelled = false;
 
         import('@/lib/licensing/tauri-bridge')
@@ -76,15 +83,15 @@ export function LicenseActivationDialog({
             .catch((_e) => { /* machine ID unavailable in web context — display omitted */ });
 
         return () => { cancelled = true; };
-    }, [open]);
+    }, [active]);
 
-    // Reset state when dialog opens — React 19 "adjusting state on prop
+    // Reset state when panel becomes active — React 19 "adjusting state on prop
     // change during render" pattern.  We only reset on the false→true
-    // transition (open), preserving previous behaviour exactly.
-    const [prevOpen, setPrevOpen] = useState(open);
-    if (prevOpen !== open) {
-        setPrevOpen(open);
-        if (open) {
+    // transition, preserving previous dialog behaviour exactly.
+    const [prevActive, setPrevActive] = useState(active);
+    if (prevActive !== active) {
+        setPrevActive(active);
+        if (active) {
             setLicenseKey('');
             setActivationMode('online');
             setOfflineRequestCode('');
@@ -204,19 +211,7 @@ export function LicenseActivationDialog({
 
     return (
         <>
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-xl">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Key className="h-5 w-5" />
-                        Активация лицензии
-                    </DialogTitle>
-                    <DialogDescription>
-                        Введите ключ лицензии для активации RheoLab
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-2">
                     {/* Детальная информация о лицензии или форма ввода */}
                     {result?.status === 'active' && result.license ? (
                         <div className="space-y-4">
@@ -377,7 +372,7 @@ export function LicenseActivationDialog({
                     {!forceBlock && (
                         <Button
                             variant="outline"
-                            onClick={() => onOpenChange(false)}
+                            onClick={onClose}
                             disabled={isActivating}
                         >
                             {result?.status === 'active' ? 'Закрыть' : 'Отмена'}
@@ -414,10 +409,38 @@ export function LicenseActivationDialog({
                         </Button>
                     )}
                 </DialogFooter>
-            </DialogContent>
-        </Dialog>
 
         </>
+    );
+}
+
+export function LicenseActivationDialog({
+    open,
+    onOpenChange,
+    forceBlock = false,
+    blockMessage,
+}: LicenseActivationDialogProps) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Key className="h-5 w-5" />
+                        Активация лицензии
+                    </DialogTitle>
+                    <DialogDescription>
+                        Введите ключ лицензии для активации RheoLab
+                    </DialogDescription>
+                </DialogHeader>
+
+                <LicenseActivationPanel
+                    forceBlock={forceBlock}
+                    blockMessage={blockMessage}
+                    onClose={() => onOpenChange(false)}
+                    active={open}
+                />
+            </DialogContent>
+        </Dialog>
     );
 }
 

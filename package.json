@@ -1,6 +1,6 @@
 {
   "name": "rheolab-enterprise",
-  "version": "0.2.3-alpha.20",
+  "version": "0.2.3-alpha.21",
   "private": true,
   "type": "module",
   "scripts": {
@@ -101,6 +101,7 @@
     "@tauri-apps/plugin-dialog": "~2.7",
     "@tauri-apps/plugin-fs": "~2.5",
     "@tauri-apps/plugin-log": "~2.8",
+    "@tauri-apps/plugin-opener": "~2.5.4",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "~2.10",
     "class-variance-authority": "^0.7.1",

@@ -15,7 +15,7 @@
 | 005  | Spike: crash/panic-телеметрия WP-6.3 — локальный crash.log + design-док отправки | P3 | M | 002 | DONE (2026-06-12, ветка advisor/005-crash-telemetry; crash_reporter/lint/typecheck/cargo test — exit 0; verified by advisor) |
 | 006  | Подготовка промоушена 0.2.3 alpha → beta: readiness-отчёт + репетиция (без деплоя) | P3 | M | 002 (желательно после 003, 004) | BLOCKED (ожидает решения владельца по `docs/release/BETA-0.2.3-READINESS.md`) |
 | 007  | Убрать последний LOWER(name)-скан в resolve_by_id_or_name (остаток F1) | P3 | S | — | DONE (2026-06-12, ветка advisor/007-reagent-nocase; grep/reagent/full cargo test — exit 0) |
-| 008  | Окно «О программе» с вкладками лицензии и поддержки | P2 | M | — | TODO |
+| 008  | Окно «О программе» с вкладками лицензии и поддержки | P2 | M | — | DONE (2026-06-12, ветка codex/008-about-support-dialog; version:validate/lint/typecheck/targeted Vitest/Playwright smoke — exit 0) |
 
 Значения статуса: TODO | IN PROGRESS | DONE | BLOCKED (с причиной в одну строку) | REJECTED (с обоснованием).
 

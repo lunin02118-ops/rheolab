@@ -6,6 +6,23 @@
 
 ---
 
+## [0.2.3-alpha.21] — 2026-06-12
+
+> Альфа-сборка с новым окном «О программе», поддержкой и быстрым доступом к обучающим видео.
+
+### Добавлено
+- **О программе**: header-кнопка `Лицензия` заменена на `О программе` с вкладками `О программе` и `Лицензия`.
+- **Поддержка**: добавлены контакты, телефоны, сайт, MAX-ссылка, кнопки открытия/копирования и fallback при ошибке открытия внешней ссылки.
+- **Обучение**: добавлены кликабельная ссылка и QR-код на раздел обучающих видео `https://rheolab.site/#videos`.
+
+### Проверки
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test -- tests/components/AboutProgramDialog.test.tsx tests/components/DashboardLayoutClient.test.tsx` — passed.
+- Playwright smoke на Vite: header entrypoint, вкладка лицензии, QR и mobile width 360 px — passed.
+
+---
+
 ## [0.2.3-alpha.20] — 2026-06-12
 
 > Альфа-сборка текущего стека после readiness-ветки 0.2.3 и микро-fix DB-паттерна F1.

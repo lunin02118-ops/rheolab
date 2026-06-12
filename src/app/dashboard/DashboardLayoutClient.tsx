@@ -3,17 +3,18 @@ import { ToastContainer } from '@/components/ui/ToastContainer';
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '@/components/ui/logo';
 import { UIModeToggle } from '@/components/layout/ui-mode-toggle';
-import { LicenseStatusBadge } from '@/components/licensing/LicenseStatusBadge';
 import { LicenseGuard } from '@/components/licensing/LicenseGuard';
 import { useLicenseStore } from '@/lib/store/license-store';
 import { useComparisonStore } from '@/lib/store/comparison-store';
 import { clearAnalysisCache } from '@/hooks/analysisCache';
 import { UpdateBanner } from '@/components/shared/UpdateBanner';
 import { DatabaseMaintenanceNotice } from '@/components/shared/DatabaseMaintenanceNotice';
+import { Button } from '@/components/ui/button';
+import { Info } from 'lucide-react';
 
 // Lazy-load licensing UI that is only shown conditionally (trial / activation)
 const TrialBanner = lazy(() => import('@/components/licensing/TrialBanner').then(m => ({ default: m.TrialBanner })));
-const LicenseActivationDialog = lazy(() => import('@/components/licensing/LicenseActivationDialog').then(m => ({ default: m.LicenseActivationDialog })));
+const AboutProgramDialog = lazy(() => import('@/components/about/AboutProgramDialog').then(m => ({ default: m.AboutProgramDialog })));
 
 // UpdateChecker is a background worker (30 s delay before first check).
 // Deferring its bundle removes Tauri updater/process/event plugins
@@ -24,12 +25,20 @@ interface DashboardLayoutClientProps {
     children: React.ReactNode;
 }
 
+type AboutTab = 'about' | 'license';
+
 export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) {
-    const [showActivation, setShowActivation] = useState(false);
+    const [showAboutDialog, setShowAboutDialog] = useState(false);
+    const [aboutInitialTab, setAboutInitialTab] = useState<AboutTab>('about');
     const isInitialized = useLicenseStore(s => s.isInitialized);
     const refresh = useLicenseStore(s => s.refresh);
     const { pathname } = useLocation();
     const previousPathRef = useRef(pathname);
+
+    const openAboutDialog = (tab: AboutTab) => {
+        setAboutInitialTab(tab);
+        setShowAboutDialog(true);
+    };
 
     // Trigger license store init once on mount.
     useEffect(() => {
@@ -108,7 +117,18 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
 
                             {/* Right side actions */}
                             <div className="flex items-center gap-3 min-w-[140px] w-auto justify-end">
-                                <LicenseStatusBadge onClick={() => setShowActivation(true)} />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    aria-label="О программе, поддержка и лицензия"
+                                    title="Версия, поддержка, обучение и лицензия"
+                                    onClick={() => openAboutDialog('about')}
+                                >
+                                    <Info className="h-4 w-4" />
+                                    <span>О программе</span>
+                                </Button>
                                 <UIModeToggle />
                             </div>
                         </div>
@@ -117,7 +137,7 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
 
                 {/* Trial Banner */}
                 <Suspense fallback={null}>
-                    <TrialBanner onActivate={() => setShowActivation(true)} />
+                    <TrialBanner onActivate={() => openAboutDialog('license')} />
                 </Suspense>
 
                 {/* Update Banner */}
@@ -128,11 +148,12 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
                     {children}
                 </main>
 
-                {/* License Activation Dialog */}
+                {/* About / Support / License Dialog */}
                 <Suspense fallback={null}>
-                    <LicenseActivationDialog
-                        open={showActivation}
-                        onOpenChange={setShowActivation}
+                    <AboutProgramDialog
+                        open={showAboutDialog}
+                        onOpenChange={setShowAboutDialog}
+                        initialTab={aboutInitialTab}
                     />
                 </Suspense>
 
