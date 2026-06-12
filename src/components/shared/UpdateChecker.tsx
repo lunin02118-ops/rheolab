@@ -47,7 +47,7 @@ function buildUpdateHeaders(info: { channel: string; token: string | null }): Re
 }
 
 /**
- * Trigger an immediate update check (called from Settings → О программе).
+ * Trigger an immediate update check (called from the О программе dialog).
  * Safe to call at any time — no-ops if already checking/installing.
  */
 export async function checkUpdateNow(): Promise<void> {

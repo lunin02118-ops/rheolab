@@ -25,11 +25,11 @@ interface DashboardLayoutClientProps {
     children: React.ReactNode;
 }
 
-type AboutTab = 'about' | 'license';
+type AboutTab = 'license' | 'updates' | 'contacts';
 
 export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) {
     const [showAboutDialog, setShowAboutDialog] = useState(false);
-    const [aboutInitialTab, setAboutInitialTab] = useState<AboutTab>('about');
+    const [aboutInitialTab, setAboutInitialTab] = useState<AboutTab>('updates');
     const isInitialized = useLicenseStore(s => s.isInitialized);
     const refresh = useLicenseStore(s => s.refresh);
     const { pathname } = useLocation();
@@ -124,7 +124,7 @@ export function DashboardLayoutClient({ children }: DashboardLayoutClientProps) 
                                     className="gap-2"
                                     aria-label="О программе, поддержка и лицензия"
                                     title="Версия, поддержка, обучение и лицензия"
-                                    onClick={() => openAboutDialog('about')}
+                                    onClick={() => openAboutDialog('updates')}
                                 >
                                     <Info className="h-4 w-4" />
                                     <span>О программе</span>

@@ -55,7 +55,7 @@ vi.mock('@/components/about/AboutProgramDialog', () => ({
         initialTab,
     }: {
         open: boolean;
-        initialTab: 'about' | 'license';
+        initialTab: 'license' | 'updates' | 'contacts';
     }) => open ? <div role="dialog">About dialog: {initialTab}</div> : null,
 }));
 
@@ -101,14 +101,14 @@ describe('DashboardLayoutClient about dialog entrypoint', () => {
         expect(screen.queryByRole('button', { name: 'Лицензия' })).toBeNull();
     });
 
-    it('opens about tab from the header button', async () => {
+    it('opens updates tab from the header button', async () => {
         renderLayout();
 
         fireEvent.click(await screen.findByRole('button', {
             name: 'О программе, поддержка и лицензия',
         }));
 
-        expect((await screen.findByRole('dialog')).textContent).toContain('About dialog: about');
+        expect((await screen.findByRole('dialog')).textContent).toContain('About dialog: updates');
     });
 
     it('opens license tab from trial activation CTA', async () => {

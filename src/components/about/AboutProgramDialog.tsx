@@ -22,10 +22,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { APP_VERSION, BUILD_DATE, COMMIT_HASH } from '@/lib/version';
 import { cn } from '@/lib/utils';
 import { LicenseActivationPanel } from '@/components/licensing/LicenseActivationDialog';
+import { UpdateCheckButton } from '@/components/shared/UpdateCheckButton';
 import maxQr from '@/assets/support/max-vladimir-qr.png';
 import videosQr from '@/assets/support/rheolab-videos-qr.png';
 
-type AboutTab = 'about' | 'license';
+export type AboutTab = 'license' | 'updates' | 'contacts';
 
 interface AboutProgramDialogProps {
     open: boolean;
@@ -35,23 +36,15 @@ interface AboutProgramDialogProps {
 
 const WEBSITE_URL = 'https://rheolab.site/';
 const VIDEOS_URL = 'https://rheolab.site/#videos';
-const SUPPORT_EMAIL = 'support@rheolab.site';
-const SALES_EMAIL = 'info@rheolab.site';
+const CONTACT_EMAIL = 'info@rheolab.site';
 const MAX_URL = 'https://max.ru/u/f9LHodD0cOLW63HIbnNK90e5lAP3IS6U_IUOXd6wLaSn6rG1aA2-zACiIUE';
 
 const CONTACTS = [
     {
-        label: 'Техническая поддержка',
-        value: SUPPORT_EMAIL,
-        href: `mailto:${SUPPORT_EMAIL}`,
-        copyLabel: 'Email поддержки скопирован',
-        icon: Mail,
-    },
-    {
-        label: 'Коммерческие вопросы и лицензии',
-        value: SALES_EMAIL,
-        href: `mailto:${SALES_EMAIL}`,
-        copyLabel: 'Email для лицензий скопирован',
+        label: 'Email',
+        value: CONTACT_EMAIL,
+        href: `mailto:${CONTACT_EMAIL}`,
+        copyLabel: 'Email скопирован',
         icon: Mail,
     },
     {
@@ -75,7 +68,7 @@ const CONTACTS = [
 export function AboutProgramDialog({
     open,
     onOpenChange,
-    initialTab = 'about',
+    initialTab = 'updates',
 }: AboutProgramDialogProps) {
     const [activeTab, setActiveTab] = useState<AboutTab>(initialTab);
     const [actionStatus, setActionStatus] = useState<string | null>(null);
@@ -109,6 +102,7 @@ export function AboutProgramDialog({
 
     const handleTabChange = (value: string) => {
         setActiveTab(value as AboutTab);
+        setActionStatus(null);
     };
 
     return (
@@ -120,31 +114,47 @@ export function AboutProgramDialog({
                         О программе
                     </DialogTitle>
                     <DialogDescription>
-                        Версия, поддержка, обучение и лицензия RheoLab Enterprise
+                        Лицензия, обновления, контакты и обучение RheoLab Enterprise
                     </DialogDescription>
                 </DialogHeader>
 
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="about">О программе</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="license">Лицензия</TabsTrigger>
+                        <TabsTrigger value="updates">Обновления</TabsTrigger>
+                        <TabsTrigger value="contacts">Контакты</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="about" className="space-y-5 pt-3">
-                        <section className="space-y-2">
-                            <div>
-                                <h2 className="text-xl font-semibold text-foreground">RheoLab Enterprise</h2>
-                                <p className="text-sm text-muted-foreground">
-                                    Профессиональный анализ реологических данных
-                                </p>
+                    <TabsContent value="license" className="pt-3">
+                        <LicenseActivationPanel
+                            onClose={() => onOpenChange(false)}
+                            active={open && activeTab === 'license'}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="updates" className="space-y-4 pt-3">
+                        <section className="space-y-3">
+                            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                                <div>
+                                    <h2 className="text-xl font-semibold text-foreground">RheoLab Enterprise</h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        Версия приложения, сборка и проверка обновлений
+                                    </p>
+                                </div>
+                                <div className="sm:justify-self-end">
+                                    <UpdateCheckButton />
+                                </div>
                             </div>
-                            <div className="grid gap-2 text-sm sm:grid-cols-3">
+                            <div className="grid gap-2 text-sm sm:grid-cols-2">
                                 <VersionField label="Версия" value={APP_VERSION} />
-                                {BUILD_DATE !== 'dev' && <VersionField label="Сборка" value={BUILD_DATE} />}
-                                {COMMIT_HASH !== 'dev' && <VersionField label="Коммит" value={COMMIT_HASH} />}
+                                <VersionField label="Канал" value={getReleaseChannel(APP_VERSION)} />
+                                <VersionField label="Дата сборки" value={BUILD_DATE} />
+                                <VersionField label="Контрольный хеш" value={COMMIT_HASH} />
                             </div>
                         </section>
+                    </TabsContent>
 
+                    <TabsContent value="contacts" className="space-y-5 pt-3">
                         <section className="space-y-3" aria-labelledby="about-quick-actions">
                             <SectionTitle id="about-quick-actions" icon={Video} title="Быстрые действия" />
                             <div className="grid gap-2 sm:grid-cols-2">
@@ -155,15 +165,9 @@ export function AboutProgramDialog({
                                 />
                                 <ActionButton
                                     icon={Mail}
-                                    label="Написать в поддержку"
+                                    label="Написать на info"
                                     variant="outline"
-                                    onClick={() => openOrCopy(`mailto:${SUPPORT_EMAIL}`, 'Email поддержки скопирован')}
-                                />
-                                <ActionButton
-                                    icon={Mail}
-                                    label="Коммерческие вопросы"
-                                    variant="outline"
-                                    onClick={() => openOrCopy(`mailto:${SALES_EMAIL}`, 'Email для лицензий скопирован')}
+                                    onClick={() => openOrCopy(`mailto:${CONTACT_EMAIL}`, 'Email скопирован')}
                                 />
                                 <ActionButton
                                     icon={MessageCircle}
@@ -175,7 +179,6 @@ export function AboutProgramDialog({
                                     icon={Globe}
                                     label="Открыть сайт"
                                     variant="secondary"
-                                    className="sm:col-span-2"
                                     onClick={() => openOrCopy(WEBSITE_URL, 'Ссылка на сайт скопирована')}
                                 />
                             </div>
@@ -227,17 +230,15 @@ export function AboutProgramDialog({
                             </div>
                         )}
                     </TabsContent>
-
-                    <TabsContent value="license" className="pt-3">
-                        <LicenseActivationPanel
-                            onClose={() => onOpenChange(false)}
-                            active={open && activeTab === 'license'}
-                        />
-                    </TabsContent>
                 </Tabs>
             </DialogContent>
         </Dialog>
     );
+}
+
+function getReleaseChannel(version: string): string {
+    const prerelease = version.match(/-(alpha|beta|rc)\.\d+$/);
+    return prerelease?.[1] ?? 'stable';
 }
 
 function VersionField({ label, value }: { label: string; value: string }) {
