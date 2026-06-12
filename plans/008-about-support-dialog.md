@@ -32,7 +32,8 @@
 Заменить header-кнопку «Лицензия» на «О программе». Новая кнопка открывает
 одно модальное окно с двумя вкладками:
 
-1. **О программе** — версия, сайт, контакты поддержки, MAX QR.
+1. **О программе** — версия, сайт, контакты поддержки, обучающие видео,
+   MAX QR и QR раздела видео.
 2. **Лицензия** — текущий статус и существующая активация лицензии.
 
 Сценарий принудительной блокировки (`LicenseGuard`) должен остаться
@@ -42,6 +43,7 @@
 ## Контакты для вкладки «О программе»
 
 - Сайт: `https://rheolab.site/`
+- Обучающие видео: `https://rheolab.site/#videos`
 - Коммерческие вопросы и лицензии: `info@rheolab.site`
 - Техническая поддержка: `support@rheolab.site`
 - Телефон 1: `+77058030863` (отображать как `+7 705 803 08 63`)
@@ -53,6 +55,10 @@
 Email-адреса подтверждены локальным сайтом:
 `website/src/components/Contact.astro`, `website/src/pages/about.astro`,
 `website/public/llms.txt`.
+
+Раздел обучающих видео подтверждён локальным сайтом:
+`website/src/components/site/Navbar.astro` содержит ссылку `/#videos`,
+`website/src/components/site/Videos.astro` содержит секцию `id="videos"`.
 
 ## UX-решение
 
@@ -81,7 +87,8 @@ Email-адреса подтверждены локальным сайтом:
   - оставить `LicenseGuard` без изменений.
 - `src/components/about/AboutProgramDialog.tsx` (новый)
   - модальное окно `sm:max-w-2xl` или близко к существующему размеру.
-  - вкладка «О программе» с контактами, QR и кнопками открытия ссылок.
+  - вкладка «О программе» с контактами, обучающими видео, QR и кнопками
+    открытия ссылок.
   - вкладка «Лицензия» с переиспользованным содержимым лицензии.
 - `src/components/licensing/LicenseActivationDialog.tsx`
   - вынести внутреннее содержимое лицензии в компонент без собственного
@@ -97,6 +104,12 @@ Email-адреса подтверждены локальным сайтом:
   - Предпочтительно подготовить чистый квадратный QR без лишнего фона; если
     быстро не получается, использовать предоставленное изображение как есть,
     но ограничить размеры в UI.
+- `src/assets/support/rheolab-videos-qr.png` или
+  `src/assets/support/rheolab-videos-qr.svg`
+  - добавить статический QR asset, кодирующий
+    `https://rheolab.site/#videos`.
+  - Не использовать внешний QR-сервис в runtime. Если для генерации нужен
+    новый npm/cargo dependency, STOP и согласовать зависимость с владельцем.
 - `tests/components/AboutProgramDialog.test.tsx` (новый)
 - При необходимости `tests/components/LicenseActivationDialog.test.tsx`
   или точечный тест на `LicenseActivationPanel`.
@@ -127,6 +140,7 @@ Capability уже есть: `src-tauri/capabilities/default.json` содержи
 Ссылки:
 
 - сайт: `openUrl('https://rheolab.site/')`
+- обучающие видео: `openUrl('https://rheolab.site/#videos')`
 - MAX: `openUrl(MAX_URL)`
 - email: `openUrl('mailto:support@rheolab.site')` и
   `openUrl('mailto:info@rheolab.site')`
@@ -151,7 +165,9 @@ Capability уже есть: `src-tauri/capabilities/default.json` содержи
   - `info@rheolab.site`
   - телефоны
   - сайт
+  - обучающие видео
   - MAX QR
+  - QR раздела обучающих видео
 
 Импортировать версию из `src/lib/version.ts`.
 
@@ -187,19 +203,23 @@ export function LicenseActivationPanel({
 
 ## Шаги
 
-### Шаг 1: Drift-check и подготовка asset
+### Шаг 1: Drift-check и подготовка assets
 
 1. Выполнить drift-check из шапки.
 2. Создать папку `src/assets/support/`.
 3. Скопировать/подготовить QR asset из:
    `C:\Users\VladimirWorkPC\Desktop\photo_2026-06-12_09-23-19.jpg`
    в `src/assets/support/max-vladimir-qr.jpg`.
-4. Проверить, что файл открывается и вес разумный (<300 KB).
+4. Сгенерировать статический QR asset для
+   `https://rheolab.site/#videos` в
+   `src/assets/support/rheolab-videos-qr.png`.
+5. Проверить, что оба файла открываются и вес каждого разумный (<300 KB).
 
 **Verify**:
 
 ```powershell
 Get-Item src\assets\support\max-vladimir-qr.jpg
+Get-Item src\assets\support\rheolab-videos-qr.png
 ```
 
 ### Шаг 2: Вынести лицензионную панель
@@ -223,11 +243,13 @@ npm run typecheck
 3. Добавить `initialTab?: 'about' | 'license'`.
 4. Добавить кнопки:
    - открыть сайт
+   - обучающие видео
    - написать в поддержку
    - коммерческие вопросы
    - открыть MAX
    - скопировать телефон/email/link
 5. QR: `<img src={maxQr} alt="QR-код MAX для связи с поддержкой RheoLab" />`.
+6. QR видео: `<img src={videosQr} alt="QR-код раздела обучающих видео RheoLab" />`.
 
 **Verify**:
 
@@ -263,7 +285,10 @@ npm run typecheck
    - `support@rheolab.site`
    - оба телефона
    - `MAX`
-   - QR image с alt text.
+   - `Обучающие видео`
+   - `https://rheolab.site/#videos`
+   - QR image с alt text для MAX.
+   - QR image с alt text для обучающих видео.
 2. Клик по tab `Лицензия` показывает лицензионную панель.
 3. `DashboardLayoutClient` или более узкий тест header-пути:
    - видима кнопка `О программе`
@@ -299,6 +324,8 @@ npm run test:e2e:smoke
       активацию.
 - [ ] `LicenseGuard` по-прежнему блокирует приложение формой лицензии.
 - [ ] Контакты: сайт, два email, два телефона, MAX link, MAX QR.
+- [ ] Есть ссылка и QR на раздел обучающих видео:
+      `https://rheolab.site/#videos`.
 - [ ] Внешние ссылки открываются через Tauri opener.
 - [ ] QR asset находится в `src/assets/support/`, не ссылается на Desktop path.
 - [ ] `npm run lint`, `npm run typecheck`, targeted Vitest — exit 0.
@@ -311,6 +338,8 @@ npm run test:e2e:smoke
 - QR из предоставленного изображения не сканируется после оптимизации.
   Остановиться и использовать исходное изображение без обрезки либо запросить
   новый QR.
+- Секция сайта `#videos` исчезла или переименована. Остановиться и
+  согласовать новый URL с владельцем до изменения приложения.
 - Рефактор `LicenseActivationDialog` начинает менять поведение активации,
   offline corporate или `LicenseGuard`. Остановиться и сузить refactor.
 - Возникает желание добавить отправку тикета/логов/краш-репорта на сервер.
