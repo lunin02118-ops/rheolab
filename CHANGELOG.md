@@ -6,6 +6,27 @@
 
 ---
 
+## [0.2.3-alpha.20] — 2026-06-12
+
+> Альфа-сборка текущего стека после readiness-ветки 0.2.3 и микро-fix DB-паттерна F1.
+
+### Добавлено
+- **Crash diagnostics**: Rust panic hook пишет локальные `crash-*.log` рядом с app logs и ротирует последние 5 отчётов; отправка разработчикам остаётся только opt-in design-фазой.
+- **Release safety**: `release:prepare` проверяет, что в сборку не попал dev `license_public.der`.
+- **Plan journal**: добавлен журнал планов внедрения 001–007.
+
+### Исправлено
+- **DB / Reagent import**: fallback `resolve_by_id_or_name` по имени использует `name = ? COLLATE NOCASE` и индекс `idx_reagent_name_nocase` вместо `LOWER(name) = LOWER(?)`.
+- **Windows Vitest runner**: тесты больше не падают из-за разного регистра буквы диска (`d:\` vs `D:\`) и двойной загрузки `@vitest/runner`.
+- **Security / dev deps**: dev-only advisory `uuid@8.3.2` через `exceljs` закрыт `overrides` на `uuid@11.1.1`.
+
+### Проверки
+- `cargo test --manifest-path src-tauri/Cargo.toml reagent` — passed.
+- `cargo test --manifest-path src-tauri/Cargo.toml -- --test-threads=1` — passed.
+- `npm run release:prepare -- --channel alpha --skip-qa` — passed.
+
+---
+
 ## [0.2.3-beta.1] — 2026-06-12
 
 > Beta-кандидат серии 0.2.3 после 19 alpha-итераций, deep-аудита и локальной release-readiness проверки.
