@@ -12,8 +12,9 @@
 | 002  | Закоммитить Windows-фикс Vitest-раннера, привести working tree в консистентность | P1 | S | — | DONE (2026-06-12, ветка advisor/002-vitest-windows-fix; test/typecheck/lint/version:validate — exit 0) |
 | 003  | Закрыть moderate-advisory uuid (GHSA-w5hq-g745-h8pq) в dev-deps через npm overrides | P2 | S | 002 | DONE (2026-06-12, ветка advisor/003-uuid-override; npm audit/audit --omit=dev/test — exit 0) |
 | 004  | Release-gate проверка боевого license_public.der (не dev-ключ) | P2 | S | — (удобнее после 002) | DONE (2026-06-12, ветка advisor/004-license-key-gate; check-license-key/lint/prerelease:prepare — exit 0) |
-| 005  | Spike: crash/panic-телеметрия WP-6.3 — локальный crash.log + design-док отправки | P3 | M | 002 | DONE (2026-06-12, ветка advisor/005-crash-telemetry; crash_reporter/lint/typecheck/cargo test — exit 0) |
+| 005  | Spike: crash/panic-телеметрия WP-6.3 — локальный crash.log + design-док отправки | P3 | M | 002 | DONE (2026-06-12, ветка advisor/005-crash-telemetry; crash_reporter/lint/typecheck/cargo test — exit 0; verified by advisor) |
 | 006  | Подготовка промоушена 0.2.3 alpha → beta: readiness-отчёт + репетиция (без деплоя) | P3 | M | 002 (желательно после 003, 004) | BLOCKED (ожидает решения владельца по `docs/release/BETA-0.2.3-READINESS.md`) |
+| 007  | Убрать последний LOWER(name)-скан в resolve_by_id_or_name (остаток F1) | P3 | S | — | DONE (2026-06-12, ветка advisor/007-reagent-nocase; grep/reagent/full cargo test — exit 0) |
 
 Значения статуса: TODO | IN PROGRESS | DONE | BLOCKED (с причиной в одну строку) | REJECTED (с обоснованием).
 
@@ -36,6 +37,8 @@ version:validate ✓, npm audit prod 0 ✓, cargo audit 884 deps / 0 advisories 
   перечислить их как открытые пункты.
 - 006 по построению НЕ деплоит: финальный статус — BLOCKED до решения
   владельца по `docs/release/BETA-0.2.3-READINESS.md`.
+- 007 независим от release-цепочки; это микро-fix DB-паттерна
+  `COLLATE NOCASE`.
 
 ## Рассмотренные и отклонённые находки (чтобы не аудировать повторно)
 

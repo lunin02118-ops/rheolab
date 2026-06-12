@@ -223,9 +223,10 @@ pub(crate) fn resolve_by_id_or_name(
         }
     }
 
-    // Fallback: match by name
+    // Fallback: match by name. Keep this aligned with the NOCASE index
+    // contract documented in `is_duplicate_name` above.
     conn.query_row(
-        &format!("{} WHERE LOWER(name) = LOWER(?1)", SQL),
+        &format!("{} WHERE name = ?1 COLLATE NOCASE", SQL),
         params![name],
         map_row,
     )
