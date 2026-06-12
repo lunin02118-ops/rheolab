@@ -13,7 +13,7 @@
  * - `developer` → `beta`    (internal dev team)
  * - everything else → `stable`
  */
-export type LicenseType = 'trial' | 'corporate' | 'developer' | 'superuser';
+export type LicenseType = 'demo' | 'trial' | 'corporate' | 'developer' | 'superuser';
 
 export type LicenseStatus =
     | 'active'           // Полная лицензия активна

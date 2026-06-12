@@ -39,6 +39,8 @@ interface LicenseActivationPanelProps {
 
 function formatLicenseType(type: string) {
     switch (type) {
+        case 'demo':
+            return 'Пробная';
         case 'corporate':
             return 'Корпоративная';
         case 'trial':

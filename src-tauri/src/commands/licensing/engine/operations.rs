@@ -4,6 +4,7 @@ use serde_json::Value;
 use super::super::crypto::{
     delete_system_state, save_secure_last_check, upsert_system_state, verify_server_signature,
 };
+use super::super::demo::check_demo;
 use super::super::features::features_for_type;
 use super::super::online::{activate_online, deactivate_online, find_by_machine_online};
 use super::super::types::{
@@ -34,7 +35,7 @@ impl LicenseEngine {
     ///    fingerprint still cannot forge a valid response without the server's
     ///    private key.  Rate-limited on the server side (10 req / 10 min / IP).
     /// 4. If recovery returns nothing (or signature invalid, or network down),
-    ///    return an unlicensed/invalid state.
+    ///    fall through to the local 30-day demo/trial period.
     /// 5. Cache and return the result.
     pub async fn check(&self, db_pool: &DbPool) -> LicenseCheckResult {
         // Fast path: return the cached result if it's fresh enough.
@@ -83,8 +84,21 @@ impl LicenseEngine {
                     return recovered;
                 }
 
-                // 2b. No license anywhere → block the application until activation.
-                build_invalid("Лицензия не активирована")
+                // 2b. No license anywhere → local demo/trial mode.
+                //
+                // The server-side demo-registration endpoint was removed in
+                // alpha.9, so this hotfix restores the desktop-local 30-day
+                // trial instead of blocking a fresh installation outright.
+                let conn = match db_pool.get() {
+                    Ok(c) => c,
+                    Err(e) => {
+                        tracing::error!("LicenseEngine: DB pool error in demo check: {}", e);
+                        let r = build_invalid("Ошибка базы данных");
+                        self.set_cache(r.clone()).await;
+                        return r;
+                    }
+                };
+                check_demo(&conn, None)
             }
         };
 
@@ -107,9 +121,9 @@ impl LicenseEngine {
     /// auto-recovery-by-machine-ID flow, then updates the cache and emits
     /// `license_status_updated` to the frontend.
     ///
-    /// UX note: after an OS reinstall the user briefly sees an activation block
-    /// until the background `check()` recovers the license (~1-2 s), at which
-    /// point the frontend transitions to the licensed UI.
+    /// UX note: after an OS reinstall the user briefly sees demo mode until
+    /// the background `check()` recovers the license (~1-2 s), at which point
+    /// the frontend transitions to the licensed UI.
     pub async fn check_local_startup(&self, db_pool: &DbPool) -> LicenseCheckResult {
         // Note: no TTL fast-path here — this method always reads from DB so that
         // the background check() call (which DOES respect TTL) will see cache_time=None
@@ -193,9 +207,26 @@ impl LicenseEngine {
                 }
             }
             None => {
-                // No verified license — block locally. The background `check()`
-                // may still recover a corporate license bound to this machine.
-                build_invalid("Лицензия не активирована")
+                // No verified license — start local demo mode immediately.
+                //
+                // We intentionally DO NOT try machine-ID recovery here: this
+                // function is on the splash-screen hot path and must stay
+                // offline. The background `check()` kicked off by `lib.rs`
+                // right after `setup()` will run recovery and promote us to
+                // Active if a license is bound to this fingerprint on the server.
+                let conn = match db_pool.get() {
+                    Ok(c) => c,
+                    Err(e) => {
+                        tracing::error!(
+                            "LicenseEngine startup check: DB pool error in demo check: {}",
+                            e
+                        );
+                        let r = build_invalid("Ошибка базы данных");
+                        self.set_cache_value_only(r.clone()).await;
+                        return r;
+                    }
+                };
+                check_demo(&conn, None)
             }
         };
 
@@ -216,11 +247,11 @@ impl LicenseEngine {
             );
             self.set_cache_value_only(result.clone()).await;
         } else {
-            // Unlicensed path — value-only cache so the background `check()`
-            // can still attempt machine-ID recovery before the activation
-            // dialog becomes the final state.
+            // Demo path — value-only cache so the background `check()` can
+            // still attempt machine-ID recovery before the demo state becomes
+            // the final state.
             self.diag(
-                "check_local_startup: unlicensed path — value-only cache, background check() will run recovery"
+                "check_local_startup: DEMO path — value-only cache, background check() will run recovery"
             );
             self.set_cache_value_only(result.clone()).await;
         }
@@ -229,9 +260,8 @@ impl LicenseEngine {
 
     // ── Register experiment ────────────────────────────────────────────
 
-    /// Re-check after a saved experiment. The legacy demo counter no longer
-    /// participates in the product model, so this is intentionally a no-op
-    /// refresh hook kept for IPC compatibility.
+    /// Re-check after a saved experiment. The save path updates the demo
+    /// counter inside its DB transaction before calling this refresh hook.
     pub async fn register_experiment(&self, db_pool: &DbPool) -> Result<LicenseCheckResult> {
         Ok(self.check(db_pool).await)
     }
@@ -418,7 +448,7 @@ impl LicenseEngine {
     ///
     /// In all other cases (network error, server miss, forged signature,
     /// DB write failure) this returns `None` so the caller cleanly falls
-    /// through to the unlicensed state — the user is never worse off than before.
+    /// through to local demo mode — the user is never worse off than before.
     async fn try_recover_by_machine_id(&self, db_pool: &DbPool) -> Option<LicenseCheckResult> {
         let data = match find_by_machine_online(&self.app_data_dir).await {
             Ok(Some(d)) => d,

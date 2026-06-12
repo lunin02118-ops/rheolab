@@ -6,6 +6,25 @@
 
 ---
 
+## [0.2.3-alpha.22] — 2026-06-12
+
+> Hotfix пробного 30-дневного режима для новых ПК без активированной лицензии.
+
+### Исправлено
+- **Licensing / Trial**: новый ПК без локальной лицензии снова получает локальный пробный режим на 30 дней, а не блокирующее состояние `Лицензия не активирована`.
+- **Trial saves**: пробный режим снова допускает сохранение в пределах demo-квоты и корректно уменьшает счётчик доступных сохранений.
+- **Startup**: быстрый startup-check остаётся локальным и показывает demo-состояние, пока background-проверка пытается восстановить лицензию по machine ID.
+- **UI**: баннер пробного периода теперь отображается для локального `demo`-статуса, а не только для server-side `trial` лицензии.
+
+### Проверки
+- `cargo test --manifest-path src-tauri/Cargo.toml licensing --lib` — passed.
+- `npm run test -- tests/components/TrialBanner.test.tsx tests/store/license-store.test.ts tests/components/DashboardLayoutClient.test.tsx` — passed.
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `npm run version:validate` — passed.
+
+---
+
 ## [0.2.3-alpha.21] — 2026-06-12
 
 > Альфа-сборка с новым окном «О программе», поддержкой и быстрым доступом к обучающим видео.

@@ -696,10 +696,11 @@ fn check_local_startup_is_strictly_local_no_http() {
         let result = rt.block_on(engine.check_local_startup(&pool));
         let elapsed = start.elapsed();
 
-        assert_eq!(result.status, LicenseStatus::Invalid);
+        assert_eq!(result.status, LicenseStatus::Demo);
+        assert_eq!(result.days_remaining, Some(30));
         assert!(
             elapsed.as_secs() < 2,
-            "Unlicensed path took {} ms — likely made an HTTP call (budget: <2 s)",
+            "Demo startup path took {} ms — likely made an HTTP call (budget: <2 s)",
             elapsed.as_millis()
         );
     }
@@ -758,4 +759,73 @@ fn invalidate_cache_time_clears_only_the_marker() {
     let still_cached = still_cached.unwrap();
     assert_eq!(still_cached.status, LicenseStatus::Demo);
     assert_eq!(still_cached.experiments_remaining, Some(7));
+}
+
+#[test]
+fn can_write_allows_active_grace_and_demo_only() {
+    use crate::commands::licensing::features::{demo_features, expired_features, full_features};
+    use crate::commands::licensing::types::{LicenseSource, LicenseStatus};
+
+    let tmp = tempfile::tempdir().unwrap();
+    let engine = LicenseEngine::new(tmp.path().to_path_buf());
+    let rt = tokio::runtime::Runtime::new().unwrap();
+
+    for status in [
+        LicenseStatus::Active,
+        LicenseStatus::Grace,
+        LicenseStatus::Demo,
+    ] {
+        let features = if status == LicenseStatus::Demo {
+            demo_features()
+        } else {
+            full_features()
+        };
+        let source = if status == LicenseStatus::Demo {
+            LicenseSource::Demo
+        } else {
+            LicenseSource::Key
+        };
+        rt.block_on(engine.set_cache(LicenseCheckResult {
+            status,
+            source,
+            features,
+            key: None,
+            license_type: None,
+            customer_name: None,
+            expires_at: None,
+            days_remaining: None,
+            experiments_remaining: None,
+            message: None,
+            show_warning: false,
+        }));
+        assert!(
+            rt.block_on(engine.can_write()),
+            "{status:?} must allow write-gated demo/licensed workflows"
+        );
+    }
+
+    for status in [
+        LicenseStatus::DemoExpired,
+        LicenseStatus::Expired,
+        LicenseStatus::Invalid,
+        LicenseStatus::Revoked,
+    ] {
+        rt.block_on(engine.set_cache(LicenseCheckResult {
+            status,
+            source: LicenseSource::Unlicensed,
+            features: expired_features(),
+            key: None,
+            license_type: None,
+            customer_name: None,
+            expires_at: None,
+            days_remaining: None,
+            experiments_remaining: None,
+            message: None,
+            show_warning: true,
+        }));
+        assert!(
+            !rt.block_on(engine.can_write()),
+            "{status:?} must stay blocked"
+        );
+    }
 }

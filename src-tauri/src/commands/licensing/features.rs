@@ -4,7 +4,6 @@
 //! Pure functions that return [`LicenseFeatures`] for each license type / status.
 //! No I/O, no side-effects.
 
-#[cfg(test)]
 use super::types::DEMO_MAX_EXPERIMENTS;
 #[cfg(test)]
 use super::types::{LicenseCheckResult, LicenseStatus};
@@ -77,7 +76,6 @@ pub(super) fn superuser_features() -> LicenseFeatures {
 }
 
 /// Demo (unregistered / trial period): limited experiments, watermark.
-#[cfg(test)]
 pub(super) fn demo_features() -> LicenseFeatures {
     LicenseFeatures {
         max_experiments: DEMO_MAX_EXPERIMENTS,

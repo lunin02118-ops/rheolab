@@ -4,7 +4,7 @@
 //! and exposes the authoritative `check_license()` method that combines:
 //! - DB-stored license data (HMAC-verified)
 //! - Online validation (revocation, expiry)
-//! - Unlicensed blocking state
+//! - Local demo/trial fallback when no license is present
 //! - Clock tamper / offline-overdue detection
 //! - Feature flag computation
 //!
@@ -157,7 +157,10 @@ impl LicenseEngine {
     /// Whether the current cached status allows write operations (save, export).
     pub async fn can_write(&self) -> bool {
         match self.cached().await {
-            Some(r) => matches!(r.status, LicenseStatus::Active | LicenseStatus::Grace),
+            Some(r) => matches!(
+                r.status,
+                LicenseStatus::Active | LicenseStatus::Grace | LicenseStatus::Demo
+            ),
             None => false,
         }
     }

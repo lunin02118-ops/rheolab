@@ -55,7 +55,6 @@ pub(super) const ALPHA_CHANNEL_KEY: &str = match option_env!("ALPHA_CHANNEL_SECR
 pub(super) const STORAGE_SALT: &str = "rheolab-storage-salt";
 pub(crate) const HW_SALT: &str = "rheolab-hw-";
 
-#[cfg(test)]
 pub(super) const DB_KEY_DEMO: &str = "demo_state_v4";
 pub(super) const DB_KEY_LICENSE: &str = "license_data_v1";
 pub(super) const DB_KEY_WAS_LICENSED: &str = "was_licensed_v1";
@@ -72,10 +71,8 @@ pub(super) const LOCAL_USER_ID: &str = "desktop-local-admin";
 // ── License engine constants ───────────────────────────────────────────
 
 /// Maximum demo trial duration in days
-#[cfg(test)]
 pub(super) const DEMO_MAX_DAYS: i64 = 30;
 /// Maximum experiments allowed in demo mode
-#[cfg(test)]
 pub(super) const DEMO_MAX_EXPERIMENTS: i64 = 10;
 /// Maximum days allowed offline before requiring re-validation
 pub(super) const MAX_OFFLINE_DAYS: i64 = 30;
@@ -265,7 +262,6 @@ pub fn assert_production_keys() {
 // ── Response / domain types ────────────────────────────────────────────
 
 /// Internal demo state — used by demo.rs engine module.
-#[cfg(test)]
 #[derive(Debug, Serialize, Deserialize, specta::Type)]
 #[specta(export = false)]
 #[serde(rename_all = "camelCase")]

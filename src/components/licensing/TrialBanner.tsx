@@ -15,7 +15,7 @@ interface TrialBannerProps {
 
 export function TrialBanner({ onActivate }: TrialBannerProps) {
     const { result, daysRemaining, experimentsRemaining } = useLicense();
-    const isTrial = result?.license?.type === 'trial';
+    const isTrial = result?.status === 'demo' || result?.license?.type === 'trial';
 
     // Check if banner was dismissed today (lazy initial state)
     const [dismissed, setDismissed] = useState(() => {

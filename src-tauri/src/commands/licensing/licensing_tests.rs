@@ -210,13 +210,16 @@ fn gate_rejects_expired_plus_grace() {
 }
 
 #[test]
-fn gate_rejects_unlicensed_even_without_demo_state() {
-    // G-5: No license must reject. Demo mode is no longer part of the product model.
+fn gate_accepts_fresh_demo_when_unlicensed() {
+    // G-5: No license + no demo state means a fresh 30-day demo starts.
     let conn = setup_test_db();
     assert!(
-        check_license_gate(&conn).is_err(),
-        "Gate must reject when no license is present"
+        check_license_gate(&conn).is_ok(),
+        "Gate must accept a fresh local demo when no license is present"
     );
+    let demo_result = demo::check_demo(&conn, None);
+    assert_eq!(demo_result.status, LicenseStatus::Demo);
+    assert_eq!(demo_result.days_remaining, Some(types::DEMO_MAX_DAYS));
 }
 
 #[test]
@@ -421,13 +424,13 @@ fn maybe_increment_is_noop_when_e2e_skip_gate_set() {
         "Demo counter must not have incremented with RHEOLAB_E2E_SKIP_LICENSE_GATE=1"
     );
 
-    // Sanity: without the env var, legacy hook remains a no-op too.
+    // Sanity: without the env var, a real save decrements demo quota.
     maybe_increment_demo_save(&conn);
     let after_normal = demo::check_demo(&conn, None);
     assert_eq!(
         after_normal.experiments_remaining,
-        Some(10),
-        "Demo counter hook must remain a no-op after demo licensing removal"
+        Some(9),
+        "Demo counter hook must decrement quota during a normal save"
     );
 }
 
@@ -455,12 +458,12 @@ fn maybe_increment_ignores_env_bypass_in_release() {
     maybe_increment_demo_save(&conn);
     unsafe { env::remove_var("RHEOLAB_E2E_SKIP_LICENSE_GATE") };
 
-    // Demo licensing was removed, so this legacy hook is a no-op in release too.
+    // Release builds must ignore the debug E2E bypass and still decrement quota.
     let after = demo::check_demo(&conn, None);
     assert_eq!(
         after.experiments_remaining,
-        Some(10),
-        "Demo counter hook must remain a no-op in release builds"
+        Some(9),
+        "Demo counter hook must decrement quota in release builds"
     );
 }
 

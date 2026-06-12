@@ -12,7 +12,7 @@
 declare const __BUILD_DATE__: string | undefined;
 declare const __COMMIT_HASH__: string | undefined;
 
-export const APP_VERSION = '0.2.3-alpha.21';
+export const APP_VERSION = '0.2.3-alpha.22';
 export const BUILD_DATE: string =
     typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev';
 export const COMMIT_HASH: string =
