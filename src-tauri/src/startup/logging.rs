@@ -60,7 +60,7 @@ pub fn rotate_startup_log(keep: usize) {
         })
         .collect();
 
-    rotated_logs.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+    rotated_logs.sort_by_key(|log| std::cmp::Reverse(log.file_name()));
 
     for old in rotated_logs.iter().skip(keep) {
         let _ = std::fs::remove_file(old.path());

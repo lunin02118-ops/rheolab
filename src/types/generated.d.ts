@@ -118,13 +118,13 @@ export type ExperimentsFilterMetadataResponse = { instrumentTypes: string[]; flu
 /**
  * Library-wide coverage / range stats for the touch-point precomputed
  * columns.  Used by the UI to:
- * * Show "в БД: X..Y" hints beneath each touch-point range filter so
+ * - Show "в БД: X..Y" hints beneath each touch-point range filter so
  * users pick sensible values instead of filtering to zero rows.
- * * Render a contextual empty-state when a touch-point filter hides
+ * - Render a contextual empty-state when a touch-point filter hides
  * everything ("из 220 эксп. только 1 достиг порога 50 сП…").
- * Computed against the WHOLE library — independent of the current
- * filter panel selections — so the hints remain stable while the user
- * is editing filter values.
+ * - Compute against the WHOLE library — independent of the current filter
+ * panel selections — so the hints remain stable while the user is
+ * editing filter values.
  */
 touchPointStats: TouchPointLibraryStats }
 

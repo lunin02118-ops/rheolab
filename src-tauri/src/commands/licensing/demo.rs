@@ -1,4 +1,7 @@
-#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![cfg_attr(
+    not(test),
+    warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)
+)]
 //! Demo (trial) license logic — checking and initialising the 30-day demo period.
 //!
 //! Reads and writes the HMAC-protected `demo_state_v4` key in SystemState.

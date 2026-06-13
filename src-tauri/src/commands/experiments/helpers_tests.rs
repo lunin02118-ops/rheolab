@@ -10,7 +10,7 @@ use serde_json::json;
 
 #[test]
 fn parse_number_valid_float() {
-    assert_eq!(parse_number_from_str("3.14"), Some(3.14));
+    assert_eq!(parse_number_from_str("2.75"), Some(2.75));
 }
 
 #[test]
@@ -42,7 +42,7 @@ fn parse_number_trims_whitespace() {
 
 #[test]
 fn number_from_json_float() {
-    assert_eq!(number_from_json(&json!(3.14)), Some(3.14));
+    assert_eq!(number_from_json(&json!(2.75)), Some(2.75));
 }
 
 #[test]

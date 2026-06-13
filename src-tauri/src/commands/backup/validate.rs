@@ -8,10 +8,10 @@ pub(super) fn sanitize_backup_filename(filename: &str) -> Result<()> {
         return Err("Backup filename must not be empty".into());
     }
     if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
-        return Err(format!("Invalid backup filename: path traversal not allowed").into());
+        return Err("Invalid backup filename: path traversal not allowed".into());
     }
     if !filename.ends_with(".db") {
-        return Err(format!("Invalid backup filename: must end with .db").into());
+        return Err("Invalid backup filename: must end with .db".into());
     }
     let stem = filename.trim_end_matches(".db");
     if stem.is_empty() || stem.starts_with('.') {

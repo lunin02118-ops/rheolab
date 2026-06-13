@@ -139,7 +139,7 @@ fn insert_analysis_experiment(pool: &crate::db::DbPool, experiment_id: &str, cou
 async fn detect_steps_returns_steps_array() {
     let result = analysis_detect_steps(make_detect_steps_input(60)).await;
     assert!(result.is_ok(), "detect_steps should succeed: {:?}", result);
-    assert!(!result.unwrap().steps.is_empty() || true, "call succeeded");
+    let _output = result.unwrap();
 }
 
 #[tokio::test]

@@ -21,7 +21,7 @@ fn v2_id_deterministic() {
 #[test]
 fn v2_id_differs_from_v1() {
     // v1 used HW_SALT ("rheolab-hw-"), v2 uses HW_SALT_V2 ("rheolab-hw-v2-")
-    let parts = vec!["cpu123", "mobo456", "bios789"];
+    let parts = ["cpu123", "mobo456", "bios789"];
     let combined = parts.join("|");
 
     let mut h1 = Sha256::new();

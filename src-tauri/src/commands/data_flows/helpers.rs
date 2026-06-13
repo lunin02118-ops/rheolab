@@ -31,6 +31,27 @@ pub(crate) fn compact_ref(experiment_id: &str, payload_json: &str) -> String {
     )
 }
 
+pub(crate) struct ExperimentPayloadInsert<'a> {
+    pub(crate) experiment_id: &'a str,
+    pub(crate) import_batch_id: Option<&'a str>,
+    pub(crate) payload_json: &'a str,
+    pub(crate) source_lab_id: Option<&'a str>,
+    pub(crate) source_system: Option<&'a str>,
+    pub(crate) source_app_version: Option<&'a str>,
+    pub(crate) is_canonical: bool,
+}
+
+pub(crate) struct ReportArtifactInsert<'a> {
+    pub(crate) experiment_id: &'a str,
+    pub(crate) import_batch_id: Option<&'a str>,
+    pub(crate) report_type: &'a str,
+    pub(crate) template_version: Option<&'a str>,
+    pub(crate) settings_json: Option<&'a str>,
+    pub(crate) storage_path: Option<&'a str>,
+    pub(crate) binary_sha256: Option<&'a str>,
+    pub(crate) size_bytes: Option<i64>,
+}
+
 /// Create an ImportBatch row. Returns the generated batch id.
 pub(crate) fn create_import_batch(
     conn: &Connection,
@@ -87,14 +108,17 @@ pub(crate) fn finalise_import_batch(
 /// Create an ExperimentPayload row.
 pub(crate) fn create_experiment_payload(
     conn: &Connection,
-    experiment_id: &str,
-    import_batch_id: Option<&str>,
-    payload_json: &str,
-    source_lab_id: Option<&str>,
-    source_system: Option<&str>,
-    source_app_version: Option<&str>,
-    is_canonical: bool,
+    input: ExperimentPayloadInsert<'_>,
 ) -> Result<String> {
+    let ExperimentPayloadInsert {
+        experiment_id,
+        import_batch_id,
+        payload_json,
+        source_lab_id,
+        source_system,
+        source_app_version,
+        is_canonical,
+    } = input;
     let id = new_id();
     let fingerprint = content_fingerprint(payload_json);
 
@@ -165,15 +189,18 @@ pub(crate) fn create_parser_artifact(
 /// Create a ReportArtifact row.
 pub(crate) fn create_report_artifact(
     conn: &Connection,
-    experiment_id: &str,
-    import_batch_id: Option<&str>,
-    report_type: &str,
-    template_version: Option<&str>,
-    settings_json: Option<&str>,
-    storage_path: Option<&str>,
-    binary_sha256: Option<&str>,
-    size_bytes: Option<i64>,
+    input: ReportArtifactInsert<'_>,
 ) -> Result<String> {
+    let ReportArtifactInsert {
+        experiment_id,
+        import_batch_id,
+        report_type,
+        template_version,
+        settings_json,
+        storage_path,
+        binary_sha256,
+        size_bytes,
+    } = input;
     let id = new_id();
     conn.execute(
         "INSERT INTO ReportArtifact \

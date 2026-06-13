@@ -709,16 +709,15 @@ fn make_experiment_with_crossing(id: &str) -> StoredExperiment {
     exp
 }
 
-fn read_touch_columns(
-    conn: &Connection,
-    id: &str,
-) -> (
+type TouchColumns = (
     Option<i64>,
     Option<f64>,
     Option<f64>,
     Option<f64>,
     Option<i64>,
-) {
+);
+
+fn read_touch_columns(conn: &Connection, id: &str) -> TouchColumns {
     conn.query_row(
         "SELECT touchHasCrossing, touchCrossingTimeMin, touchCrossingViscosityCp, \
                 touchViscosityAtTargetCp, touchPrecomputeVersion \

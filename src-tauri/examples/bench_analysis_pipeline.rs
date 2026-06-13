@@ -899,7 +899,7 @@ fn main() {
         // Per-iteration trace clones so each pass starts from a fresh
         // owned Vec — matches what the IPC path does (deserialise
         // produces fresh allocations every call).
-        let cloned: Vec<Vec<RheoPoint>> = traces.iter().map(|t| t.clone()).collect();
+        let cloned: Vec<Vec<RheoPoint>> = traces.to_vec();
 
         let t0 = Instant::now();
         let mut cycles_total = 0usize;

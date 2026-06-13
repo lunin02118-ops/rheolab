@@ -210,11 +210,9 @@ pub(crate) fn resolve_active_ai_key(
         .query_map(params![provider], |row| row.get::<_, String>(0))
         .ok()?;
 
-    for row in rows {
-        if let Ok(encoded) = row {
-            if let Some(raw_key) = decode_key(&encoded, app_data_dir) {
-                return Some(raw_key);
-            }
+    for encoded in rows.flatten() {
+        if let Some(raw_key) = decode_key(&encoded, app_data_dir) {
+            return Some(raw_key);
         }
     }
 
@@ -297,12 +295,10 @@ pub(crate) async fn api_keys_active_impl(
     })?;
 
     let mut active = None;
-    for row in rows {
-        if let Ok((meta, encoded)) = row {
-            if decode_key(&encoded, &state.app_data_dir).is_some() {
-                active = Some(meta);
-                break;
-            }
+    for (meta, encoded) in rows.flatten() {
+        if decode_key(&encoded, &state.app_data_dir).is_some() {
+            active = Some(meta);
+            break;
         }
     }
 
@@ -332,11 +328,7 @@ pub(crate) async fn api_keys_check_active_impl(
         })?;
 
         let mut keys = Vec::new();
-        for row in rows {
-            if let Ok(k) = row {
-                keys.push(k);
-            }
-        }
+        keys.extend(rows.flatten());
         keys
     };
 

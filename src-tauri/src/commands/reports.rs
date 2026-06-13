@@ -2253,8 +2253,7 @@ fn validate_comparison_experiment_ids_exist(
     if experiment_ids.is_empty() {
         return Ok(());
     }
-    let placeholders = std::iter::repeat("?")
-        .take(experiment_ids.len())
+    let placeholders = std::iter::repeat_n("?", experiment_ids.len())
         .collect::<Vec<_>>()
         .join(",");
     let sql = format!("SELECT id FROM Experiment WHERE id IN ({placeholders})");
