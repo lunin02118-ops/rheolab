@@ -241,6 +241,22 @@ describe('useComparisonReportExport', () => {
             expect(result.current.exportError).toMatch(/хотя бы один/);
         });
 
+        it('blocks file-backed experiments instead of using legacy direct payload export', async () => {
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    experiments: [makeExperiment('file-local-1', 'local.dat')],
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            expect(generateComparisonPdfReportByIdsBytes).not.toHaveBeenCalled();
+            expect(saveBytes).not.toHaveBeenCalled();
+            expect(result.current.exportError).toContain('Сохраните локальные файлы');
+        });
+
         it('clears previous errors on clearError()', async () => {
             vi.mocked(generateComparisonPdfReportByIdsBytes).mockRejectedValueOnce(new Error('boom'));
             const { result } = renderHook(() => useComparisonReportExport(makeOptions()));

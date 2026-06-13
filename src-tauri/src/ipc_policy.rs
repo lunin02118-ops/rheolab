@@ -290,18 +290,6 @@ pub const IPC_COMMAND_POLICIES: &[IpcCommandPolicy] = &[
     )
     .requires_license(),
     medium(
-        "reports_generate_comparison_pdf",
-        BINARY_DB_READ,
-        IpcPayloadClass::ProhibitedLargeJson,
-    )
-    .requires_license(),
-    medium(
-        "reports_generate_comparison_excel",
-        BINARY_DB_READ,
-        IpcPayloadClass::ProhibitedLargeJson,
-    )
-    .requires_license(),
-    medium(
         "reports_generate_comparison_pdf_by_ids",
         BINARY_DB_READ,
         IpcPayloadClass::LargeBinaryByDesign,
@@ -592,22 +580,22 @@ mod tests {
     }
 
     #[test]
-    fn direct_comparison_payload_commands_are_current_inventory_only() {
+    fn production_registry_excludes_direct_comparison_payload_commands() {
         let registered = registered_command_names();
-        let expected = [
+        let forbidden = [
             "reports_generate_comparison_pdf",
             "reports_generate_comparison_excel",
         ];
 
-        for name in expected {
-            assert!(registered.contains(name), "{name} is current IPC surface");
-            let policy = policy_for_command(name).expect("policy exists");
-            assert_eq!(
-                policy.max_payload_class,
-                IpcPayloadClass::ProhibitedLargeJson
+        for name in forbidden {
+            assert!(
+                !registered.contains(name),
+                "{name} must not be exposed in the production command registry"
             );
-            assert!(policy.capabilities.returns_binary);
-            assert!(policy.requires_license);
+            assert!(
+                policy_for_command(name).is_none(),
+                "{name} must not have production IPC policy metadata"
+            );
         }
     }
 
