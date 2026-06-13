@@ -309,8 +309,6 @@ export interface PlatformBridge {
     generateExcel: (input: unknown) => Promise<Uint8Array>;
     generatePdfById: (request: ExperimentReportByIdRequest) => Promise<Uint8Array>;
     generateExcelById: (request: ExperimentReportByIdRequest) => Promise<Uint8Array>;
-    generateComparisonPdf: (input: unknown) => Promise<Uint8Array>;
-    generateComparisonExcel: (input: unknown) => Promise<Uint8Array>;
     generateComparisonPdfByIds: (request: ComparisonReportByIdsRequest) => Promise<Uint8Array>;
     generateComparisonExcelByIds: (request: ComparisonReportByIdsRequest) => Promise<Uint8Array>;
   };
