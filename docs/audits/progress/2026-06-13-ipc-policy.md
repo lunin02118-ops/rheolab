@@ -2,8 +2,8 @@
 
 Branch: ref/ipc-policy-inventory
 Base branch: ref/error-boundary-redacted-logging
-Commit: see PR head SHA
-PR: pending
+Commit: 03cdb4f1b4a471fed0bab6a5e586dbbcac0e36a7
+PR: #9 https://github.com/lunin02118-ops/rheolab/pull/9
 Phase: PR-F - IPC policy inventory and high-risk command metadata
 Date: 2026-06-13
 Agent: Codex
