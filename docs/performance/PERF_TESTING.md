@@ -229,7 +229,7 @@ npm run perf:benchmark -- --combined --duration 300
 | `fail` | Нарушения присутствуют + `--non-blocking` НЕ указан → `process.exit(1)` |
 | `skipped` | Динамическое профилирование пропущено (`--skip-dynamic`) |
 
-`--command-timeout-ms=<ms>` задаёт per-step timeout для динамических команд аудита. При timeout runner завершает дерево дочерних процессов и запускает Tauri E2E teardown, чтобы не оставлять WebView2/Tauri процессы и не блокировать последующий `cargo test`.
+`--command-timeout-ms=<ms>` задаёт per-step timeout для динамических команд аудита. Значение должно быть safe integer в диапазоне `1000..7200000` ms. При timeout runner завершает дерево дочерних процессов и запускает Tauri E2E teardown, чтобы не оставлять WebView2/Tauri процессы и не блокировать последующий `cargo test`.
 
 `--run-id=<id>` используется как имя каталога в `runtime/audit/` и принимается только как безопасный slug без абсолютных путей, `..`, `/` или `\`.
 

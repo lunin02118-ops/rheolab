@@ -11,6 +11,9 @@ const quick = args.includes('--quick');
 const nonBlocking = args.includes('--non-blocking');
 const windowsRunner = args.includes('--windows-runner');
 const skipDynamic = args.includes('--skip-dynamic');
+const COMMAND_TIMEOUT_MIN_MS = 1_000;
+const COMMAND_TIMEOUT_MAX_MS = 7_200_000;
+const POSIX_SIGKILL_ESCALATION_MS = 5_000;
 
 function getArgValue(flag) {
   const prefix = `${flag}=`;
@@ -23,6 +26,11 @@ function getArgValue(flag) {
     if (!value.startsWith('--')) return value;
   }
   return null;
+}
+
+function hasArg(flag) {
+  const prefix = `${flag}=`;
+  return args.includes(flag) || args.some((arg) => arg.startsWith(prefix));
 }
 
 function normalizeRunId(value) {
@@ -44,13 +52,41 @@ function normalizeRunId(value) {
   return normalized;
 }
 
+function parseCommandTimeoutMs(value) {
+  if (!hasArg('--command-timeout-ms')) {
+    return quick ? 12 * 60 * 1000 : 25 * 60 * 1000;
+  }
+
+  if (value === null || value === '') {
+    throw new Error('Invalid --command-timeout-ms: missing value');
+  }
+
+  if (!/^-?\d+$/.test(value)) {
+    throw new Error(`Invalid --command-timeout-ms: ${value}`);
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || !Number.isSafeInteger(parsed)) {
+    throw new Error(`Invalid --command-timeout-ms: ${value}`);
+  }
+
+  if (parsed < COMMAND_TIMEOUT_MIN_MS || parsed > COMMAND_TIMEOUT_MAX_MS) {
+    throw new Error(
+      `Invalid --command-timeout-ms: ${value} (expected ${COMMAND_TIMEOUT_MIN_MS}..${COMMAND_TIMEOUT_MAX_MS})`,
+    );
+  }
+
+  return parsed;
+}
+
 const runIdArg = getArgValue('--run-id');
-const commandTimeoutMs = Number(getArgValue('--command-timeout-ms'))
-  || (quick ? 12 * 60 * 1000 : 25 * 60 * 1000);
+const commandTimeoutArg = getArgValue('--command-timeout-ms');
 const defaultRunId = `${new Date().toISOString().replace(/[^\dT]/g, '').replace('T', '-')}-frontend-ipc-deep-audit`;
 let runId;
+let commandTimeoutMs;
 try {
   runId = normalizeRunId(runIdArg) || defaultRunId;
+  commandTimeoutMs = parseCommandTimeoutMs(commandTimeoutArg);
 } catch (error) {
   console.error(`[frontend-ipc-audit] ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
@@ -359,14 +395,31 @@ function killProcessTree(pid) {
     return;
   }
 
-  try {
-    process.kill(-pid, 'SIGTERM');
-  } catch {
+  const sendSignal = (signal) => {
     try {
-      process.kill(pid, 'SIGTERM');
+      process.kill(-pid, signal);
     } catch {
-      // Process already exited.
+      try {
+        process.kill(pid, signal);
+      } catch {
+        // Process already exited.
+      }
     }
+  };
+
+  sendSignal('SIGTERM');
+  const escalationTimer = setTimeout(() => {
+    sendSignal('SIGKILL');
+  }, POSIX_SIGKILL_ESCALATION_MS);
+  if (typeof escalationTimer.unref === 'function') {
+    escalationTimer.unref();
+  }
+  return escalationTimer;
+}
+
+function clearTimer(timer) {
+  if (timer) {
+    clearTimeout(timer);
   }
 }
 
@@ -415,6 +468,14 @@ function runCommand(id, command, extraEnv = {}) {
     let timedOut = false;
     let spawnError = null;
     let wroteStderrHeader = false;
+    let killEscalationTimer = null;
+    let tauriTeardownDone = false;
+
+    const runCommandTauriTeardown = () => {
+      if (!isTauriRuntimeCommand(command) || tauriTeardownDone) return;
+      tauriTeardownDone = true;
+      runTauriTeardown(logStream);
+    };
 
     logStream.write(`[${new Date(startedAt).toISOString()}] $ ${command}\n`);
     logStream.write(`command_timeout_ms=${commandTimeoutMs}\n\n[stdout]\n`);
@@ -435,7 +496,7 @@ function runCommand(id, command, extraEnv = {}) {
       timedOut = true;
       logStream.write(`\n[frontend-ipc-audit] command timed out after ${commandTimeoutMs}ms\n`);
       if (child.pid) {
-        killProcessTree(child.pid);
+        killEscalationTimer = killProcessTree(child.pid);
       } else {
         try {
           child.kill('SIGTERM');
@@ -443,24 +504,21 @@ function runCommand(id, command, extraEnv = {}) {
           // Process already exited.
         }
       }
-      if (isTauriRuntimeCommand(command)) {
-        runTauriTeardown(logStream);
-      }
+      runCommandTauriTeardown();
     }, commandTimeoutMs);
 
     const finish = (code, signal) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      clearTimer(killEscalationTimer);
       if (child.pid) activeChildren.delete(child.pid);
 
       const durationMs = Date.now() - startedAt;
       const finishedAt = startedAt + durationMs;
       const exitCode = spawnError ? 1 : timedOut ? 124 : code ?? 1;
 
-      if (isTauriRuntimeCommand(command)) {
-        runTauriTeardown(logStream);
-      }
+      runCommandTauriTeardown();
 
       logStream.write(
         [
