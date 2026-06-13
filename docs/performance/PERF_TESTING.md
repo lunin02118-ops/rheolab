@@ -31,6 +31,8 @@ npm run perf:benchmark
 npm run audit:frontend-ipc
 # quick + non-blocking profile (useful for CI smoke)
 npm run audit:frontend-ipc -- --quick --windows-runner --non-blocking
+# short command timeout for harness-cleanup smoke/debug runs
+npm run audit:frontend-ipc -- --quick --non-blocking --command-timeout-ms=60000
 ```
 
 > ⚠️ **`perf:workflow` (браузер, без Tauri) устарел после ADR-0003.**
@@ -226,6 +228,10 @@ npm run perf:benchmark -- --combined --duration 300
 | `warning` | Нарушения присутствуют, но флаг `--non-blocking` не прерывает CI |
 | `fail` | Нарушения присутствуют + `--non-blocking` НЕ указан → `process.exit(1)` |
 | `skipped` | Динамическое профилирование пропущено (`--skip-dynamic`) |
+
+`--command-timeout-ms=<ms>` задаёт per-step timeout для динамических команд аудита. Значение должно быть safe integer в диапазоне `1000..7200000` ms. При timeout runner завершает дерево дочерних процессов и запускает Tauri E2E teardown, чтобы не оставлять WebView2/Tauri процессы и не блокировать последующий `cargo test`.
+
+`--run-id=<id>` используется как имя каталога в `runtime/audit/` и принимается только как безопасный slug без абсолютных путей, `..`, `/` или `\`.
 
 ### Bucket-классификация находок
 
