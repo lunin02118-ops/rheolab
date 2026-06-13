@@ -1,4 +1,7 @@
-#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![cfg_attr(
+    not(test),
+    warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)
+)]
 //! Columnar binary encoding + zstd compression for raw experiment points.
 //!
 //! ## Format v2 (uncompressed)
@@ -59,7 +62,7 @@ pub fn encode(raw_points: &[Value]) -> Result<Vec<u8>> {
 
     let point_count = raw_points.len() as u32;
     let channel_count = channel_names.len() as u32;
-    let bitmap_bytes = ((point_count as usize) + 7) / 8;
+    let bitmap_bytes = (point_count as usize).div_ceil(8);
 
     // Build: values[ch_idx] = Vec<f64>, null_bitmaps[ch_idx] = Vec<u8>
     let mut channel_values: Vec<Vec<f64>> =
@@ -128,7 +131,11 @@ pub fn encode(raw_points: &[Value]) -> Result<Vec<u8>> {
 /// long before `read_exact` would hit the end of the buffer. The decoded
 /// payload can never contain more `f64` values than the decompressed buffer can
 /// physically hold (8 bytes each), nor more channels than it has bytes.
-fn validate_header_counts(total_len: usize, point_count: usize, channel_count: usize) -> Result<()> {
+fn validate_header_counts(
+    total_len: usize,
+    point_count: usize,
+    channel_count: usize,
+) -> Result<()> {
     // Each channel's name section consumes at least a 2-byte length prefix.
     if channel_count > total_len {
         return Err(format!(
@@ -179,7 +186,11 @@ pub fn decode(bytes: &[u8]) -> Result<Vec<Value>> {
     let point_count = cur.read_u32::<LittleEndian>().map_err(|e| e.to_string())?;
     let channel_count = cur.read_u32::<LittleEndian>().map_err(|e| e.to_string())?;
 
-    validate_header_counts(cur.get_ref().len(), point_count as usize, channel_count as usize)?;
+    validate_header_counts(
+        cur.get_ref().len(),
+        point_count as usize,
+        channel_count as usize,
+    )?;
 
     // Channel names.
     let mut channel_names: Vec<String> = Vec::with_capacity(channel_count as usize);
@@ -191,7 +202,7 @@ pub fn decode(bytes: &[u8]) -> Result<Vec<Value>> {
         channel_names.push(name);
     }
 
-    let bitmap_bytes = ((point_count as usize) + 7) / 8;
+    let bitmap_bytes = (point_count as usize).div_ceil(8);
 
     // Channel values + optional bitmaps: [ch][pt]
     let mut channel_values: Vec<Vec<f64>> = Vec::with_capacity(channel_count as usize);
@@ -285,7 +296,7 @@ pub fn decode_typed(bytes: &[u8]) -> Result<HashMap<String, Vec<Option<f64>>>> {
         channel_names.push(name);
     }
 
-    let bitmap_bytes = (point_count + 7) / 8;
+    let bitmap_bytes = point_count.div_ceil(8);
     let mut result: HashMap<String, Vec<Option<f64>>> = HashMap::with_capacity(channel_count);
 
     for ch_name in channel_names {

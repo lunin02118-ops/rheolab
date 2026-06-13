@@ -1,4 +1,4 @@
-use super::metrics::process_snapshot;
+use super::metrics::{process_snapshot, ProcessSnapshot};
 use super::types::{
     JobCancelResponse, JobFinishedEvent, JobKind, JobMetricPatch, JobMetrics, JobProgress,
     JobProgressEvent, JobRecord, JobStatus,
@@ -21,6 +21,16 @@ type JobEventTarget = AppHandle;
 
 #[cfg(test)]
 type JobEventTarget = ();
+
+#[cfg(not(test))]
+fn clone_app_handle(app_handle: &Option<JobEventTarget>) -> Option<JobEventTarget> {
+    app_handle.clone()
+}
+
+#[cfg(test)]
+fn clone_app_handle(app_handle: &Option<JobEventTarget>) -> Option<JobEventTarget> {
+    *app_handle
+}
 
 const JOB_EVENT_CREATED: &str = "job://created";
 const JOB_EVENT_PROGRESS: &str = "job://progress";
@@ -278,7 +288,7 @@ impl JobScheduler {
         emit_created(&app_handle, &record);
 
         let scheduler = Arc::clone(self);
-        let outer_app_handle = app_handle.clone();
+        let outer_app_handle = clone_app_handle(&app_handle);
         let outer_job_id = job_id.clone();
         let queue_started = Instant::now();
         let limit = scheduler.limit_for(kind);
@@ -329,7 +339,7 @@ impl JobScheduler {
                 id: job_id.clone(),
                 kind,
                 scheduler: Arc::clone(&scheduler),
-                app_handle: app_handle.clone(),
+                app_handle: clone_app_handle(&app_handle),
                 cancellation: token.clone(),
                 metrics_state: Arc::clone(&metrics_state),
             };
@@ -344,13 +354,10 @@ impl JobScheduler {
             match work_result {
                 Ok(output) => {
                     let metrics = build_metrics(
-                        queued_ms,
-                        wall_ms,
-                        start_snapshot.rss_mb,
+                        MetricTiming { queued_ms, wall_ms },
+                        start_snapshot,
                         rss_mb_peak,
-                        end_snapshot.rss_mb,
-                        start_snapshot.cpu_ms_total,
-                        end_snapshot.cpu_ms_total,
+                        end_snapshot,
                         metrics_state.snapshot(),
                     );
                     scheduler.finish_succeeded(&app_handle, &job_id, metrics);
@@ -369,13 +376,10 @@ impl JobScheduler {
                     } else {
                         let message = error.to_string();
                         let metrics = build_metrics(
-                            queued_ms,
-                            wall_ms,
-                            start_snapshot.rss_mb,
+                            MetricTiming { queued_ms, wall_ms },
+                            start_snapshot,
                             rss_mb_peak,
-                            end_snapshot.rss_mb,
-                            start_snapshot.cpu_ms_total,
-                            end_snapshot.cpu_ms_total,
+                            end_snapshot,
                             metrics_state.snapshot(),
                         );
                         scheduler.finish_failed(&app_handle, &job_id, message, metrics);
@@ -391,13 +395,13 @@ impl JobScheduler {
             Err(error) => {
                 let message = format!("Job task join error: {error}");
                 let metrics = build_metrics(
-                    queued_ms,
-                    0,
+                    MetricTiming {
+                        queued_ms,
+                        wall_ms: 0,
+                    },
+                    ProcessSnapshot::default(),
                     None,
-                    None,
-                    None,
-                    None,
-                    None,
+                    ProcessSnapshot::default(),
                     JobMetricPatch::default(),
                 );
                 self.finish_failed(&outer_app_handle, &outer_job_id, message, metrics);
@@ -484,7 +488,13 @@ impl JobScheduler {
         wall_ms: u64,
         patch: JobMetricPatch,
     ) {
-        let metrics = build_metrics(queued_ms, wall_ms, None, None, None, None, None, patch);
+        let metrics = build_metrics(
+            MetricTiming { queued_ms, wall_ms },
+            ProcessSnapshot::default(),
+            None,
+            ProcessSnapshot::default(),
+            patch,
+        );
         let record = {
             let mut registry = self.registry.lock();
             let Some(record) = registry.get_mut(job_id) else {
@@ -573,7 +583,7 @@ impl JobContext {
         message: Option<String>,
     ) {
         let scheduler = Arc::clone(&self.scheduler);
-        let app_handle = self.app_handle.clone();
+        let app_handle = clone_app_handle(&self.app_handle);
         let job_id = self.id.clone();
         let progress = JobProgress {
             phase: phase.into(),
@@ -620,25 +630,29 @@ impl JobContext {
     }
 }
 
-fn build_metrics(
+#[derive(Clone, Copy)]
+struct MetricTiming {
     queued_ms: u64,
     wall_ms: u64,
-    rss_mb_start: Option<f64>,
+}
+
+fn build_metrics(
+    timing: MetricTiming,
+    start: ProcessSnapshot,
     rss_mb_peak: Option<f64>,
-    rss_mb_end: Option<f64>,
-    cpu_ms_start: Option<u64>,
-    cpu_ms_end: Option<u64>,
+    end: ProcessSnapshot,
     patch: JobMetricPatch,
 ) -> JobMetrics {
     JobMetrics {
-        queued_ms,
-        wall_ms,
-        cpu_ms_delta: cpu_ms_start
-            .zip(cpu_ms_end)
+        queued_ms: timing.queued_ms,
+        wall_ms: timing.wall_ms,
+        cpu_ms_delta: start
+            .cpu_ms_total
+            .zip(end.cpu_ms_total)
             .map(|(start, end)| end.saturating_sub(start)),
-        rss_mb_start,
+        rss_mb_start: start.rss_mb,
         rss_mb_peak,
-        rss_mb_end,
+        rss_mb_end: end.rss_mb,
         cache_hits: some_nonzero(patch.cache_hits),
         cache_misses: some_nonzero(patch.cache_misses),
         artifact_bytes_read: some_nonzero(patch.artifact_bytes_read),
@@ -669,9 +683,8 @@ fn prune_finished_records(registry: &mut HashMap<String, JobRecord>) -> Vec<Stri
 
     let expired_ids = registry
         .iter()
-        .filter_map(|(job_id, record)| {
-            is_finished_record_expired(record, now).then(|| job_id.clone())
-        })
+        .filter(|(_, record)| is_finished_record_expired(record, now))
+        .map(|(job_id, _)| job_id.clone())
         .collect::<Vec<_>>();
 
     for job_id in expired_ids {

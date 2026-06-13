@@ -1,4 +1,7 @@
-#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![cfg_attr(
+    not(test),
+    warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)
+)]
 //! Cryptographic helpers, secure storage, and HMAC-protected SystemState access.
 //!
 //! All items are `pub(super)` — visible to the parent `licensing/mod.rs` only.

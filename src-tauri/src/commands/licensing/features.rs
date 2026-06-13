@@ -1,4 +1,7 @@
-#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![cfg_attr(
+    not(test),
+    warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)
+)]
 //! License feature presets.
 //!
 //! Pure functions that return [`LicenseFeatures`] for each license type / status.

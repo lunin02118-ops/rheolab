@@ -94,11 +94,13 @@ fn dynamic_threshold_real_fixtures_brookfield_grace_threshold_100_is_sound() {
         let exp = experiment_from_parse(id, filename, &resp);
         persist_experiment(&conn, &exp).expect("persist fixture experiment");
 
-        let mut q = ExperimentsListQuery::default();
-        q.test_name = Some(exp.name.clone());
-        q.viscosity_threshold = Some("100".to_string());
-        q.has_crossing = Some("yes".to_string());
-        q.limit = Some(50);
+        let q = ExperimentsListQuery {
+            test_name: Some(exp.name.clone()),
+            viscosity_threshold: Some("100".to_string()),
+            has_crossing: Some("yes".to_string()),
+            limit: Some(50),
+            ..Default::default()
+        };
 
         let (rows, _total) = query_experiments_list_sql(&state, &q).unwrap();
         let matched = rows.iter().any(|row| row.id == id);

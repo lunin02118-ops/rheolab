@@ -85,9 +85,8 @@ pub(crate) fn encode_key(
 }
 
 pub(crate) fn decode_key(stored: &str, app_data_dir: &std::path::Path) -> Option<String> {
-    if stored.starts_with(AES_GCM_PREFIX) {
+    if let Some(payload) = stored.strip_prefix(AES_GCM_PREFIX) {
         // New AES-256-GCM path
-        let payload = &stored[AES_GCM_PREFIX.len()..];
         let parts: Vec<&str> = payload.splitn(2, '/').collect();
         if parts.len() != 2 {
             return None;
@@ -122,9 +121,8 @@ pub(crate) fn decode_key(stored: &str, app_data_dir: &std::path::Path) -> Option
 
         return None;
     }
-    if stored.starts_with(LEGACY_XOR_PREFIX) {
+    if let Some(hex) = stored.strip_prefix(LEGACY_XOR_PREFIX) {
         // Legacy XOR path — transparent migration
-        let hex = stored.trim_start_matches(LEGACY_XOR_PREFIX);
         let bytes = from_hex(hex)?;
         let key = LEGACY_XOR_KEY.as_bytes();
         let restored: Vec<u8> = bytes

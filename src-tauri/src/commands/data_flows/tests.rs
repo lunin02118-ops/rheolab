@@ -78,24 +78,28 @@ fn experiment_payload_versioning() {
 
     let id1 = create_experiment_payload(
         &conn,
-        "exp1",
-        None,
-        r#"{"version":1}"#,
-        None,
-        None,
-        None,
-        true,
+        ExperimentPayloadInsert {
+            experiment_id: "exp1",
+            import_batch_id: None,
+            payload_json: r#"{"version":1}"#,
+            source_lab_id: None,
+            source_system: None,
+            source_app_version: None,
+            is_canonical: true,
+        },
     )
     .unwrap();
     let id2 = create_experiment_payload(
         &conn,
-        "exp1",
-        None,
-        r#"{"version":2}"#,
-        None,
-        None,
-        None,
-        false,
+        ExperimentPayloadInsert {
+            experiment_id: "exp1",
+            import_batch_id: None,
+            payload_json: r#"{"version":2}"#,
+            source_lab_id: None,
+            source_system: None,
+            source_app_version: None,
+            is_canonical: false,
+        },
     )
     .unwrap();
 
@@ -178,14 +182,16 @@ fn report_artifact_creation() {
 
     let id = create_report_artifact(
         &conn,
-        "exp3",
-        None,
-        "pdf",
-        Some("1.0"),
-        None,
-        Some("/reports/exp3.pdf"),
-        Some("abc123"),
-        Some(102400),
+        ReportArtifactInsert {
+            experiment_id: "exp3",
+            import_batch_id: None,
+            report_type: "pdf",
+            template_version: Some("1.0"),
+            settings_json: None,
+            storage_path: Some("/reports/exp3.pdf"),
+            binary_sha256: Some("abc123"),
+            size_bytes: Some(102400),
+        },
     )
     .unwrap();
 

@@ -52,7 +52,7 @@ fn dynamic_threshold_matches_crosslinked_gel_break_point() {
         .touch_crossing_viscosity_cp
         .expect("dynamic crossing viscosity must be populated");
     assert!(
-        v <= 500.0 && v >= 100.0,
+        (100.0..=500.0).contains(&v),
         "crossing viscosity should sit near the 500 cP threshold (data-point snap), got {v}"
     );
 }
@@ -197,10 +197,12 @@ fn dynamic_threshold_synthetic_data_test() {
     let thresholds = vec!["10", "50", "500", "1000"];
 
     for threshold in thresholds {
-        let mut query = ExperimentsListQuery::default();
-        query.viscosity_threshold = Some(threshold.to_string());
-        query.has_crossing = Some("yes".to_string());
-        query.limit = Some(10);
+        let query = ExperimentsListQuery {
+            viscosity_threshold: Some(threshold.to_string()),
+            has_crossing: Some("yes".to_string()),
+            limit: Some(10),
+            ..Default::default()
+        };
 
         let results = query_experiments_list_sql(&state, &query).expect("Query must succeed");
 
@@ -219,17 +221,21 @@ fn dynamic_threshold_synthetic_data_test() {
     }
 
     // Test fast vs slow path behavior
-    let mut query_fast = ExperimentsListQuery::default();
-    query_fast.has_crossing = Some("yes".to_string());
-    query_fast.limit = Some(10);
+    let query_fast = ExperimentsListQuery {
+        has_crossing: Some("yes".to_string()),
+        limit: Some(10),
+        ..Default::default()
+    };
 
     let results_fast =
         query_experiments_list_sql(&state, &query_fast).expect("Fast path must succeed");
 
-    let mut query_slow = ExperimentsListQuery::default();
-    query_slow.viscosity_threshold = Some("500".to_string());
-    query_slow.has_crossing = Some("yes".to_string());
-    query_slow.limit = Some(10);
+    let query_slow = ExperimentsListQuery {
+        viscosity_threshold: Some("500".to_string()),
+        has_crossing: Some("yes".to_string()),
+        limit: Some(10),
+        ..Default::default()
+    };
 
     let results_slow =
         query_experiments_list_sql(&state, &query_slow).expect("Slow path must succeed");
@@ -282,10 +288,12 @@ fn dynamic_threshold_synthetic_data_test() {
     }
 
     // Test edge case: threshold higher than max viscosity
-    let mut query_too_high = ExperimentsListQuery::default();
-    query_too_high.viscosity_threshold = Some("2000".to_string());
-    query_too_high.has_crossing = Some("yes".to_string());
-    query_too_high.limit = Some(10);
+    let query_too_high = ExperimentsListQuery {
+        viscosity_threshold: Some("2000".to_string()),
+        has_crossing: Some("yes".to_string()),
+        limit: Some(10),
+        ..Default::default()
+    };
 
     let results_too_high =
         query_experiments_list_sql(&state, &query_too_high).expect("Query must succeed");

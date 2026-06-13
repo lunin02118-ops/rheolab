@@ -459,8 +459,7 @@ pub(crate) fn load_experiments_batch(
         return Ok(vec![]);
     }
 
-    let ph: String = std::iter::repeat("?")
-        .take(ids.len())
+    let ph: String = std::iter::repeat_n("?", ids.len())
         .collect::<Vec<_>>()
         .join(",");
 
@@ -756,8 +755,7 @@ fn load_rheology_parameters_batch(
         return Ok(HashMap::new());
     }
 
-    let ph = std::iter::repeat("?")
-        .take(ids.len())
+    let ph = std::iter::repeat_n("?", ids.len())
         .collect::<Vec<_>>()
         .join(",");
     let sql = format!(
@@ -882,8 +880,7 @@ pub(crate) fn load_experiment_data_hashes(
         return Ok(HashMap::new());
     }
 
-    let ph: String = std::iter::repeat("?")
-        .take(ids.len())
+    let ph: String = std::iter::repeat_n("?", ids.len())
         .collect::<Vec<_>>()
         .join(",");
     let sql =

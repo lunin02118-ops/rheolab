@@ -187,7 +187,7 @@ mod log_rotation_tests {
             })
             .collect();
 
-        rotated_logs.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+        rotated_logs.sort_by_key(|log| std::cmp::Reverse(log.file_name()));
 
         for old in rotated_logs.iter().skip(keep) {
             fs::remove_file(old.path()).unwrap();
