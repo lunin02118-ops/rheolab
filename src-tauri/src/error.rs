@@ -8,6 +8,10 @@
 //! `src/lib/tauri/errors.ts` handles both the new object format and the
 //! legacy plain-string format during the transition period.
 //!
+//! Serialization is intentionally side-effect free. IPC error logging belongs
+//! at command boundaries via [`log_ipc_error`], where command/request metadata
+//! can be attached and messages are redacted through [`AppError::safe_message`].
+//!
 //! Usage:
 //! ```rust,ignore
 //! use crate::error::{AppError, Result};
@@ -65,7 +69,7 @@ pub enum AppError {
 
 impl AppError {
     /// Machine-readable variant tag, matching `TauriErrorKind` on the TS side.
-    fn kind_str(&self) -> &'static str {
+    pub fn kind_str(&self) -> &'static str {
         match self {
             Self::Pool(_) => "Pool",
             Self::Sql(_) => "Sql",
@@ -86,7 +90,7 @@ impl AppError {
     /// internal details (SQL query text, file paths, panic messages, etc.).
     /// Domain variants (BadRequest, License, Parse) pass their message through
     /// unchanged because those strings are deliberately user-visible.
-    fn safe_message(&self) -> &str {
+    pub fn safe_message(&self) -> &str {
         match self {
             Self::Pool(_) => "Database temporarily unavailable",
             Self::Sql(_) => "Database error",
@@ -101,16 +105,44 @@ impl AppError {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IpcErrorLogFields<'a> {
+    pub command: &'static str,
+    pub request_id: &'a str,
+    pub kind: &'static str,
+    pub message: &'a str,
+}
+
+pub fn ipc_error_log_fields<'a>(
+    command: &'static str,
+    err: &'a AppError,
+    request_id: Option<&'a str>,
+) -> IpcErrorLogFields<'a> {
+    IpcErrorLogFields {
+        command,
+        request_id: request_id.unwrap_or("unknown"),
+        kind: err.kind_str(),
+        message: err.safe_message(),
+    }
+}
+
+pub fn log_ipc_error(command: &'static str, err: &AppError, request_id: Option<&str>) {
+    let fields = ipc_error_log_fields(command, err, request_id);
+    tracing::error!(
+        command = fields.command,
+        request_id = fields.request_id,
+        kind = fields.kind,
+        message = fields.message,
+        "IPC command failed"
+    );
+}
+
 /// Make `AppError` usable as a Tauri command error.
 /// Serialises as `{"kind": "…", "message": "…"}` so the frontend can branch
 /// on the `kind` field directly instead of doing string-prefix matching.
-///
-/// Note: `tracing::error!` is emitted here so that every error returned from
-/// a Tauri IPC command is automatically recorded in the application log.
 impl Serialize for AppError {
     fn serialize<S: serde::Serializer>(&self, s: S) -> std::result::Result<S::Ok, S::Error> {
         use serde::ser::SerializeStruct;
-        tracing::error!(error = %self, "IPC command error");
         let mut st = s.serialize_struct("AppError", 2)?;
         st.serialize_field("kind", self.kind_str())?;
         st.serialize_field("message", self.safe_message())?;
@@ -138,8 +170,52 @@ pub type Result<T> = std::result::Result<T, AppError>;
 
 #[cfg(test)]
 mod tests {
-    use super::AppError;
+    use super::{ipc_error_log_fields, log_ipc_error, AppError};
     use serde_json::json;
+    use std::io;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+
+    struct CountingSubscriber {
+        events: Arc<AtomicUsize>,
+    }
+
+    impl CountingSubscriber {
+        fn new(events: Arc<AtomicUsize>) -> Self {
+            Self { events }
+        }
+    }
+
+    impl tracing::Subscriber for CountingSubscriber {
+        fn enabled(&self, _metadata: &tracing::Metadata<'_>) -> bool {
+            true
+        }
+
+        fn new_span(&self, _span: &tracing::span::Attributes<'_>) -> tracing::span::Id {
+            tracing::span::Id::from_u64(1)
+        }
+
+        fn record(&self, _span: &tracing::span::Id, _values: &tracing::span::Record<'_>) {}
+
+        fn record_follows_from(&self, _span: &tracing::span::Id, _follows: &tracing::span::Id) {}
+
+        fn event(&self, _event: &tracing::Event<'_>) {
+            self.events.fetch_add(1, Ordering::SeqCst);
+        }
+
+        fn enter(&self, _span: &tracing::span::Id) {}
+
+        fn exit(&self, _span: &tracing::span::Id) {}
+
+        fn register_callsite(
+            &self,
+            _metadata: &'static tracing::Metadata<'static>,
+        ) -> tracing::subscriber::Interest {
+            tracing::subscriber::Interest::always()
+        }
+    }
 
     #[test]
     fn other_error_serializes_generic_message() {
@@ -159,5 +235,70 @@ mod tests {
 
         assert_eq!(value["kind"], json!("BadRequest"));
         assert_eq!(value["message"], json!("Неверный файл"));
+    }
+
+    #[test]
+    fn infrastructure_errors_use_redacted_safe_messages() {
+        let error = AppError::Io(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "C:\\Users\\secret\\rheolab.db",
+        ));
+
+        assert_eq!(error.kind_str(), "Io");
+        assert_eq!(error.safe_message(), "File operation failed");
+
+        let value = serde_json::to_value(&error).expect("serialize AppError");
+        assert_eq!(value["kind"], json!("Io"));
+        assert_eq!(value["message"], json!("File operation failed"));
+        assert!(!value.to_string().contains("secret"));
+    }
+
+    #[test]
+    fn ipc_log_fields_use_safe_message_not_display() {
+        let error = AppError::Other("raw internal path C:\\Users\\secret\\db.sqlite".into());
+        let fields = ipc_error_log_fields("backup_restore", &error, Some("req-42"));
+
+        assert_eq!(fields.command, "backup_restore");
+        assert_eq!(fields.request_id, "req-42");
+        assert_eq!(fields.kind, "Other");
+        assert_eq!(fields.message, "Internal error");
+        assert!(!format!("{fields:?}").contains("secret"));
+    }
+
+    #[test]
+    fn ipc_log_fields_default_request_id_is_unknown() {
+        let error = AppError::Sql(rusqlite::Error::InvalidQuery);
+        let fields = ipc_error_log_fields("experiments_list", &error, None);
+
+        assert_eq!(fields.request_id, "unknown");
+        assert_eq!(fields.kind, "Sql");
+        assert_eq!(fields.message, "Database error");
+    }
+
+    #[test]
+    fn serializing_app_error_does_not_emit_tracing_event() {
+        let events = Arc::new(AtomicUsize::new(0));
+        let subscriber = CountingSubscriber::new(Arc::clone(&events));
+
+        tracing::subscriber::with_default(subscriber, || {
+            let value =
+                serde_json::to_value(AppError::Other("raw internal secret".into())).unwrap();
+            assert_eq!(value["message"], json!("Internal error"));
+        });
+
+        assert_eq!(events.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn log_ipc_error_emits_tracing_event() {
+        let events = Arc::new(AtomicUsize::new(0));
+        let subscriber = CountingSubscriber::new(Arc::clone(&events));
+        let error = AppError::Other("raw internal secret".into());
+
+        tracing::subscriber::with_default(subscriber, || {
+            log_ipc_error("experiments_save", &error, Some("req-7"));
+        });
+
+        assert_eq!(events.load(Ordering::SeqCst), 1);
     }
 }
