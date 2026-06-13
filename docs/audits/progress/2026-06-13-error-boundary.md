@@ -2,8 +2,8 @@
 
 Branch: ref/error-boundary-redacted-logging
 Base branch: chore/rust-clippy-clean-baseline
-Commit: see PR head SHA
-PR: pending
+Commit: 4507b70150393e24a52709c6c0c02530542b289d
+PR: #8 https://github.com/lunin02118-ops/rheolab/pull/8
 Phase: PR-E - Clean error serialization and IPC error boundary helper
 Date: 2026-06-13
 Agent: Codex
