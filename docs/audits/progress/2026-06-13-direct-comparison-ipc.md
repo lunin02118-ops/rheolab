@@ -2,8 +2,8 @@
 
 Branch: ref/comparison-by-ids-only
 Base branch: ref/ipc-policy-inventory
-Commit: see PR head SHA
-PR: pending
+Commit: ca31e5cce4a386cb5e251776c95129ea7bbcc9ea
+PR: #10 https://github.com/lunin02118-ops/rheolab/pull/10
 Phase: PR-G - Remove direct heavy comparison IPC from production path
 Date: 2026-06-13
 Agent: Codex
