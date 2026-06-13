@@ -17,6 +17,7 @@ pub mod analysis_cache;
 pub mod commands;
 pub mod db;
 pub mod error;
+pub mod ipc_policy;
 pub mod runtime;
 pub mod startup;
 pub mod state;
