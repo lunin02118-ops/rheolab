@@ -80,7 +80,7 @@ fn payload_has_no_expiry(payload: &Value) -> bool {
     let expires_at = payload
         .get("expiresAt")
         .or_else(|| payload.get("expires_at"));
-    expires_at.map_or(true, Value::is_null)
+    expires_at.is_none_or(Value::is_null)
 }
 
 fn current_machine_matches(app_data_dir: &std::path::Path, payload: &Value) -> bool {
@@ -260,7 +260,7 @@ impl LicenseEngine {
         let features = features_for_type(license_type);
         let expires_at = license["expiresAt"].as_str().map(|s| s.to_string());
         let days_remaining = compute_days_remaining(expires_at.as_deref());
-        let show_warning = days_remaining.map_or(false, |d| d <= 30);
+        let show_warning = days_remaining.is_some_and(|d| d <= 30);
 
         let result = LicenseCheckResult {
             status: LicenseStatus::Active,

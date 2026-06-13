@@ -132,8 +132,7 @@ pub async fn experiments_check_existence(
             existing_ids: vec![],
         });
     }
-    let ph: String = std::iter::repeat("?")
-        .take(ids.len())
+    let ph: String = std::iter::repeat_n("?", ids.len())
         .collect::<Vec<_>>()
         .join(",");
     let sql = format!("SELECT id FROM Experiment WHERE id IN ({ph})");
@@ -252,13 +251,15 @@ pub async fn experiments_save(
             let ref_json = super::super::data_flows::compact_ref(&existing_id, &payload_json);
             super::super::data_flows::create_experiment_payload(
                 &tx,
-                &existing_id,
-                None,
-                &ref_json,
-                None,
-                None,
-                None,
-                true,
+                super::super::data_flows::ExperimentPayloadInsert {
+                    experiment_id: &existing_id,
+                    import_batch_id: None,
+                    payload_json: &ref_json,
+                    source_lab_id: None,
+                    source_system: None,
+                    source_app_version: None,
+                    is_canonical: true,
+                },
             )?;
             super::super::data_flows::create_parser_artifact(
                 &tx,
@@ -321,13 +322,15 @@ pub async fn experiments_save(
             let ref_json = super::super::data_flows::compact_ref(&existing_id, &payload_json);
             super::super::data_flows::create_experiment_payload(
                 &tx,
-                &existing_id,
-                None,
-                &ref_json,
-                None,
-                None,
-                None,
-                true,
+                super::super::data_flows::ExperimentPayloadInsert {
+                    experiment_id: &existing_id,
+                    import_batch_id: None,
+                    payload_json: &ref_json,
+                    source_lab_id: None,
+                    source_system: None,
+                    source_app_version: None,
+                    is_canonical: true,
+                },
             )?;
 
             super::super::data_flows::create_parser_artifact(
@@ -373,13 +376,15 @@ pub async fn experiments_save(
         let ref_json = super::super::data_flows::compact_ref(&experiment_id, &payload_json);
         super::super::data_flows::create_experiment_payload(
             &tx,
-            &experiment_id,
-            None,
-            &ref_json,
-            None,
-            None,
-            None,
-            true,
+            super::super::data_flows::ExperimentPayloadInsert {
+                experiment_id: &experiment_id,
+                import_batch_id: None,
+                payload_json: &ref_json,
+                source_lab_id: None,
+                source_system: None,
+                source_app_version: None,
+                is_canonical: true,
+            },
         )?;
 
         super::super::data_flows::create_parser_artifact(

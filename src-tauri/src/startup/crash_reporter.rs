@@ -16,11 +16,7 @@ const REPORT_KEEP_COUNT: usize = 5;
 /// The report intentionally contains only application/build metadata,
 /// panic text, and the supplied backtrace. It does not read command-line
 /// arguments, environment variables, or user file paths.
-pub fn write_crash_report(
-    dir: &Path,
-    message: &str,
-    backtrace: &str,
-) -> std::io::Result<PathBuf> {
+pub fn write_crash_report(dir: &Path, message: &str, backtrace: &str) -> std::io::Result<PathBuf> {
     fs::create_dir_all(dir)?;
 
     let timestamp = chrono::Utc::now();
@@ -62,7 +58,7 @@ pub fn prune_old_reports(dir: &Path, keep: usize) {
         })
         .collect();
 
-    reports.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+    reports.sort_by_key(|report| std::cmp::Reverse(report.file_name()));
 
     for old in reports.iter().skip(keep) {
         let _ = fs::remove_file(old.path());
@@ -132,8 +128,14 @@ mod tests {
         remaining.sort();
 
         assert_eq!(remaining.len(), 5);
-        assert_eq!(remaining.first().map(String::as_str), Some("crash-20260101-120003.log"));
-        assert_eq!(remaining.last().map(String::as_str), Some("crash-20260101-120007.log"));
+        assert_eq!(
+            remaining.first().map(String::as_str),
+            Some("crash-20260101-120003.log")
+        );
+        assert_eq!(
+            remaining.last().map(String::as_str),
+            Some("crash-20260101-120007.log")
+        );
     }
 
     #[test]

@@ -315,7 +315,7 @@ impl LicenseEngine {
                                     let days = retry
                                         .days_remaining
                                         .or_else(|| compute_days_remaining(expires_at));
-                                    let warn = days.map_or(false, |d| d <= 30);
+                                    let warn = days.is_some_and(|d| d <= 30);
                                     delete_legacy_cache(&self.app_data_dir);
                                     return LicenseCheckResult {
                                         status: LicenseStatus::Active,
@@ -405,7 +405,7 @@ impl LicenseEngine {
                             let days_remaining = online
                                 .days_remaining
                                 .or_else(|| compute_days_remaining(expires_at));
-                            let show_warning = days_remaining.map_or(false, |d| d <= 30);
+                            let show_warning = days_remaining.is_some_and(|d| d <= 30);
 
                             return LicenseCheckResult {
                                 status: LicenseStatus::Active,

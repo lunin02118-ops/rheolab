@@ -1,4 +1,7 @@
-#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![cfg_attr(
+    not(test),
+    warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)
+)]
 //! Schema for the unified SQLite database.
 //!
 //! All 21 tables, indexes, FTS5 virtual table, and triggers are defined
@@ -74,10 +77,10 @@ pub struct MigrationResult {
 ///
 /// Idempotent — every `CREATE TABLE / INDEX / TRIGGER` uses `IF NOT EXISTS`.
 /// Default reagents are seeded via `INSERT OR IGNORE`, so:
-///   - Fresh install  → all defaults inserted.
-///   - App update     → new defaults from updated source are inserted;
-///                      existing rows (same name) left untouched.
-///   - User data      → custom reagents, experiments, etc. are never affected.
+/// - Fresh install  → all defaults inserted.
+/// - App update     → new defaults from updated source are inserted;
+///   existing rows (same name) left untouched.
+/// - User data      → custom reagents, experiments, etc. are never affected.
 ///
 /// # Schema versioning
 /// `schema_meta` (id = 1) records the last seen schema_version and the
@@ -149,7 +152,7 @@ pub fn run_migrations(conn: &Connection) -> Result<MigrationResult, rusqlite::Er
         let previous_app_version: Option<String> = existing_row.map(|(_, ver)| ver);
         let version_changed = previous_app_version
             .as_deref()
-            .map_or(false, |prev| prev != app_version);
+            .is_some_and(|prev| prev != app_version);
         return Ok(MigrationResult {
             schema_version: stored_version,
             was_fresh_install: false,
@@ -185,7 +188,7 @@ pub fn run_migrations(conn: &Connection) -> Result<MigrationResult, rusqlite::Er
     let app_version = env!("CARGO_PKG_VERSION").to_string();
     let version_changed = previous_app_version
         .as_deref()
-        .map_or(false, |prev| prev != app_version);
+        .is_some_and(|prev| prev != app_version);
 
     // Step 3: Upsert schema_meta so it always reflects this run.
     conn.execute(

@@ -466,8 +466,7 @@ pub async fn analysis_regroup_by_pattern(input: RegroupByPatternInput) -> Result
                 .all(|(step, &target)| rate_matches(step.avg_shear_rate, target));
 
             if matches {
-                let cycle_steps: Vec<RheoStep> =
-                    sorted[i..i + pattern_len].iter().cloned().collect();
+                let cycle_steps: Vec<RheoStep> = sorted[i..i + pattern_len].to_vec();
                 new_cycles.push(make_cycle(cycle_steps, cycle_id));
                 cycle_id += 1;
                 i += pattern_len;

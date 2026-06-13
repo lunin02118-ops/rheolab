@@ -141,6 +141,7 @@ fn generate_comparison_excel_bytes_sync(input: ComparisonReportInput) -> Result<
     })
 }
 
+#[cfg(any(test, debug_assertions))]
 #[tauri::command]
 pub async fn reports_generate_comparison_pdf(
     app: AppHandle,
@@ -183,6 +184,7 @@ pub async fn reports_generate_comparison_pdf(
     Ok(tauri::ipc::Response::new(bytes))
 }
 
+#[cfg(any(test, debug_assertions))]
 #[tauri::command]
 pub async fn reports_generate_comparison_excel(
     app: AppHandle,
@@ -2253,8 +2255,7 @@ fn validate_comparison_experiment_ids_exist(
     if experiment_ids.is_empty() {
         return Ok(());
     }
-    let placeholders = std::iter::repeat("?")
-        .take(experiment_ids.len())
+    let placeholders = std::iter::repeat_n("?", experiment_ids.len())
         .collect::<Vec<_>>()
         .join(",");
     let sql = format!("SELECT id FROM Experiment WHERE id IN ({placeholders})");

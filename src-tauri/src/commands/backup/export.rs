@@ -31,7 +31,7 @@ pub(super) fn vacuum_export_db(
     let safe_path = target_path.replace('\'', "''");
     match conn.execute_batch(&format!("VACUUM INTO '{}'", safe_path)) {
         Ok(_) => BackupResult::ok(),
-        Err(e) => BackupResult::err(&format!("Ошибка экспорта базы данных: {}", e)),
+        Err(e) => BackupResult::err(format!("Ошибка экспорта базы данных: {}", e)),
     }
 }
 

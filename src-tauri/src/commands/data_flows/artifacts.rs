@@ -5,7 +5,7 @@ use rusqlite::{params, OptionalExtension};
 use serde_json::{json, Value};
 use tauri::State;
 
-use super::helpers::create_report_artifact;
+use super::helpers::{create_report_artifact, ReportArtifactInsert};
 use super::types::{ExperimentPayloadItem, ParserArtifactItem, ReportArtifactItem};
 
 // ---------------------------------------------------------------------------
@@ -153,6 +153,7 @@ pub async fn report_artifacts_list(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn report_artifacts_save(
     state: State<'_, AppState>,
     experiment_id: String,
@@ -176,14 +177,16 @@ pub async fn report_artifacts_save(
     let conn = state.pool_conn()?;
     let id = create_report_artifact(
         &conn,
-        &experiment_id,
-        None,
-        &report_type,
-        template_version.as_deref(),
-        settings_json.as_deref(),
-        storage_path.as_deref(),
-        binary_sha256.as_deref(),
-        size_bytes,
+        ReportArtifactInsert {
+            experiment_id: &experiment_id,
+            import_batch_id: None,
+            report_type: &report_type,
+            template_version: template_version.as_deref(),
+            settings_json: settings_json.as_deref(),
+            storage_path: storage_path.as_deref(),
+            binary_sha256: binary_sha256.as_deref(),
+            size_bytes,
+        },
     )?;
     Ok(json!({ "success": true, "id": id }))
 }

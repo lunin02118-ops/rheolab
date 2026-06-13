@@ -1,4 +1,7 @@
-#![warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![cfg_attr(
+    not(test),
+    warn(clippy::unwrap_used, clippy::expect_used, clippy::panic)
+)]
 //! Types, constants, and startup key assertion for the licensing module.
 
 use hmac::Hmac;

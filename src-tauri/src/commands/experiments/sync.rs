@@ -173,13 +173,15 @@ fn import_experiments_blocking(db_pool: DbPool, experiments: Vec<Value>) -> Resu
             let ref_json = super::super::data_flows::compact_ref(&imported_exp.id, &pj);
             if let Err(e) = super::super::data_flows::create_experiment_payload(
                 &tx,
-                &imported_exp.id,
-                batch_id.as_deref(),
-                &ref_json,
-                imported_exp.laboratory.as_ref().map(|l| l.id.as_str()),
-                Some("RheoLab"),
-                None,
-                true,
+                super::super::data_flows::ExperimentPayloadInsert {
+                    experiment_id: &imported_exp.id,
+                    import_batch_id: batch_id.as_deref(),
+                    payload_json: &ref_json,
+                    source_lab_id: imported_exp.laboratory.as_ref().map(|l| l.id.as_str()),
+                    source_system: Some("RheoLab"),
+                    source_app_version: None,
+                    is_canonical: true,
+                },
             ) {
                 tracing::warn!("[data_flows] create_experiment_payload error: {}", e);
             }

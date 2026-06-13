@@ -11,26 +11,21 @@ use std::collections::HashSet;
 /// experiment's columnar blob.
 ///
 /// Column semantics:
-///   * `touchHasCrossing`          — 1 when a crossing through the library
-///                                   threshold (50 cP) was detected, 0 when
-///                                   the curve never crossed, NULL when the
-///                                   algorithm has not been run yet.
-///   * `touchCrossingTimeMin`      — minute at which the smoothed viscosity
-///                                   first crossed the 50 cP threshold after
-///                                   the viscosity peak.  NULL when no
-///                                   crossing was found.
-///   * `touchCrossingViscosityCp`  — viscosity (cP) at the crossing instant
-///                                   — not always equal to 50 cP because the
-///                                   stored value is the smoothed value of
-///                                   the snapped data point.
-///   * `touchViscosityAtTargetCp`  — viscosity (cP) at the library target
-///                                   time (10 min), interpolated or snapped
-///                                   to the nearest real data point across
-///                                   shear-rate jumps.
-///   * `touchPrecomputeVersion`    — algorithm schema version that produced
-///                                   the other four columns.  NULL signals
-///                                   "not yet computed"; startup backfill
-///                                   scans for rows where this is NULL.
+/// - `touchHasCrossing` — 1 when a crossing through the library threshold
+///   (50 cP) was detected, 0 when the curve never crossed, NULL when the
+///   algorithm has not been run yet.
+/// - `touchCrossingTimeMin` — minute at which the smoothed viscosity first
+///   crossed the 50 cP threshold after the viscosity peak. NULL when no
+///   crossing was found.
+/// - `touchCrossingViscosityCp` — viscosity (cP) at the crossing instant.
+///   Not always equal to 50 cP because the stored value is the smoothed value
+///   of the snapped data point.
+/// - `touchViscosityAtTargetCp` — viscosity (cP) at the library target time
+///   (10 min), interpolated or snapped to the nearest real data point across
+///   shear-rate jumps.
+/// - `touchPrecomputeVersion` — algorithm schema version that produced the
+///   other four columns. NULL signals "not yet computed"; startup backfill
+///   scans for rows where this is NULL.
 ///
 /// All DDL uses `IF NOT EXISTS` / column-existence guards so the migration
 /// is safe to rerun on a partially-applied database.

@@ -369,7 +369,7 @@ mod tests {
 
     #[test]
     fn round2_truncates_beyond_two_places() {
-        assert_eq!(round2(3.14159), 3.14);
+        assert_eq!(round2(2.45678), 2.46);
     }
 
     #[test]

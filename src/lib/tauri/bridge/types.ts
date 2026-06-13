@@ -50,6 +50,7 @@ export type {
   ExperimentProjectionStatus,
   ExperimentProjectionRebuildResponse,
   ExperimentReportByIdRequest,
+  ComparisonReportByIdsRequest,
   PlatformType,
   PlatformBridge,
 } from '@/types/tauri';

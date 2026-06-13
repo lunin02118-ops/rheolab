@@ -10,17 +10,12 @@ pub(super) const NO_LAB_ID: &str = "__no_lab__";
 /// Default userId for desktop-local experiments (no real auth session)
 pub(crate) const LOCAL_USER_ID: &str = "desktop-local-admin";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum RheologyParameterSource {
     Instrument,
+    #[default]
     Program,
-}
-
-impl Default for RheologyParameterSource {
-    fn default() -> Self {
-        Self::Program
-    }
 }
 
 impl RheologyParameterSource {
@@ -722,13 +717,13 @@ pub struct ExperimentsFilterMetadataResponse {
     pub test_types: Vec<String>,
     /// Library-wide coverage / range stats for the touch-point precomputed
     /// columns.  Used by the UI to:
-    ///   * Show "в БД: X..Y" hints beneath each touch-point range filter so
-    ///     users pick sensible values instead of filtering to zero rows.
-    ///   * Render a contextual empty-state when a touch-point filter hides
-    ///     everything ("из 220 эксп. только 1 достиг порога 50 сП…").
-    /// Computed against the WHOLE library — independent of the current
-    /// filter panel selections — so the hints remain stable while the user
-    /// is editing filter values.
+    /// - Show "в БД: X..Y" hints beneath each touch-point range filter so
+    ///   users pick sensible values instead of filtering to zero rows.
+    /// - Render a contextual empty-state when a touch-point filter hides
+    ///   everything ("из 220 эксп. только 1 достиг порога 50 сП…").
+    /// - Compute against the WHOLE library — independent of the current filter
+    ///   panel selections — so the hints remain stable while the user is
+    ///   editing filter values.
     pub touch_point_stats: TouchPointLibraryStats,
 }
 

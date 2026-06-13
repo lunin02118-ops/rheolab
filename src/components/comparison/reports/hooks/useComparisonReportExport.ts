@@ -22,15 +22,9 @@ import type {
 } from '@/lib/analysis/report-types/types';
 
 import {
-    generateComparisonExcelReportBytes,
     generateComparisonExcelReportByIdsBytes,
-    generateComparisonPdfReportBytes,
     generateComparisonPdfReportByIdsBytes,
 } from '@/lib/reports/client';
-import {
-    buildComparisonDirectReportInput,
-    hasFileBackedComparisonExperiment,
-} from '@/lib/reports/comparison-direct-export';
 import { saveBytes, saveBytesToDir, type SaveBytesItem } from '@/lib/reports/report-save';
 import { EXPERIMENT_COLORS } from '@/components/comparison/comparison-chart-constants';
 import { logger } from '@/lib/logger';
@@ -156,8 +150,14 @@ const DEFAULT_SECTION_TOGGLES: ComparisonSectionToggles = {
 
 const PDF_MIME = 'application/pdf';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const FILE_BACKED_COMPARISON_EXPORT_ERROR =
+    'Сравнительный отчёт доступен только для сохранённых экспериментов. Сохраните локальные файлы в библиотеку и повторите экспорт.';
 
 type ComparisonExportKind = 'pdf' | 'excel' | 'all';
+
+function hasFileBackedComparisonExperiment(experiments: Experiment[]): boolean {
+    return experiments.some((exp) => typeof exp.id === 'string' && exp.id.startsWith('file-'));
+}
 
 function releaseComparisonExportBuffers(kind: ComparisonExportKind): void {
     if (typeof window === 'undefined') return;
@@ -195,8 +195,8 @@ function releaseComparisonExportBuffers(kind: ComparisonExportKind): void {
 // The architectural goal of Sprint 1+ is to push the heavy `buildPayload`
 // stage into Rust (native by-ids comparison reports), so we measure it
 // **separately** from the IPC roundtrip and save-dialog stages.  The
-// expected shape after Sprint 1: `cmp:pdf:buildPayload` collapses to a
-// few ms, `cmp:pdf:ipcRoundtrip` absorbs what was previously TS work.
+// expected shape after Sprint 1: the UI emits a bounded by-IDs request and
+// `cmp:pdf:byIdsRoundtrip` absorbs native DB load + render work.
 async function withPerf<T>(name: string, fn: () => Promise<T>): Promise<T> {
     const startMark = `cmp:${name}:start`;
     const endMark = `cmp:${name}:end`;
@@ -314,68 +314,21 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         options.reportViscosityRates,
     ]);
 
-    const buildDirectInput = useCallback(
-        (kind: 'pdf' | 'excel') => buildComparisonDirectReportInput({
-            experiments: options.experiments,
-            comparisonChartConfig,
-            chartSettings: options.chartSettings,
-            language: options.language,
-            unitSystem: options.unitSystem,
-            companyName: options.companyName,
-            companyLogo: options.companyLogo,
-            showCalibration: options.showCalibration,
-            showRawData: options.showRawData,
-            showRecipe: options.showRecipe,
-            showWaterAnalysis: options.showWaterAnalysis,
-            showRheology: options.showRheology,
-            rheologySourceOverride: options.rheologySourceOverride,
-            showTouchPoints: options.displaySettings.showTouchPoints,
-            viscosityThreshold: options.displaySettings.viscosityThreshold,
-            showTargetTime: options.displaySettings.showTargetTime,
-            targetTime: options.displaySettings.targetTime,
-            reportViscosityRates: options.reportViscosityRates,
-            isExpert: options.isExpert,
-        }, kind),
-        [
-            comparisonChartConfig,
-            options.experiments,
-            options.chartSettings,
-            options.language,
-            options.unitSystem,
-            options.companyName,
-            options.companyLogo,
-            options.showCalibration,
-            options.showRawData,
-            options.showRecipe,
-            options.showWaterAnalysis,
-            options.showRheology,
-            options.rheologySourceOverride,
-            options.displaySettings.showTouchPoints,
-            options.displaySettings.viscosityThreshold,
-            options.displaySettings.showTargetTime,
-            options.displaySettings.targetTime,
-            options.reportViscosityRates,
-            options.isExpert,
-        ],
-    );
-
     const generatePdfBytes = useCallback(async () => {
         if (hasFileBackedSelection) {
-            const input = await withPerf('pdf:buildDirectPayload', () => buildDirectInput('pdf'));
-            return await withPerf('pdf:directRoundtrip', () => generateComparisonPdfReportBytes(input));
+            throw new Error(FILE_BACKED_COMPARISON_EXPORT_ERROR);
         }
         const request = buildByIdsRequest();
         return await withPerf('pdf:byIdsRoundtrip', () => generateComparisonPdfReportByIdsBytes(request));
-    }, [buildByIdsRequest, buildDirectInput, hasFileBackedSelection]);
+    }, [buildByIdsRequest, hasFileBackedSelection]);
 
     const generateExcelBytes = useCallback(async () => {
         if (hasFileBackedSelection) {
-            const input = await withPerf('excel:buildDirectPayload', () => buildDirectInput('excel'));
-            return await withPerf('excel:directRoundtrip', () => generateComparisonExcelReportBytes(input));
+            throw new Error(FILE_BACKED_COMPARISON_EXPORT_ERROR);
         }
         const request = buildByIdsRequest();
         return await withPerf('excel:byIdsRoundtrip', () => generateComparisonExcelReportByIdsBytes(request));
-    }, [buildByIdsRequest, buildDirectInput, hasFileBackedSelection]);
+    }, [buildByIdsRequest, hasFileBackedSelection]);
 
     const baseFilename = useMemo(() => {
         const date = new Date().toISOString().split('T')[0];
