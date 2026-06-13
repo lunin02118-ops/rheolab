@@ -2,7 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const args = process.argv.slice(2);
@@ -25,9 +25,36 @@ function getArgValue(flag) {
   return null;
 }
 
+function normalizeRunId(value) {
+  if (!value) return null;
+
+  if (path.isAbsolute(value) || value.includes('..') || /[\\/]/.test(value)) {
+    throw new Error(`Invalid --run-id: ${value}`);
+  }
+
+  const normalized = value
+    .replace(/[^a-zA-Z0-9_.-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120);
+
+  if (!normalized) {
+    throw new Error('Invalid --run-id: empty after normalization');
+  }
+
+  return normalized;
+}
+
 const runIdArg = getArgValue('--run-id');
+const commandTimeoutMs = Number(getArgValue('--command-timeout-ms'))
+  || (quick ? 12 * 60 * 1000 : 25 * 60 * 1000);
 const defaultRunId = `${new Date().toISOString().replace(/[^\dT]/g, '').replace('T', '-')}-frontend-ipc-deep-audit`;
-const runId = runIdArg || defaultRunId;
+let runId;
+try {
+  runId = normalizeRunId(runIdArg) || defaultRunId;
+} catch (error) {
+  console.error(`[frontend-ipc-audit] ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
 const auditStartedAt = new Date();
 const auditStartMs = auditStartedAt.getTime();
 
@@ -40,8 +67,10 @@ const reportPath = path.join(repoRoot, 'docs', 'performance', `FRONTEND-IPC-DEEP
 const latestReportPath = path.join(repoRoot, 'docs', 'performance', 'FRONTEND-IPC-DEEP-AUDIT-LATEST.md');
 const baselinesPath = path.join(repoRoot, 'docs', 'performance', 'BASELINES.md');
 const outputPerfDir = path.join(repoRoot, 'outputs', 'e2e', 'perf');
+const tauriTeardownScript = path.join(repoRoot, 'scripts', 'test', 'tauri-e2e-teardown.js');
 const ARTIFACT_MTIME_GRACE_BEFORE_MS = 5_000;
 const ARTIFACT_MTIME_GRACE_AFTER_MS = 30_000;
+const activeChildren = new Map();
 
 const runConfig = quick
   ? { warmup: 1, workflow: 1, soak: 1, benchmark: 1 }
@@ -314,43 +343,169 @@ function runStaticScan() {
   return { stats, findings };
 }
 
-function runCommand(id, command, extraEnv = {}) {
-  const startedAt = Date.now();
-  const logPath = path.join(logsDir, `${id}_${slugify(command)}.log`);
-  const mergedEnv = { ...process.env, ...extraEnv };
-  const result = spawnSync(command, {
+function isTauriRuntimeCommand(command) {
+  return /\bperf:(workflow|soak|benchmark):tauri\b|playwright\.tauri\.config\.ts/.test(command);
+}
+
+function killProcessTree(pid) {
+  if (!pid) return;
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], {
+      cwd: repoRoot,
+      stdio: 'ignore',
+      shell: false,
+      timeout: 30_000,
+    });
+    return;
+  }
+
+  try {
+    process.kill(-pid, 'SIGTERM');
+  } catch {
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch {
+      // Process already exited.
+    }
+  }
+}
+
+function runTauriTeardown(logStream = null) {
+  if (!fs.existsSync(tauriTeardownScript)) return;
+  const result = spawnSync(process.execPath, [tauriTeardownScript], {
     cwd: repoRoot,
-    env: mergedEnv,
-    shell: true,
     encoding: 'utf8',
-    maxBuffer: 10 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 60_000,
   });
-  const durationMs = Date.now() - startedAt;
-  const finishedAt = startedAt + durationMs;
+  if (logStream) {
+    logStream.write('\n[frontend-ipc-audit] tauri cleanup\n');
+    if (result.stdout) logStream.write(result.stdout);
+    if (result.stderr) logStream.write(result.stderr);
+    logStream.write(`[frontend-ipc-audit] tauri cleanup exit=${result.status ?? 1}\n`);
+  }
+}
 
-  const stdout = result.stdout || '';
-  const stderr = result.stderr || '';
-  const header = [
-    `[${new Date(startedAt).toISOString()}] $ ${command}`,
-    `exit_code=${result.status ?? 1}`,
-    `duration_ms=${durationMs}`,
-    '',
-  ].join('\n');
+function cleanupActiveChildren() {
+  for (const pid of activeChildren.keys()) {
+    killProcessTree(pid);
+  }
+  activeChildren.clear();
+}
 
-  fs.writeFileSync(logPath, `${header}[stdout]\n${stdout}\n\n[stderr]\n${stderr}\n`, 'utf8');
-
-  return {
-    id,
-    command,
-    exitCode: result.status ?? 1,
-    durationMs,
-    startedAt: new Date(startedAt).toISOString(),
-    finishedAt: new Date(finishedAt).toISOString(),
-    startedAtMs: startedAt,
-    finishedAtMs: finishedAt,
-    logFile: toRel(logPath),
-    ok: (result.status ?? 1) === 0,
+function installProcessCleanupHandlers() {
+  const cleanupAndExit = (exitCode) => {
+    cleanupActiveChildren();
+    runTauriTeardown();
+    process.exit(exitCode);
   };
+
+  process.once('SIGINT', () => cleanupAndExit(130));
+  process.once('SIGTERM', () => cleanupAndExit(143));
+  process.once('SIGHUP', () => cleanupAndExit(129));
+}
+
+function runCommand(id, command, extraEnv = {}) {
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const logPath = path.join(logsDir, `${id}_${slugify(command)}.log`);
+    const mergedEnv = { ...process.env, ...extraEnv };
+    const logStream = fs.createWriteStream(logPath, { flags: 'w' });
+    let settled = false;
+    let timedOut = false;
+    let spawnError = null;
+    let wroteStderrHeader = false;
+
+    logStream.write(`[${new Date(startedAt).toISOString()}] $ ${command}\n`);
+    logStream.write(`command_timeout_ms=${commandTimeoutMs}\n\n[stdout]\n`);
+
+    const child = spawn(command, {
+      cwd: repoRoot,
+      env: mergedEnv,
+      shell: true,
+      detached: process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    if (child.pid) {
+      activeChildren.set(child.pid, { id, command });
+    }
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      logStream.write(`\n[frontend-ipc-audit] command timed out after ${commandTimeoutMs}ms\n`);
+      if (child.pid) {
+        killProcessTree(child.pid);
+      } else {
+        try {
+          child.kill('SIGTERM');
+        } catch {
+          // Process already exited.
+        }
+      }
+      if (isTauriRuntimeCommand(command)) {
+        runTauriTeardown(logStream);
+      }
+    }, commandTimeoutMs);
+
+    const finish = (code, signal) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (child.pid) activeChildren.delete(child.pid);
+
+      const durationMs = Date.now() - startedAt;
+      const finishedAt = startedAt + durationMs;
+      const exitCode = spawnError ? 1 : timedOut ? 124 : code ?? 1;
+
+      if (isTauriRuntimeCommand(command)) {
+        runTauriTeardown(logStream);
+      }
+
+      logStream.write(
+        [
+          '',
+          '[summary]',
+          `exit_code=${exitCode}`,
+          `signal=${signal ?? 'none'}`,
+          `timed_out=${timedOut}`,
+          `duration_ms=${durationMs}`,
+          spawnError ? `spawn_error=${spawnError.message}` : null,
+          '',
+        ].filter(Boolean).join('\n'),
+      );
+      logStream.end(() => {
+        resolve({
+          id,
+          command,
+          exitCode,
+          signal: signal ?? null,
+          timedOut,
+          durationMs,
+          startedAt: new Date(startedAt).toISOString(),
+          finishedAt: new Date(finishedAt).toISOString(),
+          startedAtMs: startedAt,
+          finishedAtMs: finishedAt,
+          logFile: toRel(logPath),
+          ok: exitCode === 0,
+        });
+      });
+    };
+
+    child.stdout.on('data', (chunk) => logStream.write(chunk));
+    child.stderr.on('data', (chunk) => {
+      if (!wroteStderrHeader) {
+        wroteStderrHeader = true;
+        logStream.write('\n[stderr]\n');
+      }
+      logStream.write(chunk);
+    });
+    child.on('error', (error) => {
+      spawnError = error;
+      finish(1, null);
+    });
+    child.on('close', finish);
+  });
 }
 
 function listPerfFiles(regex, sinceMs = null, beforeMs = null) {
@@ -930,14 +1085,14 @@ function appendBaselineSection(summary) {
   return { updated: true, reason: `Baseline #${nextNumber} appended` };
 }
 
-function runDynamicPass() {
+async function runDynamicPass() {
   const commands = [];
 
   if (skipDynamic) {
     return commands;
   }
 
-  const e2eBuild = runCommand(
+  const e2eBuild = await runCommand(
     'D-PREP-E2E-BUILD',
     'npx tauri build --debug --no-bundle --config src-tauri/tauri.e2e.conf.json',
   );
@@ -947,26 +1102,26 @@ function runDynamicPass() {
   }
 
   const workflowFastCommand = 'npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri';
-  const warmup = runCommand('D-WARMUP', workflowFastCommand);
+  const warmup = await runCommand('D-WARMUP', workflowFastCommand);
   commands.push(warmup);
   if (!warmup.ok) {
     return commands;
   }
 
   for (let i = 0; i < runConfig.workflow; i += 1) {
-    commands.push(runCommand(`D-WORKFLOW-${i + 1}`, workflowFastCommand));
+    commands.push(await runCommand(`D-WORKFLOW-${i + 1}`, workflowFastCommand));
   }
 
   for (let i = 0; i < runConfig.soak; i += 1) {
-    commands.push(runCommand(`D-SOAK-${i + 1}`, 'npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri'));
+    commands.push(await runCommand(`D-SOAK-${i + 1}`, 'npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri'));
   }
 
   for (let i = 0; i < runConfig.benchmark; i += 1) {
-    commands.push(runCommand(`D-BENCH-${i + 1}`, 'npm run perf:benchmark'));
+    commands.push(await runCommand(`D-BENCH-${i + 1}`, 'npm run perf:benchmark'));
   }
 
   commands.push(
-    runCommand(
+    await runCommand(
       'D-MEM-AGG',
       'npm run perf:memory -- --skip-playwright --input-glob soak-*.json --last-runs 20',
     ),
@@ -975,7 +1130,8 @@ function runDynamicPass() {
   return commands;
 }
 
-function main() {
+async function main() {
+  installProcessCleanupHandlers();
   ensureDir(outDir);
   ensureDir(logsDir);
   ensureDir(path.dirname(reportPath));
@@ -986,7 +1142,7 @@ function main() {
   const staticScan = runStaticScan();
   fs.writeFileSync(staticPath, `${JSON.stringify(staticScan, null, 2)}\n`);
 
-  const dynamicCommands = runDynamicPass();
+  const dynamicCommands = await runDynamicPass();
 
   const workflowCommandRuns = dynamicCommands.filter((run) => run.id === 'D-WARMUP' || /^D-WORKFLOW-\d+$/.test(run.id));
   const soakCommandRuns = dynamicCommands.filter((run) => /^D-SOAK-\d+$/.test(run.id));
@@ -1104,4 +1260,9 @@ function main() {
   process.exit(0);
 }
 
-main();
+main().catch((error) => {
+  cleanupActiveChildren();
+  runTauriTeardown();
+  console.error(`[frontend-ipc-audit] fatal: ${error instanceof Error ? error.stack || error.message : String(error)}`);
+  process.exit(1);
+});
