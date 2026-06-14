@@ -2087,6 +2087,7 @@ fn validate_comparison_by_ids_request(
     request.settings.validate()
 }
 
+#[cfg(any(test, debug_assertions))]
 fn validate_comparison_direct_input(
     input: &ComparisonReportInput,
     features: &LicenseFeatures,
@@ -2386,6 +2387,7 @@ fn validate_comparison_chart(chart: &ComparisonByIdsChartConfig) -> Result<()> {
     validate_chart_dimension(chart.chart_height, "settings.comparisonChart.chartHeight")
 }
 
+#[cfg(any(test, debug_assertions))]
 fn validate_core_comparison_chart(chart: &ComparisonChartConfig) -> Result<()> {
     validate_metric_key(
         &chart.metrics.primary,
