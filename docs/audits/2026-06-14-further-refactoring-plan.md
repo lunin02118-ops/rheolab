@@ -71,6 +71,25 @@ Do not start a broad mixed-purpose branch. Every item below must be implemented 
 7. Every dependency override must include reason, owner, removal condition, and review date.
 8. Long-running checks may be manual at first, but every release-critical gate must have a path to CI enforcement.
 
+## Work item identity and real PR numbers
+
+The GitHub PR number for this document is already `#13`, so future work must not be described with reserved PR numbers.
+
+Use stable work item IDs in this plan:
+
+- `W1-01`, `W1-02`, etc. identify planned work inside a wave.
+- Branch names identify implementation branches.
+- The real GitHub PR number is assigned only after the PR is opened.
+- Progress reports must record the actual GitHub PR number, branch, commit SHA, and URL.
+
+Example:
+
+```text
+Work item: W1-01
+Branch: ci/license-server-openssl-proof
+GitHub PR: TBD until opened
+```
+
 Recommended PR body template:
 
 ```markdown
@@ -98,7 +117,7 @@ Recommended PR body template:
 
 # Wave 1 — Release hardening foundation
 
-## PR #12 — `ci/license-server-openssl-proof`
+## Work item W1-01 — `ci/license-server-openssl-proof`
 
 ### Purpose
 
@@ -155,7 +174,7 @@ Priority: P1 / beta blocker.
 
 ---
 
-## PR #13 — `ci/re-enable-blocking-release-gates`
+## Work item W1-02 — `ci/re-enable-blocking-release-gates`
 
 ### Purpose
 
@@ -211,7 +230,7 @@ Priority: P1 / release confidence.
 
 ---
 
-## PR #14 — `docs/dependency-overrides-register`
+## Work item W1-03 — `docs/dependency-overrides-register`
 
 ### Purpose
 
@@ -256,7 +275,7 @@ Priority: P1 / supply-chain hygiene.
 
 ---
 
-## PR #15 — `test/tauri-e2e-cleanup-hardening`
+## Work item W1-04 — `test/tauri-e2e-cleanup-hardening`
 
 ### Purpose
 
@@ -301,7 +320,7 @@ Priority: P1/P2.
 
 ---
 
-## PR #16 — `chore/rust-unused-functions-cleanup`
+## Work item W1-05 — `chore/rust-unused-functions-cleanup`
 
 ### Purpose
 
@@ -337,7 +356,7 @@ Priority: P2.
 
 # Wave 2 — Security hardening
 
-## PR #17 — `security/tauri-capabilities-inventory`
+## Work item W2-01 — `security/tauri-capabilities-inventory`
 
 ### Purpose
 
@@ -373,7 +392,7 @@ Classify:
 
 ---
 
-## PR #18 — `security/tauri-capabilities-hardening-phase-1`
+## Work item W2-02 — `security/tauri-capabilities-hardening-phase-1`
 
 ### Purpose
 
@@ -396,7 +415,7 @@ cargo check --release --manifest-path src-tauri/Cargo.toml
 
 ---
 
-## PR #19 — `security/csp-tightening`
+## Work item W2-03 — `security/csp-tightening`
 
 ### Purpose
 
@@ -420,7 +439,7 @@ Audit and reduce:
 
 ---
 
-## PR #20 — `security/external-ai-network-policy`
+## Work item W2-04 — `security/external-ai-network-policy`
 
 ### Purpose
 
@@ -437,7 +456,7 @@ Make external AI/network endpoints opt-in, policy-controlled, and audit-visible.
 
 # Wave 3 — IPC policy: inventory to enforcement
 
-## PR #21 — `ref/ipc-demo-policy-enum`
+## Work item W3-01 — `ref/ipc-demo-policy-enum`
 
 ### Purpose
 
@@ -463,7 +482,7 @@ pub enum DemoPolicy {
 
 ---
 
-## PR #22 — `ref/ipc-command-boundary-wrapper`
+## Work item W3-02 — `ref/ipc-command-boundary-wrapper`
 
 ### Purpose
 
@@ -488,7 +507,7 @@ command_boundary("command_name", request_id, async move {
 
 ---
 
-## PR #23 — `ref/ipc-policy-enforcement-phase-1`
+## Work item W3-03 — `ref/ipc-policy-enforcement-phase-1`
 
 ### Purpose
 
@@ -522,7 +541,7 @@ cargo check --release --manifest-path src-tauri/Cargo.toml
 
 All reports refactors must be mechanical first. No behavior changes unless explicitly stated.
 
-## PR #24 — `ref/reports-domain-types-extraction`
+## Work item W4-01 — `ref/reports-domain-types-extraction`
 
 Extract pure report domain types into a dedicated module.
 
@@ -544,7 +563,7 @@ npm run typecheck
 
 ---
 
-## PR #25 — `ref/reports-renderers-extraction`
+## Work item W4-02 — `ref/reports-renderers-extraction`
 
 Extract renderers:
 
@@ -558,7 +577,7 @@ No by-IDs behavior changes. No cache/temp policy changes.
 
 ---
 
-## PR #26 — `ref/reports-use-cases-by-ids`
+## Work item W4-03 — `ref/reports-use-cases-by-ids`
 
 Extract application use cases:
 
@@ -577,7 +596,7 @@ Acceptance criteria:
 
 ---
 
-## PR #27 — `ref/reports-artifacts-temp-cache`
+## Work item W4-04 — `ref/reports-artifacts-temp-cache`
 
 Stabilize report artifacts, temp files, cache policy, and cleanup.
 
@@ -589,7 +608,7 @@ Acceptance criteria:
 
 ---
 
-## PR #28 — `test/reports-golden-coverage`
+## Work item W4-05 — `test/reports-golden-coverage`
 
 Add golden/snapshot coverage for:
 
@@ -603,7 +622,7 @@ Add golden/snapshot coverage for:
 
 # Wave 5 — Frontend performance and stability
 
-## PR #29 — `perf/store-selector-audit`
+## Work item W5-01 — `perf/store-selector-audit`
 
 Audit and reduce store subscription churn.
 
@@ -623,7 +642,7 @@ Metrics:
 
 ---
 
-## PR #30 — `perf/chart-rendering-budget-phase-1`
+## Work item W5-02 — `perf/chart-rendering-budget-phase-1`
 
 Improve chart rendering stability.
 
@@ -636,7 +655,7 @@ Targets:
 
 ---
 
-## PR #31 — `perf/library-filter-allocation-cleanup`
+## Work item W5-03 — `perf/library-filter-allocation-cleanup`
 
 Fix the current P2 allocation hotspot:
 
@@ -654,7 +673,7 @@ Acceptance criteria:
 
 # Wave 6 — Release packaging and updater
 
-## PR #32 — `release/signing-dry-run-proof`
+## Work item W6-01 — `release/signing-dry-run-proof`
 
 Prove release signing path without publishing.
 
@@ -667,7 +686,7 @@ Acceptance criteria:
 
 ---
 
-## PR #33 — `release/updater-contract-smoke`
+## Work item W6-02 — `release/updater-contract-smoke`
 
 Validate updater endpoint contract.
 
@@ -680,7 +699,7 @@ Acceptance criteria:
 
 ---
 
-## PR #34 — `release/rollback-drill`
+## Work item W6-03 — `release/rollback-drill`
 
 Document and test release rollback flow.
 
@@ -696,7 +715,7 @@ Must cover:
 
 # Wave 7 — Documentation and operations
 
-## PR #35 — `docs/post-refactor-audit-status`
+## Work item W7-01 — `docs/post-refactor-audit-status`
 
 Create:
 
@@ -716,7 +735,7 @@ Must include:
 
 ---
 
-## PR #36 — `docs/release-runbook`
+## Work item W7-02 — `docs/release-runbook`
 
 Create a release operator runbook.
 
@@ -818,31 +837,31 @@ composer --working-dir=license-server test
 Recommended order:
 
 ```text
-#12 license-server CI proof
-#13 blocking release gates
-#14 dependency overrides register
-#15 Tauri E2E cleanup hardening
-#16 Rust unused warning cleanup
-#17 Tauri capabilities inventory
-#18 Tauri capabilities hardening phase 1
-#19 CSP tightening
-#20 external AI/network policy
-#21 IPC DemoPolicy enum
-#22 IPC command boundary wrapper
-#23 IPC policy enforcement phase 1
-#24 reports domain types extraction
-#25 reports renderers extraction
-#26 reports use cases by IDs
-#27 reports artifacts/temp/cache cleanup
-#28 reports golden coverage
-#29 store selector audit
-#30 chart rendering budget phase 1
-#31 library filter allocation cleanup
-#32 signing dry-run proof
-#33 updater contract smoke
-#34 rollback drill
-#35 post-refactor audit status
-#36 release runbook
+W1-01 license-server CI proof
+W1-02 blocking release gates
+W1-03 dependency overrides register
+W1-04 Tauri E2E cleanup hardening
+W1-05 Rust unused warning cleanup
+W2-01 Tauri capabilities inventory
+W2-02 Tauri capabilities hardening phase 1
+W2-03 CSP tightening
+W2-04 external AI/network policy
+W3-01 IPC DemoPolicy enum
+W3-02 IPC command boundary wrapper
+W3-03 IPC policy enforcement phase 1
+W4-01 reports domain types extraction
+W4-02 reports renderers extraction
+W4-03 reports use cases by IDs
+W4-04 reports artifacts/temp/cache cleanup
+W4-05 reports golden coverage
+W5-01 store selector audit
+W5-02 chart rendering budget phase 1
+W5-03 library filter allocation cleanup
+W6-01 signing dry-run proof
+W6-02 updater contract smoke
+W6-03 rollback drill
+W7-01 post-refactor audit status
+W7-02 release runbook
 ```
 
 # Current release position
