@@ -3,7 +3,7 @@
 Date: 2026-06-14
 Work item: W1-01
 Branch: `ci/license-server-openssl-proof`
-GitHub PR: TBD
+GitHub PR: `#14` — https://github.com/lunin02118-ops/rheolab/pull/14
 
 ## Purpose
 
