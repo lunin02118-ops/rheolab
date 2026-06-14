@@ -240,7 +240,7 @@ async fn parse_with_stub_mapper(
         filename: filename.to_string(),
         file_path,
         bytes,
-        external_ai_enabled: Some(force_ai),
+        external_ai_enabled: Some(true),
         force_ai: Some(force_ai),
         ai_model: Some("stub-model".to_string()),
     };
@@ -1310,6 +1310,36 @@ async fn test_stub_optional_ai_skips_mapper_when_heuristic_is_healthy() {
         calls.load(Ordering::SeqCst),
         0,
         "healthy heuristic parse must not call AI"
+    );
+}
+
+#[tokio::test]
+async fn test_stub_optional_ai_requires_external_opt_in() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mapper = CountingFailMapper {
+        calls: calls.clone(),
+    };
+    let csv = b"Time,Viscosity,Shear Rate,Shear Stress\ns,cP,1/s,Pa\n1,100,100,1000\n2,110,100,1100\n3,120,100,1200\n4,130,100,1300\n5,140,100,1400\n".to_vec();
+    let req = ParseRequest {
+        filename: "external-ai-disabled.csv".to_string(),
+        file_path: None,
+        bytes: Some(csv),
+        external_ai_enabled: Some(false),
+        force_ai: Some(false),
+        ai_model: Some("stub-model".to_string()),
+    };
+
+    let result = parsing_parse_file_with_ai_mapper(req, Some("stub-key".to_string()), &mapper)
+        .await
+        .expect("healthy heuristic parse should succeed without external AI");
+
+    assert!(result.success);
+    assert_eq!(result.source, "regex");
+    assert!(!result.metadata.used_ai);
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        0,
+        "external AI mapper must not be called without opt-in"
     );
 }
 
