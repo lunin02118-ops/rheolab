@@ -4,7 +4,8 @@ Date: 2026-06-14
 Work item: W1-05
 Plan label: `chore/rust-unused-functions-cleanup`
 Branch: `chore/rust-unused-functions-cleanup`
-GitHub PR: TBD
+Implementation commit: `ceff8d1c62ff7ebeb9f44f2b97b69304a02ddf3a`
+GitHub PR: `#18` - https://github.com/lunin02118-ops/rheolab/pull/18
 Base: `main`
 
 ## Purpose
