@@ -24,6 +24,12 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const os = require('os');
+const {
+    delay,
+    killProcessTree,
+    removePathWithRetry,
+    removeSidecarsWithRetry,
+} = require('./tauri-cleanup-utils');
 
 const ROOT = path.resolve(__dirname, '../..');
 const CDP_PORT = parseInt(process.env.TAURI_CDP_PORT || '9222', 10);
@@ -307,8 +313,42 @@ module.exports = async function globalSetup() {
     try {
         await waitForCdp(CDP_PORT, 90_000);
     } catch (err) {
-        // Убиваем процесс перед падением
-        try { child.kill(); } catch { /* ignore */ }
+        // Убиваем процесс и очищаем runner-local артефакты перед падением.
+        killProcessTree(child.pid, {
+            label: 'Tauri process tree after failed startup',
+            prefix: '[tauri-e2e]',
+            tree: true,
+        });
+        await delay(500);
+        await removePathWithRetry(PID_FILE, {
+            label: 'tauri pid file after failed startup',
+            prefix: '[tauri-e2e]',
+        });
+        if (isolatedDbPath) {
+            await removeSidecarsWithRetry(isolatedDbPath, ['', '-wal', '-shm', '-journal'], {
+                attempts: 8,
+                delayMs: 200,
+                label: 'isolated DB after failed startup',
+                prefix: '[tauri-e2e]',
+            });
+            await removePathWithRetry(DB_PATH_FILE, {
+                label: 'isolated DB marker after failed startup',
+                prefix: '[tauri-e2e]',
+            });
+        }
+        if (isolatedWebViewDir) {
+            await removePathWithRetry(isolatedWebViewDir, {
+                attempts: 10,
+                delayMs: 250,
+                label: `WebView2 UserData after failed startup ${isolatedWebViewDir}`,
+                prefix: '[tauri-e2e]',
+                recursive: true,
+            });
+            await removePathWithRetry(WEBVIEW_DIR_FILE, {
+                label: 'WebView2 marker after failed startup',
+                prefix: '[tauri-e2e]',
+            });
+        }
         throw err;
     }
 
