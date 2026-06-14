@@ -1,9 +1,11 @@
 //! Static IPC command policy inventory.
 //!
-//! This module is intentionally read-only metadata for now. It does not change
-//! Tauri command registration or runtime authorization behavior; it makes the
-//! current IPC surface auditable and testable as a prerequisite for stricter
-//! policy enforcement in later slices.
+//! Phase-1 enforcement is intentionally limited to static command metadata.
+//! It validates the production IPC surface at startup, but it does not deny
+//! runtime license, demo, trial, or RBAC access.
+
+use std::collections::BTreeSet;
+use std::fmt::Write as _;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IpcRisk {
@@ -87,6 +89,8 @@ pub struct IpcCommandPolicy {
     pub requires_license: bool,
     pub requires_audit_log: bool,
     pub audit_log_exception: Option<&'static str>,
+    pub risk_rationale: Option<&'static str>,
+    pub large_json_exception: Option<&'static str>,
     pub demo_policy: DemoPolicy,
     pub capabilities: IpcCommandCapabilities,
     pub max_payload_class: IpcPayloadClass,
@@ -105,6 +109,8 @@ impl IpcCommandPolicy {
             requires_license: false,
             requires_audit_log: false,
             audit_log_exception: None,
+            risk_rationale: None,
+            large_json_exception: None,
             demo_policy: DemoPolicy::Unknown,
             capabilities,
             max_payload_class,
@@ -128,6 +134,16 @@ impl IpcCommandPolicy {
 
     pub const fn audit_log_exception(mut self, reason: &'static str) -> Self {
         self.audit_log_exception = Some(reason);
+        self
+    }
+
+    pub const fn risk_rationale(mut self, reason: &'static str) -> Self {
+        self.risk_rationale = Some(reason);
+        self
+    }
+
+    pub const fn large_json_exception(mut self, reason: &'static str) -> Self {
+        self.large_json_exception = Some(reason);
         self
     }
 
@@ -438,35 +454,219 @@ pub fn policy_for_command(name: &str) -> Option<&'static IpcCommandPolicy> {
         .find(|policy| policy.name == name)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IpcPolicyViolationKind {
+    MissingPolicy,
+    ExtraPolicy,
+    DuplicatePolicy,
+    HighRiskMissingAuditMetadata,
+    FileAccessLowRiskWithoutRationale,
+    ExpectedExternalNetworkCommandNotTagged,
+    UnexpectedExternalNetworkCommand,
+    LargeBinaryWithoutBinaryMarker,
+    ProhibitedLargeJsonWithoutException,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IpcPolicyViolation {
+    pub command: String,
+    pub kind: IpcPolicyViolationKind,
+    pub detail: String,
+}
+
+impl IpcPolicyViolation {
+    fn new(
+        command: impl Into<String>,
+        kind: IpcPolicyViolationKind,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self {
+            command: command.into(),
+            kind,
+            detail: detail.into(),
+        }
+    }
+}
+
+impl std::fmt::Display for IpcPolicyViolation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {:?}: {}", self.command, self.kind, self.detail)
+    }
+}
+
+const EXPECTED_EXTERNAL_NETWORK_COMMANDS: &[&str] = &[
+    "api_keys_check_active",
+    "api_keys_validate",
+    "parsing_parse_file",
+    "licensing_check",
+    "licensing_activate_full",
+    "licensing_deactivate",
+];
+
+fn registered_command_names() -> BTreeSet<&'static str> {
+    include_str!("startup/commands_registry.rs")
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            let path = trimmed
+                .strip_prefix("$crate::commands::")?
+                .strip_suffix(',')?;
+            path.rsplit("::").next()
+        })
+        .collect()
+}
+
+fn policy_names(policies: &[IpcCommandPolicy]) -> BTreeSet<&'static str> {
+    policies.iter().map(|policy| policy.name).collect()
+}
+
+fn collect_ipc_policy_phase1_violations(
+    registered: &BTreeSet<&'static str>,
+    policies: &[IpcCommandPolicy],
+    expected_external_network_commands: &[&'static str],
+) -> Vec<IpcPolicyViolation> {
+    let mut violations = Vec::new();
+    let policies_by_name = policy_names(policies);
+
+    for name in registered.difference(&policies_by_name) {
+        violations.push(IpcPolicyViolation::new(
+            *name,
+            IpcPolicyViolationKind::MissingPolicy,
+            "registered Tauri command has no IPC policy metadata",
+        ));
+    }
+
+    for name in policies_by_name.difference(registered) {
+        violations.push(IpcPolicyViolation::new(
+            *name,
+            IpcPolicyViolationKind::ExtraPolicy,
+            "IPC policy metadata does not match a registered production command",
+        ));
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut duplicates = BTreeSet::new();
+    for policy in policies {
+        if !seen.insert(policy.name) {
+            duplicates.insert(policy.name);
+        }
+    }
+    for name in duplicates {
+        violations.push(IpcPolicyViolation::new(
+            name,
+            IpcPolicyViolationKind::DuplicatePolicy,
+            "IPC policy command names must be unique",
+        ));
+    }
+
+    for policy in policies {
+        if policy.risk == IpcRisk::High
+            && !policy.requires_audit_log
+            && policy.audit_log_exception.is_none()
+        {
+            violations.push(IpcPolicyViolation::new(
+                policy.name,
+                IpcPolicyViolationKind::HighRiskMissingAuditMetadata,
+                "high-risk commands require audit metadata or an explicit exception",
+            ));
+        }
+
+        if policy.risk == IpcRisk::Low
+            && (policy.capabilities.allows_file_read || policy.capabilities.allows_file_write)
+            && policy.risk_rationale.is_none()
+        {
+            violations.push(IpcPolicyViolation::new(
+                policy.name,
+                IpcPolicyViolationKind::FileAccessLowRiskWithoutRationale,
+                "file read/write commands cannot be low risk without explicit rationale",
+            ));
+        }
+
+        if policy.max_payload_class == IpcPayloadClass::LargeBinaryByDesign
+            && !policy.capabilities.returns_binary
+        {
+            violations.push(IpcPolicyViolation::new(
+                policy.name,
+                IpcPolicyViolationKind::LargeBinaryWithoutBinaryMarker,
+                "large binary payloads must use binary IPC responses",
+            ));
+        }
+
+        if policy.max_payload_class == IpcPayloadClass::ProhibitedLargeJson
+            && policy.large_json_exception.is_none()
+        {
+            violations.push(IpcPolicyViolation::new(
+                policy.name,
+                IpcPolicyViolationKind::ProhibitedLargeJsonWithoutException,
+                "large JSON payload commands are prohibited unless explicitly excepted",
+            ));
+        }
+    }
+
+    let expected_external = expected_external_network_commands
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+
+    for name in &expected_external {
+        match policies.iter().find(|policy| policy.name == *name) {
+            Some(policy) if policy.capabilities.allows_external_network => {}
+            Some(_) => violations.push(IpcPolicyViolation::new(
+                *name,
+                IpcPolicyViolationKind::ExpectedExternalNetworkCommandNotTagged,
+                "known external-network command is not tagged as external-network capable",
+            )),
+            None => violations.push(IpcPolicyViolation::new(
+                *name,
+                IpcPolicyViolationKind::MissingPolicy,
+                "known external-network command has no IPC policy metadata",
+            )),
+        }
+    }
+
+    for policy in policies {
+        if policy.capabilities.allows_external_network && !expected_external.contains(policy.name) {
+            violations.push(IpcPolicyViolation::new(
+                policy.name,
+                IpcPolicyViolationKind::UnexpectedExternalNetworkCommand,
+                "external-network capability must be reviewed in the phase-1 allowlist",
+            ));
+        }
+    }
+
+    violations
+}
+
+pub fn validate_ipc_policy_phase1() -> Vec<IpcPolicyViolation> {
+    collect_ipc_policy_phase1_violations(
+        &registered_command_names(),
+        IPC_COMMAND_POLICIES,
+        EXPECTED_EXTERNAL_NETWORK_COMMANDS,
+    )
+}
+
+pub fn enforce_ipc_policy_phase1() -> Result<(), String> {
+    let violations = validate_ipc_policy_phase1();
+    if violations.is_empty() {
+        return Ok(());
+    }
+
+    let mut message = String::from("phase-1 IPC policy enforcement failed:");
+    for violation in violations {
+        let _ = write!(message, "\n- {violation}");
+    }
+    Err(message)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::BTreeSet;
 
-    fn registered_command_names() -> BTreeSet<&'static str> {
-        include_str!("startup/commands_registry.rs")
-            .lines()
-            .filter_map(|line| {
-                let trimmed = line.trim();
-                let path = trimmed
-                    .strip_prefix("$crate::commands::")?
-                    .strip_suffix(',')?;
-                path.rsplit("::").next()
-            })
-            .collect()
-    }
-
-    fn policy_names() -> BTreeSet<&'static str> {
-        IPC_COMMAND_POLICIES
-            .iter()
-            .map(|policy| policy.name)
-            .collect()
-    }
-
     #[test]
     fn every_registered_command_has_policy_entry() {
         let registered = registered_command_names();
-        let policies = policy_names();
+        let policies = policy_names(IPC_COMMAND_POLICIES);
         let missing = registered
             .difference(&policies)
             .copied()
@@ -485,7 +685,19 @@ mod tests {
 
     #[test]
     fn policy_names_are_unique() {
-        assert_eq!(policy_names().len(), IPC_COMMAND_POLICIES.len());
+        assert_eq!(
+            policy_names(IPC_COMMAND_POLICIES).len(),
+            IPC_COMMAND_POLICIES.len()
+        );
+    }
+
+    #[test]
+    fn phase1_enforcement_accepts_current_registry() {
+        let violations = validate_ipc_policy_phase1();
+        assert!(
+            violations.is_empty(),
+            "phase-1 IPC policy violations: {violations:#?}"
+        );
     }
 
     #[test]
@@ -510,13 +722,54 @@ mod tests {
     fn file_write_commands_are_not_low_risk() {
         let violations = IPC_COMMAND_POLICIES
             .iter()
-            .filter(|policy| policy.capabilities.allows_file_write && policy.risk == IpcRisk::Low)
+            .filter(|policy| {
+                (policy.capabilities.allows_file_read || policy.capabilities.allows_file_write)
+                    && policy.risk == IpcRisk::Low
+                    && policy.risk_rationale.is_none()
+            })
             .map(|policy| policy.name)
             .collect::<Vec<_>>();
 
         assert!(
             violations.is_empty(),
-            "file-write commands marked low risk: {violations:?}"
+            "file read/write commands marked low risk without rationale: {violations:?}"
+        );
+    }
+
+    #[test]
+    fn phase1_rejects_low_risk_file_access_without_rationale() {
+        let registered = BTreeSet::from(["example_file_read"]);
+        let policies = [IpcCommandPolicy::new(
+            "example_file_read",
+            IpcRisk::Low,
+            FILE_READ,
+            IpcPayloadClass::Small,
+        )];
+
+        let violations = collect_ipc_policy_phase1_violations(&registered, &policies, &[]);
+
+        assert!(violations.iter().any(|violation| {
+            violation.kind == IpcPolicyViolationKind::FileAccessLowRiskWithoutRationale
+                && violation.command == "example_file_read"
+        }));
+    }
+
+    #[test]
+    fn phase1_allows_low_risk_file_access_with_rationale() {
+        let registered = BTreeSet::from(["example_file_read"]);
+        let policies = [IpcCommandPolicy::new(
+            "example_file_read",
+            IpcRisk::Low,
+            FILE_READ,
+            IpcPayloadClass::Small,
+        )
+        .risk_rationale("read-only fixture metadata")];
+
+        let violations = collect_ipc_policy_phase1_violations(&registered, &policies, &[]);
+
+        assert!(
+            violations.is_empty(),
+            "expected explicit file-risk rationale to pass: {violations:#?}"
         );
     }
 
@@ -573,6 +826,43 @@ mod tests {
         assert!(
             violations.is_empty(),
             "large-binary policies without binary return marker: {violations:?}"
+        );
+    }
+
+    #[test]
+    fn prohibited_large_json_requires_explicit_exception() {
+        let registered = BTreeSet::from(["example_large_json"]);
+        let policies = [IpcCommandPolicy::new(
+            "example_large_json",
+            IpcRisk::Medium,
+            DB_READ,
+            IpcPayloadClass::ProhibitedLargeJson,
+        )];
+
+        let violations = collect_ipc_policy_phase1_violations(&registered, &policies, &[]);
+
+        assert!(violations.iter().any(|violation| {
+            violation.kind == IpcPolicyViolationKind::ProhibitedLargeJsonWithoutException
+                && violation.command == "example_large_json"
+        }));
+    }
+
+    #[test]
+    fn prohibited_large_json_can_be_explicitly_excepted() {
+        let registered = BTreeSet::from(["example_large_json"]);
+        let policies = [IpcCommandPolicy::new(
+            "example_large_json",
+            IpcRisk::Medium,
+            DB_READ,
+            IpcPayloadClass::ProhibitedLargeJson,
+        )
+        .large_json_exception("legacy local-only diagnostic command")];
+
+        let violations = collect_ipc_policy_phase1_violations(&registered, &policies, &[]);
+
+        assert!(
+            violations.is_empty(),
+            "expected explicit large-json exception to pass: {violations:#?}"
         );
     }
 
