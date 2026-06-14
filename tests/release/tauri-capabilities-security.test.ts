@@ -29,6 +29,16 @@ function fsScopeAllowList(): string[] {
   return fsScope?.allow ?? [];
 }
 
+function permissionIdentifiers(): string[] {
+  return (readDefaultCapabilities().permissions ?? []).flatMap((permission) => {
+    if (typeof permission === 'string') {
+      return [permission];
+    }
+
+    return permission.identifier ? [permission.identifier] : [];
+  });
+}
+
 const EXPECTED_FS_SCOPE_ALLOW_LIST = [
   '$APPDATA/com.rheolab.enterprise/**',
   '$LOCALAPPDATA/com.rheolab.enterprise/**',
@@ -77,6 +87,11 @@ const FORBIDDEN_BROAD_FS_SCOPES = [
   'C:\\**',
 ];
 
+const FORBIDDEN_UNUSED_PLUGIN_PERMISSIONS = [
+  'opener:default',
+  'os:default',
+];
+
 describe('tauri default capabilities security', () => {
   it('does not allow broad or sensitive filesystem roots', () => {
     const allowList = fsScopeAllowList();
@@ -88,5 +103,20 @@ describe('tauri default capabilities security', () => {
 
   it('keeps filesystem scope pinned to the audited allowlist', () => {
     expect([...fsScopeAllowList()].sort()).toEqual([...EXPECTED_FS_SCOPE_ALLOW_LIST].sort());
+  });
+
+  it('does not expose currently unused default plugin permissions', () => {
+    const permissions = permissionIdentifiers();
+
+    for (const permission of FORBIDDEN_UNUSED_PLUGIN_PERMISSIONS) {
+      expect(permissions).not.toContain(permission);
+    }
+  });
+
+  it('does not initialize currently unused plugins', () => {
+    const libSource = readFileSync(join(REPO_ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8');
+
+    expect(libSource).not.toContain('tauri_plugin_opener::init()');
+    expect(libSource).not.toContain('tauri_plugin_os::init()');
   });
 });

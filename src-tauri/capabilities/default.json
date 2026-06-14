@@ -54,7 +54,6 @@
     },
     "dialog:default",
     "process:default",
-    "os:default",
     {
       "identifier": "http:default",
       "allow": [
@@ -62,7 +61,6 @@
         "https://api.groq.com/*"
       ]
     },
-    "opener:default",
     "log:default",
     "updater:default"
   ]

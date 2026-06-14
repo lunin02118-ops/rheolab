@@ -1,8 +1,8 @@
 # Tauri Capabilities Inventory
 
 Date: 2026-06-14
-Status: inventory baseline for focused security hardening follow-up.
-Behavior changes: none. This document does not change runtime permissions.
+Status: updated after phase-1 Tauri capability hardening.
+Behavior changes: none from this document. Runtime capability narrowing is handled by `security/tauri-capabilities-hardening-phase-1`.
 
 ## Source Files
 
@@ -36,9 +36,7 @@ Behavior changes: none. This document does not change runtime permissions.
 | `fs:scope` | Constrains filesystem plugin access to app data, local app data, selected user export roots, and comparison temp artifacts. | Medium: user document roots remain available for compatibility. | Platform / Reports / Settings | Keep regression test pinned; reduce after Rust save broker exists. |
 | `dialog:default` | Used for open/save dialogs in reports, settings backup/restore, reagent import/export, and startup error handling. | Low: user-mediated dialogs. | UX / Platform | Keep. |
 | `process:default` | Used by updater install flow for app relaunch. | Medium: broad default process permission. | Release / Platform | Phase 1 candidate: narrow to relaunch-only permission if Tauri plugin supports it. |
-| `os:default` | OS plugin is initialized for platform metadata compatibility. | Medium: no direct frontend import was found in the current scan. | Platform | Phase 1 candidate: prove production usage or remove permission/plugin. |
 | `http:default` | Allows plugin HTTP traffic to license/update host and Groq AI endpoint. | Medium: external network surface. | Licensing / AI | Split or broker by feature if Tauri permission model allows narrower commands. |
-| `opener:default` | Opener plugin is initialized for external open workflows. | Medium: no direct frontend import was found in the current scan. | Platform | Phase 1 candidate: prove production usage or remove permission/plugin. |
 | `log:default` | Supports renderer and backend logging through `tauri_plugin_log`. | Low: app log is rotated and dependency noise is muted in release. | Observability / Platform | Keep with redaction policy. |
 | `updater:default` | Supports release update check/install workflow. | Medium: update flow is release critical and network-facing. | Release | Keep paired with updater endpoint and signature validation. |
 
@@ -66,8 +64,15 @@ drive roots. It also pins the exact `fs:scope` allowlist.
 | `@tauri-apps/plugin-updater` | Yes | `src/components/shared/UpdateChecker.tsx`, `src/components/shared/update-install.ts` |
 | `@tauri-apps/plugin-process` | Yes | `src/components/shared/update-install.ts` uses `relaunch`. |
 | `@tauri-apps/plugin-http` | No direct frontend import in current scan | Rust network clients cover license and AI workflows. |
-| `@tauri-apps/plugin-opener` | No direct frontend import in current scan | Candidate for usage proof or removal. |
-| `@tauri-apps/plugin-os` | No direct frontend import in current scan | Candidate for usage proof or removal. |
+
+## Phase 1 Removed Surface
+
+| Surface | Previous state | Current state | Evidence |
+| --- | --- | --- | --- |
+| `os:default` permission | Enabled in `src-tauri/capabilities/default.json`. | Removed from the default capability. | No direct production frontend import was found; release regression test forbids reintroduction. |
+| `tauri_plugin_os::init()` | Initialized in the Tauri builder. | Removed from `src-tauri/src/lib.rs`. | No direct production frontend import was found; release regression test pins removal. |
+| `opener:default` permission | Enabled in `src-tauri/capabilities/default.json`. | Removed from the default capability. | No direct production frontend import was found; release regression test forbids reintroduction. |
+| `tauri_plugin_opener::init()` | Initialized in the Tauri builder. | Removed from `src-tauri/src/lib.rs`. | No direct production frontend import was found; release regression test pins removal. |
 
 ## Network And CSP Boundary
 
@@ -85,8 +90,6 @@ drive roots. It also pins the exact `fs:scope` allowlist.
 | Generic filesystem plugin permissions | Platform / Reports / Settings | Renderer can call generic file read/write APIs inside scoped roots. | Replace with command-specific Rust save/import brokers. |
 | User document root scopes | Platform / Reports / Settings | Desktop, Documents, and Downloads are still meaningful user data locations. | Shrink after report/settings/reagent workflows no longer need direct frontend FS. |
 | `process:default` | Release / Platform | Default process permission is broader than updater relaunch. | Prove/narrow to relaunch-only or document Tauri limitation. |
-| `opener:default` | Platform | Plugin and permission are enabled without direct frontend usage found. | Remove or tie to an explicit, tested workflow. |
-| `os:default` | Platform | Plugin and permission are enabled without direct frontend usage found. | Remove or prove production usage. |
 | `http:default` | Licensing / AI | External hosts are allowed at plugin level. | Keep host allowlist tight; evaluate command-level network brokering. |
 
 ## Validation
@@ -94,7 +97,7 @@ drive roots. It also pins the exact `fs:scope` allowlist.
 | Command | Exit code | Result | Notes |
 | --- | ---: | --- | --- |
 | `node -e "JSON.parse(require('fs').readFileSync('src-tauri/capabilities/default.json','utf8')); JSON.parse(require('fs').readFileSync('src-tauri/tauri.conf.json','utf8')); JSON.parse(require('fs').readFileSync('src-tauri/tauri.e2e.conf.json','utf8'));"` | 0 | PASS | JSON parse check. |
-| `npm test -- --run tests/release/tauri-capabilities-security.test.ts` | 0 | PASS | 1 file, 2 tests passed; verifies forbidden roots and exact FS scope allowlist. |
+| `npm test -- --run tests/release/tauri-capabilities-security.test.ts` | 0 | PASS | 1 file, 4 tests passed; verifies forbidden roots, exact FS scope allowlist, and removal of `os`/`opener` permission/plugin surface. |
 | Hidden/bidi Unicode scan | 0 | PASS | Checked inventory doc plus capability/config files. |
 | `git diff --check` | 0 | PASS | Whitespace check. |
 
