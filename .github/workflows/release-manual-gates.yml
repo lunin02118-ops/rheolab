@@ -1,0 +1,80 @@
+name: Release Manual Gates
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-manual-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-release-gates:
+    name: Windows release manual gates
+    runs-on: windows-2022
+    timeout-minutes: 150
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Cargo registry and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.cargo\registry
+            ~\.cargo\git
+            src-tauri\target
+          key: release-manual-cargo-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: release-manual-cargo-${{ runner.os }}-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Generate runner-local dev RSA keypair
+        run: node scripts/dev/ensure-dev-keys.mjs
+
+      - name: Frontend IPC audit on Windows runner
+        run: npm run audit:frontend-ipc -- --windows-runner
+
+      - name: Release gate test runner
+        run: npm run test:release-gate
+
+      - name: Tauri multi-fixture performance E2E
+        run: npx playwright test --config playwright.tauri.config.ts tests/e2e/multi-fixture-perf.tauri.spec.ts
+
+      - name: Cargo clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Cargo tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml -- --test-threads=1
+
+      - name: Upload manual gate artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-manual-gate-failure-artifacts
+          path: |
+            runtime/audit/
+            outputs/e2e/
+            test-results/
+            playwright-report/
+            docs/performance/FRONTEND-IPC-DEEP-AUDIT-*.md
+            src-tauri/target/**/*.log
+          if-no-files-found: ignore
