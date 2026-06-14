@@ -4,7 +4,8 @@ Date: 2026-06-14
 Work item: W1-04
 Plan label: `test/tauri-e2e-cleanup-hardening`
 Branch: `test/tauri-e2e-cleanup-hardening`
-GitHub PR: TBD
+Implementation commit: `0ddca619e5bcdc3d5e9a5982e5851e40bef965db`
+GitHub PR: `#17` - https://github.com/lunin02118-ops/rheolab/pull/17
 Base: `main`
 
 ## Purpose
