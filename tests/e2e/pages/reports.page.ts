@@ -66,7 +66,7 @@ export class ReportsPage {
     await this.confirmProgramExportIfPresent();
     await expect(this.page.getByTestId('ProgramRheologyConfirmDialog')).not.toBeVisible({
       timeout: 5_000,
-    }).catch(() => undefined);
+    });
     await expect(this.downloadButton).not.toBeDisabled({ timeout: timeoutMs });
 
     return downloadPromise;

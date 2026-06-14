@@ -9,21 +9,21 @@
 
 ## Execution Context
 
-- runId: `20260614-032455883-frontend-ipc-deep-audit`
+- runId: `20260614-045802333-frontend-ipc-deep-audit`
 - mode: full
 - nonBlocking: false
-- windowsRunnerHint: false
-- authoritativeNote: Windows runner flag not set; results should be treated as advisory in mixed environments.
+- windowsRunnerHint: true
+- authoritativeNote: Windows CI runner is marked authoritative for decision making.
 
 ## KPI Snapshot (p50/p95)
 
 | Metric | Baseline p50 | Current p50 | Delta p50 | Baseline p95 | Current p95 |
 |---|---:|---:|---:|---:|---:|
-| peakHeapMb | 10.58 | 10.64 | 0.06 | 10.59 | 10.66 |
-| peakNodes | 2149.00 | 2145.00 | -4.00 | 2149.00 | 2146.00 |
-| totalWallMs | 34055.00 | 22399.00 | -11656.00 | 50563.00 | 22777.00 |
-| totalWsMb | 729.28 | 723.32 | -5.96 | 2209.84 | 764.41 |
-| rendererWsMb | 216.03 | 219.28 | 3.25 | 228.58 | 223.95 |
+| peakHeapMb | 10.64 | 10.67 | 0.03 | 10.66 | 10.72 |
+| peakNodes | 2145.00 | 2145.00 | 0.00 | 2146.00 | 2145.00 |
+| totalWallMs | 22399.00 | 22275.00 | -124.00 | 22777.00 | 22307.00 |
+| totalWsMb | 535.93 | 692.48 | 156.55 | 723.32 | 750.83 |
+| rendererWsMb | 110.72 | 218.79 | 108.07 | 221.66 | 220.41 |
 
 ## Gate Status
 
@@ -46,19 +46,19 @@
 
 | Step | Command | Status | Exit | Duration ms | Log |
 |---|---|---|---:|---:|---|
-| D-PREP-E2E-BUILD | `npx tauri build --debug --no-bundle --config src-tauri/tauri.e2e.conf.json` | PASS | 0 | 26060 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-PREP-E2E-BUILD_npx_tauri_build_debug_no_bundle_config_src_tauri_tauri_e2e_conf_json.log` |
-| D-WARMUP | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 32746 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-WARMUP_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
-| D-WORKFLOW-1 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 31962 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-WORKFLOW-1_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
-| D-WORKFLOW-2 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 31223 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-WORKFLOW-2_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
-| D-WORKFLOW-3 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 31708 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-WORKFLOW-3_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
-| D-WORKFLOW-4 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 31504 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-WORKFLOW-4_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
-| D-WORKFLOW-5 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 30727 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-WORKFLOW-5_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
-| D-SOAK-1 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri` | PASS | 0 | 23487 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-SOAK-1_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_soak_tauri.log` |
-| D-SOAK-2 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri` | PASS | 0 | 22586 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-SOAK-2_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_soak_tauri.log` |
-| D-SOAK-3 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri` | PASS | 0 | 22407 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-SOAK-3_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_soak_tauri.log` |
-| D-BENCH-1 | `npm run perf:benchmark` | PASS | 0 | 169548 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-BENCH-1_npm_run_perf_benchmark.log` |
-| D-BENCH-2 | `npm run perf:benchmark` | PASS | 0 | 170981 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-BENCH-2_npm_run_perf_benchmark.log` |
-| D-MEM-AGG | `npm run perf:memory -- --skip-playwright --input-glob soak-*.json --last-runs 20` | PASS | 0 | 877 | `runtime/audit/20260614-032455883-frontend-ipc-deep-audit/logs/D-MEM-AGG_npm_run_perf_memory_skip_playwright_input_glob_soak_json_last_runs_20.log` |
+| D-PREP-E2E-BUILD | `npx tauri build --debug --no-bundle --config src-tauri/tauri.e2e.conf.json` | PASS | 0 | 23972 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-PREP-E2E-BUILD_npx_tauri_build_debug_no_bundle_config_src_tauri_tauri_e2e_conf_json.log` |
+| D-WARMUP | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 31662 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-WARMUP_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
+| D-WORKFLOW-1 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 30775 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-WORKFLOW-1_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
+| D-WORKFLOW-2 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 30654 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-WORKFLOW-2_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
+| D-WORKFLOW-3 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 30834 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-WORKFLOW-3_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
+| D-WORKFLOW-4 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 31275 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-WORKFLOW-4_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
+| D-WORKFLOW-5 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:workflow:tauri` | PASS | 0 | 30295 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-WORKFLOW-5_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_workflow_tauri.log` |
+| D-SOAK-1 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri` | PASS | 0 | 22449 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-SOAK-1_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_soak_tauri.log` |
+| D-SOAK-2 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri` | PASS | 0 | 21886 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-SOAK-2_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_soak_tauri.log` |
+| D-SOAK-3 | `npx cross-env TAURI_E2E_SKIP_BUILD=1 npm run perf:soak:tauri` | PASS | 0 | 22475 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-SOAK-3_npx_cross_env_tauri_e2e_skip_build_1_npm_run_perf_soak_tauri.log` |
+| D-BENCH-1 | `npm run perf:benchmark` | PASS | 0 | 168341 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-BENCH-1_npm_run_perf_benchmark.log` |
+| D-BENCH-2 | `npm run perf:benchmark` | PASS | 0 | 169032 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-BENCH-2_npm_run_perf_benchmark.log` |
+| D-MEM-AGG | `npm run perf:memory -- --skip-playwright --input-glob soak-*.json --last-runs 20` | PASS | 0 | 830 | `runtime/audit/20260614-045802333-frontend-ipc-deep-audit/logs/D-MEM-AGG_npm_run_perf_memory_skip_playwright_input_glob_soak_json_last_runs_20.log` |
 
 ## Artifact Collection
 
