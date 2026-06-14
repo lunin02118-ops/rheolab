@@ -10,6 +10,7 @@
 use tauri::{App, Manager};
 
 use crate::commands;
+use crate::ipc_policy;
 use crate::startup::logging::log_to_file;
 use crate::state::AppState;
 
@@ -19,6 +20,12 @@ use crate::state::AppState;
 /// via a thin one-line wrapper.
 pub fn run_app_setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     log_to_file("Setup started");
+
+    if let Err(e) = ipc_policy::enforce_ipc_policy_phase1() {
+        log_to_file(&format!("IPC policy phase-1 enforcement failed: {e}"));
+        return Err(std::io::Error::other(e).into());
+    }
+    log_to_file("IPC policy phase-1 enforcement passed");
 
     // Pre-startup restore: swap pending_restore.db → rheolab.db BEFORE
     // the connection pool is opened.  This avoids os error 32/1224
