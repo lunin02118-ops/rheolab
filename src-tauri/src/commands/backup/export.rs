@@ -1,7 +1,7 @@
 //! Backup export commands.
 
 use crate::commands::licensing::can_write_via_engine;
-use crate::error::{AppError, Result};
+use crate::error::{command_boundary, AppError, Result};
 use crate::state::AppState;
 use crate::types::BackupResult;
 use tauri::State;
@@ -39,6 +39,18 @@ pub(super) fn vacuum_export_db(
 /// The target path is supplied by the frontend after a native save dialog.
 #[tauri::command]
 pub async fn backup_export_db(
+    state: State<'_, AppState>,
+    target_path: String,
+) -> Result<BackupResult> {
+    command_boundary(
+        "backup_export_db",
+        None,
+        backup_export_db_inner(state, target_path),
+    )
+    .await
+}
+
+async fn backup_export_db_inner(
     state: State<'_, AppState>,
     target_path: String,
 ) -> Result<BackupResult> {

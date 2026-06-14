@@ -1,7 +1,7 @@
 //! Backup CRUD management commands.
 
 use crate::commands::licensing::require_write_license;
-use crate::error::{AppError, Result};
+use crate::error::{command_boundary, AppError, Result};
 use crate::state::AppState;
 use crate::types::{BackupInfo, BackupResult};
 use chrono::Utc;
@@ -13,6 +13,10 @@ use super::validate::sanitize_backup_filename;
 /// List all local backups
 #[tauri::command]
 pub async fn backup_list(state: State<'_, AppState>) -> Result<Vec<BackupInfo>> {
+    command_boundary("backup_list", None, backup_list_inner(state)).await
+}
+
+async fn backup_list_inner(state: State<'_, AppState>) -> Result<Vec<BackupInfo>> {
     let backups_dir = &state.backups_dir;
 
     if !backups_dir.exists() {
@@ -51,6 +55,10 @@ pub async fn backup_list(state: State<'_, AppState>) -> Result<Vec<BackupInfo>> 
 /// Create a new backup
 #[tauri::command]
 pub async fn backup_create(state: State<'_, AppState>) -> Result<BackupResult> {
+    command_boundary("backup_create", None, backup_create_inner(state)).await
+}
+
+async fn backup_create_inner(state: State<'_, AppState>) -> Result<BackupResult> {
     require_write_license(&state).await?;
 
     let db_path = &state.database_path;
@@ -110,6 +118,10 @@ pub async fn backup_create(state: State<'_, AppState>) -> Result<BackupResult> {
 /// Delete a backup file
 #[tauri::command]
 pub async fn backup_delete(state: State<'_, AppState>, filename: String) -> Result<BackupResult> {
+    command_boundary("backup_delete", None, backup_delete_inner(state, filename)).await
+}
+
+async fn backup_delete_inner(state: State<'_, AppState>, filename: String) -> Result<BackupResult> {
     require_write_license(&state).await?;
 
     sanitize_backup_filename(&filename)?;
@@ -140,6 +152,10 @@ pub async fn backup_delete(state: State<'_, AppState>, filename: String) -> Resu
 /// Open the backups folder in the system file manager
 #[tauri::command]
 pub async fn backup_open_folder(state: State<'_, AppState>) -> Result<()> {
+    command_boundary("backup_open_folder", None, backup_open_folder_inner(state)).await
+}
+
+async fn backup_open_folder_inner(state: State<'_, AppState>) -> Result<()> {
     let backups_dir = &state.backups_dir;
 
     // Ensure directory exists

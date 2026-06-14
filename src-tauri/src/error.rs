@@ -23,6 +23,7 @@
 //! ```
 
 use serde::Serialize;
+use std::future::Future;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -137,6 +138,21 @@ pub fn log_ipc_error(command: &'static str, err: &AppError, request_id: Option<&
     );
 }
 
+pub async fn command_boundary<T, Fut>(
+    command: &'static str,
+    request_id: Option<&str>,
+    future: Fut,
+) -> Result<T>
+where
+    Fut: Future<Output = Result<T>>,
+{
+    let result = future.await;
+    if let Err(err) = &result {
+        log_ipc_error(command, err, request_id);
+    }
+    result
+}
+
 /// Make `AppError` usable as a Tauri command error.
 /// Serialises as `{"kind": "…", "message": "…"}` so the frontend can branch
 /// on the `kind` field directly instead of doing string-prefix matching.
@@ -170,7 +186,7 @@ pub type Result<T> = std::result::Result<T, AppError>;
 
 #[cfg(test)]
 mod tests {
-    use super::{ipc_error_log_fields, log_ipc_error, AppError};
+    use super::{command_boundary, ipc_error_log_fields, log_ipc_error, AppError, Result};
     use serde_json::json;
     use std::io;
     use std::sync::{
@@ -299,6 +315,37 @@ mod tests {
             log_ipc_error("experiments_save", &error, Some("req-7"));
         });
 
+        assert_eq!(events.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn command_boundary_passes_success_without_logging() {
+        let events = Arc::new(AtomicUsize::new(0));
+        let subscriber = CountingSubscriber::new(Arc::clone(&events));
+        let guard = tracing::subscriber::set_default(subscriber);
+
+        let result: Result<&str> =
+            command_boundary("backup_list", Some("req-1"), async { Ok("ok") }).await;
+
+        drop(guard);
+        assert_eq!(result.unwrap(), "ok");
+        assert_eq!(events.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn command_boundary_logs_errors_once_and_preserves_error() {
+        let events = Arc::new(AtomicUsize::new(0));
+        let subscriber = CountingSubscriber::new(Arc::clone(&events));
+        let guard = tracing::subscriber::set_default(subscriber);
+
+        let result: Result<()> = command_boundary("backup_restore", Some("req-2"), async {
+            Err(AppError::Other("raw internal secret".into()))
+        })
+        .await;
+
+        drop(guard);
+        let error = result.expect_err("boundary should preserve the AppError");
+        assert_eq!(error.safe_message(), "Internal error");
         assert_eq!(events.load(Ordering::SeqCst), 1);
     }
 }

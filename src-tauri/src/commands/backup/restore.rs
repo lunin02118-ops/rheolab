@@ -1,7 +1,7 @@
 //! Backup restore, import, and merge logic.
 
 use crate::commands::licensing::{can_write_via_engine, require_write_license};
-use crate::error::{AppError, Result};
+use crate::error::{command_boundary, AppError, Result};
 use crate::state::AppState;
 use crate::types::{BackupResult, MergeResult};
 use crate::utils::{get_pending_restore_path, log_restore};
@@ -99,6 +99,19 @@ pub async fn backup_restore(
     state: State<'_, AppState>,
     filename: String,
 ) -> Result<BackupResult> {
+    command_boundary(
+        "backup_restore",
+        None,
+        backup_restore_inner(app, state, filename),
+    )
+    .await
+}
+
+async fn backup_restore_inner(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    filename: String,
+) -> Result<BackupResult> {
     require_write_license(&state).await?;
 
     sanitize_backup_filename(&filename)?;
@@ -156,6 +169,18 @@ pub async fn backup_restore(
 /// No app restart is needed — the data is available immediately.
 #[tauri::command]
 pub async fn backup_import_db(
+    state: State<'_, AppState>,
+    file_path: String,
+) -> Result<MergeResult> {
+    command_boundary(
+        "backup_import_db",
+        None,
+        backup_import_db_inner(state, file_path),
+    )
+    .await
+}
+
+async fn backup_import_db_inner(
     state: State<'_, AppState>,
     file_path: String,
 ) -> Result<MergeResult> {
