@@ -46,6 +46,42 @@ jobs:
       - name: Install Composer dependencies
         run: composer --working-dir=license-server install --no-interaction --prefer-dist --no-progress
 
+      - name: Generate PHPUnit test config
+        run: |
+          cat > license-server/config.php <<'PHP'
+          <?php
+          define('DEBUG', true);
+
+          define('DB_HOST', getenv('RHEOLAB_DB_HOST') ?: 'localhost');
+          define('DB_NAME', getenv('RHEOLAB_DB_NAME') ?: 'rheolab_license_test');
+          define('DB_USER', getenv('RHEOLAB_DB_USER') ?: 'test');
+          define('DB_PASS', getenv('RHEOLAB_DB_PASS') ?: 'test');
+          define('DB_CHARSET', 'utf8mb4');
+
+          define('GRACE_PERIOD_DAYS', 30);
+          define('LICENSE_CACHE_DAYS', 7);
+
+          define('ALLOWED_ORIGINS', [
+              'tauri://localhost',
+              'https://localhost',
+              'http://localhost:3000',
+              'http://localhost:3033',
+          ]);
+
+          define('ADMIN_USER', getenv('RHEOLAB_ADMIN_USER') ?: 'admin');
+          define('ADMIN_PASS_HASH', getenv('RHEOLAB_ADMIN_PASS_HASH') ?: password_hash('testpassword', PASSWORD_BCRYPT));
+
+          define('LOGIN_MAX_ATTEMPTS', 5);
+          define('LOGIN_LOCKOUT_SECONDS', 900);
+
+          error_reporting(E_ALL);
+          ini_set('display_errors', '1');
+          date_default_timezone_set('Asia/Yekaterinburg');
+          PHP
+
+          php -l license-server/config.php
+          grep -q "GRACE_PERIOD_DAYS', 30" license-server/config.php
+
       - name: Generate ephemeral dev RSA keypair
         run: |
           mkdir -p src-tauri/keys

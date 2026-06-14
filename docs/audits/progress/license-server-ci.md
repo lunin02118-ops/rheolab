@@ -38,6 +38,10 @@ Unaffected areas:
 The CI job runs existing PHPUnit coverage, including the test that treats a
 license expiring in `+30 days` as valid.
 
+The workflow generates only a runner-local `license-server/config.php` for
+PHPUnit. It keeps `GRACE_PERIOD_DAYS` at `30` and does not change the checked-in
+license-server runtime configuration or endpoint behavior.
+
 ## Local Environment Check
 
 Local commands attempted:
@@ -66,12 +70,13 @@ php -m | grep -i '^openssl$'
 php -r 'extension_loaded("openssl") || exit(1);'
 composer --working-dir=license-server validate
 composer --working-dir=license-server install --no-interaction --prefer-dist --no-progress
+php -l license-server/config.php
 composer --working-dir=license-server test
 ```
 
-The workflow generates an ephemeral dev RSA keypair under `src-tauri/keys/` on
-the runner before PHPUnit. Those files are gitignored and are not product
-signing material.
+The workflow generates a runner-local PHPUnit config and an ephemeral dev RSA
+keypair under `src-tauri/keys/` before PHPUnit. These files are gitignored and
+are not product signing material.
 
 ## Acceptance Criteria Mapping
 
@@ -80,6 +85,7 @@ signing material.
 | CI proves PHP `openssl` is present. | Implemented in workflow. |
 | Composer validation passes. | Implemented in workflow. |
 | Dependencies install reproducibly. | Implemented via Composer install from lockfile. |
+| Clean checkout has test config for PHPUnit. | Implemented with runner-local `license-server/config.php`. |
 | PHPUnit/license-server tests pass. | Implemented via `composer test`. |
 | Job can run on PR and manually. | Implemented via `pull_request` and `workflow_dispatch`. |
 
