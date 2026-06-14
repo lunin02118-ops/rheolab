@@ -2,7 +2,8 @@
 
 Date: 2026-06-14
 Branch: `docs/dependency-overrides-register`
-GitHub PR: TBD
+Implementation commit: `0c3d8f90c0f35db09111699407f4921e84d13760`
+GitHub PR: `#16` - https://github.com/lunin02118-ops/rheolab/pull/16
 Base: `main`
 
 ## Purpose
