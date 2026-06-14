@@ -5,9 +5,14 @@
  * (WebView2 создаёт дочерние процессы, которые нужно убить вместе с родительским).
  */
 
-const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const {
+    delay,
+    killProcessTree,
+    removePathWithRetry,
+    removeSidecarsWithRetry,
+} = require('./tauri-cleanup-utils');
 
 const ROOT = path.resolve(__dirname, '../..');
 const PID_FILE = path.join(ROOT, '.tauri-e2e.pid');
@@ -21,11 +26,17 @@ module.exports = async function globalTeardown() {
         try {
             const samplerPid = parseInt(fs.readFileSync(SAMPLER_PID_FILE, 'utf8').trim(), 10);
             if (!isNaN(samplerPid)) {
-                execSync(`taskkill /PID ${samplerPid} /F`, { stdio: 'pipe' });
-                console.log(`[tauri-e2e] ✓ Native memory sampler (PID=${samplerPid}) остановлен.`);
+                killProcessTree(samplerPid, {
+                    label: 'native memory sampler',
+                    prefix: '[tauri-e2e]',
+                    tree: false,
+                });
             }
         } catch { /* sampler мог уже завершиться сам */ }
-        fs.unlinkSync(SAMPLER_PID_FILE);
+        await removePathWithRetry(SAMPLER_PID_FILE, {
+            label: 'native memory sampler pid file',
+            prefix: '[tauri-e2e]',
+        });
     }
 
     // ── 2. Завершить Tauri-приложение ─────────────────────────────────────
@@ -35,7 +46,10 @@ module.exports = async function globalTeardown() {
         try {
             pid = parseInt(fs.readFileSync(PID_FILE, 'utf8').trim(), 10);
         } catch { /* ignore */ }
-        fs.unlinkSync(PID_FILE);
+        await removePathWithRetry(PID_FILE, {
+            label: 'tauri pid file',
+            prefix: '[tauri-e2e]',
+        });
     }
 
     // Фолбэк: PID передан через переменную окружения из setup
@@ -44,18 +58,17 @@ module.exports = async function globalTeardown() {
     }
 
     if (!pid || isNaN(pid)) {
-        console.log('[tauri-e2e] PID не найден — пропускаем teardown.');
-        return;
-    }
-
-    console.log(`[tauri-e2e] Завершаем Tauri-процесс (PID=${pid})...`);
-    try {
-        // /T — завершить дерево процессов; /F — принудительно
-        execSync(`taskkill /PID ${pid} /T /F`, { stdio: 'pipe' });
-        console.log('[tauri-e2e] ✓ Tauri-процесс завершён.');
-    } catch (err) {
-        // Процесс мог уже завершиться сам
-        console.warn(`[tauri-e2e] Не удалось завершить PID=${pid}: ${err.message}`);
+        console.log('[tauri-e2e] PID не найден — пропускаем только остановку процесса.');
+    } else {
+        console.log(`[tauri-e2e] Завершаем Tauri-процесс (PID=${pid})...`);
+        killProcessTree(pid, {
+            label: 'Tauri process tree',
+            prefix: '[tauri-e2e]',
+            tree: true,
+        });
+        // Give WebView2/SQLite a short grace window to release file handles
+        // before deleting per-run artifacts.
+        await delay(500);
     }
 
     // ── 3. Убрать изолированную E2E-DB ────────────────────────────────────
@@ -68,21 +81,18 @@ module.exports = async function globalTeardown() {
         try {
             dbPath = fs.readFileSync(DB_PATH_FILE, 'utf8').trim();
         } catch { /* ignore */ }
-        try { fs.unlinkSync(DB_PATH_FILE); } catch { /* ignore */ }
+        await removePathWithRetry(DB_PATH_FILE, {
+            label: 'isolated DB path marker',
+            prefix: '[tauri-e2e]',
+        });
 
         if (dbPath) {
-            const sidecars = ['', '-wal', '-shm', '-journal'].map((sfx) => `${dbPath}${sfx}`);
-            let removed = 0;
-            for (const file of sidecars) {
-                try {
-                    if (fs.existsSync(file)) {
-                        fs.unlinkSync(file);
-                        removed += 1;
-                    }
-                } catch (rmErr) {
-                    console.warn(`[tauri-e2e] Не удалось удалить ${file}: ${rmErr.message}`);
-                }
-            }
+            const removed = await removeSidecarsWithRetry(dbPath, ['', '-wal', '-shm', '-journal'], {
+                attempts: 8,
+                delayMs: 200,
+                label: 'isolated DB',
+                prefix: '[tauri-e2e]',
+            });
             if (removed > 0) {
                 console.log(`[tauri-e2e] ✓ Изолированная DB удалена (${removed} файлов): ${dbPath}`);
             }
@@ -99,20 +109,21 @@ module.exports = async function globalTeardown() {
         try {
             webViewDir = fs.readFileSync(WEBVIEW_DIR_FILE, 'utf8').trim();
         } catch { /* ignore */ }
-        try { fs.unlinkSync(WEBVIEW_DIR_FILE); } catch { /* ignore */ }
+        await removePathWithRetry(WEBVIEW_DIR_FILE, {
+            label: 'WebView2 UserData marker',
+            prefix: '[tauri-e2e]',
+        });
 
         if (webViewDir && fs.existsSync(webViewDir)) {
-            try {
-                // node>=14.14: rmSync with recursive+force handles locked files
-                // gracefully on Windows. WebView2 does sometimes leave handles
-                // open on its log/cache files for a moment after shutdown, so
-                // `maxRetries` gives the OS a chance to release them.
-                fs.rmSync(webViewDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+            const removed = await removePathWithRetry(webViewDir, {
+                attempts: 10,
+                delayMs: 250,
+                label: `WebView2 UserData ${webViewDir}`,
+                prefix: '[tauri-e2e]',
+                recursive: true,
+            });
+            if (removed) {
                 console.log(`[tauri-e2e] ✓ Изолированная WebView2 UserData удалена: ${webViewDir}`);
-            } catch (rmErr) {
-                console.warn(
-                    `[tauri-e2e] Не удалось удалить WebView2 UserData ${webViewDir}: ${rmErr.message}`,
-                );
             }
         }
     }
