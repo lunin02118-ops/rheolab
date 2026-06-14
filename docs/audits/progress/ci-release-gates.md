@@ -4,14 +4,15 @@ Date: 2026-06-14
 Work item: W1-02
 Plan label: `ci/re-enable-blocking-release-gates`
 Branch: `ci/re-enable-blocking-release-gates`
-GitHub PR: TBD
+Implementation commit: `57bb436da72406d974d4cc8a29b798e9e19f80bd`
+GitHub PR: `#15` - https://github.com/lunin02118-ops/rheolab/pull/15
 Base: `main`
 
 ## Numbering Note
 
 The source plan labels this item as `PR #13`, but the real GitHub PR `#13`
-was already used by the documentation plan. This implementation uses the plan
-branch name and will record the real GitHub PR number after creation.
+was already used by the documentation plan. The real GitHub PR for this work is
+`#15`.
 
 ## Purpose
 
@@ -80,7 +81,7 @@ Local checks for this PR:
 | hidden/bidi scan | PASS | Checked changed workflow/doc files. |
 | package JSON parse | PASS | `package.json` and `website/package.json` parse cleanly. |
 
-GitHub checks will be recorded after PR creation.
+GitHub checks will be recorded on PR `#15`.
 
 ## Risks
 
