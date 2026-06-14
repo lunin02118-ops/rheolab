@@ -22,6 +22,14 @@ pub enum IpcPayloadClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DemoPolicy {
+    Allowed,
+    Limited,
+    Denied,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IpcCommandCapabilities {
     pub allows_external_network: bool,
     pub allows_file_read: bool,
@@ -79,7 +87,7 @@ pub struct IpcCommandPolicy {
     pub requires_license: bool,
     pub requires_audit_log: bool,
     pub audit_log_exception: Option<&'static str>,
-    pub allowed_in_demo: bool,
+    pub demo_policy: DemoPolicy,
     pub capabilities: IpcCommandCapabilities,
     pub max_payload_class: IpcPayloadClass,
 }
@@ -97,7 +105,7 @@ impl IpcCommandPolicy {
             requires_license: false,
             requires_audit_log: false,
             audit_log_exception: None,
-            allowed_in_demo: true,
+            demo_policy: DemoPolicy::Unknown,
             capabilities,
             max_payload_class,
         }
@@ -109,7 +117,7 @@ impl IpcCommandPolicy {
     }
 
     pub const fn denied_in_demo(mut self) -> Self {
-        self.allowed_in_demo = false;
+        self.demo_policy = DemoPolicy::Denied;
         self
     }
 
@@ -124,7 +132,17 @@ impl IpcCommandPolicy {
     }
 
     pub const fn allowed_in_demo(mut self) -> Self {
-        self.allowed_in_demo = true;
+        self.demo_policy = DemoPolicy::Allowed;
+        self
+    }
+
+    pub const fn limited_in_demo(mut self) -> Self {
+        self.demo_policy = DemoPolicy::Limited;
+        self
+    }
+
+    pub const fn unknown_in_demo(mut self) -> Self {
+        self.demo_policy = DemoPolicy::Unknown;
         self
     }
 }
@@ -144,11 +162,11 @@ const NETWORK_DB_WRITE: IpcCommandCapabilities = NONE.external_network().db_read
 const BINARY_DB_READ: IpcCommandCapabilities = NONE.db_read().binary_response();
 
 const fn low(name: &'static str) -> IpcCommandPolicy {
-    IpcCommandPolicy::new(name, IpcRisk::Low, NONE, IpcPayloadClass::Tiny)
+    IpcCommandPolicy::new(name, IpcRisk::Low, NONE, IpcPayloadClass::Tiny).allowed_in_demo()
 }
 
 const fn read(name: &'static str) -> IpcCommandPolicy {
-    IpcCommandPolicy::new(name, IpcRisk::Low, DB_READ, IpcPayloadClass::Small)
+    IpcCommandPolicy::new(name, IpcRisk::Low, DB_READ, IpcPayloadClass::Small).allowed_in_demo()
 }
 
 const fn medium(
@@ -156,7 +174,7 @@ const fn medium(
     capabilities: IpcCommandCapabilities,
     payload: IpcPayloadClass,
 ) -> IpcCommandPolicy {
-    IpcCommandPolicy::new(name, IpcRisk::Medium, capabilities, payload)
+    IpcCommandPolicy::new(name, IpcRisk::Medium, capabilities, payload).allowed_in_demo()
 }
 
 const fn high(
@@ -563,9 +581,28 @@ mod tests {
         let policy = medium("example_command", DB_READ, IpcPayloadClass::Small).requires_license();
 
         assert!(policy.requires_license);
-        assert!(
-            policy.allowed_in_demo,
-            "license metadata must not imply demo denial"
+        assert_eq!(
+            policy.demo_policy,
+            DemoPolicy::Allowed,
+            "license metadata must not imply demo denial or change explicit demo metadata"
+        );
+    }
+
+    #[test]
+    fn requires_license_preserves_unknown_demo_policy() {
+        let policy = IpcCommandPolicy::new(
+            "example_command",
+            IpcRisk::High,
+            DB_WRITE,
+            IpcPayloadClass::Small,
+        )
+        .requires_license();
+
+        assert!(policy.requires_license);
+        assert_eq!(
+            policy.demo_policy,
+            DemoPolicy::Unknown,
+            "license metadata must not silently mark unknown demo semantics as allowed"
         );
     }
 
@@ -576,7 +613,29 @@ mod tests {
             .denied_in_demo();
 
         assert!(policy.requires_license);
-        assert!(!policy.allowed_in_demo);
+        assert_eq!(policy.demo_policy, DemoPolicy::Denied);
+    }
+
+    #[test]
+    fn demo_limited_is_explicit_policy_metadata() {
+        let policy = medium("example_command", DB_READ, IpcPayloadClass::Small)
+            .requires_license()
+            .limited_in_demo();
+
+        assert!(policy.requires_license);
+        assert_eq!(policy.demo_policy, DemoPolicy::Limited);
+    }
+
+    #[test]
+    fn high_risk_commands_do_not_default_to_allowed_in_demo() {
+        let policy = high("example_command", DB_WRITE, IpcPayloadClass::Small);
+
+        assert_eq!(policy.risk, IpcRisk::High);
+        assert_eq!(
+            policy.demo_policy,
+            DemoPolicy::Unknown,
+            "high-risk commands must require explicit demo semantics"
+        );
     }
 
     #[test]
@@ -620,7 +679,10 @@ mod tests {
             assert!(policy.capabilities.returns_binary);
             assert!(policy.requires_license);
             assert!(
-                policy.allowed_in_demo,
+                matches!(
+                    policy.demo_policy,
+                    DemoPolicy::Allowed | DemoPolicy::Limited | DemoPolicy::Unknown
+                ),
                 "{name} license metadata must not imply demo denial"
             );
         }
