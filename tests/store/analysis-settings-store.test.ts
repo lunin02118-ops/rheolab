@@ -19,6 +19,7 @@ const DEFAULT_EXPERT = {
     splitEndDuration: 30,
     minDurationForSplit: 90,
     aiModel: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    externalAiEnabled: false,
     forceAiParsing: false,
     timeShiftEnabled: false,
 };
@@ -45,6 +46,10 @@ describe('useAnalysisSettingsStore', () => {
 
         it('has forceAiParsing=false by default', () => {
             expect(useAnalysisSettingsStore.getState().expertSettings.forceAiParsing).toBe(false);
+        });
+
+        it('has externalAiEnabled=false by default', () => {
+            expect(useAnalysisSettingsStore.getState().expertSettings.externalAiEnabled).toBe(false);
         });
 
         it('has timeShiftEnabled=false by default', () => {
@@ -101,8 +106,16 @@ describe('useAnalysisSettingsStore', () => {
             expect(useAnalysisSettingsStore.getState().expertSettings.splitStartDuration).toBe(0);
         });
 
-        it('enables forceAiParsing', () => {
+        it('does not enable forceAiParsing without external AI opt-in', () => {
             useAnalysisSettingsStore.getState().setExpertSettings({ forceAiParsing: true });
+            expect(useAnalysisSettingsStore.getState().expertSettings.forceAiParsing).toBe(false);
+        });
+
+        it('enables forceAiParsing after external AI opt-in', () => {
+            useAnalysisSettingsStore.getState().setExpertSettings({
+                externalAiEnabled: true,
+                forceAiParsing: true,
+            });
             expect(useAnalysisSettingsStore.getState().expertSettings.forceAiParsing).toBe(true);
         });
 
@@ -234,6 +247,8 @@ describe('useAnalysisSettingsStore', () => {
             expect(s.viscosityShearRates).toEqual([40, 100, 170, 220]);
             expect(s.stepSplitting).toBe(true);
             expect(s.aiModel).toBe(DEFAULT_EXPERT.aiModel);
+            expect(s.externalAiEnabled).toBe(false);
+            expect(s.forceAiParsing).toBe(false);
             expect(s.timeShiftEnabled).toBe(false);
         });
     });

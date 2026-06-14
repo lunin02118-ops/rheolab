@@ -72,13 +72,30 @@ export function APIKeyManager() {
         setExpertSettings({ aiModel: model });
     };
 
+    const handleExternalAiToggle = () => {
+        const enabled = !expertSettings.externalAiEnabled;
+        setExpertSettings({
+            externalAiEnabled: enabled,
+            forceAiParsing: enabled ? expertSettings.forceAiParsing : false,
+        });
+    };
+
     const handleAdd = async () => {
         if (!newKeyName || !newKeyValue) return;
 
-        setIsValidating(true);
         try {
+            if (!expertSettings.externalAiEnabled) {
+                setOpError('Включите внешний AI перед проверкой Groq API ключа.');
+                return;
+            }
+
+            setIsValidating(true);
             // Validate first
-            const validation = await validateApiKey(newKeyValue, 'groq');
+            const validation = await validateApiKey(
+                newKeyValue,
+                'groq',
+                expertSettings.externalAiEnabled,
+            );
             if (!validation.isValid) {
                 setOpError(`Ошибка валидации ключа: ${validation.error}`);
                 setIsValidating(false);
@@ -193,8 +210,26 @@ export function APIKeyManager() {
 
             {/* Model Selection */}
             <div className="mb-6 p-4 bg-secondary/30 rounded-lg border border-border/50">
-                <label className="text-xs font-medium text-muted-foreground mb-2 block">AI Модель</label>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="external-ai-settings-toggle">
+                        Внешний AI
+                    </label>
+                    <button
+                        type="button"
+                        id="external-ai-settings-toggle"
+                        role="switch"
+                        aria-checked={expertSettings.externalAiEnabled}
+                        onClick={handleExternalAiToggle}
+                        className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 ${expertSettings.externalAiEnabled ? 'bg-yellow-600' : 'bg-secondary'}`}
+                    >
+                        <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform duration-200 ${expertSettings.externalAiEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                </div>
+                <label className="text-xs font-medium text-muted-foreground mb-2 block" htmlFor="ai-model-select">
+                    AI Модель
+                </label>
                 <select
+                    id="ai-model-select"
                     value={selectedModel}
                     onChange={(e) => handleModelChange(e.target.value)}
                     className="w-full bg-card border border-border rounded-md px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-yellow-500/50 outline-none"

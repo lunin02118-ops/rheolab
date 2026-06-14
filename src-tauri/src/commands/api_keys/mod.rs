@@ -292,14 +292,16 @@ pub async fn api_keys_active(
 pub async fn api_keys_check_active(
     state: State<'_, AppState>,
     provider: Option<String>,
+    allow_external_network: Option<bool>,
 ) -> Result<ApiKeyValidationResponse> {
-    commands::api_keys_check_active_impl(state, provider).await
+    commands::api_keys_check_active_impl(state, provider, allow_external_network).await
 }
 
 #[tauri::command]
 pub async fn api_keys_validate(
     key: String,
     provider: Option<String>,
+    allow_external_network: Option<bool>,
 ) -> Result<ApiKeyValidationResponse> {
-    commands::api_keys_validate_impl(key, provider).await
+    commands::api_keys_validate_impl(key, provider, allow_external_network).await
 }

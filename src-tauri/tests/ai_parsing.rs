@@ -240,6 +240,7 @@ async fn parse_with_stub_mapper(
         filename: filename.to_string(),
         file_path,
         bytes,
+        external_ai_enabled: Some(force_ai),
         force_ai: Some(force_ai),
         ai_model: Some("stub-model".to_string()),
     };
@@ -289,6 +290,7 @@ async fn parse_force_ai(filename: &str, api_key: &str) -> ParseFileResponse {
         filename: filename.to_string(),
         file_path: Some(file_path.to_str().unwrap().to_string()),
         bytes: None,
+        external_ai_enabled: Some(true),
         force_ai: Some(true),
         ai_model: Some("meta-llama/llama-4-scout-17b-16e-instruct".to_string()),
     };
@@ -302,6 +304,7 @@ async fn parse_force_ai_bytes(filename: &str, bytes: Vec<u8>, api_key: &str) -> 
         filename: filename.to_string(),
         file_path: None,
         bytes: Some(bytes),
+        external_ai_enabled: Some(true),
         force_ai: Some(true),
         ai_model: Some("meta-llama/llama-4-scout-17b-16e-instruct".to_string()),
     };
@@ -316,6 +319,7 @@ async fn parse_heuristic(filename: &str) -> ParseFileResponse {
         filename: filename.to_string(),
         file_path: Some(file_path.to_str().unwrap().to_string()),
         bytes: None,
+        external_ai_enabled: None,
         force_ai: None,
         ai_model: None,
     };
@@ -1231,6 +1235,7 @@ async fn test_stub_force_ai_hard_fails_on_mapper_error() {
         filename: "synthetic.csv".to_string(),
         file_path: None,
         bytes: Some(b"Clock,Value,ProbeA,Load\ns,cP,C,bar\n1,100,25,1\n".to_vec()),
+        external_ai_enabled: Some(true),
         force_ai: Some(true),
         ai_model: Some("stub-model".to_string()),
     };
@@ -1249,6 +1254,7 @@ async fn test_stub_force_ai_hard_fails_without_configured_key() {
         filename: "synthetic.csv".to_string(),
         file_path: None,
         bytes: Some(b"Clock,Value\ns,cP\n1,100\n".to_vec()),
+        external_ai_enabled: Some(true),
         force_ai: Some(true),
         ai_model: Some("stub-model".to_string()),
     };

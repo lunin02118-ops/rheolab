@@ -56,6 +56,7 @@ const EXPERT_SETTINGS = {
   splitEndDuration: 12,
   minDurationForSplit: 120,
   aiModel: 'e2e-model',
+  externalAiEnabled: false,
   forceAiParsing: false,
   timeShiftEnabled: false,
 };

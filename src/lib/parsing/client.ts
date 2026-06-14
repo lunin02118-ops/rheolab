@@ -1,5 +1,6 @@
 import { getBridge } from '@/lib/tauri/bridge';
 import type { ParseResult, ParsedBy } from '@/types';
+import type { ParseFileRequest } from '@/types/tauri';
 
 import { enrichParseResult, normalizeParseResult } from './parse-normalize';
 
@@ -9,6 +10,8 @@ const TAURI_PARSE_RETRY_DELAY_MS = 150;
 
 interface ParseOptions {
   aiModel?: string;
+  /** Explicit opt-in for external AI/network calls. Defaults to false. */
+  externalAiEnabled?: boolean;
   /** Force AI column mapping even when heuristic parser succeeds. Skips native parser. */
   forceAI?: boolean;
 }
@@ -54,14 +57,23 @@ async function parseViaTauriNative(file: File, buffer: ArrayBuffer, options?: Pa
   // On Tauri desktop, the File object contains a native .path property.
   // Passing filePath lets Rust read the file directly — avoids 8× array conversion over IPC (~120 MB → ~10 MB per parse).
   const filePath = (file as unknown as { path?: string }).path;
-  const request = filePath
-    ? { filename: file.name, filePath, forceAi: options?.forceAI, aiModel: options?.aiModel }
+  const request: ParseFileRequest = filePath
+    ? {
+        filename: file.name,
+        filePath,
+        bytes: null,
+        externalAiEnabled: options?.externalAiEnabled ?? null,
+        forceAi: options?.forceAI ?? null,
+        aiModel: options?.aiModel ?? null,
+      }
     : {
         filename: file.name,
+        filePath: null,
         // Bytes pre-read by caller — avoids re-reading the file on retries (#32)
         bytes: Array.from(new Uint8Array(buffer)),
-        forceAi: options?.forceAI,
-        aiModel: options?.aiModel,
+        externalAiEnabled: options?.externalAiEnabled ?? null,
+        forceAi: options?.forceAI ?? null,
+        aiModel: options?.aiModel ?? null,
       };
   const response = await bridge.parsing.parseFile(request);
   return normalizeParseResult(response as unknown as ParseResult);
@@ -91,16 +103,24 @@ export async function parseRheologyFile(
   assertSupportedFile(file);
   const bridge = getBridge();
   const desktopRuntime = bridge.platform === 'tauri';
+  const externalAiEnabled = options?.externalAiEnabled === true;
+
+  if (options?.forceAI && !externalAiEnabled) {
+    throw new Error(
+      'Внешние AI-запросы отключены. Включите внешний AI перед принудительным AI-парсингом.',
+    );
+  }
 
   // Check whether an active Groq key is configured (metadata only — no plaintext).
   // The key itself is resolved server-side by the Rust parsing command.
-  const hasAiKey = desktopRuntime
+  const hasAiKey = desktopRuntime && externalAiEnabled
     ? !!(await bridge.apiKeys.active('groq').catch(() => null))?.activeKey
     : false;
 
   // eslint-disable-next-line no-console -- dev-only diagnostic
   if (import.meta.env.DEV) console.log('[parseRheologyFile] resolvedOptions:', {
     forceAI: options?.forceAI,
+    externalAiEnabled,
     aiModel: options?.aiModel,
     hasAiKey,
   });

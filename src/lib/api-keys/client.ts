@@ -27,13 +27,15 @@ export async function deleteApiKey(id: string): Promise<ApiKeyDeleteResponse> {
 
 export async function checkActiveApiKey(
   provider = 'groq',
+  allowExternalNetwork = false,
 ): Promise<ApiKeyValidationResponse> {
-  return getBridge().apiKeys.checkActive(provider);
+  return getBridge().apiKeys.checkActive(provider, allowExternalNetwork);
 }
 
 export async function validateApiKey(
   key: string,
   provider = 'groq',
+  allowExternalNetwork = false,
 ): Promise<ApiKeyValidationResponse> {
-  return getBridge().apiKeys.validate(key, provider);
+  return getBridge().apiKeys.validate(key, provider, allowExternalNetwork);
 }

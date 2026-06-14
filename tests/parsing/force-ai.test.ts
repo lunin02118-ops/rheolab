@@ -101,7 +101,11 @@ describe('Force AI parsing', () => {
       bridge.parsing.parseFile.mockResolvedValue(AI_NATIVE_RESPONSE);
 
       const file = new File(['t,v\n0,100'], 'fixture.csv', { type: 'text/csv' });
-      const result = await parseRheologyFile(file, { forceAI: true, aiModel: 'llama-4-scout' });
+      const result = await parseRheologyFile(file, {
+        forceAI: true,
+        externalAiEnabled: true,
+        aiModel: 'llama-4-scout',
+      });
 
       // Native Rust IPC MUST be called (Groq HTTP happens inside Rust)
       expect(bridge.parsing.parseFile).toHaveBeenCalledTimes(1);
@@ -113,10 +117,15 @@ describe('Force AI parsing', () => {
       bridge.parsing.parseFile.mockResolvedValue(AI_NATIVE_RESPONSE);
 
       const file = new File(['t,v\n0,100'], 'fixture.csv', { type: 'text/csv' });
-      await parseRheologyFile(file, { forceAI: true, aiModel: 'my-model' });
+      await parseRheologyFile(file, {
+        forceAI: true,
+        externalAiEnabled: true,
+        aiModel: 'my-model',
+      });
 
       expect(bridge.parsing.parseFile).toHaveBeenCalledWith(
         expect.objectContaining({
+          externalAiEnabled: true,
           forceAi: true,
           aiModel: 'my-model',
         }),
@@ -131,7 +140,7 @@ describe('Force AI parsing', () => {
       bridge.parsing.parseFile.mockResolvedValue(AI_NATIVE_RESPONSE);
 
       const file = new File(['t,v\n0,100'], 'fixture.csv', { type: 'text/csv' });
-      const result = await parseRheologyFile(file, { forceAI: true });
+      const result = await parseRheologyFile(file, { forceAI: true, externalAiEnabled: true });
 
       expect(result.source).toBe('ai');
       expect(result.metadata.usedAI).toBe(true);
@@ -145,7 +154,7 @@ describe('Force AI parsing', () => {
       });
 
       const file = new File(['t,v\n0,100'], 'fixture.csv', { type: 'text/csv' });
-      const result = await parseRheologyFile(file, { forceAI: true });
+      const result = await parseRheologyFile(file, { forceAI: true, externalAiEnabled: true });
 
       expect(result.metadata.geometry).toBe('R1B5');
     });
@@ -153,12 +162,22 @@ describe('Force AI parsing', () => {
 
   // ─── Early guard: missing apiKey ───────────────────────────────────
 
+  it('throws before key lookup when forceAI=true without external AI opt-in', async () => {
+    const file = new File(['t,v\n0,100'], 'fixture.csv', { type: 'text/csv' });
+
+    await expect(parseRheologyFile(file, { forceAI: true }))
+      .rejects.toThrow(/Внешние AI-запросы отключены/i);
+
+    expect(bridge.apiKeys.active).not.toHaveBeenCalled();
+    expect(bridge.parsing.parseFile).not.toHaveBeenCalled();
+  });
+
   it('throws when forceAI=true but no active key in Tauri mode', async () => {
     mockHasActiveKey(false);
 
     const file = new File(['t,v\n0,100'], 'fixture.csv', { type: 'text/csv' });
 
-    await expect(parseRheologyFile(file, { forceAI: true }))
+    await expect(parseRheologyFile(file, { forceAI: true, externalAiEnabled: true }))
       .rejects.toThrow(/API/i);
 
     // Error is thrown before any IPC call
@@ -172,7 +191,7 @@ describe('Force AI parsing', () => {
 
     const file = new File(['t,v\n0,100'], 'fixture.csv', { type: 'text/csv' });
 
-    await expect(parseRheologyFile(file, { forceAI: true }))
+    await expect(parseRheologyFile(file, { forceAI: true, externalAiEnabled: true }))
       .rejects.toThrow(/API/i);
   });
 

@@ -142,6 +142,7 @@ pub async fn test_fixtures_parse(filename: String) -> Result<ParseFileResponse> 
             filename: normalized,
             file_path: None,
             bytes: Some(bytes),
+            external_ai_enabled: None,
             force_ai: None,
             ai_model: None,
         })
