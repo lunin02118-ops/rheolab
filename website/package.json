@@ -2,6 +2,10 @@
   "name": "website",
   "type": "module",
   "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "astro dev",
     "prebuild": "node scripts/check-download-links.mjs",
@@ -10,15 +14,20 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.6.1",
+    "@astrojs/sitemap": "^3.7.3",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/ibm-plex-sans": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
-    "astro": "^5.16.7",
+    "astro": "^6.4.6",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4"
+  },
+  "overrides": {
+    "vite": "8.0.16",
+    "esbuild": "0.28.1",
+    "rollup": "4.62.0"
   }
 }

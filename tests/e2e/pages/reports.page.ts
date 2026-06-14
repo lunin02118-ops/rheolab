@@ -56,6 +56,22 @@ export class ReportsPage {
     return downloadPromise;
   }
 
+  /** Click download, accept the program-rheology confirmation if needed, and settle. */
+  async clickDownloadAndSettle(timeoutMs = 30_000): Promise<Download | null> {
+    const downloadPromise = this.page
+      .waitForEvent('download', { timeout: timeoutMs })
+      .catch(() => null);
+
+    await this.downloadButton.click();
+    await this.confirmProgramExportIfPresent();
+    await expect(this.page.getByTestId('ProgramRheologyConfirmDialog')).not.toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(this.downloadButton).not.toBeDisabled({ timeout: timeoutMs });
+
+    return downloadPromise;
+  }
+
   /** Accept the program-rheology confirmation dialog if it is shown. */
   async confirmProgramExportIfPresent() {
     const dialog = this.page.getByTestId('ProgramRheologyConfirmDialog');

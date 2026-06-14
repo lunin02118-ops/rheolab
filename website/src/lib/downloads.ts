@@ -1,9 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { findRepoRootFrom } from './repo-root';
 
-const currentDir = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(currentDir, '..', '..', '..');
+const repoRoot = findRepoRootFrom(import.meta.url);
 const versionInfo = JSON.parse(
   readFileSync(resolve(repoRoot, 'version.json'), 'utf8')
 ) as { version: string };
