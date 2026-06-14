@@ -29,7 +29,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://license.vizbuka.ru https://api.groq.com",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://ipc.localhost https://license.vizbuka.ru https://api.groq.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' blob:",
       "dangerousDisableAssetCspModification": [
         "style-src"
       ]
