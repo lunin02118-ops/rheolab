@@ -1,0 +1,169 @@
+name: Release Gates
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gates-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app-quality:
+    name: App quality and npm security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Validate version SSoT
+        run: npm run version:validate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Vitest
+        run: npm test
+
+      - name: Large IPC audit
+        run: npm run audit:large-ipc
+
+      - name: npm audit high threshold
+        run: npm audit --audit-level=high
+
+      - name: npm production audit
+        run: npm audit --omit=dev
+
+      - name: Upload app failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-quality-failure-artifacts
+          path: |
+            dist/
+            runtime/audit/
+            outputs/
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+
+  website-quality:
+    name: Website build and npm security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install website dependencies
+        run: npm --prefix website ci
+
+      - name: Build website
+        run: npm --prefix website run build
+
+      - name: Website production audit
+        run: npm --prefix website audit --omit=dev
+
+      - name: Upload website failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-quality-failure-artifacts
+          path: |
+            website/dist/
+            website/.astro/
+          if-no-files-found: ignore
+
+  rust-quality:
+    name: Rust cargo checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: release-gates-cargo-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: release-gates-cargo-${{ runner.os }}-
+
+      - name: Install Linux native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev
+
+      - name: Generate runner-local dev RSA keypair
+        run: node scripts/dev/ensure-dev-keys.mjs
+
+      - name: Cargo check all targets and features
+        run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets --all-features
+
+      - name: Cargo release check
+        run: cargo check --release --manifest-path src-tauri/Cargo.toml
+
+      - name: Upload Rust failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-quality-failure-artifacts
+          path: |
+            src-tauri/target/**/build/*/output
+            src-tauri/target/**/*.log
+          if-no-files-found: ignore
