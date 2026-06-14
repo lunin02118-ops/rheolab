@@ -53,15 +53,15 @@ export const apiKeys = {
   /**
    * Validate currently active provider key.
    */
-  async checkActive(provider = 'groq'): Promise<ApiKeyValidationResponse> {
-    return invoke<ApiKeyValidationResponse>('api_keys_check_active', { provider });
+  async checkActive(provider = 'groq', allowExternalNetwork = false): Promise<ApiKeyValidationResponse> {
+    return invoke<ApiKeyValidationResponse>('api_keys_check_active', { provider, allowExternalNetwork });
   },
 
   /**
    * Validate provided key against provider API.
    */
-  async validate(key: string, provider = 'groq'): Promise<ApiKeyValidationResponse> {
-    return invoke<ApiKeyValidationResponse>('api_keys_validate', { key, provider });
+  async validate(key: string, provider = 'groq', allowExternalNetwork = false): Promise<ApiKeyValidationResponse> {
+    return invoke<ApiKeyValidationResponse>('api_keys_validate', { key, provider, allowExternalNetwork });
   },
 };
 

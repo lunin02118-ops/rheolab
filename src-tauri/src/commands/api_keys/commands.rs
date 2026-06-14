@@ -313,7 +313,14 @@ pub(crate) async fn api_keys_active_impl(
 pub(crate) async fn api_keys_check_active_impl(
     state: State<'_, AppState>,
     provider: Option<String>,
+    allow_external_network: Option<bool>,
 ) -> Result<ApiKeyValidationResponse> {
+    if allow_external_network != Some(true) {
+        return Ok(ApiKeyValidationResponse::err(
+            "External AI network access is disabled",
+        ));
+    }
+
     let provider = normalize_provider(provider);
     let conn = state.pool_conn()?;
 
@@ -355,7 +362,14 @@ pub(crate) async fn api_keys_check_active_impl(
 pub(crate) async fn api_keys_validate_impl(
     key: String,
     provider: Option<String>,
+    allow_external_network: Option<bool>,
 ) -> Result<ApiKeyValidationResponse> {
+    if allow_external_network != Some(true) {
+        return Ok(ApiKeyValidationResponse::err(
+            "External AI network access is disabled",
+        ));
+    }
+
     let trimmed = key.trim();
     if trimmed.is_empty() {
         return Ok(ApiKeyValidationResponse::err("API key is empty"));
@@ -563,5 +577,22 @@ mod sec003_tests {
             )
             .unwrap();
         assert_eq!(active_for_broken, 1);
+    }
+
+    #[tokio::test]
+    async fn validate_requires_explicit_external_network_opt_in() {
+        let result = api_keys_validate_impl(
+            "gsk_would_not_be_checked".to_string(),
+            Some("groq".to_string()),
+            None,
+        )
+        .await
+        .expect("validation guard should return a response");
+
+        assert!(!result.is_valid);
+        assert_eq!(
+            result.error.as_deref(),
+            Some("External AI network access is disabled")
+        );
     }
 }

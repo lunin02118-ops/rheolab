@@ -72,7 +72,17 @@ describe('api-keys client', () => {
 
     const result = await checkActiveApiKey();
     expect(result.isValid).toBe(true);
-    expect(bridge.apiKeys.checkActive).toHaveBeenCalledWith('groq');
+    expect(bridge.apiKeys.checkActive).toHaveBeenCalledWith('groq', false);
+  });
+
+  it('passes explicit external-network opt-in for active key check', async () => {
+    bridge.apiKeys.checkActive.mockResolvedValue({
+      isValid: true,
+    });
+
+    const result = await checkActiveApiKey('groq', true);
+    expect(result.isValid).toBe(true);
+    expect(bridge.apiKeys.checkActive).toHaveBeenCalledWith('groq', true);
   });
 
   it('uses bridge validation on web runtime', async () => {
@@ -85,7 +95,7 @@ describe('api-keys client', () => {
 
     const result = await validateApiKey('gsk_bad');
     expect(result.isValid).toBe(false);
-    expect(bridge.apiKeys.validate).toHaveBeenCalledWith('gsk_bad', 'groq');
+    expect(bridge.apiKeys.validate).toHaveBeenCalledWith('gsk_bad', 'groq', false);
   });
 
   it('uses native key validation in tauri runtime', async () => {
@@ -96,6 +106,17 @@ describe('api-keys client', () => {
     const result = await validateApiKey('gsk_good');
 
     expect(result.isValid).toBe(true);
-    expect(bridge.apiKeys.validate).toHaveBeenCalledWith('gsk_good', 'groq');
+    expect(bridge.apiKeys.validate).toHaveBeenCalledWith('gsk_good', 'groq', false);
+  });
+
+  it('passes explicit external-network opt-in for key validation', async () => {
+    bridge.platform = 'tauri';
+    bridge.isDesktop = true;
+    bridge.apiKeys.validate.mockResolvedValue({ isValid: true });
+
+    const result = await validateApiKey('gsk_good', 'groq', true);
+
+    expect(result.isValid).toBe(true);
+    expect(bridge.apiKeys.validate).toHaveBeenCalledWith('gsk_good', 'groq', true);
   });
 });

@@ -241,6 +241,7 @@ export default function Dashboard() {
         loadFixture
     } = useFixtureLoader({
         aiModel: expertSettings.aiModel,
+        externalAiEnabled: expertSettings.externalAiEnabled,
         forceAI: expertSettings.forceAiParsing,
         onLoad: (result) => {
             setParseResult(result);

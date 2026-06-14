@@ -33,12 +33,23 @@ pub async fn parsing_parse_file(
     state: tauri::State<'_, crate::state::AppState>,
 ) -> crate::error::Result<ParseFileResponse> {
     let features = crate::commands::licensing::current_features(&state).await;
+    let external_ai_enabled = request.external_ai_enabled.unwrap_or(false);
+
+    if request.force_ai.unwrap_or(false) && !external_ai_enabled {
+        return Err(
+            "External AI requests are disabled; enable external AI before forcing AI parsing."
+                .into(),
+        );
+    }
 
     // Resolve AI key server-side — never sent over IPC.
     let ai_key = {
         let conn = state.pool_conn()?;
-        let resolved =
-            crate::commands::api_keys::resolve_active_ai_key(&conn, &state.app_data_dir, "groq");
+        let resolved = if external_ai_enabled {
+            crate::commands::api_keys::resolve_active_ai_key(&conn, &state.app_data_dir, "groq")
+        } else {
+            None
+        };
         if request.force_ai.unwrap_or(false) && resolved.is_none() {
             return Err("force_ai=true but no active Groq API key configured".into());
         }
@@ -457,6 +468,7 @@ mod tests {
             filename: filename.to_string(),
             file_path: file_path.map(|s| s.to_string()),
             bytes,
+            external_ai_enabled: None,
             force_ai: None,
             ai_model: None,
         }

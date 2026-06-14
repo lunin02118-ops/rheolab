@@ -116,7 +116,12 @@ export async function listFixtures(): Promise<FixtureSummaryItem[]> {
  * Unified fixture parse loader.
  * In desktop mode reads local file bytes via Tauri command and parses locally.
  */
-export async function parseFixture(filename: string, aiModel?: string, forceAI?: boolean): Promise<ParseResult> {
+export async function parseFixture(
+  filename: string,
+  aiModel?: string,
+  forceAI?: boolean,
+  externalAiEnabled?: boolean,
+): Promise<ParseResult> {
   const bridge = getBridge();
   const desktopRuntime = bridge.isDesktop;
   let parseErrorRef: unknown;
@@ -140,7 +145,7 @@ export async function parseFixture(filename: string, aiModel?: string, forceAI?:
     }
     const bytes = new Uint8Array(response.bytes);
     const file = new File([bytes], response.filename || filename);
-    return parseRheologyFile(file, { aiModel, forceAI: true });
+    return parseRheologyFile(file, { aiModel, forceAI: true, externalAiEnabled });
   }
 
   if (isNotTauriRuntime(parseErrorRef) && desktopRuntime) {
@@ -164,7 +169,7 @@ export async function parseFixture(filename: string, aiModel?: string, forceAI?:
     const file = new File([bytes], response.filename || filename);
 
     // API key is resolved server-side by the Rust parsing command
-    return parseRheologyFile(file, { aiModel, forceAI });
+    return parseRheologyFile(file, { aiModel, forceAI, externalAiEnabled });
   }
 
   if (desktopRuntime && isNotTauriRuntime(parseErrorRef)) {

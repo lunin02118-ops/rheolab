@@ -39,13 +39,24 @@ pub(crate) async fn parsing_parse_file_inner(
     request: ParseRequest,
     ai_key: Option<String>,
 ) -> Result<ParseFileResponse> {
+    let external_ai_enabled = request.external_ai_enabled.unwrap_or(false);
+    if request.force_ai.unwrap_or(false) && !external_ai_enabled {
+        return Err(AppError::Parse(
+            "External AI requests are disabled; enable external AI before forcing AI parsing."
+                .to_string(),
+        ));
+    }
     if request.force_ai.unwrap_or(false) && ai_key.is_none() {
         return Err(AppError::Parse(
             "force_ai=true but no active Groq API key configured".to_string(),
         ));
     }
 
-    let mapper = ai_key.map(GroqAiColumnMapper::new);
+    let mapper = if external_ai_enabled {
+        ai_key.map(GroqAiColumnMapper::new)
+    } else {
+        None
+    };
     parsing_parse_file_inner_impl(
         request,
         mapper.as_ref().map(|value| value as &dyn AiColumnMapper),
@@ -59,13 +70,24 @@ pub(crate) async fn parsing_parse_file_inner_with_mapper(
     ai_key: Option<String>,
     mapper: &dyn AiColumnMapper,
 ) -> Result<ParseFileResponse> {
+    let external_ai_enabled = request.external_ai_enabled.unwrap_or(false);
+    if request.force_ai.unwrap_or(false) && !external_ai_enabled {
+        return Err(AppError::Parse(
+            "External AI requests are disabled; enable external AI before forcing AI parsing."
+                .to_string(),
+        ));
+    }
     if request.force_ai.unwrap_or(false) && ai_key.is_none() {
         return Err(AppError::Parse(
             "force_ai=true but no active Groq API key configured".to_string(),
         ));
     }
 
-    let ai_mapper = if ai_key.is_some() { Some(mapper) } else { None };
+    let ai_mapper = if external_ai_enabled && ai_key.is_some() {
+        Some(mapper)
+    } else {
+        None
+    };
     parsing_parse_file_inner_impl(request, ai_mapper).await
 }
 
@@ -178,7 +200,8 @@ fn should_store_parse_cache(force_ai: bool, has_inline_bytes: bool, used_ai: boo
 
 #[cfg(test)]
 mod tests {
-    use super::{can_use_parse_cache, should_store_parse_cache};
+    use super::{can_use_parse_cache, parsing_parse_file_inner, should_store_parse_cache};
+    use crate::commands::parsing::ParseRequest;
 
     #[test]
     fn cache_is_allowed_for_non_force_file_path_requests() {
@@ -193,5 +216,28 @@ mod tests {
         assert!(!should_store_parse_cache(false, false, true));
         assert!(!should_store_parse_cache(true, false, false));
         assert!(!should_store_parse_cache(false, true, false));
+    }
+
+    #[tokio::test]
+    async fn force_ai_requires_external_ai_opt_in_before_key_lookup() {
+        let request = ParseRequest {
+            filename: "synthetic.csv".to_string(),
+            file_path: None,
+            bytes: Some(b"Clock,Value\ns,cP\n1,100\n".to_vec()),
+            external_ai_enabled: None,
+            force_ai: Some(true),
+            ai_model: Some("stub-model".to_string()),
+        };
+
+        let error = parsing_parse_file_inner(request, Some("stub-key".to_string()))
+            .await
+            .expect_err("force AI must require explicit external AI opt-in");
+
+        assert!(
+            error
+                .to_string()
+                .contains("External AI requests are disabled"),
+            "expected opt-in error, got: {error}"
+        );
     }
 }

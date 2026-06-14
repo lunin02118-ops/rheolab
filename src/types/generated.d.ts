@@ -381,6 +381,10 @@ filePath: string | null;
  */
 bytes: number[] | null; 
 /**
+ * Explicit user opt-in for external AI/network calls.
+ */
+externalAiEnabled: boolean | null;
+/**
  * When true, skip heuristic parsing and use Groq AI for column mapping.
  */
 forceAi: boolean | null; 

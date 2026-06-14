@@ -46,6 +46,7 @@ function makeExpertSettings(overrides: Partial<ExpertSettings> = {}): ExpertSett
         splitEndDuration: 6,
         minDurationForSplit: 45,
         aiModel: 'test-model',
+        externalAiEnabled: false,
         forceAiParsing: false,
         timeShiftEnabled: false,
         ...overrides,

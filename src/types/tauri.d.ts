@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tauri API Types for Frontend
  *
  * Auto-generated bindings are in `./generated.d.ts` вЂ” do NOT edit them manually.
@@ -243,8 +243,8 @@ export interface PlatformBridge {
     create: (payload: ApiKeyCreatePayload) => Promise<ApiKeyMutationResponse>;
     setActive: (id: string) => Promise<ApiKeyMutationResponse>;
     delete: (id: string) => Promise<ApiKeyDeleteResponse>;
-    checkActive: (provider?: string) => Promise<ApiKeyValidationResponse>;
-    validate: (key: string, provider?: string) => Promise<ApiKeyValidationResponse>;
+    checkActive: (provider?: string, allowExternalNetwork?: boolean) => Promise<ApiKeyValidationResponse>;
+    validate: (key: string, provider?: string, allowExternalNetwork?: boolean) => Promise<ApiKeyValidationResponse>;
     active: (provider?: string) => Promise<ActiveApiKeyResponse>;
   };
 

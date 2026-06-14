@@ -15,12 +15,13 @@ interface Fixture {
 
 interface UseFixtureLoaderOptions {
     aiModel?: string;
+    externalAiEnabled?: boolean;
     forceAI?: boolean;
     onLoad: (result: ParseResult) => void;
     onError: (message: string) => void;
 }
 
-export function useFixtureLoader({ aiModel, forceAI, onLoad, onError }: UseFixtureLoaderOptions) {
+export function useFixtureLoader({ aiModel, externalAiEnabled, forceAI, onLoad, onError }: UseFixtureLoaderOptions) {
     const [fixtures, setFixtures] = useState<Fixture[]>([]);
     const [loadingFixture, setLoadingFixture] = useState<string | null>(null);
     const [showDropdown, setShowDropdown] = useState(false);
@@ -39,7 +40,7 @@ export function useFixtureLoader({ aiModel, forceAI, onLoad, onError }: UseFixtu
         setShowDropdown(false);
 
         try {
-            const result = await parseFixture(filename, aiModel, forceAI);
+            const result = await parseFixture(filename, aiModel, forceAI, externalAiEnabled);
             onLoad(result);
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
@@ -47,7 +48,7 @@ export function useFixtureLoader({ aiModel, forceAI, onLoad, onError }: UseFixtu
         } finally {
             setLoadingFixture(null);
         }
-    }, [aiModel, forceAI, onLoad, onError]);
+    }, [aiModel, externalAiEnabled, forceAI, onLoad, onError]);
 
     return {
         fixtures,

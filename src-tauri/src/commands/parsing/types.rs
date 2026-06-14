@@ -10,6 +10,8 @@ pub struct ParseRequest {
     pub file_path: Option<String>,
     /// Web / WASM fallback only — present when filePath is absent.
     pub bytes: Option<Vec<u8>>,
+    /// Explicit user opt-in for external AI/network calls.
+    pub external_ai_enabled: Option<bool>,
     /// When true, skip heuristic parsing and use Groq AI for column mapping.
     pub force_ai: Option<bool>,
     /// AI model override (defaults to llama-4-scout).

@@ -307,7 +307,18 @@ describe('parseRheologyFile', () => {
     bridge.isDesktop = true;
     mockHasActiveKey(false);
     const file = new File(['t,v\n0,120'], 'fixture.csv', { type: 'text/csv' });
-    await expect(parseRheologyFile(file, { forceAI: true })).rejects.toThrow('Groq API');
+    await expect(parseRheologyFile(file, { forceAI: true, externalAiEnabled: true })).rejects.toThrow('Groq API');
+    expect(bridge.apiKeys.active).toHaveBeenCalledWith('groq');
+    expect(bridge.parsing.parseFile).not.toHaveBeenCalled();
+  });
+
+  it('throws before key lookup when forceAI=true without external AI opt-in', async () => {
+    bridge.platform = 'tauri';
+    bridge.isDesktop = true;
+    mockHasActiveKey(true);
+    const file = new File(['t,v\n0,120'], 'fixture.csv', { type: 'text/csv' });
+    await expect(parseRheologyFile(file, { forceAI: true })).rejects.toThrow('Внешние AI-запросы отключены');
+    expect(bridge.apiKeys.active).not.toHaveBeenCalled();
     expect(bridge.parsing.parseFile).not.toHaveBeenCalled();
   });
 
@@ -413,6 +424,16 @@ describe('parseRheologyFile', () => {
     mockHasActiveKey(true);
     bridge.parsing.parseFile.mockRejectedValue(new Error('no valid data points found'));
     const file = new File(['t,v\n0,120'], 'fixture.csv', { type: 'text/csv' });
-    await expect(parseRheologyFile(file)).rejects.toThrow('Parsing pipeline exhausted');
+    await expect(parseRheologyFile(file, { externalAiEnabled: true })).rejects.toThrow('Parsing pipeline exhausted');
+  });
+
+  it('does not check API keys by default after native no-data failure', async () => {
+    bridge.platform = 'tauri';
+    bridge.isDesktop = true;
+    mockHasActiveKey(true);
+    bridge.parsing.parseFile.mockRejectedValue(new Error('no valid data points found'));
+    const file = new File(['t,v\n0,120'], 'fixture.csv', { type: 'text/csv' });
+    await expect(parseRheologyFile(file)).rejects.toThrow('no valid data points found');
+    expect(bridge.apiKeys.active).not.toHaveBeenCalled();
   });
 });

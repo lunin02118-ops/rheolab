@@ -21,7 +21,7 @@ vi.mock('@/lib/parsing/client', () => ({
 vi.mock('@/lib/store/analysis-settings-store', () => ({
     useAnalysisSettingsStore: (selector: (s: unknown) => unknown) =>
         selector({
-            expertSettings: { aiModel: 'llama', forceAiParsing: false },
+            expertSettings: { aiModel: 'llama', externalAiEnabled: false, forceAiParsing: false },
             setExpertSettings: vi.fn(),
         }),
 }));
@@ -132,6 +132,13 @@ describe('FileUpload', () => {
         await waitFor(() => {
             expect(onFileProcessed).toHaveBeenCalledWith(fakeResult);
         });
+        expect(mockParseRheologyFile).toHaveBeenCalledWith(
+            expect.any(File),
+            expect.objectContaining({
+                externalAiEnabled: false,
+                forceAI: false,
+            }),
+        );
     });
 
     // ── drag events ────────────────────────────────────────────────────────

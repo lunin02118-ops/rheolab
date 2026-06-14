@@ -68,6 +68,8 @@ vi.mock('@/lib/store/analysis-settings-store', () => ({
                 splitEndDuration: 30,
                 minDurationForSplit: 90,
                 aiModel: 'llama-3.3-70b-versatile',
+                externalAiEnabled: false,
+                forceAiParsing: false,
                 timeShiftEnabled: false,
             },
             setExpertSettings: mockSetExpertSettings,

@@ -126,6 +126,7 @@ pub(super) fn parse_fixture_bytes(filename: &str) -> crate::commands::parsing::P
         filename: filename.to_string(),
         file_path: None,
         bytes: Some(bytes),
+        external_ai_enabled: None,
         force_ai: None,
         ai_model: None,
     })

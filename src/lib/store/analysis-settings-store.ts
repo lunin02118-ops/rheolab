@@ -20,6 +20,7 @@ export interface ExpertSettings {
 
     // AI Configuration
     aiModel: string;
+    externalAiEnabled: boolean;
     forceAiParsing: boolean;
 
     // Display Configuration
@@ -42,6 +43,7 @@ const DEFAULT_SETTINGS: ExpertSettings = {
 
     // AI Configuration
     aiModel: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    externalAiEnabled: false,
     forceAiParsing: false,
 
     // Display Configuration
@@ -63,6 +65,9 @@ function normalizeViscosityShearRates(value: unknown): number[] {
 
 function sanitizeExpertSettings(value: unknown): ExpertSettings {
     const raw = (value ?? {}) as Partial<ExpertSettings>;
+    const externalAiEnabled = typeof raw.externalAiEnabled === 'boolean'
+        ? raw.externalAiEnabled
+        : DEFAULT_SETTINGS.externalAiEnabled;
 
     return {
         pointsToAverage: Math.max(0, Math.round(toFiniteNumber(raw.pointsToAverage, DEFAULT_SETTINGS.pointsToAverage))),
@@ -74,7 +79,8 @@ function sanitizeExpertSettings(value: unknown): ExpertSettings {
         aiModel: typeof raw.aiModel === 'string' && raw.aiModel.trim().length > 0
             ? raw.aiModel.trim()
             : DEFAULT_SETTINGS.aiModel,
-        forceAiParsing: typeof raw.forceAiParsing === 'boolean'
+        externalAiEnabled,
+        forceAiParsing: externalAiEnabled && typeof raw.forceAiParsing === 'boolean'
             ? raw.forceAiParsing
             : DEFAULT_SETTINGS.forceAiParsing,
         timeShiftEnabled: typeof raw.timeShiftEnabled === 'boolean'

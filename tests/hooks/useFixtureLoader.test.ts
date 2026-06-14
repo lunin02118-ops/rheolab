@@ -77,21 +77,21 @@ describe('useFixtureLoader', () => {
       await result.current.loadFixture('sample1.csv');
     });
 
-    expect(mockParseFixture).toHaveBeenCalledWith('sample1.csv', undefined, undefined);
+    expect(mockParseFixture).toHaveBeenCalledWith('sample1.csv', undefined, undefined, undefined);
     expect(props.onLoad).toHaveBeenCalledWith(PARSE_RESULT);
     expect(props.onError).not.toHaveBeenCalled();
     expect(result.current.loadingFixture).toBeNull();
   });
 
   it('loadFixture passes aiModel and forceAI', async () => {
-    const props = makeProps({ aiModel: 'gpt-4', forceAI: true });
+    const props = makeProps({ aiModel: 'gpt-4', forceAI: true, externalAiEnabled: true });
     const { result } = renderHook(() => useFixtureLoader(props));
 
     await act(async () => {
       await result.current.loadFixture('sample2.csv');
     });
 
-    expect(mockParseFixture).toHaveBeenCalledWith('sample2.csv', 'gpt-4', true);
+    expect(mockParseFixture).toHaveBeenCalledWith('sample2.csv', 'gpt-4', true, true);
   });
 
   it('loadFixture calls onError on failure', async () => {

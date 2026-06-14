@@ -90,6 +90,7 @@ export function FileUpload({ onFileProcessed, onError, isLoading, loadedFileName
             // API key is resolved server-side by the Rust parsing command
             const result = await parseRheologyFile(file, {
                 aiModel: expertSettings.aiModel,
+                externalAiEnabled: expertSettings.externalAiEnabled,
                 forceAI: expertSettings.forceAiParsing,
             });
 
@@ -99,7 +100,7 @@ export function FileUpload({ onFileProcessed, onError, isLoading, loadedFileName
             setInternalUploadState('error');
             onError(error instanceof Error ? error.message : 'Неизвестная ошибка');
         }
-    }, [onFileProcessed, onError, expertSettings.aiModel, expertSettings.forceAiParsing]);
+    }, [onFileProcessed, onError, expertSettings.aiModel, expertSettings.externalAiEnabled, expertSettings.forceAiParsing]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -294,31 +295,70 @@ export function FileUpload({ onFileProcessed, onError, isLoading, loadedFileName
             </div>
         </div>
 
-        {/* AI Parsing toggle */}
-        <div className="flex items-center gap-3 px-1 pt-3">
-            <button
-                onClick={() => setExpertSettings({ forceAiParsing: !expertSettings.forceAiParsing })}
-                id="force-ai-parsing-toggle"
-                role="switch"
-                aria-checked={expertSettings.forceAiParsing}
-                aria-label="Принудительный AI-парсинг"
-                className={cn(
-                    "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none",
-                    expertSettings.forceAiParsing ? "bg-blue-600" : "bg-secondary"
-                )}
-            >
-                <span className={cn(
-                    "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform duration-200",
-                    expertSettings.forceAiParsing ? "translate-x-4" : "translate-x-0"
-                )} />
-            </button>
-            <label
-                htmlFor="force-ai-parsing-toggle"
-                className="text-sm text-muted-foreground cursor-pointer select-none"
-            >
-                Принудительный AI-парсинг
-            </label>
-            {expertSettings.forceAiParsing && (
+        {/* AI Parsing toggles */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-1 pt-3">
+            <div className="flex items-center gap-3">
+                <button
+                    type="button"
+                    onClick={() => {
+                        const enabled = !expertSettings.externalAiEnabled;
+                        setExpertSettings({
+                            externalAiEnabled: enabled,
+                            forceAiParsing: enabled ? expertSettings.forceAiParsing : false,
+                        });
+                    }}
+                    id="external-ai-enabled-toggle"
+                    role="switch"
+                    aria-checked={expertSettings.externalAiEnabled}
+                    aria-label="Внешний AI"
+                    className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none",
+                        expertSettings.externalAiEnabled ? "bg-blue-600" : "bg-secondary"
+                    )}
+                >
+                    <span className={cn(
+                        "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform duration-200",
+                        expertSettings.externalAiEnabled ? "translate-x-4" : "translate-x-0"
+                    )} />
+                </button>
+                <label
+                    htmlFor="external-ai-enabled-toggle"
+                    className="text-sm text-muted-foreground cursor-pointer select-none"
+                >
+                    Внешний AI
+                </label>
+            </div>
+            <div className="flex items-center gap-3">
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (!expertSettings.externalAiEnabled) return;
+                        setExpertSettings({ forceAiParsing: !expertSettings.forceAiParsing });
+                    }}
+                    id="force-ai-parsing-toggle"
+                    role="switch"
+                    aria-checked={expertSettings.forceAiParsing}
+                    aria-label="Принудительный AI-парсинг"
+                    disabled={!expertSettings.externalAiEnabled}
+                    className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none",
+                        expertSettings.forceAiParsing ? "bg-blue-600" : "bg-secondary",
+                        !expertSettings.externalAiEnabled && "cursor-not-allowed opacity-50"
+                    )}
+                >
+                    <span className={cn(
+                        "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform duration-200",
+                        expertSettings.forceAiParsing ? "translate-x-4" : "translate-x-0"
+                    )} />
+                </button>
+                <label
+                    htmlFor="force-ai-parsing-toggle"
+                    className="text-sm text-muted-foreground cursor-pointer select-none"
+                >
+                    Принудительный AI-парсинг
+                </label>
+            </div>
+            {expertSettings.externalAiEnabled && expertSettings.forceAiParsing && (
                 <span className="text-xs text-blue-400/70 font-mono">llama-4-scout</span>
             )}
         </div>
