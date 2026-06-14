@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { findRepoRootFrom } from '../lib/repo-root';
 
 export type FixtureProfileKey = 'grace';
 
@@ -52,7 +53,8 @@ function average(values: number[]) {
  * This avoids a runtime dependency on the vulnerable `xlsx` package.
  */
 function loadGraceFixture(): FixtureProfile {
-  const jsonPath = fileURLToPath(new URL('../../../tests/fixtures/grace-fixture.json', import.meta.url));
+  const repoRoot = findRepoRootFrom(import.meta.url);
+  const jsonPath = resolve(repoRoot, 'tests/fixtures/grace-fixture.json');
   const points: FixturePoint[] = JSON.parse(readFileSync(jsonPath, 'utf-8'));
 
   if (points.length === 0) {

@@ -1818,3 +1818,24 @@ npm run perf:compare -- outputs/e2e/perf/workflow-1777393625306-tauri.json outpu
 * `cargo test --lib` — 381/381 passing (P10 didn't break anything).
 * `npm run test` — 1348/1354 passing (6 skipped) (withPerf wrappers don't break Vitest).
 * `npm run version:validate` — clean (`0.2.2-alpha.2` agrees across 4 dependents).
+
+## Baseline #28 — Frontend IPC Deep Audit (2026-06-14)
+
+**runId:** `20260614-032455883-frontend-ipc-deep-audit`
+**Workflow artifact:** `outputs/e2e/perf/workflow-1781407689975-tauri.json`
+**Native memory artifact:** `outputs/e2e/perf/native-memory-1781407716402.jsonl`
+
+### KPI (current p50/p95)
+
+| Metric | p50 | p95 |
+|---|---:|---:|
+| peakHeapMb | 10.64 | 10.66 |
+| peakNodes | 2145.00 | 2146.00 |
+| totalWallMs | 22399.00 | 22777.00 |
+| totalWsMb | 723.32 | 764.41 |
+| rendererWsMb | 219.28 | 223.95 |
+
+### Notes
+
+- Gate status: PASS
+- Report: `docs/performance/FRONTEND-IPC-DEEP-AUDIT-2026-06-14.md`

@@ -329,8 +329,9 @@ test.describe('[PerfWorkflow/Tauri] Full workflow baseline — native analysis',
 
             await reports.goto();
             await reports.expectPdfButtonVisible();
-            // Click PDF button — dialog mock returns null → generation runs, file not saved
-            await reports.downloadButton.click();
+            // Click PDF button and accept the program-rheology confirmation
+            // if this fixture does not have an instrument rheology table.
+            await reports.clickDownloadAndSettle(30_000);
             // Wait for button to re-enable after generate + finally block.
             // With mock: near-instant. With real Typst (opt-level=2 debug): ~10–30s.
             // If the IPC mock wasn't installed (invoke frozen in Tauri v2),
