@@ -11,6 +11,9 @@
     "autoload": {
         "psr-4": {}
     },
+    "scripts": {
+        "test": "@php vendor/bin/phpunit --configuration phpunit.xml"
+    },
     "config": {
         "optimize-autoloader": true
     }

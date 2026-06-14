@@ -1,0 +1,80 @@
+name: License Server CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/license-server.yml"
+      - "license-server/**"
+      - "docs/audits/progress/license-server-ci.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: license-server-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phpunit:
+    name: PHP OpenSSL + PHPUnit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: openssl, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+
+      - name: Prove PHP OpenSSL extension
+        run: |
+          php -m | grep -i '^openssl$'
+          php -r 'if (!extension_loaded("openssl")) { fwrite(STDERR, "openssl extension missing\n"); exit(1); } echo "openssl extension loaded\n";'
+
+      - name: Validate Composer metadata
+        run: composer --working-dir=license-server validate
+
+      - name: Install Composer dependencies
+        run: composer --working-dir=license-server install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate ephemeral dev RSA keypair
+        run: |
+          mkdir -p src-tauri/keys
+          php <<'PHP'
+          <?php
+          $key = openssl_pkey_new([
+              'private_key_bits' => 2048,
+              'private_key_type' => OPENSSL_KEYTYPE_RSA,
+          ]);
+          if ($key === false) {
+              fwrite(STDERR, "Failed to create RSA key: " . openssl_error_string() . PHP_EOL);
+              exit(1);
+          }
+
+          $privatePem = '';
+          if (!openssl_pkey_export($key, $privatePem)) {
+              fwrite(STDERR, "Failed to export RSA private key: " . openssl_error_string() . PHP_EOL);
+              exit(1);
+          }
+
+          $details = openssl_pkey_get_details($key);
+          if (!is_array($details) || empty($details['key'])) {
+              fwrite(STDERR, "Failed to export RSA public key details" . PHP_EOL);
+              exit(1);
+          }
+
+          file_put_contents('src-tauri/keys/dev_private.pem', $privatePem);
+          file_put_contents('src-tauri/keys/dev_public.pem', $details['key']);
+          PHP
+
+      - name: Run license-server PHPUnit
+        run: composer --working-dir=license-server test
