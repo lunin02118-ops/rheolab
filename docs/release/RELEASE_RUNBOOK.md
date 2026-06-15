@@ -39,7 +39,7 @@ packet:
 - `npm run release:prepare -- --channel <channel> --dry-run --skip-qa`
 - generated signing dry-run proof under `runtime/release/dry-run/`
 - release manifest and checksums under `runtime/release/`
-- `npm run check:update -- --manifest outputs/release/<channel>.json --channel <channel>`
+- `npm run check:update -- --manifest outputs/release/<channel>.json --channel <channel> --skip-artifact-reachability`
 - live `npm run check:update -- --channel <channel> --version <version>`
 - `node scripts/deploy/publish-update.js --dry-run ...` output
 - post-publish `node scripts/deploy/publish-update.js ...` output
@@ -125,7 +125,7 @@ npm run release:prepare -- --channel beta
 Validate local update manifest before publish:
 
 ```bash
-npm run check:update -- --manifest outputs/release/beta.json --channel beta
+npm run check:update -- --manifest outputs/release/beta.json --channel beta --skip-artifact-reachability
 ```
 
 Dry-run publish:
@@ -174,7 +174,7 @@ npm run release:prepare -- --channel stable
 Validate local update manifest:
 
 ```bash
-npm run check:update -- --manifest outputs/release/stable.json --channel stable
+npm run check:update -- --manifest outputs/release/stable.json --channel stable --skip-artifact-reachability
 ```
 
 Dry-run publish:
@@ -225,7 +225,7 @@ channels.
 Local manifest smoke:
 
 ```bash
-npm run check:update -- --manifest outputs/release/<channel>.json --channel <channel>
+npm run check:update -- --manifest outputs/release/<channel>.json --channel <channel> --skip-artifact-reachability
 ```
 
 Live endpoint smoke:
@@ -242,7 +242,9 @@ The smoke must validate:
 - Tauri minisign structure;
 - HTTPS artifact URL on `license.vizbuka.ru`;
 - `/releases/artifacts/<version>/..._x64-setup.exe`;
-- `HEAD` reachability and content length.
+- local artifact contract before publish, with remote `HEAD` intentionally
+  skipped because the future artifact URL may not exist yet;
+- post-publish/live `HEAD` reachability and content length.
 
 ## Rollback procedure
 

@@ -215,7 +215,7 @@ node scripts/test/check-update-endpoint.mjs --version 0.2.0-beta.5 --channel bet
 Для проверки локального `{channel}.json` перед публикацией:
 
 ```bash
-npm run check:update -- --manifest outputs/release/beta.json --channel beta
+npm run check:update -- --manifest outputs/release/beta.json --channel beta --skip-artifact-reachability
 ```
 
 Smoke проверяет:
@@ -224,7 +224,9 @@ Smoke проверяет:
 - подпись updater-а: strict base64 + minisign structure;
 - download URL contract: HTTPS, host `license.vizbuka.ru`,
   `/releases/artifacts/<version>/..._x64-setup.exe`;
-- HEAD-доступность download URL.
+- для локального pre-publish manifest — без HEAD-доступности будущего URL;
+- для post-publish/live проверки — строгая HEAD-доступность download URL без
+  redirect, с положительным `Content-Length`.
 
 Серверные проверки:
 

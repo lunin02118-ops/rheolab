@@ -329,20 +329,48 @@ export async function checkDownloadUrlReachability(urlValue, {
   try {
     const response = await fetchImpl(urlValue, {
       method: 'HEAD',
+      redirect: 'manual',
       signal: ctrl.signal,
     });
+    const contentLength = response.headers?.get?.('content-length') ?? null;
+    const contentType = response.headers?.get?.('content-type') ?? null;
+    const location = response.headers?.get?.('location') ?? null;
+    const status = response.status;
+    const contentLengthBytes = contentLength === null ? null : Number(contentLength);
+    const hasValidContentLength =
+      Number.isSafeInteger(contentLengthBytes) && contentLengthBytes > 0;
+    const contentTypeLooksLikeInstaller =
+      !contentType || /^(application\/octet-stream|application\/x-msdownload|binary\/octet-stream)\b/i.test(contentType);
+
+    let issue = null;
+    if (status >= 300 && status < 400) {
+      issue = `artifact URL redirected${location ? ` to ${location}` : ''}`;
+    } else if (status !== 200) {
+      issue = `artifact URL returned HTTP ${status}`;
+    } else if (!hasValidContentLength) {
+      issue = `artifact URL has invalid Content-Length: ${contentLength ?? '(missing)'}`;
+    } else if (!contentTypeLooksLikeInstaller) {
+      issue = `artifact URL returned unexpected Content-Type: ${contentType}`;
+    }
+
     return {
-      ok: response.status === 200,
-      status: response.status,
-      contentLength: response.headers?.get?.('content-length') ?? null,
-      contentType: response.headers?.get?.('content-type') ?? null,
+      ok: issue === null,
+      status,
+      contentLength,
+      contentLengthBytes,
+      contentType,
+      location,
+      issue,
     };
   } catch (error) {
     return {
       ok: false,
       status: null,
       contentLength: null,
+      contentLengthBytes: null,
       contentType: null,
+      location: null,
+      issue: null,
       error: error instanceof Error ? error.message : String(error),
     };
   } finally {

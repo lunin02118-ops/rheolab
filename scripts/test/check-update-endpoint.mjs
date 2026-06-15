@@ -16,6 +16,8 @@
  *   node scripts/test/check-update-endpoint.js --version 0.1.500
  *   node scripts/test/check-update-endpoint.js --base-url https://license.vizbuka.ru
  *   node scripts/test/check-update-endpoint.js --manifest outputs/release/beta.json --channel beta
+ *   node scripts/test/check-update-endpoint.js --manifest outputs/release/beta.json --channel beta --skip-artifact-reachability
+ *   node scripts/test/check-update-endpoint.js --channel beta --skip-local-manifest-comparison
  *
  * Exit codes:
  *   0  All checks passed
@@ -40,14 +42,26 @@ const REPO_ROOT = join(__dir, '..', '..');
 // ── CLI args ─────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 const argMap = {};
-for (let i = 0; i < args.length; i += 2) {
-    if (args[i].startsWith('--')) argMap[args[i].slice(2)] = args[i + 1] ?? true;
+for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) continue;
+
+    const key = arg.slice(2);
+    const next = args[i + 1];
+    if (!next || next.startsWith('--')) {
+        argMap[key] = true;
+    } else {
+        argMap[key] = next;
+        i++;
+    }
 }
 
 const BASE_URL = argMap['base-url'] ?? DEFAULT_UPDATE_BASE_URL;
 const TIMEOUT_MS = Number(argMap['timeout'] ?? 10000);
 const CHANNEL = (argMap['channel'] ?? 'stable').toLowerCase();
 const MANIFEST_PATH = argMap['manifest'] ?? null;
+const SKIP_ARTIFACT_REACHABILITY = Boolean(argMap['skip-artifact-reachability']);
+const SKIP_LOCAL_MANIFEST_COMPARISON = Boolean(argMap['skip-local-manifest-comparison']);
 const ALLOWED_ARTIFACT_HOSTS = (() => {
     const hosts = new Set(['license.vizbuka.ru']);
     try {
@@ -78,6 +92,61 @@ function fail(label, detail = '') {
 
 function warn(label) {
     console.warn(`  ⚠️  ${label}`);
+}
+
+function compareSemver(a, b) {
+    const parse = (value) => {
+        const match = String(value).trim().replace(/^v/, '').match(
+            /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-.]+))?(?:\+[0-9A-Za-z-.]+)?$/,
+        );
+        if (!match) return null;
+        return {
+            major: Number(match[1]),
+            minor: Number(match[2]),
+            patch: Number(match[3]),
+            prerelease: match[4] ? match[4].split('.') : [],
+        };
+    };
+
+    const left = parse(a);
+    const right = parse(b);
+    if (!left || !right) return null;
+
+    for (const key of ['major', 'minor', 'patch']) {
+        if (left[key] !== right[key]) {
+            return left[key] > right[key] ? 1 : -1;
+        }
+    }
+
+    if (left.prerelease.length === 0 && right.prerelease.length === 0) return 0;
+    if (left.prerelease.length === 0) return 1;
+    if (right.prerelease.length === 0) return -1;
+
+    const max = Math.max(left.prerelease.length, right.prerelease.length);
+    for (let index = 0; index < max; index++) {
+        const leftId = left.prerelease[index];
+        const rightId = right.prerelease[index];
+        if (leftId === undefined) return -1;
+        if (rightId === undefined) return 1;
+        if (leftId === rightId) continue;
+
+        const leftNumeric = /^\d+$/.test(leftId);
+        const rightNumeric = /^\d+$/.test(rightId);
+        if (leftNumeric && rightNumeric) {
+            const leftNumber = Number(leftId);
+            const rightNumber = Number(rightId);
+            if (leftNumber !== rightNumber) {
+                return leftNumber > rightNumber ? 1 : -1;
+            }
+            continue;
+        }
+        if (leftNumeric !== rightNumeric) {
+            return leftNumeric ? -1 : 1;
+        }
+        return leftId > rightId ? 1 : -1;
+    }
+
+    return 0;
 }
 
 async function fetchWithTimeout(url, options = {}) {
@@ -133,15 +202,17 @@ async function checkArtifactUrl(url) {
     if (!headRes.ok) {
         if (headRes.error) {
             fail(`Artifact URL reachable: ${headRes.error}`);
+        } else if (headRes.issue) {
+            fail('Artifact URL reachable as installer', headRes.issue);
         } else {
             fail(`Artifact URL HTTP 200: got ${headRes.status}`);
         }
         return null;
     }
 
-    const remoteSize = headRes.contentLength;
-    const remoteMB   = remoteSize ? (Number(remoteSize) / 1_048_576).toFixed(1) : null;
-    ok(`Artifact URL returns HTTP 200${remoteMB ? ` (${remoteMB} MB)` : ''}`);
+    const remoteSize = headRes.contentLengthBytes;
+    const remoteMB   = remoteSize ? (remoteSize / 1_048_576).toFixed(1) : null;
+    ok(`Artifact URL returns HTTP 200 with installer payload${remoteMB ? ` (${remoteMB} MB)` : ''}`);
     return { remoteSize, remoteMB };
 }
 
@@ -150,6 +221,8 @@ async function runLocalManifestSmoke() {
     console.log(`    Manifest      : ${MANIFEST_PATH}`);
     console.log(`    Target        : ${TARGET}`);
     console.log(`    Channel       : ${CHANNEL}`);
+    console.log(`    Artifact HEAD : ${SKIP_ARTIFACT_REACHABILITY ? 'skipped' : 'strict'}`);
+    console.log(`    Local compare : ${SKIP_LOCAL_MANIFEST_COMPARISON ? 'skipped' : 'enabled'}`);
     console.log(`    Timeout       : ${TIMEOUT_MS}ms\n`);
 
     let manifest;
@@ -165,7 +238,11 @@ async function runLocalManifestSmoke() {
         console.log(`\n──────────────────────────────────────────`);
         console.log(`📦  Artifact reachability check`);
         console.log(`    ${platformEntry.url}`);
-        await checkArtifactUrl(platformEntry.url);
+        if (SKIP_ARTIFACT_REACHABILITY) {
+            warn('Artifact reachability skipped by --skip-artifact-reachability; run live check:update after publish');
+        } else {
+            await checkArtifactUrl(platformEntry.url);
+        }
     }
 
     printSummary();
@@ -193,6 +270,7 @@ async function run() {
     console.log(`    Base URL      : ${BASE_URL}`);
     console.log(`    Target        : ${TARGET}`);
     console.log(`    Channel       : ${CHANNEL}`);
+    console.log(`    Artifact HEAD : ${SKIP_ARTIFACT_REACHABILITY ? 'skipped' : 'strict'}`);
     console.log(`    Timeout       : ${TIMEOUT_MS}ms\n`);
 
     let manifestForArtifactCheck = null;
@@ -244,18 +322,12 @@ async function run() {
 
         // Version comparison
         if (manifest.version) {
-            const clean = (v) => v.replace(/^v/, '');
-            const parts = (v) => clean(v).split('.').map(Number);
-            const [sM, sm, sp] = parts(manifest.version);
-            const [lM, lm, lp] = parts(LOCAL_VERSION);
-            const isNewer =
-                sM > lM || (sM === lM && sm > lm) || (sM === lM && sm === lm && sp > lp);
-            const isSame =
-                sM === lM && sm === lm && sp === lp;
-
-            if (isNewer) {
+            const versionOrder = compareSemver(manifest.version, LOCAL_VERSION);
+            if (versionOrder === null) {
+                warn(`Could not compare server version ${manifest.version} with local ${LOCAL_VERSION}`);
+            } else if (versionOrder > 0) {
                 ok(`Server version ${manifest.version} > local ${LOCAL_VERSION} → update would be offered`);
-            } else if (isSame) {
+            } else if (versionOrder === 0) {
                 warn(`Server version ${manifest.version} === local ${LOCAL_VERSION} → Tauri will report "no update"`);
             } else {
                 warn(`Server version ${manifest.version} < local ${LOCAL_VERSION} → Tauri would not offer downgrade`);
@@ -274,68 +346,74 @@ async function run() {
         console.log(`\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500`);
         console.log(`\uD83D\uDCE6  Artifact reachability check`);
         console.log(`    ${manifestForArtifactCheck.url}`);
-        try {
-            const artifactCheck = await checkArtifactUrl(manifestForArtifactCheck.url);
-            if (artifactCheck) {
-                const { remoteSize, remoteMB } = artifactCheck;
+        if (SKIP_ARTIFACT_REACHABILITY) {
+            warn('Artifact reachability skipped by --skip-artifact-reachability; run live check:update after publish');
+        } else {
+            try {
+                const artifactCheck = await checkArtifactUrl(manifestForArtifactCheck.url);
+                if (artifactCheck) {
+                    const { remoteSize, remoteMB } = artifactCheck;
 
-                // Compare Content-Length against local installer if available
-                const localManifestPath = join(REPO_ROOT, 'outputs', 'release', `${CHANNEL}.json`);
-                if (remoteSize && existsSync(localManifestPath)) {
-                    try {
-                        const localManifest = JSON.parse(readFileSync(localManifestPath, 'utf-8'));
-                        const artifactName  = decodeURIComponent(
-                            manifestForArtifactCheck.url.split('/').pop() ?? '',
-                        );
-                        // Find local NSIS dir and look for matching artifact
-                        const nsisDir   = join(REPO_ROOT, 'src-tauri', 'target', 'release', 'bundle', 'nsis');
-                        const nsisPath  = join(nsisDir, artifactName);
-                        if (existsSync(nsisPath)) {
-                            const localSize = statSync(nsisPath).size;
-                            if (localSize === Number(remoteSize)) {
-                                ok(`Remote Content-Length matches local installer size (${(localSize / 1_048_576).toFixed(1)} MB)`);
-                            } else {
-                                fail(
-                                    `Remote Content-Length (${remoteMB} MB) does not match local installer (${(localSize / 1_048_576).toFixed(1)} MB)`,
-                                    'The uploaded artifact may differ from the locally built installer',
-                                );
+                    // Compare Content-Length against local installer if available
+                    const localManifestPath = join(REPO_ROOT, 'outputs', 'release', `${CHANNEL}.json`);
+                if (SKIP_LOCAL_MANIFEST_COMPARISON) {
+                    warn('Local manifest comparison skipped by --skip-local-manifest-comparison');
+                } else if (remoteSize && existsSync(localManifestPath)) {
+                        try {
+                            const localManifest = JSON.parse(readFileSync(localManifestPath, 'utf-8'));
+                            const artifactName  = decodeURIComponent(
+                                manifestForArtifactCheck.url.split('/').pop() ?? '',
+                            );
+                            // Find local NSIS dir and look for matching artifact
+                            const nsisDir   = join(REPO_ROOT, 'src-tauri', 'target', 'release', 'bundle', 'nsis');
+                            const nsisPath  = join(nsisDir, artifactName);
+                            if (existsSync(nsisPath)) {
+                                const localSize = statSync(nsisPath).size;
+                                if (localSize === Number(remoteSize)) {
+                                    ok(`Remote Content-Length matches local installer size (${(localSize / 1_048_576).toFixed(1)} MB)`);
+                                } else {
+                                    fail(
+                                        `Remote Content-Length (${remoteMB} MB) does not match local installer (${(localSize / 1_048_576).toFixed(1)} MB)`,
+                                        'The uploaded artifact may differ from the locally built installer',
+                                    );
+                                }
                             }
-                        }
 
-                        // Compare remote manifest signature against local {channel}.json
-                        const remoteSignature = manifestForArtifactCheck.signature?.trim();
-                        const localSignature  = localManifest?.platforms?.['windows-x86_64']?.signature?.trim();
-                        if (remoteSignature && localSignature) {
-                            if (remoteSignature === localSignature) {
-                                ok(`Remote manifest signature matches local ${CHANNEL}.json`);
-                            } else {
-                                fail(
-                                    `Remote manifest signature does not match local ${CHANNEL}.json`,
-                                    `The live ${CHANNEL}.json may have been modified after upload, or a different build was published`,
-                                );
+                            // Compare remote manifest signature against local {channel}.json
+                            const remoteSignature = manifestForArtifactCheck.signature?.trim();
+                            const localSignature  = localManifest?.platforms?.['windows-x86_64']?.signature?.trim();
+                            if (remoteSignature && localSignature) {
+                                if (remoteSignature === localSignature) {
+                                    ok(`Remote manifest signature matches local ${CHANNEL}.json`);
+                                } else {
+                                    fail(
+                                        `Remote manifest signature does not match local ${CHANNEL}.json`,
+                                        `The live ${CHANNEL}.json may have been modified after upload, or a different build was published`,
+                                    );
+                                }
                             }
-                        }
 
-                        // Compare version
-                        const remoteVersion = manifestForArtifactCheck.version ?? null;
-                        const localVersion  = localManifest?.version ?? null;
-                        if (remoteVersion && localVersion) {
-                            if (remoteVersion === localVersion) {
-                                ok(`Remote manifest version (${remoteVersion}) matches local ${CHANNEL}.json`);
-                            } else {
-                                fail(
-                                    `Remote version (${remoteVersion}) does not match local ${CHANNEL}.json version (${localVersion})`,
-                                    'Re-run publish-update.js or check that the correct build was deployed',
-                                );
+                            // Compare version
+                            const remoteVersion = manifestForArtifactCheck.version ?? null;
+                            const localVersion  = localManifest?.version ?? null;
+                            if (remoteVersion && localVersion) {
+                                if (remoteVersion === localVersion) {
+                                    ok(`Remote manifest version (${remoteVersion}) matches local ${CHANNEL}.json`);
+                                } else {
+                                    fail(
+                                        `Remote version (${remoteVersion}) does not match local ${CHANNEL}.json version (${localVersion})`,
+                                        'Re-run publish-update.js or check that the correct build was deployed',
+                                    );
+                                }
                             }
+                        } catch {
+                            // Non-fatal: local manifest missing or parse error, skip comparison
                         }
-                    } catch {
-                        // Non-fatal: local manifest missing or parse error, skip comparison
                     }
                 }
+            } catch (err) {
+                fail(`Artifact URL reachable: ${err.message}`);
             }
-        } catch (err) {
-            fail(`Artifact URL reachable: ${err.message}`);
         }
     }
 
