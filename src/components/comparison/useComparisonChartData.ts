@@ -14,6 +14,7 @@
  */
 
 import { useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type uPlot from 'uplot';
 import { useTheme } from '@/contexts/theme-context';
 import { useChartSettingsStore, getStrokeDasharray, timeUnitLabel } from '@/lib/store/chart-settings-store';
@@ -129,14 +130,20 @@ export function useComparisonChartData(params: UseComparisonChartDataParams): Us
         comparisonAxisMode,
     } = params;
 
-    const chartSettings = useChartSettingsStore(s => s.settings);
+    const { lines, downsampleMode, timeFormat } = useChartSettingsStore(
+        useShallow(s => ({
+            lines: s.settings.lines,
+            downsampleMode: s.settings.downsampleMode ?? 'smart',
+            timeFormat: s.settings.rheologyUnits?.timeFormat ?? 'seconds',
+        })),
+    );
     const { resolvedTheme } = useTheme();
     const isDark = resolvedTheme === 'dark';
 
     return useMemo((): UseComparisonChartDataResult => {
         if (!debouncedExperiments.length) return EMPTY_RESULT;
 
-        const mode = chartSettings.downsampleMode ?? 'smart';
+        const mode = downsampleMode;
         const baseThreshold = 800;
         const threshold = Math.max(400, Math.floor(baseThreshold / Math.max(1, debouncedExperiments.length / 2)));
 
@@ -250,7 +257,7 @@ export function useComparisonChartData(params: UseComparisonChartDataParams): Us
         const axisStroke = isDark ? '#94a3b8' : '#475569';
         const gridStroke = isDark ? '#334155' : '#e2e8f0';
         const tickStroke = isDark ? '#475569' : '#94a3b8';
-        const timeFmt: TimeDisplayFormat = chartSettings.rheologyUnits?.timeFormat ?? 'seconds';
+        const timeFmt: TimeDisplayFormat = timeFormat;
         const uData: (number | null | undefined)[][] = [sortedTimes];
         const sConfig: uPlot.Series[] = [{ label: 'Время' }];
         const aConfig: uPlot.Axis[] = [
@@ -291,7 +298,7 @@ export function useComparisonChartData(params: UseComparisonChartDataParams): Us
                 uData.push(seriesData);
 
                 const lineKey = METRIC_TO_LINE_KEY[metric];
-                const lineSettings = lineKey ? chartSettings.lines[lineKey] : null;
+                const lineSettings = lineKey ? lines[lineKey] : null;
 
                 const color: string = isSingleExp
                     ? (lineSettings?.color ?? METRIC_COLORS[metric] ?? expColor)
@@ -349,7 +356,7 @@ export function useComparisonChartData(params: UseComparisonChartDataParams): Us
 
         return { uPlotData: uData as uPlot.AlignedData, seriesConfig: sConfig, axesConfig: aConfig, touchPoints: tps };
     }, [
-        debouncedExperiments, chartSettings,
+        debouncedExperiments, lines, downsampleMode, timeFormat,
         primaryMetric, leftSecondaryMetric, secondaryMetric, tertiaryMetric,
         showTouchPoints, viscosityThreshold, showTargetTime, targetTime, comparisonAxisMode,
         isDark,

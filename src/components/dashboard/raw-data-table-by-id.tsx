@@ -35,7 +35,7 @@ export const RawDataTableById = memo(function RawDataTableById({
     const [error, setError] = useState<string | null>(null);
     const [reloadToken, setReloadToken] = useState(0);
     const requestSeq = useRef(0);
-    const chartSettings = useChartSettingsStore(s => s.settings);
+    const precision = useChartSettingsStore(s => s.settings.precision);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -88,8 +88,6 @@ export const RawDataTableById = memo(function RawDataTableById({
             return currentPage - 2 + i;
         });
     }, [currentPage, totalPages]);
-
-    const { precision } = chartSettings;
 
     const formatValue = (val: number | null | undefined, decimals = 2) => {
         if (val === undefined || val === null) return '—';

@@ -30,7 +30,7 @@ interface RawDataTableProps {
 
 export const RawDataTable = memo(function RawDataTable({ data, pageSize = 25 }: RawDataTableProps) {
     const [currentPage, setCurrentPage] = useState(1);
-    const chartSettings = useChartSettingsStore(s => s.settings);
+    const precision = useChartSettingsStore(s => s.settings.precision);
 
     const hasBathColumn = useMemo(
         () => data.some(p => p.bath_temperature_c != null && p.bath_temperature_c !== 0),
@@ -50,9 +50,6 @@ export const RawDataTable = memo(function RawDataTable({ data, pageSize = 25 }: 
         if (val === 0) return (0).toFixed(decimals);
         return val.toFixed(decimals);
     };
-
-    // Use precision from settings
-    const { precision } = chartSettings;
 
     const formatTime = (sec: number) => {
         if (!Number.isFinite(sec)) return '—';
