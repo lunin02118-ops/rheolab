@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ChartBrush } from '@/components/charts/chart-brush';
+import {
+    ChartBrush,
+    buildBrushPolylinePoints,
+    getBrushPolylineStride,
+} from '@/components/charts/chart-brush';
 
 /**
  * Regression tests for the brush range selector under degenerate / stale data.
@@ -30,6 +34,30 @@ function findBrushRoot(container: HTMLElement): HTMLElement {
     const root = container.firstElementChild as HTMLElement | null;
     if (!root) throw new Error('ChartBrush did not render a root element');
     return root;
+}
+
+function installManualRaf() {
+    let nextId = 1;
+    const callbacks = new Map<number, FrameRequestCallback>();
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+        const id = nextId++;
+        callbacks.set(id, cb);
+        return id;
+    });
+    const cancelSpy = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation((id) => {
+        callbacks.delete(id);
+    });
+    return {
+        flush: () => {
+            const pending = [...callbacks.entries()];
+            callbacks.clear();
+            for (const [, cb] of pending) cb(performance.now());
+        },
+        restore: () => {
+            rafSpy.mockRestore();
+            cancelSpy.mockRestore();
+        },
+    };
 }
 
 describe('ChartBrush — degenerate data guard', () => {
@@ -172,51 +200,63 @@ describe('ChartBrush — stale range clamping', () => {
         expect(onCommit).toHaveBeenLastCalledWith(min, max);
     });
 
-    it('previews every drag move but commits the range only once on pointerup', () => {
+    it('coalesces rapid drag previews to one animation frame and commits once on pointerup', () => {
+        const raf = installManualRaf();
         const onChange = vi.fn();
         const onCommit = vi.fn();
         const onDragEnd = vi.fn();
-        const { container } = render(
-            <ChartBrush
-                times={[0, 10, 20, 30, 40]}
-                values={[1, 2, 3, 4, 5]}
-                range={[5, 15]}
-                onChange={onChange}
-                onCommit={onCommit}
-                onDragEnd={onDragEnd}
-                onReset={() => {}}
-                width={400}
-            />,
-        );
+        try {
+            const { container } = render(
+                <ChartBrush
+                    times={[0, 10, 20, 30, 40]}
+                    values={[1, 2, 3, 4, 5]}
+                    range={[5, 15]}
+                    onChange={onChange}
+                    onCommit={onCommit}
+                    onDragEnd={onDragEnd}
+                    onReset={() => {}}
+                    width={400}
+                />,
+            );
 
-        const root = findBrushRoot(container);
-        Object.defineProperty(root, 'getBoundingClientRect', {
-            value: () => ({
-                left: 0,
-                top: 0,
-                right: 400,
-                bottom: 36,
-                width: 400,
-                height: 36,
-                x: 0,
-                y: 0,
-                toJSON: () => ({}),
-            }),
-        });
+            const root = findBrushRoot(container);
+            Object.defineProperty(root, 'getBoundingClientRect', {
+                value: () => ({
+                    left: 0,
+                    top: 0,
+                    right: 400,
+                    bottom: 36,
+                    width: 400,
+                    height: 36,
+                    x: 0,
+                    y: 0,
+                    toJSON: () => ({}),
+                }),
+            });
 
-        fireEvent.pointerDown(root, { clientX: 100, clientY: 18, button: 0, pointerId: 7 });
-        fireEvent.pointerMove(root, { clientX: 140, clientY: 18, pointerId: 7 });
-        fireEvent.pointerMove(root, { clientX: 180, clientY: 18, pointerId: 7 });
+            fireEvent.pointerDown(root, { clientX: 100, clientY: 18, button: 0, pointerId: 7 });
+            fireEvent.pointerMove(root, { clientX: 140, clientY: 18, pointerId: 7 });
+            fireEvent.pointerMove(root, { clientX: 180, clientY: 18, pointerId: 7 });
 
-        expect(onChange).toHaveBeenCalledTimes(2);
-        expect(onCommit).not.toHaveBeenCalled();
+            expect(onChange).not.toHaveBeenCalled();
+            expect(onCommit).not.toHaveBeenCalled();
 
-        fireEvent.pointerUp(root, { clientX: 180, clientY: 18, pointerId: 7 });
+            raf.flush();
 
-        expect(onCommit).toHaveBeenCalledTimes(1);
-        expect(onCommit).toHaveBeenLastCalledWith(...onChange.mock.calls.at(-1)!);
-        expect(onDragEnd).toHaveBeenCalledTimes(1);
-        expect(onDragEnd).toHaveBeenLastCalledWith('commit');
+            expect(onChange).toHaveBeenCalledTimes(1);
+            const previewRange = onChange.mock.calls.at(-1)!;
+            expect(previewRange[0]).toBeGreaterThan(5);
+            expect(previewRange[1]).toBeGreaterThan(15);
+
+            fireEvent.pointerUp(root, { clientX: 180, clientY: 18, pointerId: 7 });
+
+            expect(onCommit).toHaveBeenCalledTimes(1);
+            expect(onCommit).toHaveBeenLastCalledWith(...previewRange);
+            expect(onDragEnd).toHaveBeenCalledTimes(1);
+            expect(onDragEnd).toHaveBeenLastCalledWith('commit');
+        } finally {
+            raf.restore();
+        }
     });
 
     it('ends a no-move pointerup as noop without committing', () => {
@@ -261,45 +301,51 @@ describe('ChartBrush — stale range clamping', () => {
     });
 
     it('does not commit a cancelled drag', () => {
+        const raf = installManualRaf();
         const onChange = vi.fn();
         const onCommit = vi.fn();
         const onDragEnd = vi.fn();
-        const { container } = render(
-            <ChartBrush
-                times={[0, 10, 20, 30, 40]}
-                values={[1, 2, 3, 4, 5]}
-                range={[5, 15]}
-                onChange={onChange}
-                onCommit={onCommit}
-                onDragEnd={onDragEnd}
-                onReset={() => {}}
-                width={400}
-            />,
-        );
+        try {
+            const { container } = render(
+                <ChartBrush
+                    times={[0, 10, 20, 30, 40]}
+                    values={[1, 2, 3, 4, 5]}
+                    range={[5, 15]}
+                    onChange={onChange}
+                    onCommit={onCommit}
+                    onDragEnd={onDragEnd}
+                    onReset={() => {}}
+                    width={400}
+                />,
+            );
 
-        const root = findBrushRoot(container);
-        Object.defineProperty(root, 'getBoundingClientRect', {
-            value: () => ({
-                left: 0,
-                top: 0,
-                right: 400,
-                bottom: 36,
-                width: 400,
-                height: 36,
-                x: 0,
-                y: 0,
-                toJSON: () => ({}),
-            }),
-        });
+            const root = findBrushRoot(container);
+            Object.defineProperty(root, 'getBoundingClientRect', {
+                value: () => ({
+                    left: 0,
+                    top: 0,
+                    right: 400,
+                    bottom: 36,
+                    width: 400,
+                    height: 36,
+                    x: 0,
+                    y: 0,
+                    toJSON: () => ({}),
+                }),
+            });
 
-        fireEvent.pointerDown(root, { clientX: 100, clientY: 18, button: 0, pointerId: 8 });
-        fireEvent.pointerMove(root, { clientX: 140, clientY: 18, pointerId: 8 });
-        fireEvent.pointerCancel(root, { clientX: 140, clientY: 18, pointerId: 8 });
+            fireEvent.pointerDown(root, { clientX: 100, clientY: 18, button: 0, pointerId: 8 });
+            fireEvent.pointerMove(root, { clientX: 140, clientY: 18, pointerId: 8 });
+            raf.flush();
+            fireEvent.pointerCancel(root, { clientX: 140, clientY: 18, pointerId: 8 });
 
-        expect(onChange).toHaveBeenCalledTimes(1);
-        expect(onCommit).not.toHaveBeenCalled();
-        expect(onDragEnd).toHaveBeenCalledTimes(1);
-        expect(onDragEnd).toHaveBeenLastCalledWith('cancel');
+            expect(onChange).toHaveBeenCalledTimes(1);
+            expect(onCommit).not.toHaveBeenCalled();
+            expect(onDragEnd).toHaveBeenCalledTimes(1);
+            expect(onDragEnd).toHaveBeenLastCalledWith('cancel');
+        } finally {
+            raf.restore();
+        }
     });
 
     it('keeps drag-emitted onChange values inside the actual data extent for a partially-overlapping stale range', () => {
@@ -382,5 +428,30 @@ describe('ChartBrush — stale range clamping', () => {
         // covers the whole bar). The other branch (rPx < width) is suppressed
         // because rPx === width.
         expect(overlays.length).toBeLessThanOrEqual(1);
+    });
+});
+
+describe('ChartBrush — rendering budget guardrails', () => {
+    it('caps brush canvas polyline density for very large datasets', () => {
+        const width = 400;
+        const count = 100_000;
+        const times = Array.from({ length: count }, (_, i) => i);
+        const values = Array.from({ length: count }, (_, i) => Math.sin(i / 10));
+        const stride = getBrushPolylineStride(count, width);
+        const points = buildBrushPolylinePoints(
+            times,
+            values,
+            0,
+            count - 1,
+            width,
+            36,
+            -1,
+            2,
+        );
+
+        expect(stride).toBeGreaterThan(1);
+        expect(points.length).toBeLessThanOrEqual(width * 2 + 1);
+        expect(points[0][0]).toBe(0);
+        expect(points.at(-1)?.[0]).toBeCloseTo(width, 3);
     });
 });
