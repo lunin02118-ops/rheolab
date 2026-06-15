@@ -52,6 +52,11 @@ npm run release:prepare -- --channel beta --dry-run --allow-unsigned --skip-qa
 npm run release:prepare -- --skip-qa
 ```
 
+Signed-channel dry-runs now write a proof file to
+`runtime/release/dry-run/signing-dry-run-proof-<channel>-v<version>.json`.
+For release evidence, prefer the strict path without `--allow-unsigned`; an
+allow-unsigned dry-run remains useful as advisory policy smoke only.
+
 ### Ручной Windows-путь
 
 `scripts/release/build.ps1` по-прежнему актуален, но это отдельный интерактивный путь:
@@ -154,6 +159,15 @@ npm --prefix website run build
 ```bash
 npm run release:prepare -- --channel beta --dry-run --allow-unsigned --skip-qa
 ```
+
+Для strict signing proof используйте:
+
+```bash
+npm run release:prepare -- --channel beta --dry-run --skip-qa
+```
+
+Ожидаемый proof-артефакт:
+`runtime/release/dry-run/signing-dry-run-proof-beta-v<version>.json`.
 
 ### 5.2 Сборка
 
