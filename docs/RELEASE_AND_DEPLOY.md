@@ -37,6 +37,9 @@ npm run release:prepare -- --skip-release-gate   # warning + releaseGateExecuted
 
 ## 2. Текущий release flow
 
+Операторский пошаговый runbook для internal/alpha, beta, stable, signing,
+updater verification и rollback: [RELEASE_RUNBOOK.md](release/RELEASE_RUNBOOK.md).
+
 ### Канонический путь
 
 Для проверяемой сборки и release-policy используйте:
