@@ -10,9 +10,12 @@
 import { test, expect, setupBeforeEach } from './base-test.tauri';
 import type { Download, Page } from '@playwright/test';
 import type { Worksheet } from 'exceljs';
-import fs from 'node:fs';
 import ExcelJS from 'exceljs';
 import { CHANDLER_SST_63 } from './fixtures';
+import {
+  deleteReportDownloadWithRetry,
+  readReportDownloadBuffer,
+} from './report-download-cleanup';
 
 setupBeforeEach(test);
 
@@ -147,20 +150,21 @@ async function assertDownloadBytes(
   minSizeBytes: number,
   inspectBytes?: (bytes: Buffer<ArrayBufferLike>) => Promise<void> | void,
 ): Promise<{ filename: string; size: number }> {
-  const filename = download.suggestedFilename();
+  const label = `saved report ${ext}`;
+  const { buffer: bytes, filePath, filename } = await readReportDownloadBuffer(download, label);
   expect(filename.toLowerCase()).toContain(ext);
-  const filePath = await download.path();
-  expect(filePath).toBeTruthy();
-  const bytes = Buffer.from(fs.readFileSync(filePath!));
-  expect(bytes.length).toBeGreaterThanOrEqual(minSizeBytes);
-  if (ext === '.pdf') {
-    expect(bytes.subarray(0, 4).toString('ascii')).toBe('%PDF');
-  } else {
-    expect(bytes.subarray(0, 2).toString('ascii')).toBe('PK');
+  try {
+    expect(bytes.length).toBeGreaterThanOrEqual(minSizeBytes);
+    if (ext === '.pdf') {
+      expect(bytes.subarray(0, 4).toString('ascii')).toBe('%PDF');
+    } else {
+      expect(bytes.subarray(0, 2).toString('ascii')).toBe('PK');
+    }
+    await inspectBytes?.(bytes);
+    return { filename, size: bytes.length };
+  } finally {
+    await deleteReportDownloadWithRetry(download, label, { filePath });
   }
-  await inspectBytes?.(bytes);
-  await download.delete().catch(() => undefined);
-  return { filename, size: bytes.length };
 }
 
 function stringifyCellValue(value: unknown): string {

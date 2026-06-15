@@ -41,7 +41,7 @@
  */
 
 import { test, expect } from '../base-test.tauri';
-import type { Page, Download } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { ComparisonReportsPage } from '../pages/comparison-reports.page';
 import {
     CHANDLER_SST_63,
@@ -51,7 +51,10 @@ import {
     type TestFixture,
 } from '../fixtures';
 import { enableCdp, snap, fmtDelta, type CdpClient, type CdpSnap } from '../cdp-helpers';
-import fs from 'fs';
+import {
+    deleteReportDownloadWithRetry,
+    readReportDownloadBuffer,
+} from '../report-download-cleanup';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -131,13 +134,6 @@ async function resetComparisonStore(page: Page): Promise<void> {
         if (store) store.setState({ experiments: [] });
     });
     await page.waitForTimeout(300);
-}
-
-async function saveDownload(download: Download, label: string): Promise<{ size: number; filename: string }> {
-    const filePath = await download.path();
-    expect(filePath, `download ${label} has no path`).toBeTruthy();
-    const buffer = fs.readFileSync(filePath!);
-    return { size: buffer.length, filename: download.suggestedFilename() };
 }
 
 function assertPdfMagic(bytes: Buffer, label: string): void {
@@ -418,17 +414,20 @@ async function exportAndRecord(
     const download = kind === 'pdf'
         ? await reports.downloadPdf(180_000)
         : await reports.downloadExcel(120_000);
-    const { size, filename } = await saveDownload(download, label);
+    const { buffer, filePath, filename } = await readReportDownloadBuffer(download, label);
+    const size = buffer.length;
 
-    const filePath = await download.path();
-    const buffer = fs.readFileSync(filePath!);
-    if (kind === 'pdf') assertPdfMagic(buffer, label); else assertXlsxMagic(buffer, label);
+    try {
+        if (kind === 'pdf') assertPdfMagic(buffer, label); else assertXlsxMagic(buffer, label);
 
-    const after = await snap(cdp);
-    const heapDeltaMb = Math.round((after.heapUsedMb - prev.heapUsedMb) * 100) / 100;
-    const wallMs = Date.now() - t0;
-    console.log(`  [gate] ${label.padEnd(26)} size=${size.toString().padStart(7)} B  wall=${wallMs} ms  heapΔ=${fmtDelta(heapDeltaMb, ' MB')}`);
-    return { phase, kind, size, filename, wallMs, heapDeltaMb };
+        const after = await snap(cdp);
+        const heapDeltaMb = Math.round((after.heapUsedMb - prev.heapUsedMb) * 100) / 100;
+        const wallMs = Date.now() - t0;
+        console.log(`  [gate] ${label.padEnd(26)} size=${size.toString().padStart(7)} B  wall=${wallMs} ms  heapΔ=${fmtDelta(heapDeltaMb, ' MB')}`);
+        return { phase, kind, size, filename, wallMs, heapDeltaMb };
+    } finally {
+        await deleteReportDownloadWithRetry(download, label, { filePath });
+    }
 }
 
 async function readAriaChecked(locator: { getAttribute(a: string): Promise<string | null> }): Promise<boolean> {
