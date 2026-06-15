@@ -163,6 +163,33 @@ describe('ComparisonStore — add / remove / clear', () => {
         expect(useComparisonStore.getState().experimentIds).toEqual(['e1']);
     });
 
+    test('replaceExperiment swaps a file-backed experiment for its saved DB record', () => {
+        useComparisonStore.getState().addExperiment(makeExp('file-2', 'Local file'));
+        useComparisonStore.setState({
+            experimentsById: {
+                ...useComparisonStore.getState().experimentsById,
+                'file-2': {
+                    ...useComparisonStore.getState().experimentsById['file-2'],
+                    color: '#123456',
+                },
+            },
+        });
+
+        useComparisonStore.getState().replaceExperiment('file-2', makeExp('db-2', 'Saved local file'));
+
+        const state = useComparisonStore.getState();
+        expect(state.experimentIds).toEqual(['db-2']);
+        expect(state.experiments).toHaveLength(1);
+        expect(state.experiments[0].id).toBe('db-2');
+        expect(state.experimentsById['db-2']).toMatchObject({
+            id: 'db-2',
+            name: 'Saved local file',
+            source: 'db',
+            color: '#123456',
+        });
+        expect(state.experimentsById['file-2']).toBeUndefined();
+    });
+
     test('addExperiment enforces max limit (4 from mock license)', () => {
         for (let i = 0; i < 4; i++) {
             expect(useComparisonStore.getState().addExperiment(makeExp(`e${i}`))).toBe(true);

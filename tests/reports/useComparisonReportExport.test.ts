@@ -21,6 +21,11 @@ vi.mock('@/lib/reports/report-save', () => ({
     saveBytesToDir: vi.fn(),
 }));
 
+vi.mock('@/lib/experiments/client', () => ({
+    saveExperiment: vi.fn(),
+    getExperimentsCount: vi.fn(),
+}));
+
 // ── Imports (after mocks) ────────────────────────────────────────────────
 
 import {
@@ -28,7 +33,10 @@ import {
     generateComparisonPdfReportByIdsBytes,
 } from '@/lib/reports/client';
 import { saveBytes, saveBytesToDir } from '@/lib/reports/report-save';
+import { getExperimentsCount, saveExperiment } from '@/lib/experiments/client';
 import { useComparisonReportExport, type UseComparisonReportExportOptions } from '@/components/comparison/reports/hooks/useComparisonReportExport';
+import { useComparisonStore } from '@/lib/store/comparison-store';
+import { useLicenseStore } from '@/lib/store/license-store';
 import type { Experiment } from '@/types';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import type { ComparisonDisplaySettings } from '@/lib/store/comparison-store';
@@ -115,6 +123,24 @@ function makeOptions(overrides: Partial<UseComparisonReportExportOptions> = {}):
     };
 }
 
+function makeFileBackedExperiment(id = 'file-local-1'): Experiment {
+    return {
+        ...makeExperiment(id, 'local.dat'),
+        originalFilename: 'local.dat',
+        testDate: new Date('2026-06-15T00:00:00Z'),
+        instrumentType: 'Grace M5600',
+        rawPoints: [{
+            time_sec: 300,
+            viscosity_cp: 100,
+            temperature_c: 25,
+            speed_rpm: 100,
+            shear_rate_s1: 170,
+            shear_stress_pa: 10,
+            pressure_bar: 0,
+        }],
+    } as unknown as Experiment;
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────
 
 describe('useComparisonReportExport', () => {
@@ -122,6 +148,20 @@ describe('useComparisonReportExport', () => {
         vi.clearAllMocks();
         vi.mocked(generateComparisonPdfReportByIdsBytes).mockResolvedValue(new Uint8Array([37, 80, 68, 70]));
         vi.mocked(generateComparisonExcelReportByIdsBytes).mockResolvedValue(new Uint8Array([80, 75, 3, 4]));
+        vi.mocked(saveExperiment).mockResolvedValue({ success: true, experimentId: 'saved-local-1' });
+        vi.mocked(getExperimentsCount).mockResolvedValue(0);
+        useComparisonStore.getState().clear();
+        useLicenseStore.setState({
+            result: null,
+            isInitialized: false,
+            isLoading: false,
+            status: 'invalid',
+            isDemo: false,
+            isExpired: false,
+            isActive: false,
+            daysRemaining: 0,
+            experimentsRemaining: -1,
+        });
         localStorage.clear();
         vi.mocked(saveBytes).mockResolvedValue();
         vi.mocked(saveBytesToDir).mockResolvedValue();
@@ -242,10 +282,10 @@ describe('useComparisonReportExport', () => {
             expect(result.current.exportError).toMatch(/хотя бы один/);
         });
 
-        it('blocks file-backed experiments instead of using legacy direct payload export', async () => {
+        it('autosaves file-backed experiments before by-id export', async () => {
             const { result } = renderHook(() =>
                 useComparisonReportExport(makeOptions({
-                    experiments: [makeExperiment('file-local-1', 'local.dat')],
+                    experiments: [makeFileBackedExperiment()],
                 })),
             );
 
@@ -253,9 +293,40 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadPdf();
             });
 
+            expect(saveExperiment).toHaveBeenCalledTimes(1);
+            expect(generateComparisonPdfReportByIdsBytes).toHaveBeenCalledTimes(1);
+            const request = vi.mocked(generateComparisonPdfReportByIdsBytes).mock.calls[0][0];
+            expect(request.experimentIds).toEqual(['saved-local-1']);
+            expect(saveBytes).toHaveBeenCalledTimes(1);
+            expect(result.current.exportError).toBeNull();
+        });
+
+        it('does not autosave when the trial save limit is exhausted', async () => {
+            useLicenseStore.setState({
+                result: {
+                    status: 'demo',
+                    source: 'demo',
+                    experimentsRemaining: 0,
+                    message: 'Пробный лимит исчерпан.',
+                } as never,
+                isInitialized: true,
+                isLoading: false,
+                status: 'demo',
+            });
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    experiments: [makeFileBackedExperiment()],
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            expect(saveExperiment).not.toHaveBeenCalled();
             expect(generateComparisonPdfReportByIdsBytes).not.toHaveBeenCalled();
             expect(saveBytes).not.toHaveBeenCalled();
-            expect(result.current.exportError).toContain('Сохраните локальные файлы');
+            expect(result.current.exportError).toContain('Пробный лимит');
         });
 
         it('clears previous errors on clearError()', async () => {
@@ -426,6 +497,25 @@ describe('useComparisonReportExport', () => {
             expect(saveArgs.mimeType).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             expect(saveArgs.filters[0]).toEqual({ name: 'Excel Spreadsheet', extensions: ['xlsx'] });
         });
+
+        it('autosaves file-backed experiments before Excel by-id export', async () => {
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    experiments: [makeFileBackedExperiment()],
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadExcel();
+            });
+
+            expect(saveExperiment).toHaveBeenCalledTimes(1);
+            expect(generateComparisonExcelReportByIdsBytes).toHaveBeenCalledTimes(1);
+            const request = vi.mocked(generateComparisonExcelReportByIdsBytes).mock.calls[0][0];
+            expect(request.experimentIds).toEqual(['saved-local-1']);
+            expect(saveBytes).toHaveBeenCalledTimes(1);
+            expect(result.current.exportError).toBeNull();
+        });
     });
 
     // ── Combined download ───────────────────────────────────────────────
@@ -459,6 +549,27 @@ describe('useComparisonReportExport', () => {
             expect(items.map(i => i.filename)).toEqual(
                 expect.arrayContaining([expect.stringMatching(/\.pdf$/), expect.stringMatching(/\.xlsx$/)]),
             );
+        });
+
+        it('autosaves a file-backed experiment once for combined PDF + Excel export', async () => {
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    experiments: [makeFileBackedExperiment()],
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadAll(true, true);
+            });
+
+            expect(saveExperiment).toHaveBeenCalledTimes(1);
+            expect(generateComparisonPdfReportByIdsBytes).toHaveBeenCalledTimes(1);
+            expect(generateComparisonExcelReportByIdsBytes).toHaveBeenCalledTimes(1);
+            expect(vi.mocked(generateComparisonPdfReportByIdsBytes).mock.calls[0][0].experimentIds)
+                .toEqual(['saved-local-1']);
+            expect(vi.mocked(generateComparisonExcelReportByIdsBytes).mock.calls[0][0].experimentIds)
+                .toEqual(['saved-local-1']);
+            expect(saveBytesToDir).toHaveBeenCalledTimes(1);
         });
 
         it('emits one combined buffer-release diagnostic event after saving both formats', async () => {

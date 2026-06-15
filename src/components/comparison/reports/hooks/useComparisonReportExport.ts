@@ -10,11 +10,12 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import type { Experiment, RheologyParameterSource } from '@/types';
+import type { Experiment, ExperimentSavePayload, RheologyParameterSource, TestMetrics } from '@/types';
 import type { ComparisonReportByIdsRequest } from '@/types/tauri';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
-import type { ComparisonDisplaySettings } from '@/lib/store/comparison-store';
+import { useComparisonStore, type ComparisonDisplaySettings } from '@/lib/store/comparison-store';
 import type { ExpertSettings } from '@/lib/store/analysis-settings-store';
+import type { RheoDataPoint } from '@/lib/parsing/types';
 import type {
     ComparisonChartConfig,
     ComparisonSectionToggles,
@@ -26,7 +27,12 @@ import {
     generateComparisonPdfReportByIdsBytes,
 } from '@/lib/reports/client';
 import { saveBytes, saveBytesToDir, type SaveBytesItem } from '@/lib/reports/report-save';
+import { saveExperiment } from '@/lib/experiments/client';
 import { EXPERIMENT_COLORS } from '@/components/comparison/comparison-chart-constants';
+import { columnarToRawPoints } from '@/lib/utils/columnar';
+import { isFluidType } from '@/lib/constants/fluid-types';
+import { detectTestCategoryAndType } from '@/lib/utils/test-type-detector';
+import { useLicenseStore } from '@/lib/store/license-store';
 import { logger } from '@/lib/logger';
 
 // ── Public options ─────────────────────────────────────────────────────────
@@ -150,13 +156,179 @@ const DEFAULT_SECTION_TOGGLES: ComparisonSectionToggles = {
 
 const PDF_MIME = 'application/pdf';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const FILE_BACKED_COMPARISON_EXPORT_ERROR =
-    'Сравнительный отчёт доступен только для сохранённых экспериментов. Сохраните локальные файлы в библиотеку и повторите экспорт.';
+const LOCAL_EXPORT_SAVE_ERROR =
+    'Не удалось сохранить локальный файл перед экспортом. Проверьте данные и повторите экспорт.';
 
 type ComparisonExportKind = 'pdf' | 'excel' | 'all';
 
-function hasFileBackedComparisonExperiment(experiments: Experiment[]): boolean {
-    return experiments.some((exp) => typeof exp.id === 'string' && exp.id.startsWith('file-'));
+function isFileBackedComparisonExperiment(exp: Experiment): boolean {
+    return typeof exp.id === 'string' && exp.id.startsWith('file-');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function stringValue(value: unknown): string | undefined {
+    if (value instanceof Date) return value.toISOString();
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+    const n = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(n) ? n : undefined;
+}
+
+function finiteOrZero(value: unknown): number {
+    return numberValue(value) ?? 0;
+}
+
+function sanitizeRawPoints(points: RheoDataPoint[]): RheoDataPoint[] {
+    return points
+        .filter((point) => (
+            Number.isFinite(point.time_sec) &&
+            Number.isFinite(point.viscosity_cp) &&
+            Number.isFinite(point.temperature_c)
+        ))
+        .map((point) => ({
+            time_sec: finiteOrZero(point.time_sec),
+            viscosity_cp: finiteOrZero(point.viscosity_cp),
+            temperature_c: finiteOrZero(point.temperature_c),
+            speed_rpm: finiteOrZero(point.speed_rpm),
+            shear_rate_s1: finiteOrZero(point.shear_rate_s1),
+            shear_stress_pa: finiteOrZero(point.shear_stress_pa),
+            pressure_bar: finiteOrZero(point.pressure_bar),
+            bath_temperature_c: numberValue(point.bath_temperature_c),
+        }));
+}
+
+function rawPointsForExperiment(exp: Experiment): RheoDataPoint[] {
+    const rawPoints = (exp as { rawPoints?: unknown }).rawPoints;
+    if (Array.isArray(rawPoints) && rawPoints.length > 0) {
+        return sanitizeRawPoints(rawPoints as RheoDataPoint[]);
+    }
+
+    const columnarData = (exp as { columnarData?: unknown }).columnarData;
+    const timeSec = (columnarData as { timeSec?: { length?: unknown } } | undefined)?.timeSec;
+    if (columnarData && typeof columnarData === 'object' && typeof timeSec?.length === 'number') {
+        return sanitizeRawPoints(columnarToRawPoints(columnarData as Parameters<typeof columnarToRawPoints>[0]));
+    }
+
+    return [];
+}
+
+function averageInWindow(points: RheoDataPoint[], startMin: number, endMin: number): number {
+    const values = points
+        .filter((point) => {
+            const minutes = point.time_sec / 60;
+            return minutes >= startMin && minutes <= endMin && Number.isFinite(point.viscosity_cp);
+        })
+        .map((point) => point.viscosity_cp);
+    if (values.length === 0) return 0;
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function buildFallbackMetrics(points: RheoDataPoint[]): TestMetrics {
+    return {
+        n_prime: 0,
+        k_prime: 0,
+        initialViscosity_5_10: averageInWindow(points, 5, 10),
+        comparisonViscosity_5_30: averageInWindow(points, 5, 30),
+        avgViscosity_10_120: averageInWindow(points, 10, 120),
+        subgroup: 'without_stabilizer',
+    };
+}
+
+function metricsForExperiment(exp: Experiment, points: RheoDataPoint[]): TestMetrics {
+    const metrics = (exp as { metrics?: unknown }).metrics;
+    return isRecord(metrics) ? metrics as unknown as TestMetrics : buildFallbackMetrics(points);
+}
+
+function originalFilenameFor(exp: Experiment): string {
+    return stringValue((exp as { originalFilename?: unknown }).originalFilename)
+        ?? stringValue(exp.name)
+        ?? 'comparison-local-file';
+}
+
+function dateForExperiment(exp: Experiment): Date {
+    if (exp.testDate instanceof Date && !Number.isNaN(exp.testDate.getTime())) return exp.testDate;
+    if (typeof exp.testDate === 'string') {
+        const parsed = new Date(exp.testDate);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+}
+
+function buildLocalExperimentSavePayload(exp: Experiment): ExperimentSavePayload {
+    const points = rawPointsForExperiment(exp);
+    if (points.length === 0) {
+        throw new Error('Локальный файл не содержит точек данных для сохранения.');
+    }
+
+    const originalFilename = originalFilenameFor(exp);
+    const fluidType = typeof exp.fluidType === 'string' && isFluidType(exp.fluidType)
+        ? exp.fluidType
+        : 'Linear';
+    const maxTemp = Math.max(...points.map((point) => finiteOrZero(point.temperature_c)));
+    const durationMin = points.length > 1
+        ? Math.max(...points.map((point) => finiteOrZero(point.time_sec))) / 60
+        : 0;
+    const detectedType = detectTestCategoryAndType({
+        fluidType,
+        filename: originalFilename,
+        instrumentType: stringValue(exp.instrumentType) ?? '',
+        maxTemp,
+        durationMin,
+    });
+    const record = exp as Record<string, unknown>;
+    const reagents = Array.isArray(record.reagents)
+        ? record.reagents as ExperimentSavePayload['reagents']
+        : [];
+    const hasInstrumentRheology = Array.isArray(record.instrumentRheology)
+        && record.instrumentRheology.length > 0;
+
+    return {
+        name: stringValue(exp.name) ?? originalFilename.replace(/\.[^/.]+$/, ''),
+        fieldName: stringValue(exp.fieldName) ?? '',
+        operatorName: stringValue(exp.operatorName) ?? '',
+        wellNumber: stringValue((exp as { wellNumber?: unknown }).wellNumber) ?? '',
+        testId: stringValue((exp as { testId?: unknown }).testId) ?? undefined,
+        originalFilename,
+        testDate: dateForExperiment(exp),
+        instrumentType: stringValue(exp.instrumentType) ?? 'Unknown',
+        geometry: stringValue((exp as { geometry?: unknown }).geometry),
+        geometrySource: stringValue((exp as { geometrySource?: unknown }).geometrySource),
+        waterSource: stringValue(exp.waterSource) ?? 'Не указано',
+        waterParams: isRecord(record.waterParams)
+            ? record.waterParams as unknown as ExperimentSavePayload['waterParams']
+            : undefined,
+        fluidType,
+        testGroup: detectedType.testCategory === 'Drilling'
+            ? 'Rheology'
+            : detectedType.testType === 'Hydration' ? 'Hydration' : 'Rheology',
+        testCategory: detectedType.testCategory,
+        testType: detectedType.testType,
+        metrics: metricsForExperiment(exp, points),
+        rawPoints: points,
+        calibration: isRecord(record.calibration)
+            ? record.calibration as unknown as ExperimentSavePayload['calibration']
+            : null,
+        reagents,
+        parsedBy: stringValue((exp as { parsedBy?: unknown }).parsedBy),
+        parseSource: stringValue((exp as { parseSource?: unknown }).parseSource),
+        rheologySource: hasInstrumentRheology ? 'instrument' : 'program',
+        rheologyParameters: hasInstrumentRheology
+            ? record.instrumentRheology as ExperimentSavePayload['rheologyParameters']
+            : [],
+    };
+}
+
+function withConflictSuffix(payload: ExperimentSavePayload): ExperimentSavePayload {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return {
+        ...payload,
+        name: `${payload.name} ${stamp}`,
+    };
 }
 
 function releaseComparisonExportBuffers(kind: ComparisonExportKind): void {
@@ -230,13 +402,57 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         [options.displaySettings, options.chartSettings, options.brushRange],
     );
 
-    const hasFileBackedSelection = useMemo(
-        () => hasFileBackedComparisonExperiment(options.experiments),
-        [options.experiments],
-    );
+    const persistLocalExperimentsForExport = useCallback(async (): Promise<Experiment[]> => {
+        if (!options.experiments.some(isFileBackedComparisonExperiment)) {
+            return options.experiments;
+        }
 
-    const buildByIdsRequest = useCallback((): ComparisonReportByIdsRequest => ({
-        experimentIds: options.experiments.map((exp) => exp.id),
+        const replacementById = new Map<string, Experiment>();
+
+        for (const exp of options.experiments) {
+            if (!isFileBackedComparisonExperiment(exp)) continue;
+
+            const saveCheck = useLicenseStore.getState().canSaveExperiment();
+            if (!saveCheck.allowed) {
+                throw new Error(saveCheck.message ?? LOCAL_EXPORT_SAVE_ERROR);
+            }
+
+            const payload = buildLocalExperimentSavePayload(exp);
+            let result = await withPerf('autosave:fileBacked', () => saveExperiment(payload));
+            if (!result.success && result.code === 'NAME_CONFLICT') {
+                result = await withPerf(
+                    'autosave:fileBackedConflictRetry',
+                    () => saveExperiment(withConflictSuffix(payload)),
+                );
+            }
+            if (!result.success || !result.experimentId) {
+                const detail = result.error || result.message || LOCAL_EXPORT_SAVE_ERROR;
+                throw new Error(`${LOCAL_EXPORT_SAVE_ERROR} ${detail}`);
+            }
+
+            const savedExperiment = {
+                ...exp,
+                id: result.experimentId,
+                rawPoints: [],
+                columnarData: undefined,
+                originalFilename: payload.originalFilename,
+                testDate: payload.testDate,
+                fluidType: payload.fluidType,
+                instrumentType: payload.instrumentType,
+                waterSource: payload.waterSource,
+                fieldName: payload.fieldName,
+                operatorName: payload.operatorName,
+            } as Experiment;
+            useComparisonStore.getState().replaceExperiment(exp.id, savedExperiment);
+            void useLicenseStore.getState().refreshExperimentsCount();
+            replacementById.set(exp.id, savedExperiment);
+        }
+
+        return options.experiments.map((exp) => replacementById.get(exp.id) ?? exp);
+    }, [options.experiments]);
+
+    const buildByIdsRequest = useCallback((experiments: Experiment[]): ComparisonReportByIdsRequest => ({
+        experimentIds: experiments.map((exp) => exp.id),
         settings: {
             language: options.language,
             unitSystem: options.unitSystem,
@@ -297,7 +513,6 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         },
     }), [
         comparisonChartConfig,
-        options.experiments,
         options.language,
         options.unitSystem,
         options.companyName,
@@ -314,21 +529,15 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         options.reportViscosityRates,
     ]);
 
-    const generatePdfBytes = useCallback(async () => {
-        if (hasFileBackedSelection) {
-            throw new Error(FILE_BACKED_COMPARISON_EXPORT_ERROR);
-        }
-        const request = buildByIdsRequest();
+    const generatePdfBytes = useCallback(async (experiments: Experiment[]) => {
+        const request = buildByIdsRequest(experiments);
         return await withPerf('pdf:byIdsRoundtrip', () => generateComparisonPdfReportByIdsBytes(request));
-    }, [buildByIdsRequest, hasFileBackedSelection]);
+    }, [buildByIdsRequest]);
 
-    const generateExcelBytes = useCallback(async () => {
-        if (hasFileBackedSelection) {
-            throw new Error(FILE_BACKED_COMPARISON_EXPORT_ERROR);
-        }
-        const request = buildByIdsRequest();
+    const generateExcelBytes = useCallback(async (experiments: Experiment[]) => {
+        const request = buildByIdsRequest(experiments);
         return await withPerf('excel:byIdsRoundtrip', () => generateComparisonExcelReportByIdsBytes(request));
-    }, [buildByIdsRequest, hasFileBackedSelection]);
+    }, [buildByIdsRequest]);
 
     const baseFilename = useMemo(() => {
         const date = new Date().toISOString().split('T')[0];
@@ -346,7 +555,8 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setExportError(null);
         let bytes: Uint8Array | null = null;
         try {
-            bytes = await generatePdfBytes();
+            const exportExperiments = await persistLocalExperimentsForExport();
+            bytes = await generatePdfBytes(exportExperiments);
             await withPerf('pdf:saveBytes', () => saveBytes({
                 bytes: bytes as Uint8Array,
                 filename: `${baseFilename}.pdf`,
@@ -362,7 +572,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             releaseComparisonExportBuffers('pdf');
             setIsExporting(false);
         }
-    }, [options.experiments.length, generatePdfBytes, baseFilename]);
+    }, [options.experiments.length, persistLocalExperimentsForExport, generatePdfBytes, baseFilename]);
 
     const handleDownloadExcel = useCallback(async () => {
         if (options.experiments.length === 0) {
@@ -373,7 +583,8 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setExportError(null);
         let bytes: Uint8Array | null = null;
         try {
-            bytes = await generateExcelBytes();
+            const exportExperiments = await persistLocalExperimentsForExport();
+            bytes = await generateExcelBytes(exportExperiments);
             await withPerf('excel:saveBytes', () => saveBytes({
                 bytes: bytes as Uint8Array,
                 filename: `${baseFilename}.xlsx`,
@@ -389,7 +600,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             releaseComparisonExportBuffers('excel');
             setIsExcelExporting(false);
         }
-    }, [options.experiments.length, generateExcelBytes, baseFilename]);
+    }, [options.experiments.length, persistLocalExperimentsForExport, generateExcelBytes, baseFilename]);
 
     /**
      * Emit both PDF and XLSX side-by-side via a single folder picker.
@@ -412,9 +623,10 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         let pdfBytes: Uint8Array | null = null;
         let excelBytes: Uint8Array | null = null;
         try {
-            pdfBytes = await generatePdfBytes();
+            const exportExperiments = await persistLocalExperimentsForExport();
+            pdfBytes = await generatePdfBytes(exportExperiments);
             items.push({ bytes: pdfBytes, filename: `${baseFilename}.pdf`, mimeType: PDF_MIME });
-            excelBytes = await generateExcelBytes();
+            excelBytes = await generateExcelBytes(exportExperiments);
             items.push({ bytes: excelBytes, filename: `${baseFilename}.xlsx`, mimeType: XLSX_MIME });
 
             await withPerf('all:saveBytesToDir', () => saveBytesToDir([...items]));
@@ -430,7 +642,15 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
             setIsExporting(false);
             setIsExcelExporting(false);
         }
-    }, [options.experiments.length, handleDownloadPdf, handleDownloadExcel, generatePdfBytes, generateExcelBytes, baseFilename]);
+    }, [
+        options.experiments.length,
+        handleDownloadPdf,
+        handleDownloadExcel,
+        persistLocalExperimentsForExport,
+        generatePdfBytes,
+        generateExcelBytes,
+        baseFilename,
+    ]);
 
     const clearError = useCallback(() => setExportError(null), []);
 
