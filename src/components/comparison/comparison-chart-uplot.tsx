@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTheme } from '@/contexts/theme-context';
 import { UPlotChart } from '../charts/uplot-chart';
@@ -144,9 +145,13 @@ function ComparisonChartUPlotInner({
     // Using `'shared'` here silently collapses extra metrics (e.g. a
     // shear-rate left-secondary) onto the viscosity scale whenever the
     // persisted store is missing this key.
-    const comparisonAxisMode = useChartSettingsStore(s => s.settings.comparisonAxisMode ?? 'individual');
-    const chartSettings = useChartSettingsStore(s => s.settings);
-    const timeFormat = chartSettings.rheologyUnits?.timeFormat ?? 'seconds';
+    const { comparisonAxisMode, downsampleMode, timeFormat } = useChartSettingsStore(
+        useShallow(s => ({
+            comparisonAxisMode: s.settings.comparisonAxisMode ?? 'individual',
+            downsampleMode: s.settings.downsampleMode ?? 'smart',
+            timeFormat: s.settings.rheologyUnits?.timeFormat ?? 'seconds',
+        })),
+    );
     const { resolvedTheme } = useTheme();
     const isDark = resolvedTheme === 'dark';
     const uPlotRef = useRef<uPlot | null>(null);
@@ -160,7 +165,7 @@ function ComparisonChartUPlotInner({
         () => comparisonVisibleSeriesMetrics(
             { primaryMetric, leftSecondaryMetric, secondaryMetric, tertiaryMetric },
             {
-                includeSmartDownsampleSupport: (chartSettings.downsampleMode ?? 'smart') === 'smart',
+                includeSmartDownsampleSupport: downsampleMode === 'smart',
                 includeTouchPointSupport: showTouchPoints,
             },
         ),
@@ -169,7 +174,7 @@ function ComparisonChartUPlotInner({
             leftSecondaryMetric,
             secondaryMetric,
             tertiaryMetric,
-            chartSettings.downsampleMode,
+            downsampleMode,
             showTouchPoints,
         ],
     );
