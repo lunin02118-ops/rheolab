@@ -15,6 +15,7 @@
  *   node scripts/test/check-update-endpoint.js
  *   node scripts/test/check-update-endpoint.js --version 0.1.500
  *   node scripts/test/check-update-endpoint.js --base-url https://license.vizbuka.ru
+ *   node scripts/test/check-update-endpoint.js --manifest outputs/release/beta.json --channel beta
  *
  * Exit codes:
  *   0  All checks passed
@@ -24,6 +25,14 @@
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+    DEFAULT_UPDATE_ARCH,
+    DEFAULT_UPDATE_BASE_URL,
+    DEFAULT_UPDATE_TARGET,
+    buildUpdaterContractUrls,
+    checkDownloadUrlReachability,
+    validateUpdateManifestContract,
+} from '../release/lib/updater-contract.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dir, '..', '..');
@@ -35,9 +44,19 @@ for (let i = 0; i < args.length; i += 2) {
     if (args[i].startsWith('--')) argMap[args[i].slice(2)] = args[i + 1] ?? true;
 }
 
-const BASE_URL = argMap['base-url'] ?? 'https://license.vizbuka.ru';
+const BASE_URL = argMap['base-url'] ?? DEFAULT_UPDATE_BASE_URL;
 const TIMEOUT_MS = Number(argMap['timeout'] ?? 10000);
 const CHANNEL = (argMap['channel'] ?? 'stable').toLowerCase();
+const MANIFEST_PATH = argMap['manifest'] ?? null;
+const ALLOWED_ARTIFACT_HOSTS = (() => {
+    const hosts = new Set(['license.vizbuka.ru']);
+    try {
+        hosts.add(new URL(BASE_URL).hostname);
+    } catch {
+        // Invalid base-url is reported later by endpoint fetch/build logic.
+    }
+    return Array.from(hosts);
+})();
 
 // Read local version from package.json
 const pkg = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf-8'));
@@ -74,113 +93,101 @@ async function fetchWithTimeout(url, options = {}) {
 // ── 1. Build list of URLs to test ─────────────────────────────────────────────
 // Mirrors what tauri-plugin-updater sends, accounting for all endpoint formats
 // used across our release history.
-const TARGET = 'windows-x86_64';
-const ARCH   = 'x86_64';
+const TARGET = DEFAULT_UPDATE_TARGET;
+const ARCH   = DEFAULT_UPDATE_ARCH;
 // In Tauri v2, {{target}} resolves to the combined OS-ARCH string (e.g. windows-x86_64),
 // NOT just the OS name. The old endpoint format was {{target}}/{{arch}}/{{current_version}}.
 const LEGACY_TARGET = TARGET;  // same — windows-x86_64
 
-const urlsToTest = [
-    // Current endpoint (v0.1.510+): channel-aware PHP router reads X-Update-Channel header
-    {
-        label: `Current endpoint  — {{target}}/update (channel: ${CHANNEL})`,
-        url: `${BASE_URL}/releases/v1/update/${TARGET}/update`,
-        headers: { 'X-Update-Channel': CHANNEL },
-        expectJson: true,
-    },
-    // Direct manifest file: {{target}}/{channel}.json — this is the authoritative source
-    {
-        label: `Channel manifest  — {{target}}/${CHANNEL}.json`,
-        url: `${BASE_URL}/releases/v1/update/${TARGET}/${CHANNEL}.json`,
-        expectJson: true,
-        isPrimary: true,
-    },
-    // Old-style endpoint (≤0.1.497): {{target}}/{{arch}}/{{current_version}}?channel={channel}
-    {
-        label: `Legacy endpoint   — {{target}}/{{arch}}/{{version}}?channel=${CHANNEL}`,
-        url: `${BASE_URL}/releases/v1/update/${LEGACY_TARGET}/${ARCH}/${LOCAL_VERSION}?channel=${CHANNEL}`,
-        expectJson: true,
-    },
-];
+const urlsToTest = buildUpdaterContractUrls({
+    baseUrl: BASE_URL,
+    channel: CHANNEL,
+    localVersion: LOCAL_VERSION,
+    target: LEGACY_TARGET,
+    arch: ARCH,
+});
 
 // ── 2. Schema validator ────────────────────────────────────────────────────────
 function validateManifest(manifest, urlLabel) {
     console.log(`\n  Validating manifest from: ${urlLabel}`);
 
-    // Required top-level fields
-    if (typeof manifest.version !== 'string' || !manifest.version) {
-        fail('version field present and non-empty');
-    } else {
-        // SemVer: optional leading v, then X.Y.Z
-        const semver = /^v?\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?(\+[0-9A-Za-z-.]+)?$/;
-        if (!semver.test(manifest.version)) {
-            fail(`version is valid SemVer: "${manifest.version}"`);
+    const result = validateUpdateManifestContract(manifest, {
+        target: TARGET,
+        allowedHosts: ALLOWED_ARTIFACT_HOSTS,
+    });
+    for (const check of result.checks) {
+        if (check.status === 'pass') {
+            ok(check.label);
+        } else if (check.status === 'warn') {
+            warn(`${check.label}${check.detail ? ` (${check.detail})` : ''}`);
         } else {
-            ok(`version is valid SemVer: ${manifest.version}`);
+            fail(check.label, check.detail);
         }
     }
 
-    // pub_date: RFC 3339, no sub-second precision (Tauri Rust parser is strict)
-    if (manifest.pub_date) {
-        const rfc3339NoMs = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/;
-        const rfc3339WithMs = /\.\d+/;
-        if (rfc3339WithMs.test(manifest.pub_date)) {
-            fail(`pub_date has no sub-second precision: "${manifest.pub_date}"`,
-                'Tauri\'s Rust RFC-3339 parser rejects milliseconds');
-        } else if (!rfc3339NoMs.test(manifest.pub_date)) {
-            fail(`pub_date is valid RFC 3339: "${manifest.pub_date}"`);
-        } else {
-            ok(`pub_date is valid RFC 3339: ${manifest.pub_date}`);
-        }
-    } else {
-        warn('pub_date missing (optional but recommended)');
-    }
+    return result.platformEntry;
+}
 
-    // platforms block
-    if (!manifest.platforms || typeof manifest.platforms !== 'object') {
-        fail('platforms object present');
+async function checkArtifactUrl(url) {
+    const headRes = await checkDownloadUrlReachability(url, { timeoutMs: TIMEOUT_MS });
+    if (!headRes.ok) {
+        if (headRes.error) {
+            fail(`Artifact URL reachable: ${headRes.error}`);
+        } else {
+            fail(`Artifact URL HTTP 200: got ${headRes.status}`);
+        }
         return null;
     }
-    ok('platforms object present');
 
-    const platformEntry = manifest.platforms[TARGET];
-    if (!platformEntry) {
-        fail(`platforms["${TARGET}"] entry exists`,
-            `Available keys: ${Object.keys(manifest.platforms).join(', ')}`);
-        return null;
+    const remoteSize = headRes.contentLength;
+    const remoteMB   = remoteSize ? (Number(remoteSize) / 1_048_576).toFixed(1) : null;
+    ok(`Artifact URL returns HTTP 200${remoteMB ? ` (${remoteMB} MB)` : ''}`);
+    return { remoteSize, remoteMB };
+}
+
+async function runLocalManifestSmoke() {
+    console.log(`\n🔍  RheoLab Update Manifest Contract Checker`);
+    console.log(`    Manifest      : ${MANIFEST_PATH}`);
+    console.log(`    Target        : ${TARGET}`);
+    console.log(`    Channel       : ${CHANNEL}`);
+    console.log(`    Timeout       : ${TIMEOUT_MS}ms\n`);
+
+    let manifest;
+    try {
+        manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf-8'));
+    } catch (err) {
+        fail(`Manifest file is readable JSON: ${err.message}`);
+        manifest = null;
     }
-    ok(`platforms["${TARGET}"] entry exists`);
 
-    // url
-    if (!platformEntry.url || typeof platformEntry.url !== 'string') {
-        fail(`platforms.${TARGET}.url present`);
+    const platformEntry = manifest ? validateManifest(manifest, MANIFEST_PATH) : null;
+    if (platformEntry?.url) {
+        console.log(`\n──────────────────────────────────────────`);
+        console.log(`📦  Artifact reachability check`);
+        console.log(`    ${platformEntry.url}`);
+        await checkArtifactUrl(platformEntry.url);
+    }
+
+    printSummary();
+}
+
+function printSummary() {
+    console.log(`\n══════════════════════════════════════════`);
+    if (failed === 0) {
+        console.log(`✅  All ${passed} checks passed. Update pipeline healthy.\n`);
     } else {
-        try {
-            new URL(platformEntry.url);
-            ok(`platforms.${TARGET}.url is valid URL`);
-        } catch {
-            fail(`platforms.${TARGET}.url is valid URL: "${platformEntry.url}"`);
-        }
+        console.error(`❌  ${failed} check(s) FAILED, ${passed} passed.\n`);
+        process.exit(1);
     }
-
-    // signature — must be non-empty base64 with Tauri minisign structure
-    if (!platformEntry.signature || typeof platformEntry.signature !== 'string') {
-        fail(`platforms.${TARGET}.signature present`);
-    } else {
-        const decoded = Buffer.from(platformEntry.signature, 'base64').toString('utf-8');
-        if (!decoded.includes('trusted comment:') && !decoded.includes('untrusted comment:')) {
-            fail(`platforms.${TARGET}.signature looks like a Tauri minisign signature`,
-                'Expected decoded base64 to contain "trusted comment:" or "untrusted comment:"');
-        } else {
-            ok(`platforms.${TARGET}.signature has minisign structure`);
-        }
-    }
-
-    return platformEntry;
 }
 
 // ── 3. Run all checks ──────────────────────────────────────────────────────────
 async function run() {
+    if (MANIFEST_PATH) {
+        await runLocalManifestSmoke();
+        return;
+    }
+
     console.log(`\n🔍  RheoLab Update Endpoint Checker`);
     console.log(`    Local version : ${LOCAL_VERSION}`);
     console.log(`    Base URL      : ${BASE_URL}`);
@@ -268,11 +275,9 @@ async function run() {
         console.log(`\uD83D\uDCE6  Artifact reachability check`);
         console.log(`    ${manifestForArtifactCheck.url}`);
         try {
-            const headRes = await fetchWithTimeout(manifestForArtifactCheck.url, { method: 'HEAD' });
-            if (headRes.status === 200) {
-                const remoteSize = headRes.headers.get('content-length');
-                const remoteMB   = remoteSize ? (Number(remoteSize) / 1_048_576).toFixed(1) : null;
-                ok(`Artifact URL returns HTTP 200${remoteMB ? ` (${remoteMB} MB)` : ''}`);
+            const artifactCheck = await checkArtifactUrl(manifestForArtifactCheck.url);
+            if (artifactCheck) {
+                const { remoteSize, remoteMB } = artifactCheck;
 
                 // Compare Content-Length against local installer if available
                 const localManifestPath = join(REPO_ROOT, 'outputs', 'release', `${CHANNEL}.json`);
@@ -328,8 +333,6 @@ async function run() {
                         // Non-fatal: local manifest missing or parse error, skip comparison
                     }
                 }
-            } else {
-                fail(`Artifact URL HTTP 200: got ${headRes.status}`);
             }
         } catch (err) {
             fail(`Artifact URL reachable: ${err.message}`);
@@ -337,13 +340,7 @@ async function run() {
     }
 
     // ── Summary ───────────────────────────────────────────────────────────────
-    console.log(`\n══════════════════════════════════════════`);
-    if (failed === 0) {
-        console.log(`✅  All ${passed} checks passed. Update pipeline healthy.\n`);
-    } else {
-        console.error(`❌  ${failed} check(s) FAILED, ${passed} passed.\n`);
-        process.exit(1);
-    }
+    printSummary();
 }
 
 run().catch((err) => {
