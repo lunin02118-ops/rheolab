@@ -34,6 +34,12 @@ use crate::db::repositories::experiments::{load_experiment_data_hashes, load_exp
 use crate::db::DbPool;
 use crate::error::{AppError, Result};
 pub use crate::reports::domain::*;
+use crate::reports::render::excel::{
+    render_comparison_excel_by_ids, render_excel_by_id, render_excel_from_input,
+};
+use crate::reports::render::pdf::{
+    render_comparison_pdf_by_ids, render_pdf_by_id, render_pdf_from_input,
+};
 use crate::runtime::jobs::{JobContext, JobKind};
 use crate::state::AppState;
 use crate::utils::time::now_rfc3339;
@@ -53,92 +59,6 @@ use rheolab_core::{ExpertSettings, GraceCycleResult};
 use serde_json::Value;
 use std::collections::HashSet;
 use tauri::{AppHandle, State};
-
-/// Inner implementation used by tests — returns raw bytes.
-///
-/// Sprint 0 / S0-6: `tracing::instrument` makes the spawn_blocking
-/// boundary measurable.  `skip_all` keeps the heavy `ReportInput`
-/// out of the span fields (it is megabytes-sized after Float64Array
-/// expansion).  The rheolab-core call itself is not instrumented —
-/// keeping that crate tracing-free is intentional (it is the
-/// foundation crate; we measure it from the boundary instead).
-#[tracing::instrument(level = "info", skip_all, name = "reports::pdf::spawn_blocking")]
-#[cfg_attr(not(test), allow(dead_code))]
-async fn generate_pdf_bytes(input: ReportInput) -> Result<Vec<u8>> {
-    tokio::task::spawn_blocking(move || generate_pdf_bytes_sync(input))
-        .await
-        .map_err(AppError::Join)?
-}
-
-fn generate_pdf_bytes_sync(input: ReportInput) -> Result<Vec<u8>> {
-    rheolab_core::report_generator::generate_pdf_from_input(&input).map_err(|error| {
-        tracing::error!("PDF generation failed: {}", error);
-        AppError::Other("PDF generation failed".into())
-    })
-}
-
-/// Inner implementation used by tests — returns raw bytes.
-#[tracing::instrument(level = "info", skip_all, name = "reports::excel::spawn_blocking")]
-#[cfg_attr(not(test), allow(dead_code))]
-async fn generate_excel_bytes(input: ReportInput) -> Result<Vec<u8>> {
-    tokio::task::spawn_blocking(move || generate_excel_bytes_sync(input))
-        .await
-        .map_err(AppError::Join)?
-}
-
-fn generate_excel_bytes_sync(input: ReportInput) -> Result<Vec<u8>> {
-    rheolab_core::report_generator::generate_excel_from_input(&input).map_err(|error| {
-        tracing::error!("Excel generation failed: {:?}", error);
-        AppError::Other("Excel generation failed".into())
-    })
-}
-
-/// Inner implementation used by tests — returns raw comparison PDF bytes.
-///
-/// Sprint 0 / S0-6: span field `n_experiments` lets us correlate Rust
-/// time spent vs comparison size.  Sprint 1's by-ids native pipeline
-/// will use exactly this metric to prove the saving over the current
-/// "TS builds full input" path.
-#[tracing::instrument(
-    level = "info",
-    skip_all,
-    name = "reports::comparison::pdf::spawn_blocking",
-    fields(n_experiments = input.experiments.len())
-)]
-#[cfg_attr(not(test), allow(dead_code))]
-async fn generate_comparison_pdf_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
-    tokio::task::spawn_blocking(move || generate_comparison_pdf_bytes_sync(input))
-        .await
-        .map_err(AppError::Join)?
-}
-
-fn generate_comparison_pdf_bytes_sync(input: ComparisonReportInput) -> Result<Vec<u8>> {
-    rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
-        tracing::error!("Comparison PDF generation failed: {}", error);
-        AppError::Other("Comparison PDF generation failed".into())
-    })
-}
-
-/// Inner implementation used by tests — returns raw comparison XLSX bytes.
-#[tracing::instrument(
-    level = "info",
-    skip_all,
-    name = "reports::comparison::excel::spawn_blocking",
-    fields(n_experiments = input.experiments.len())
-)]
-#[cfg_attr(not(test), allow(dead_code))]
-async fn generate_comparison_excel_bytes(input: ComparisonReportInput) -> Result<Vec<u8>> {
-    tokio::task::spawn_blocking(move || generate_comparison_excel_bytes_sync(input))
-        .await
-        .map_err(AppError::Join)?
-}
-
-fn generate_comparison_excel_bytes_sync(input: ComparisonReportInput) -> Result<Vec<u8>> {
-    rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
-        tracing::error!("Comparison Excel generation failed: {}", error);
-        AppError::Other("Comparison Excel generation failed".into())
-    })
-}
 
 #[cfg(any(test, debug_assertions))]
 #[tauri::command]
@@ -175,7 +95,7 @@ pub async fn reports_generate_comparison_pdf(
                 }
             }
 
-            let bytes = generate_comparison_pdf_bytes_sync(input)?;
+            let bytes = crate::reports::render::pdf::generate_comparison_pdf_bytes_sync(input)?;
             ctx.record_output_bytes(bytes.len() as u64);
             Ok(bytes)
         })
@@ -218,7 +138,7 @@ pub async fn reports_generate_comparison_excel(
                 }
             }
 
-            let bytes = generate_comparison_excel_bytes_sync(input)?;
+            let bytes = crate::reports::render::excel::generate_comparison_excel_bytes_sync(input)?;
             ctx.record_output_bytes(bytes.len() as u64);
             Ok(bytes)
         })
@@ -272,7 +192,7 @@ pub async fn reports_generate_pdf(
                 }
             }
 
-            let bytes = generate_pdf_bytes_sync(input)?;
+            let bytes = render_pdf_from_input(&input)?;
             ctx.record_output_bytes(bytes.len() as u64);
             Ok(bytes)
         })
@@ -320,7 +240,7 @@ pub async fn reports_generate_excel(
                 }
             }
 
-            let bytes = generate_excel_bytes_sync(input)?;
+            let bytes = render_excel_from_input(&input)?;
             ctx.record_output_bytes(bytes.len() as u64);
             Ok(bytes)
         })
@@ -517,13 +437,7 @@ fn generate_comparison_pdf_by_ids_bytes_cached(
     request: &ComparisonReportByIdsRequest,
 ) -> Result<Vec<u8>> {
     let input = build_comparison_report_input_by_ids_cached(pool, request)?;
-    rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
-        tracing::error!("Comparison PDF by IDs generation failed: {}", error);
-        AppError::Other(format!(
-            "Comparison PDF by IDs generation failed: {}",
-            error
-        ))
-    })
+    render_comparison_pdf_by_ids(&input)
 }
 
 fn generate_comparison_pdf_by_ids_bytes_cached_with_job(
@@ -539,14 +453,7 @@ fn generate_comparison_pdf_by_ids_bytes_cached_with_job(
         Some(request.experiment_ids.len() as u64),
         Some("Rendering comparison PDF".into()),
     );
-    let bytes =
-        rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
-            tracing::error!("Comparison PDF by IDs generation failed: {}", error);
-            AppError::Other(format!(
-                "Comparison PDF by IDs generation failed: {}",
-                error
-            ))
-        })?;
+    let bytes = render_comparison_pdf_by_ids(&input)?;
     ctx.record_output_bytes(bytes.len() as u64);
     Ok(bytes)
 }
@@ -557,13 +464,7 @@ fn generate_comparison_pdf_by_ids_bytes_from_experiments(
     request: &ComparisonReportByIdsRequest,
 ) -> Result<Vec<u8>> {
     let input = build_comparison_report_input_from_experiments(experiments, request)?;
-    rheolab_core::report_generator::generate_comparison_pdf(&input).map_err(|error| {
-        tracing::error!("Comparison PDF by IDs generation failed: {}", error);
-        AppError::Other(format!(
-            "Comparison PDF by IDs generation failed: {}",
-            error
-        ))
-    })
+    render_comparison_pdf_by_ids(&input)
 }
 
 #[tracing::instrument(
@@ -593,13 +494,7 @@ fn generate_comparison_excel_by_ids_bytes_cached(
     request: &ComparisonReportByIdsRequest,
 ) -> Result<Vec<u8>> {
     let input = build_comparison_report_input_by_ids_cached(pool, request)?;
-    rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
-        tracing::error!("Comparison Excel by IDs generation failed: {}", error);
-        AppError::Other(format!(
-            "Comparison Excel by IDs generation failed: {}",
-            error
-        ))
-    })
+    render_comparison_excel_by_ids(&input)
 }
 
 fn generate_comparison_excel_by_ids_bytes_cached_with_job(
@@ -615,14 +510,7 @@ fn generate_comparison_excel_by_ids_bytes_cached_with_job(
         Some(request.experiment_ids.len() as u64),
         Some("Rendering comparison XLSX".into()),
     );
-    let bytes =
-        rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
-            tracing::error!("Comparison Excel by IDs generation failed: {}", error);
-            AppError::Other(format!(
-                "Comparison Excel by IDs generation failed: {}",
-                error
-            ))
-        })?;
+    let bytes = render_comparison_excel_by_ids(&input)?;
     ctx.record_output_bytes(bytes.len() as u64);
     Ok(bytes)
 }
@@ -633,13 +521,7 @@ fn generate_comparison_excel_by_ids_bytes_from_experiments(
     request: &ComparisonReportByIdsRequest,
 ) -> Result<Vec<u8>> {
     let input = build_comparison_report_input_from_experiments(experiments, request)?;
-    rheolab_core::report_generator::generate_comparison_excel(&input).map_err(|error| {
-        tracing::error!("Comparison Excel by IDs generation failed: {}", error);
-        AppError::Other(format!(
-            "Comparison Excel by IDs generation failed: {}",
-            error
-        ))
-    })
+    render_comparison_excel_by_ids(&input)
 }
 
 fn generate_pdf_by_id_bytes_cached_with_job(
@@ -655,11 +537,7 @@ fn generate_pdf_by_id_bytes_cached_with_job(
         Some(1),
         Some("Rendering PDF report".into()),
     );
-    let bytes =
-        rheolab_core::report_generator::generate_pdf_from_input(&input).map_err(|error| {
-            tracing::error!("PDF by ID generation failed: {}", error);
-            AppError::Other(format!("PDF by ID generation failed: {}", error))
-        })?;
+    let bytes = render_pdf_by_id(&input)?;
     ctx.record_output_bytes(bytes.len() as u64);
     Ok(bytes)
 }
@@ -677,11 +555,7 @@ fn generate_excel_by_id_bytes_cached_with_job(
         Some(1),
         Some("Rendering XLSX report".into()),
     );
-    let bytes =
-        rheolab_core::report_generator::generate_excel_from_input(&input).map_err(|error| {
-            tracing::error!("Excel by ID generation failed: {:?}", error);
-            AppError::Other(format!("Excel by ID generation failed: {:?}", error))
-        })?;
+    let bytes = render_excel_by_id(&input)?;
     ctx.record_output_bytes(bytes.len() as u64);
     Ok(bytes)
 }
@@ -2493,10 +2367,8 @@ fn enforce_max_comparison_experiments(max: i64, count: usize) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::generate_comparison_excel_bytes;
-    use super::generate_comparison_pdf_bytes;
-    use super::generate_excel_bytes;
-    use super::generate_pdf_bytes;
+    use crate::reports::render::excel::{generate_comparison_excel_bytes, generate_excel_bytes};
+    use crate::reports::render::pdf::{generate_comparison_pdf_bytes, generate_pdf_bytes};
     use rheolab_core::report_generator::comparison::{
         ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics, ComparisonReportInput,
         SectionToggles, TouchPointConfig,
