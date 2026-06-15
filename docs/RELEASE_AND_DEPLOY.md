@@ -250,6 +250,7 @@ bash scripts/deploy/setup-vps-releases.sh
 Rollback-логика остаётся завязанной на ранее собранные manifests и `rollback-channel.js`:
 
 ```bash
+node scripts/release/rollback-drill.js --channel beta --bad-version <bad-version> --to-version <rollback-version> --reason "bad beta release"
 node scripts/release/rollback-channel.js --channel beta --dry-run
 node scripts/release/rollback-channel.js --channel beta --reason "bad beta release"
 ```
@@ -263,11 +264,18 @@ Rollback выполняется строго по каналу:
 Не используйте `stable` rollback для beta/alpha инцидента: это изменит канал,
 который получают trial/demo и внешние пользователи.
 
+Важно: updater rollback не откатывает уже обновившихся клиентов на меньшую
+версию. Если клиент уже установил bad version `X`, а rollback manifest указывает
+на более старую `Y`, Tauri не предложит downgrade. Для таких клиентов нужен
+forward hotfix с версией больше `X`.
+
 Если нужно перепубликовать уже известный manifest:
 
 ```bash
 node scripts/deploy/publish-update.js --from-manifest outputs/release/stable.json --channel stable
 ```
+
+Полный операторский drill: [ROLLBACK_DRILL.md](release/ROLLBACK_DRILL.md).
 
 ## 8. Что ещё обновлять вместе с релизом
 
