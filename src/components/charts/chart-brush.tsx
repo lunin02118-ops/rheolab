@@ -24,7 +24,50 @@ export interface ChartBrushProps {
 
 const HANDLE_W = 12;
 const MIN_SPAN_PX = 24;
+const BRUSH_PAD_Y = 3;
+const BRUSH_POLYLINE_POINTS_PER_PIXEL = 2;
 const brushLogger = createLogger('ChartBrush');
+
+export function getBrushPolylineStride(pointCount: number, width: number): number {
+    if (pointCount <= 0 || width <= 0) return 1;
+    const maxPoints = Math.max(2, Math.ceil(width * BRUSH_POLYLINE_POINTS_PER_PIXEL));
+    return Math.max(1, Math.ceil(pointCount / maxPoints));
+}
+
+export function buildBrushPolylinePoints(
+    times: readonly number[],
+    values: readonly (number | null)[],
+    tMin: number,
+    tSpan: number,
+    width: number,
+    height: number,
+    vMin: number,
+    vSpan: number,
+): [number, number][] {
+    const points: [number, number][] = [];
+    const stride = getBrushPolylineStride(times.length, width);
+    let lastVisitedIndex = -1;
+
+    const appendPoint = (i: number) => {
+        const v = values[i];
+        if (v == null || !isFinite(v)) return;
+        const x = ((times[i] - tMin) / tSpan) * width;
+        const y = height - BRUSH_PAD_Y - ((v - vMin) / vSpan) * (height - 2 * BRUSH_PAD_Y);
+        points.push([x, y]);
+    };
+
+    for (let i = 0; i < times.length; i += stride) {
+        appendPoint(i);
+        lastVisitedIndex = i;
+    }
+
+    const lastIndex = times.length - 1;
+    if (lastIndex > lastVisitedIndex) {
+        appendPoint(lastIndex);
+    }
+
+    return points;
+}
 
 export const ChartBrush: React.FC<ChartBrushProps> = ({
     times,
@@ -51,6 +94,8 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
         hasChanged: boolean;
     } | null>(null);
     const lastMoveLogAtRef = useRef<number>(0);
+    const pendingPreviewRef = useRef<{ min: number; max: number } | null>(null);
+    const previewFrameRef = useRef<number | null>(null);
 
     const tMin = times.length > 0 ? times[0] : 0;
     const tMax = times.length > 0 ? times[times.length - 1] : 1;
@@ -96,21 +141,13 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
         }
         if (!isFinite(vMin)) return;
         const vSpan = vMax - vMin || 1;
-        const padY = 3;
-        const pts: [number, number][] = [];
-        for (let i = 0; i < times.length; i++) {
-            const v = values[i];
-            if (v == null || !isFinite(v)) continue;
-            const x = ((times[i] - tMin) / tSpan) * width;
-            const y = height - padY - ((v - vMin) / vSpan) * (height - 2 * padY);
-            pts.push([x, y]);
-        }
+        const pts = buildBrushPolylinePoints(times, values, tMin, tSpan, width, height, vMin, vSpan);
         if (pts.length < 2) return;
         ctx.beginPath();
         ctx.moveTo(pts[0][0], pts[0][1]);
         for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-        ctx.lineTo(pts[pts.length - 1][0], height - padY);
-        ctx.lineTo(pts[0][0], height - padY);
+        ctx.lineTo(pts[pts.length - 1][0], height - BRUSH_PAD_Y);
+        ctx.lineTo(pts[0][0], height - BRUSH_PAD_Y);
         ctx.closePath();
         ctx.fillStyle = 'rgba(96,165,250,0.12)';
         ctx.fill();
@@ -128,6 +165,11 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
     useEffect(() => {
         const c = canvasRef.current;
         return () => {
+            if (previewFrameRef.current !== null) {
+                cancelAnimationFrame(previewFrameRef.current);
+                previewFrameRef.current = null;
+            }
+            pendingPreviewRef.current = null;
             if (c) {
                 c.width = 0;
                 c.height = 0;
@@ -195,9 +237,40 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
                 hasChanged: false,
             };
         };
+        const emitPendingPreview = () => {
+            const pending = pendingPreviewRef.current;
+            pendingPreviewRef.current = null;
+            if (pending) {
+                stateRef.current.onChange(pending.min, pending.max);
+            }
+        };
+        const flushPreviewFrame = () => {
+            previewFrameRef.current = null;
+            emitPendingPreview();
+        };
+        const flushPreviewNow = () => {
+            if (previewFrameRef.current !== null) {
+                cancelAnimationFrame(previewFrameRef.current);
+                previewFrameRef.current = null;
+            }
+            emitPendingPreview();
+        };
+        const schedulePreview = (min: number, max: number) => {
+            pendingPreviewRef.current = { min, max };
+            if (previewFrameRef.current === null) {
+                previewFrameRef.current = requestAnimationFrame(flushPreviewFrame);
+            }
+        };
+        const cancelPreview = () => {
+            if (previewFrameRef.current !== null) {
+                cancelAnimationFrame(previewFrameRef.current);
+                previewFrameRef.current = null;
+            }
+            pendingPreviewRef.current = null;
+        };
         const onMove = (e: PointerEvent) => {
             if (!drag.current) return;
-            const { width, tMin, tSpan, onChange } = stateRef.current;
+            const { width, tMin, tSpan } = stateRef.current;
             const dx = (e.clientX - drag.current.startX) / width;
             let sL = drag.current.startSelLeft;
             let sR = drag.current.startSelRight;
@@ -218,7 +291,7 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
             drag.current.lastMin = min;
             drag.current.lastMax = max;
             drag.current.hasChanged = true;
-            onChange(min, max);
+            schedulePreview(min, max);
 
             const now = Date.now();
             if (now - lastMoveLogAtRef.current > 250) {
@@ -243,9 +316,11 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
                 }
                 drag.current = null;
                 if (commit && completedDrag.hasChanged) {
+                    flushPreviewNow();
                     stateRef.current.onCommit?.(completedDrag.lastMin, completedDrag.lastMax);
                     stateRef.current.onDragEnd?.('commit');
                 } else {
+                    cancelPreview();
                     stateRef.current.onDragEnd?.(commit ? 'noop' : 'cancel');
                 }
             }
@@ -267,6 +342,7 @@ export const ChartBrush: React.FC<ChartBrushProps> = ({
             root.removeEventListener('pointerup', onUp);
             root.removeEventListener('pointercancel', onCancel);
             root.removeEventListener('dblclick', onDbl);
+            cancelPreview();
         };
     }, [width]); // Only re-bind if width changes (rare)
 
