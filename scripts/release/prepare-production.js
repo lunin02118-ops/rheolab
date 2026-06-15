@@ -11,6 +11,10 @@ const {
   formatUpdaterIssues,
 } = require('./lib/release-policy');
 const { patchTauriUpdaterConfig } = require('./lib/tauri-updater-config');
+const {
+  createSigningDryRunProof,
+  writeSigningDryRunProof,
+} = require('./lib/signing-dry-run-proof');
 
 const repoRoot = path.resolve(__dirname, '../..');
 const DEV_INTEGRITY_SENTINEL = 'rheolab-dev-integrity-key-32chars!';
@@ -478,6 +482,23 @@ function main() {
 
   try {
     if (dryRun) {
+      const dryRunProof = createSigningDryRunProof({
+        version,
+        channel: releaseChannel,
+        tauriConfig: effectiveTauriConfig,
+        updaterValidation,
+        updaterPatch,
+        env,
+        allowUnsigned,
+      });
+      const dryRunProofPath = writeSigningDryRunProof({
+        repoRoot,
+        proof: dryRunProof,
+        env,
+      });
+      console.log(
+        `[release] signing dry-run proof: ${path.relative(repoRoot, dryRunProofPath).replace(/\\/g, '/')}`,
+      );
       console.log('[release] dry-run enabled: skipping QA, build and release artifact generation');
       return;
     }
