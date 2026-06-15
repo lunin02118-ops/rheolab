@@ -16,7 +16,10 @@
 
 import { test, expect } from '../base-test.tauri';
 import { CHANDLER_SST_63 } from '../fixtures';
-import fs from 'fs';
+import {
+  deleteReportDownloadWithRetry,
+  readReportDownloadBuffer,
+} from '../report-download-cleanup';
 
 // Skip unless FULL_EXPORT=1 — real Typst compilation takes 5+ minutes at debug opt-level
 test.skip(() => process.env.FULL_EXPORT !== '1', 'FULL_EXPORT=1 required for real native export');
@@ -111,14 +114,15 @@ test.describe('Real Native Export', () => {
     await reports.expectPdfButtonVisible();
 
     const download = await reports.downloadPdf();
-    const filePath = await download.path();
-    expect(filePath).toBeTruthy();
-
-    const buffer = fs.readFileSync(filePath!);
-    // Real PDF must be > 1 KB (mock returns only 8 bytes)
-    expect(buffer.length).toBeGreaterThan(1024);
-    // Magic bytes: %PDF
-    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF');
+    const { buffer, filePath } = await readReportDownloadBuffer(download, 'real native PDF');
+    try {
+      // Real PDF must be > 1 KB (mock returns only 8 bytes)
+      expect(buffer.length).toBeGreaterThan(1024);
+      // Magic bytes: %PDF
+      expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF');
+    } finally {
+      await deleteReportDownloadWithRetry(download, 'real native PDF', { filePath });
+    }
   });
 
   test('Excel has valid size and magic bytes', async ({ dashboard, reports }) => {
@@ -129,13 +133,14 @@ test.describe('Real Native Export', () => {
     await reports.expectExcelButtonVisible();
 
     const download = await reports.downloadExcel();
-    const filePath = await download.path();
-    expect(filePath).toBeTruthy();
-
-    const buffer = fs.readFileSync(filePath!);
-    // Real XLSX must be > 1 KB (mock returns only 4 bytes)
-    expect(buffer.length).toBeGreaterThan(1024);
-    // Magic bytes: PK (ZIP container)
-    expect(buffer.slice(0, 2).toString('ascii')).toBe('PK');
+    const { buffer, filePath } = await readReportDownloadBuffer(download, 'real native XLSX');
+    try {
+      // Real XLSX must be > 1 KB (mock returns only 4 bytes)
+      expect(buffer.length).toBeGreaterThan(1024);
+      // Magic bytes: PK (ZIP container)
+      expect(buffer.slice(0, 2).toString('ascii')).toBe('PK');
+    } finally {
+      await deleteReportDownloadWithRetry(download, 'real native XLSX', { filePath });
+    }
   });
 });

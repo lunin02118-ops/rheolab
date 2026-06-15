@@ -12,6 +12,10 @@
  */
 
 import { type Page, type Locator, type Download, expect } from '@playwright/test';
+import {
+    deleteReportDownloadWithRetry,
+    readReportDownloadBuffer,
+} from '../report-download-cleanup';
 
 export class ComparisonReportsPage {
     readonly page: Page;
@@ -137,16 +141,12 @@ export class ComparisonReportsPage {
         expect(filename.toLowerCase().endsWith(`.${expectedExt}`)).toBe(true);
         expect(filename).toMatch(/^comparison-report_/i);
 
-        const filePath = await download.path();
-        expect(filePath).toBeTruthy();
-
-        const fs = await import('fs');
-        const stats = fs.statSync(filePath!);
-        expect(stats.size).toBeGreaterThanOrEqual(minSizeBytes);
-        const size = stats.size;
-
-        await download.delete().catch(() => undefined);
-
-        return { filename, size };
+        const { buffer, filePath } = await readReportDownloadBuffer(download, filename);
+        try {
+            expect(buffer.length).toBeGreaterThanOrEqual(minSizeBytes);
+            return { filename, size: buffer.length };
+        } finally {
+            await deleteReportDownloadWithRetry(download, filename, { filePath });
+        }
     }
 }

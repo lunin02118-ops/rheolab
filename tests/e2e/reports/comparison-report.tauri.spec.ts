@@ -32,7 +32,10 @@ import type { Page } from '@playwright/test';
 import { ComparisonReportsPage } from '../pages/comparison-reports.page';
 import { CHANDLER_SST_63, GRACE_REPORT } from '../fixtures';
 import { enableCdp, snap, fmtDelta, type CdpClient, type CdpSnap } from '../cdp-helpers';
-import fs from 'fs';
+import {
+    deleteReportDownloadWithRetry,
+    readReportDownloadBuffer,
+} from '../report-download-cleanup';
 
 // ─── Perf helpers ────────────────────────────────────────────────────────────
 
@@ -294,18 +297,20 @@ test.describe('Real Native Comparison Report — feature + perf on new sub-tab',
         prev = afterPdf;
         steps.push(pdfStep);
 
-        const filePath = await download.path();
-        expect(filePath).toBeTruthy();
-        const buffer = fs.readFileSync(filePath!);
-        console.log(`[comparison-report/tauri] PDF: ${buffer.length} bytes → ${download.suggestedFilename()}`);
+        const { buffer, filePath, filename } = await readReportDownloadBuffer(download, 'comparison PDF');
+        try {
+            console.log(`[comparison-report/tauri] PDF: ${buffer.length} bytes → ${filename}`);
 
-        // Real PDF must exceed the 8 KB web-mode mock and match magic bytes.
-        expect(buffer.length).toBeGreaterThan(5 * 1024);
-        expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF');
-        expect(download.suggestedFilename()).toMatch(/^comparison-report_.*\.pdf$/i);
+            // Real PDF must exceed the 8 KB web-mode mock and match magic bytes.
+            expect(buffer.length).toBeGreaterThan(5 * 1024);
+            expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF');
+            expect(filename).toMatch(/^comparison-report_.*\.pdf$/i);
 
-        // Heap must not balloon after PDF export (regression guard).
-        expect(pdfStep.heapDeltaMb, 'PDF generation leaked > 30 MB').toBeLessThan(30);
+            // Heap must not balloon after PDF export (regression guard).
+            expect(pdfStep.heapDeltaMb, 'PDF generation leaked > 30 MB').toBeLessThan(30);
+        } finally {
+            await deleteReportDownloadWithRetry(download, 'comparison PDF', { filePath });
+        }
 
         console.log('\n── Perf summary (PDF flow) ──');
         console.table(steps);
@@ -326,16 +331,18 @@ test.describe('Real Native Comparison Report — feature + perf on new sub-tab',
         prev = afterXlsx;
         steps.push(xlsxStep);
 
-        const filePath = await download.path();
-        expect(filePath).toBeTruthy();
-        const buffer = fs.readFileSync(filePath!);
-        console.log(`[comparison-report/tauri] XLSX: ${buffer.length} bytes → ${download.suggestedFilename()}`);
+        const { buffer, filePath, filename } = await readReportDownloadBuffer(download, 'comparison XLSX');
+        try {
+            console.log(`[comparison-report/tauri] XLSX: ${buffer.length} bytes → ${filename}`);
 
-        expect(buffer.length).toBeGreaterThan(5 * 1024);
-        expect(buffer.slice(0, 2).toString('ascii')).toBe('PK');
-        expect(download.suggestedFilename()).toMatch(/^comparison-report_.*\.xlsx$/i);
+            expect(buffer.length).toBeGreaterThan(5 * 1024);
+            expect(buffer.slice(0, 2).toString('ascii')).toBe('PK');
+            expect(filename).toMatch(/^comparison-report_.*\.xlsx$/i);
 
-        expect(xlsxStep.heapDeltaMb, 'XLSX generation leaked > 30 MB').toBeLessThan(30);
+            expect(xlsxStep.heapDeltaMb, 'XLSX generation leaked > 30 MB').toBeLessThan(30);
+        } finally {
+            await deleteReportDownloadWithRetry(download, 'comparison XLSX', { filePath });
+        }
 
         console.log('\n── Perf summary (XLSX flow) ──');
         console.table(steps);
