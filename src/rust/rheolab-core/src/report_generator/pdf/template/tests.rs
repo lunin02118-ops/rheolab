@@ -216,3 +216,41 @@ fn globals_contain_required_tokens() {
         "missing header binding on page"
     );
 }
+
+#[test]
+fn pdf_template_renders_report_metadata_into_header_and_passport() {
+    let mut input = minimal_report_input();
+    input.settings.language = "en".to_string();
+    input.metadata.filename = "Golden_Metadata.csv".to_string();
+    input.metadata.company_name = Some("RheoLab QA".to_string());
+    input.metadata.test_id = Some("GOLDEN-42".to_string());
+    input.metadata.operator_name = Some("Operator A".to_string());
+    input.metadata.laboratory_name = Some("Main Lab".to_string());
+    input.metadata.field_name = Some("North Field".to_string());
+    input.metadata.well_number = Some("W-42".to_string());
+    input.metadata.instrument_type = Some("Grace M5600".to_string());
+
+    let globals = build_typst_globals(&input, 1);
+    for expected in ["RheoLab QA", "Frac Fluid Test Report", "ID: GOLDEN-42"] {
+        assert!(
+            globals.contains(expected),
+            "PDF globals should contain metadata token {expected:?}; got:\n{globals}"
+        );
+    }
+
+    let body = build_single_experiment_body(&input, false, None, None, false);
+    for expected in [
+        "Test Passport",
+        "Golden\\_Metadata.csv",
+        "Operator A",
+        "Main Lab",
+        "North Field",
+        "W-42",
+        "Grace M5600",
+    ] {
+        assert!(
+            body.contains(expected),
+            "PDF passport should contain metadata token {expected:?}; got:\n{body}"
+        );
+    }
+}

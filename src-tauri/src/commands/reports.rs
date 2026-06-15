@@ -1171,6 +1171,7 @@ mod tests {
         ComparisonChartConfig, ComparisonExperimentEntry, ComparisonMetrics, ComparisonReportInput,
         SectionToggles, TouchPointConfig,
     };
+    use rheolab_core::report_generator::typst_renderer::compile_to_pdf;
     use rheolab_core::report_generator::ReportInput;
 
     const REPORT_FIXTURE_JSON: &str = include_str!("../../../tests/fixtures/report_data.json");
@@ -1247,6 +1248,53 @@ mod tests {
         assert!(
             bytes.starts_with(b"PK"),
             "XLSX output must start with ZIP signature"
+        );
+    }
+
+    #[tokio::test]
+    async fn reports_generate_excel_golden_workbook_structure() {
+        let bytes = generate_excel_bytes(fixture_input())
+            .await
+            .expect("native Excel generation should succeed for fixture input");
+
+        let mut workbook = open_xlsx(bytes);
+        let sheet_names = workbook.sheet_names().to_vec();
+        assert_eq!(
+            sheet_names,
+            vec!["Report".to_string(), "DebugInfo".to_string()],
+            "single report workbook sheet order changed"
+        );
+
+        let report_text = worksheet_text(&mut workbook, "Report");
+        assert_text_contains_all(
+            &report_text,
+            &[
+                "Сводка",
+                "ID Теста",
+                "TEST-12345",
+                "Mamontovskoe",
+                "RheoMeter 5000",
+                "Рецептура",
+                "Water",
+                "Анализ воды",
+                "Tap Water",
+                "Реология",
+            ],
+        );
+
+        let debug_text = worksheet_text(&mut workbook, "DebugInfo");
+        assert_text_contains_all(
+            &debug_text,
+            &[
+                "Setting",
+                "Value",
+                "Shear Rate Axis",
+                "left",
+                "Pressure Axis",
+                "right",
+                "Show Shear Rate",
+                "Show Pressure",
+            ],
         );
     }
 
@@ -1790,6 +1838,15 @@ mod tests {
             .flat_map(|row| row.iter().map(ToString::to_string))
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    fn assert_text_contains_all(text: &str, expected: &[&str]) {
+        for item in expected {
+            assert!(
+                text.contains(item),
+                "expected text to contain {item:?}; got:\n{text}"
+            );
+        }
     }
 
     #[test]
@@ -2528,6 +2585,61 @@ mod tests {
     }
 
     #[test]
+    fn comparison_excel_by_ids_golden_workbook_shape_and_debug_metadata() {
+        let (conn, _, _) = by_ids_fixture_db();
+        let request = valid_by_ids_request();
+        let bytes = generate_comparison_excel_by_ids_bytes(&conn, &request)
+            .expect("Excel by-ids generation should succeed");
+
+        let mut workbook = open_xlsx(bytes);
+        let sheet_names = workbook.sheet_names().to_vec();
+        assert_eq!(
+            sheet_names,
+            vec![
+                "Overlap Chart".to_string(),
+                "Alpha".to_string(),
+                "Beta".to_string(),
+                "_ChartData".to_string(),
+                "DebugInfo".to_string(),
+            ],
+            "comparison by-IDs workbook shape changed"
+        );
+
+        let overlap_text = worksheet_text(&mut workbook, "Overlap Chart");
+        assert_text_contains_all(
+            &overlap_text,
+            &["Summary", "Experiment", "Points", "Alpha", "Beta"],
+        );
+
+        let alpha_text = worksheet_text(&mut workbook, "Alpha");
+        assert_text_contains_all(
+            &alpha_text,
+            &[
+                "Summary",
+                "Recipe",
+                "Water Analysis",
+                "Rheology",
+                "Guar Gum",
+            ],
+        );
+
+        let debug_text = worksheet_text(&mut workbook, "DebugInfo");
+        assert_text_contains_all(
+            &debug_text,
+            &[
+                "Language",
+                "en",
+                "Unit System",
+                "SI",
+                "Experiments",
+                "2",
+                "Generated At",
+                "2026-04-29T00:00:00Z",
+            ],
+        );
+    }
+
+    #[test]
     fn comparison_pdf_by_ids_generates_pdf_from_db_experiments() {
         let (conn, _, _) = by_ids_fixture_db();
         let request = valid_by_ids_request();
@@ -2668,6 +2780,23 @@ mod tests {
     }
 
     #[test]
+    fn report_typst_renderer_rejects_unregistered_local_file_reads() {
+        let err = compile_to_pdf(
+            r#"#set text(font: "Roboto")
+#image("../Cargo.toml")
+"#,
+            Default::default(),
+        )
+        .unwrap_err()
+        .to_ascii_lowercase();
+
+        assert!(
+            err.contains("not found"),
+            "Typst renderer should reject local filesystem image reads; got: {err}"
+        );
+    }
+
+    #[test]
     fn validate_by_id_accepts_single_export_without_comparison_feature() {
         let request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
         let mut features = empty_features();
@@ -2717,6 +2846,65 @@ mod tests {
             .to_string();
 
         assert!(err.contains("alphanumeric"));
+    }
+
+    #[test]
+    fn validate_by_id_rejects_invalid_recipe_override() {
+        let mut request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
+        request.recipe_override = Some(vec![ExperimentReportRecipeOverride {
+            name: "".into(),
+            concentration: 4.2,
+            unit: "kg/m3".into(),
+            category: None,
+            batch_number: None,
+        }]);
+        let mut features = empty_features();
+        features.export_pdf = true;
+
+        let err = validate_report_by_id_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("recipeOverride[0].name must not be empty"));
+    }
+
+    #[test]
+    fn validate_by_id_rejects_non_finite_water_override() {
+        let mut request = valid_by_id_request("exp_aaaaaaaaaaaaaaaaaaaa");
+        request.water_override = Some(ExperimentReportWaterOverride {
+            source: Some("Lab water".into()),
+            salinity: None,
+            ph: Some(f64::INFINITY),
+            hardness: None,
+            fe: None,
+            ca: None,
+            mg: None,
+            cl: None,
+            so4: None,
+            hco3: None,
+        });
+        let mut features = empty_features();
+        features.export_excel = true;
+
+        let err = validate_report_by_id_request(&request, &features, ReportFormat::Excel)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("waterOverride.ph must be finite"));
+    }
+
+    #[test]
+    fn validate_by_ids_rejects_invalid_language_before_rendering() {
+        let mut request = valid_by_ids_request();
+        request.settings.language = "de".into();
+        let features = comparison_features(3);
+
+        let err = validate_comparison_by_ids_request(&request, &features, ReportFormat::Pdf)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("settings.language"));
+        assert!(err.contains("'ru' or 'en'"));
     }
 
     #[test]
