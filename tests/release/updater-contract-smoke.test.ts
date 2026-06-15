@@ -102,9 +102,9 @@ describe('updater contract smoke', () => {
   });
 
   it('checks download URL reachability with HEAD', async () => {
-    const calls: Array<{ url: string; method?: string }> = [];
-    const fetchImpl = async (url: string, options: { method?: string }) => {
-      calls.push({ url, method: options.method });
+    const calls: Array<{ url: string; method?: string; redirect?: string }> = [];
+    const fetchImpl = async (url: string, options: { method?: string; redirect?: string }) => {
+      calls.push({ url, method: options.method, redirect: options.redirect });
       return {
         status: 200,
         headers: {
@@ -129,7 +129,49 @@ describe('updater contract smoke', () => {
       {
         url: validManifest.platforms['windows-x86_64'].url,
         method: 'HEAD',
+        redirect: 'manual',
       },
     ]);
+  });
+
+  it('rejects artifact redirects instead of accepting download pages', async () => {
+    const result = await checkDownloadUrlReachability(
+      validManifest.platforms['windows-x86_64'].url,
+      {
+        fetchImpl: async (_url: string, _options: { method?: string; redirect?: string }) => ({
+          status: 302,
+          headers: {
+            get(name: string) {
+              return name.toLowerCase() === 'location'
+                ? 'https://rheolab.site/download/latest/'
+                : null;
+            },
+          },
+        }),
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(302);
+    expect(result.issue).toMatch(/redirected/);
+  });
+
+  it('rejects artifact responses without a positive content length', async () => {
+    const result = await checkDownloadUrlReachability(
+      validManifest.platforms['windows-x86_64'].url,
+      {
+        fetchImpl: async (_url: string, _options: { method?: string; redirect?: string }) => ({
+          status: 200,
+          headers: {
+            get() {
+              return null;
+            },
+          },
+        }),
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.issue).toMatch(/Content-Length/);
   });
 });
