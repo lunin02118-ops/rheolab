@@ -16,11 +16,20 @@ import {
     crossingTimeHint,
     viscosityAtTargetHint,
 } from '@/lib/library/touch-point-hints';
+import type { TouchPointLibraryStats } from '@/types/tauri';
 
 interface ExperimentFiltersProps {
     filters: FilterState;
     onChange: (filters: FilterState) => void;
 }
+
+interface TouchPointFilterHints {
+    hasCrossing: string | null;
+    crossingTime: string | null;
+    viscosityAtTarget: string | null;
+}
+
+const EMPTY_STRING_LIST: string[] = [];
 
 const FLUID_TYPE_OPTIONS = [
     { value: '', label: 'Все типы' },
@@ -44,99 +53,129 @@ const GEOMETRY_OPTIONS = [
     { value: 'R1B5', label: 'R1B5' },
 ];
 
+function buildTouchPointFilterHints(stats: TouchPointLibraryStats | null): TouchPointFilterHints {
+    return {
+        hasCrossing: crossingCoverageHint(stats),
+        crossingTime: crossingTimeHint(stats),
+        viscosityAtTarget: viscosityAtTargetHint(stats),
+    };
+}
+
+function thresholdLabel(value: string): string {
+    const trimmed = value.trim();
+    const parsed = Number(trimmed);
+    if (trimmed !== '' && Number.isFinite(parsed) && parsed > 0) {
+        return `${trimmed} сП`;
+    }
+    return '50 сП';
+}
+
+function activeValue(value: string): number {
+    return value ? 1 : 0;
+}
+
+function hasAnyActiveFilter(filters: FilterState): boolean {
+    return filters.searchQuery !== ''
+        || filters.testName !== ''
+        || filters.laboratoryName !== ''
+        || filters.fieldName !== ''
+        || filters.operatorName !== ''
+        || filters.wellNumber !== ''
+        || filters.waterSource !== ''
+        || filters.fluidType !== ''
+        || filters.instrumentType !== ''
+        || filters.geometry !== ''
+        || filters.testCategory !== ''
+        || filters.testType !== ''
+        || filters.batchNumber !== ''
+        || filters.reagentNames.length > 0
+        || filters.dateFrom !== ''
+        || filters.dateTo !== ''
+        || filters.durationMin !== ''
+        || filters.durationMax !== ''
+        || filters.tempMin !== ''
+        || filters.tempMax !== ''
+        || filters.viscosityMin !== ''
+        || filters.viscosityMax !== ''
+        || filters.viscosityThreshold !== ''
+        || filters.crossingTimeMin !== ''
+        || filters.crossingTimeMax !== ''
+        || filters.viscosityAtTargetMin !== ''
+        || filters.viscosityAtTargetMax !== ''
+        || filters.hasCrossing !== '';
+}
+
 export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps) {
     // Shared module-level cache — both this panel and the ExperimentList
     // empty state derive hints from the same metadata payload, so we only
     // round-trip to Rust once per session (plus the backend's 30s TTL).
     const { metadata, error: metadataError } = useExperimentFilterMetadata();
 
-    const metadataOptions = useMemo(
-        () => ({
-            instrumentTypes: metadata?.instrumentTypes ?? [],
-            fluidTypes: metadata?.fluidTypes ?? [],
-            geometries: metadata?.geometries ?? [],
-            waterSources: metadata?.waterSources ?? [],
-            fieldNames: metadata?.fieldNames ?? [],
-            testCategories: metadata?.testCategories ?? [],
-            testTypes: metadata?.testTypes ?? [],
-        }),
-        [metadata],
-    );
+    const instrumentTypes = metadata?.instrumentTypes ?? EMPTY_STRING_LIST;
+    const fluidTypes = metadata?.fluidTypes ?? EMPTY_STRING_LIST;
+    const geometries = metadata?.geometries ?? EMPTY_STRING_LIST;
+    const waterSources = metadata?.waterSources ?? EMPTY_STRING_LIST;
+    const fieldNames = metadata?.fieldNames ?? EMPTY_STRING_LIST;
+    const testCategories = metadata?.testCategories ?? EMPTY_STRING_LIST;
+    const testTypes = metadata?.testTypes ?? EMPTY_STRING_LIST;
 
     // Touch-point hints — precomputed lazily so the touch-point sidebar
     // section renders with captions as soon as the metadata fetch resolves.
     const touchPointStats = metadata?.touchPointStats ?? null;
-    const hasCrossingHint = useMemo(
-        () => crossingCoverageHint(touchPointStats),
-        [touchPointStats],
-    );
-    const crossingTimeHintText = useMemo(
-        () => crossingTimeHint(touchPointStats),
-        [touchPointStats],
-    );
-    const viscosityAtTargetHintText = useMemo(
-        () => viscosityAtTargetHint(touchPointStats),
+    const touchPointHints = useMemo(
+        () => buildTouchPointFilterHints(touchPointStats),
         [touchPointStats],
     );
 
     // "Достигнут порог X сП" label — reflects whichever threshold the
     // user has dialled in (or the default 50 cP) so the selector's
     // question stays honest about what crossing is being tested.
-    const thresholdLabel = useMemo(() => {
-        const trimmed = filters.viscosityThreshold.trim();
-        const parsed = Number(trimmed);
-        if (trimmed !== '' && Number.isFinite(parsed) && parsed > 0) {
-            return `${trimmed} сП`;
-        }
-        return '50 сП';
-    }, [filters.viscosityThreshold]);
+    const thresholdLabelText = thresholdLabel(filters.viscosityThreshold);
 
     const fluidOptions = useMemo(() => {
-        if (metadataOptions.fluidTypes.length === 0) {
+        if (fluidTypes.length === 0) {
             return FLUID_TYPE_OPTIONS;
         }
 
         return [
             { value: '', label: 'Все типы' },
-            ...metadataOptions.fluidTypes.map((value) => ({
+            ...fluidTypes.map((value) => ({
                 value,
                 label: FLUID_TYPE_LABELS[value as keyof typeof FLUID_TYPE_LABELS] ?? value,
             })),
         ];
-    }, [metadataOptions.fluidTypes]);
+    }, [fluidTypes]);
 
     const instrumentOptions = useMemo(() => {
-        if (metadataOptions.instrumentTypes.length === 0) {
+        if (instrumentTypes.length === 0) {
             return INSTRUMENT_OPTIONS;
         }
 
         return [
             { value: '', label: 'Все приборы' },
-            ...metadataOptions.instrumentTypes.map((value) => ({
+            ...instrumentTypes.map((value) => ({
                 value,
                 label: value,
             })),
         ];
-    }, [metadataOptions.instrumentTypes]);
+    }, [instrumentTypes]);
 
     const geometryOptions = useMemo(() => {
-        if (metadataOptions.geometries.length === 0) {
+        if (geometries.length === 0) {
             return GEOMETRY_OPTIONS;
         }
 
         return [
             { value: '', label: 'Все геометрии' },
-            ...metadataOptions.geometries.map((value) => ({
+            ...geometries.map((value) => ({
                 value,
                 label: value,
             })),
         ];
-    }, [metadataOptions.geometries]);
+    }, [geometries]);
 
     const testCategoryOptions = useMemo(() => {
-        const cats = metadataOptions.testCategories.length > 0
-            ? metadataOptions.testCategories
-            : [];
+        const cats = testCategories.length > 0 ? testCategories : EMPTY_STRING_LIST;
         return [
             { value: '', label: 'Все категории' },
             ...cats.map(c => ({
@@ -144,16 +183,16 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                 label: TEST_CATEGORY_LABELS[c as TestCategory] ?? c,
             })),
         ];
-    }, [metadataOptions.testCategories]);
+    }, [testCategories]);
 
     const testTypeOptions = useMemo(() => {
         // If a category is selected, show only its test types; otherwise show all from metadata
-        let types: string[];
+        let types: readonly string[];
         if (filters.testCategory) {
             const byCategory = TEST_TYPES_BY_CATEGORY[filters.testCategory as TestCategory];
-            types = byCategory ? [...byCategory] : [];
+            types = byCategory ?? EMPTY_STRING_LIST;
         } else {
-            types = metadataOptions.testTypes.length > 0 ? metadataOptions.testTypes : [];
+            types = testTypes.length > 0 ? testTypes : EMPTY_STRING_LIST;
         }
         return [
             { value: '', label: 'Все типы испытаний' },
@@ -162,7 +201,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                 label: TEST_TYPE_LABELS[t as TestType] ?? t,
             })),
         ];
-    }, [metadataOptions.testTypes, filters.testCategory]);
+    }, [testTypes, filters.testCategory]);
 
     const handleChange = (key: keyof FilterState, value: string) => {
         onChange({ ...filters, [key]: value });
@@ -226,9 +265,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
         onChange({ ...EMPTY_FILTERS });
     };
 
-    const hasActiveFilters = Object.values(filters).some(v =>
-        Array.isArray(v) ? v.length > 0 : v !== ''
-    );
+    const hasActiveFilters = hasAnyActiveFilter(filters);
 
     const addReagent = (name: string) => {
         if (name && !filters.reagentNames.includes(name)) {
@@ -241,11 +278,34 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
     };
 
     // ── Active-filter counts per group (drives badge numbers) ──────
-    const searchCount = [filters.searchQuery, filters.testName].filter(Boolean).length;
-    const locationCount = [filters.laboratoryName, filters.fieldName, filters.wellNumber, filters.waterSource, filters.dateFrom, filters.dateTo].filter(Boolean).length;
-    const testParamsCount = [filters.fluidType, filters.instrumentType, filters.geometry, filters.testCategory, filters.testType, filters.operatorName].filter(Boolean).length;
-    const rangeCount = [filters.durationMin, filters.durationMax, filters.tempMin, filters.tempMax, filters.viscosityMin, filters.viscosityMax, filters.viscosityThreshold, filters.hasCrossing, filters.crossingTimeMin, filters.crossingTimeMax, filters.viscosityAtTargetMin, filters.viscosityAtTargetMax].filter(Boolean).length;
-    const qaCount = [filters.batchNumber].filter(Boolean).length + filters.reagentNames.length;
+    const searchCount = activeValue(filters.searchQuery)
+        + activeValue(filters.testName);
+    const locationCount = activeValue(filters.laboratoryName)
+        + activeValue(filters.fieldName)
+        + activeValue(filters.wellNumber)
+        + activeValue(filters.waterSource)
+        + activeValue(filters.dateFrom)
+        + activeValue(filters.dateTo);
+    const testParamsCount = activeValue(filters.fluidType)
+        + activeValue(filters.instrumentType)
+        + activeValue(filters.geometry)
+        + activeValue(filters.testCategory)
+        + activeValue(filters.testType)
+        + activeValue(filters.operatorName);
+    const rangeCount = activeValue(filters.durationMin)
+        + activeValue(filters.durationMax)
+        + activeValue(filters.tempMin)
+        + activeValue(filters.tempMax)
+        + activeValue(filters.viscosityMin)
+        + activeValue(filters.viscosityMax)
+        + activeValue(filters.viscosityThreshold)
+        + activeValue(filters.hasCrossing)
+        + activeValue(filters.crossingTimeMin)
+        + activeValue(filters.crossingTimeMax)
+        + activeValue(filters.viscosityAtTargetMin)
+        + activeValue(filters.viscosityAtTargetMax);
+    const qaCount = activeValue(filters.batchNumber)
+        + filters.reagentNames.length;
 
     return (
         <div data-testid="ExperimentFiltersPanel" className="bg-secondary/50 rounded-xl border border-border p-3 lg:sticky lg:top-24 overflow-visible">
@@ -305,7 +365,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                     <FieldCombobox
                         value={filters.fieldName}
                         onChange={v => handleChange('fieldName', v)}
-                        extraSuggestions={metadataOptions.fieldNames}
+                        extraSuggestions={fieldNames}
                         testId="ExperimentFieldFilterInput"
                         inputClassName="bg-card border-border text-foreground focus-visible:ring-blue-500"
                         placeholder="Поиск..."
@@ -317,8 +377,8 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
 
                 <TextFilter label="Источник воды" value={filters.waterSource}
                     onChange={v => handleChange('waterSource', v)}
-                    placeholder={metadataOptions.waterSources.length > 0
-                        ? `Например: ${metadataOptions.waterSources[0]}`
+                    placeholder={waterSources.length > 0
+                        ? `Например: ${waterSources[0]}`
                         : 'Источник воды...'}
                     testId="ExperimentWaterFilterInput"
                 />
@@ -414,7 +474,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                                     id="has-crossing-toggle"
                                     role="switch"
                                     aria-checked={isHasCrossingOn}
-                                    aria-label={`Только достигшие порога ${thresholdLabel}`}
+                                    aria-label={`Только достигшие порога ${thresholdLabelText}`}
                                     data-testid="HasCrossingFilterToggle"
                                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
                                         isHasCrossingOn ? 'bg-cyan-600' : 'bg-secondary'
@@ -430,15 +490,15 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                                     htmlFor="has-crossing-toggle"
                                     className="text-xs text-muted-foreground cursor-pointer select-none"
                                 >
-                                    Только достигшие порога {thresholdLabel}
+                                    Только достигшие порога {thresholdLabelText}
                                 </label>
                             </div>
-                            {hasCrossingHint && (
+                            {touchPointHints.hasCrossing && (
                                 <p
                                     data-testid="HasCrossingCoverageHint"
                                     className="text-[10px] leading-snug text-muted-foreground -mt-1"
                                 >
-                                    {hasCrossingHint}
+                                    {touchPointHints.hasCrossing}
                                 </p>
                             )}
 
@@ -450,7 +510,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                                 onMaxChange={v => handleChange('crossingTimeMax', v)}
                                 minTestId="CrossingTimeMinInput"
                                 maxTestId="CrossingTimeMaxInput"
-                                hint={crossingTimeHintText}
+                                hint={touchPointHints.crossingTime}
                                 hintTestId="CrossingTimeRangeHint"
                             />
 
@@ -462,7 +522,7 @@ export function ExperimentFilters({ filters, onChange }: ExperimentFiltersProps)
                                 onMaxChange={v => handleChange('viscosityAtTargetMax', v)}
                                 minTestId="ViscosityAtTargetMinInput"
                                 maxTestId="ViscosityAtTargetMaxInput"
-                                hint={viscosityAtTargetHintText}
+                                hint={touchPointHints.viscosityAtTarget}
                                 hintTestId="ViscosityAtTargetRangeHint"
                             />
                         </div>
