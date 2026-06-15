@@ -209,6 +209,20 @@ node scripts/deploy/publish-update.js --channel stable
 node scripts/test/check-update-endpoint.mjs --version 0.2.0-beta.5 --channel beta
 ```
 
+Для проверки локального `{channel}.json` перед публикацией:
+
+```bash
+npm run check:update -- --manifest outputs/release/beta.json --channel beta
+```
+
+Smoke проверяет:
+
+- manifest schema (`version`, `pub_date`, `platforms.windows-x86_64`);
+- подпись updater-а: strict base64 + minisign structure;
+- download URL contract: HTTPS, host `license.vizbuka.ru`,
+  `/releases/artifacts/<version>/..._x64-setup.exe`;
+- HEAD-доступность download URL.
+
 Серверные проверки:
 
 ```bash
@@ -236,8 +250,18 @@ bash scripts/deploy/setup-vps-releases.sh
 Rollback-логика остаётся завязанной на ранее собранные manifests и `rollback-channel.js`:
 
 ```bash
-node scripts/release/rollback-channel.js
+node scripts/release/rollback-channel.js --channel beta --dry-run
+node scripts/release/rollback-channel.js --channel beta --reason "bad beta release"
 ```
+
+Rollback выполняется строго по каналу:
+
+- `alpha` откатывает owner/superuser канал;
+- `beta` откатывает Developer channel;
+- `stable` откатывает публичный канал для Standard / Enterprise / Trial / Demo.
+
+Не используйте `stable` rollback для beta/alpha инцидента: это изменит канал,
+который получают trial/demo и внешние пользователи.
 
 Если нужно перепубликовать уже известный manifest:
 
