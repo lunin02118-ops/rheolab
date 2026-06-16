@@ -123,10 +123,10 @@ function makeOptions(overrides: Partial<UseComparisonReportExportOptions> = {}):
     };
 }
 
-function makeFileBackedExperiment(id = 'file-local-1'): Experiment {
+function makeFileBackedExperiment(id = 'file-local-1', filename = 'local.dat'): Experiment {
     return {
-        ...makeExperiment(id, 'local.dat'),
-        originalFilename: 'local.dat',
+        ...makeExperiment(id, filename.replace(/\.[^/.]+$/, '')),
+        originalFilename: filename,
         testDate: new Date('2026-06-15T00:00:00Z'),
         instrumentType: 'Grace M5600',
         rawPoints: [{
@@ -283,9 +283,11 @@ describe('useComparisonReportExport', () => {
         });
 
         it('autosaves file-backed experiments before by-id export', async () => {
+            const confirmLocalFileSave = vi.fn().mockResolvedValue(true);
             const { result } = renderHook(() =>
                 useComparisonReportExport(makeOptions({
                     experiments: [makeFileBackedExperiment()],
+                    confirmLocalFileSave,
                 })),
             );
 
@@ -293,12 +295,153 @@ describe('useComparisonReportExport', () => {
                 await result.current.handleDownloadPdf();
             });
 
+            expect(confirmLocalFileSave).toHaveBeenCalledWith({
+                count: 1,
+                fileNames: ['local.dat'],
+                exportKind: 'pdf',
+            });
             expect(saveExperiment).toHaveBeenCalledTimes(1);
             expect(generateComparisonPdfReportByIdsBytes).toHaveBeenCalledTimes(1);
             const request = vi.mocked(generateComparisonPdfReportByIdsBytes).mock.calls[0][0];
             expect(request.experimentIds).toEqual(['saved-local-1']);
             expect(saveBytes).toHaveBeenCalledTimes(1);
             expect(result.current.exportError).toBeNull();
+        });
+
+        it('autosaves two local files before exporting their saved ids', async () => {
+            vi.mocked(saveExperiment)
+                .mockResolvedValueOnce({ success: true, experimentId: 'db-1' })
+                .mockResolvedValueOnce({ success: true, experimentId: 'db-2' });
+            const confirmLocalFileSave = vi.fn().mockResolvedValue(true);
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    experiments: [
+                        makeFileBackedExperiment('file-one', 'one.dat'),
+                        makeFileBackedExperiment('file-two', 'two.dat'),
+                    ],
+                    confirmLocalFileSave,
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            expect(confirmLocalFileSave).toHaveBeenCalledWith({
+                count: 2,
+                fileNames: ['one.dat', 'two.dat'],
+                exportKind: 'pdf',
+            });
+            expect(saveExperiment).toHaveBeenCalledTimes(2);
+            expect(generateComparisonPdfReportByIdsBytes).toHaveBeenCalledTimes(1);
+            expect(vi.mocked(generateComparisonPdfReportByIdsBytes).mock.calls[0][0].experimentIds)
+                .toEqual(['db-1', 'db-2']);
+            expect(result.current.exportError).toBeNull();
+        });
+
+        it('does not save or export when quota is lower than local file count', async () => {
+            useLicenseStore.setState({
+                result: {
+                    status: 'demo',
+                    source: 'demo',
+                    experimentsRemaining: 1,
+                } as never,
+                isInitialized: true,
+                isLoading: false,
+                status: 'demo',
+                isDemo: true,
+                experimentsRemaining: 1,
+            });
+            const confirmLocalFileSave = vi.fn().mockResolvedValue(true);
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    experiments: [
+                        makeFileBackedExperiment('file-one', 'one.dat'),
+                        makeFileBackedExperiment('file-two', 'two.dat'),
+                    ],
+                    confirmLocalFileSave,
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            expect(confirmLocalFileSave).not.toHaveBeenCalled();
+            expect(saveExperiment).not.toHaveBeenCalled();
+            expect(generateComparisonPdfReportByIdsBytes).not.toHaveBeenCalled();
+            expect(saveBytes).not.toHaveBeenCalled();
+            expect(result.current.exportError).toContain('осталось 1');
+        });
+
+        it('does not save or export when the user cancels local-file save confirmation', async () => {
+            const confirmLocalFileSave = vi.fn().mockResolvedValue(false);
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    experiments: [makeFileBackedExperiment()],
+                    confirmLocalFileSave,
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            expect(confirmLocalFileSave).toHaveBeenCalledTimes(1);
+            expect(saveExperiment).not.toHaveBeenCalled();
+            expect(generateComparisonPdfReportByIdsBytes).not.toHaveBeenCalled();
+            expect(saveBytes).not.toHaveBeenCalled();
+            expect(result.current.exportError).toBeNull();
+        });
+
+        it('does not export or partially replace comparison state when a later local save fails', async () => {
+            const first = makeFileBackedExperiment('file-one', 'one.dat');
+            const second = makeFileBackedExperiment('file-two', 'two.dat');
+            useComparisonStore.getState().addExperiment(first);
+            useComparisonStore.getState().addExperiment(second);
+            vi.mocked(saveExperiment)
+                .mockResolvedValueOnce({ success: true, experimentId: 'db-1' })
+                .mockResolvedValueOnce({ success: false, error: 'Disk write failed' });
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    experiments: [first, second],
+                    confirmLocalFileSave: vi.fn().mockResolvedValue(true),
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            expect(saveExperiment).toHaveBeenCalledTimes(2);
+            expect(generateComparisonPdfReportByIdsBytes).not.toHaveBeenCalled();
+            expect(saveBytes).not.toHaveBeenCalled();
+            expect(result.current.exportError).toContain('two.dat');
+            expect(result.current.exportError).toContain('Disk write failed');
+            expect(useComparisonStore.getState().experimentIds).toEqual(['file-one', 'file-two']);
+        });
+
+        it('does not autosave again after a file-backed experiment was replaced', async () => {
+            const confirmLocalFileSave = vi.fn().mockResolvedValue(true);
+            const { result } = renderHook(() =>
+                useComparisonReportExport(makeOptions({
+                    experiments: [makeFileBackedExperiment()],
+                    confirmLocalFileSave,
+                })),
+            );
+
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+            await act(async () => {
+                await result.current.handleDownloadPdf();
+            });
+
+            expect(confirmLocalFileSave).toHaveBeenCalledTimes(1);
+            expect(saveExperiment).toHaveBeenCalledTimes(1);
+            expect(generateComparisonPdfReportByIdsBytes).toHaveBeenCalledTimes(2);
+            expect(vi.mocked(generateComparisonPdfReportByIdsBytes).mock.calls[1][0].experimentIds)
+                .toEqual(['saved-local-1']);
         });
 
         it('does not autosave when the trial save limit is exhausted', async () => {
@@ -312,6 +455,8 @@ describe('useComparisonReportExport', () => {
                 isInitialized: true,
                 isLoading: false,
                 status: 'demo',
+                isDemo: true,
+                experimentsRemaining: 0,
             });
             const { result } = renderHook(() =>
                 useComparisonReportExport(makeOptions({

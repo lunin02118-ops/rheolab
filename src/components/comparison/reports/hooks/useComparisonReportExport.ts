@@ -9,13 +9,12 @@
  * @module comparison/reports/hooks/useComparisonReportExport
  */
 
-import { useCallback, useMemo, useState } from 'react';
-import type { Experiment, ExperimentSavePayload, RheologyParameterSource, TestMetrics } from '@/types';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import type { Experiment, RheologyParameterSource } from '@/types';
 import type { ComparisonReportByIdsRequest } from '@/types/tauri';
 import type { ChartSettings } from '@/lib/store/chart-settings-store';
 import { useComparisonStore, type ComparisonDisplaySettings } from '@/lib/store/comparison-store';
 import type { ExpertSettings } from '@/lib/store/analysis-settings-store';
-import type { RheoDataPoint } from '@/lib/parsing/types';
 import type {
     ComparisonChartConfig,
     ComparisonSectionToggles,
@@ -29,9 +28,12 @@ import {
 import { saveBytes, saveBytesToDir, type SaveBytesItem } from '@/lib/reports/report-save';
 import { saveExperiment } from '@/lib/experiments/client';
 import { EXPERIMENT_COLORS } from '@/components/comparison/comparison-chart-constants';
-import { columnarToRawPoints } from '@/lib/utils/columnar';
-import { isFluidType } from '@/lib/constants/fluid-types';
-import { detectTestCategoryAndType } from '@/lib/utils/test-type-detector';
+import {
+    buildLocalComparisonExperimentSavePayload,
+    isFileBackedComparisonExperiment,
+    localComparisonExperimentLabel,
+    withLocalComparisonSaveConflictSuffix,
+} from '@/lib/experiments/import-save-mapper';
 import { useLicenseStore } from '@/lib/store/license-store';
 import { logger } from '@/lib/logger';
 
@@ -64,6 +66,13 @@ export interface UseComparisonReportExportOptions {
     reportViscosityRates: number[];
     isExpert: boolean;
     expertSettings: ExpertSettings;
+    confirmLocalFileSave?: (request: LocalComparisonFileSaveConfirmationRequest) => boolean | Promise<boolean>;
+}
+
+export interface LocalComparisonFileSaveConfirmationRequest {
+    count: number;
+    fileNames: string[];
+    exportKind: ComparisonExportKind;
 }
 
 // ── Internal helpers ───────────────────────────────────────────────────────
@@ -159,176 +168,51 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 const LOCAL_EXPORT_SAVE_ERROR =
     'Не удалось сохранить локальный файл перед экспортом. Проверьте данные и повторите экспорт.';
 
-type ComparisonExportKind = 'pdf' | 'excel' | 'all';
+export type ComparisonExportKind = 'pdf' | 'excel' | 'all';
 
-function isFileBackedComparisonExperiment(exp: Experiment): boolean {
-    return typeof exp.id === 'string' && exp.id.startsWith('file-');
+class LocalComparisonExportCancelledError extends Error {
+    constructor() {
+        super('LOCAL_COMPARISON_EXPORT_CANCELLED');
+        this.name = 'LocalComparisonExportCancelledError';
+    }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return !!value && typeof value === 'object' && !Array.isArray(value);
+interface LocalComparisonSaveFailure {
+    fileName: string;
+    message: string;
 }
 
-function stringValue(value: unknown): string | undefined {
-    if (value instanceof Date) return value.toISOString();
-    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+function isLocalComparisonExportCancelled(err: unknown): boolean {
+    return err instanceof LocalComparisonExportCancelledError;
 }
 
-function numberValue(value: unknown): number | undefined {
-    const n = typeof value === 'number' ? value : Number(value);
-    return Number.isFinite(n) ? n : undefined;
-}
-
-function finiteOrZero(value: unknown): number {
-    return numberValue(value) ?? 0;
-}
-
-function sanitizeRawPoints(points: RheoDataPoint[]): RheoDataPoint[] {
-    return points
-        .filter((point) => (
-            Number.isFinite(point.time_sec) &&
-            Number.isFinite(point.viscosity_cp) &&
-            Number.isFinite(point.temperature_c)
-        ))
-        .map((point) => ({
-            time_sec: finiteOrZero(point.time_sec),
-            viscosity_cp: finiteOrZero(point.viscosity_cp),
-            temperature_c: finiteOrZero(point.temperature_c),
-            speed_rpm: finiteOrZero(point.speed_rpm),
-            shear_rate_s1: finiteOrZero(point.shear_rate_s1),
-            shear_stress_pa: finiteOrZero(point.shear_stress_pa),
-            pressure_bar: finiteOrZero(point.pressure_bar),
-            bath_temperature_c: numberValue(point.bath_temperature_c),
-        }));
-}
-
-function rawPointsForExperiment(exp: Experiment): RheoDataPoint[] {
-    const rawPoints = (exp as { rawPoints?: unknown }).rawPoints;
-    if (Array.isArray(rawPoints) && rawPoints.length > 0) {
-        return sanitizeRawPoints(rawPoints as RheoDataPoint[]);
+function assertLocalSaveQuota(localCount: number): void {
+    const licenseState = useLicenseStore.getState();
+    const saveCheck = licenseState.canSaveExperiment();
+    if (!saveCheck.allowed) {
+        throw new Error(saveCheck.message ?? LOCAL_EXPORT_SAVE_ERROR);
     }
 
-    const columnarData = (exp as { columnarData?: unknown }).columnarData;
-    const timeSec = (columnarData as { timeSec?: { length?: unknown } } | undefined)?.timeSec;
-    if (columnarData && typeof columnarData === 'object' && typeof timeSec?.length === 'number') {
-        return sanitizeRawPoints(columnarToRawPoints(columnarData as Parameters<typeof columnarToRawPoints>[0]));
+    if (licenseState.status === 'demo') {
+        const remaining = licenseState.experimentsRemaining;
+        if (remaining >= 0 && remaining < localCount) {
+            throw new Error(
+                `Для экспорта нужно сохранить ${localCount} локальных файлов, `
+                + `но в пробном режиме осталось ${remaining}. Экспорт не выполнен.`,
+            );
+        }
     }
-
-    return [];
 }
 
-function averageInWindow(points: RheoDataPoint[], startMin: number, endMin: number): number {
-    const values = points
-        .filter((point) => {
-            const minutes = point.time_sec / 60;
-            return minutes >= startMin && minutes <= endMin && Number.isFinite(point.viscosity_cp);
-        })
-        .map((point) => point.viscosity_cp);
-    if (values.length === 0) return 0;
-    return values.reduce((sum, value) => sum + value, 0) / values.length;
+function formatLocalSaveFailures(failures: LocalComparisonSaveFailure[]): string {
+    const list = failures
+        .map((failure) => `${failure.fileName}: ${failure.message}`)
+        .join('; ');
+    return `Не удалось сохранить все локальные файлы перед экспортом. Экспорт не выполнен. Не сохранены: ${list}`;
 }
 
-function buildFallbackMetrics(points: RheoDataPoint[]): TestMetrics {
-    return {
-        n_prime: 0,
-        k_prime: 0,
-        initialViscosity_5_10: averageInWindow(points, 5, 10),
-        comparisonViscosity_5_30: averageInWindow(points, 5, 30),
-        avgViscosity_10_120: averageInWindow(points, 10, 120),
-        subgroup: 'without_stabilizer',
-    };
-}
-
-function metricsForExperiment(exp: Experiment, points: RheoDataPoint[]): TestMetrics {
-    const metrics = (exp as { metrics?: unknown }).metrics;
-    return isRecord(metrics) ? metrics as unknown as TestMetrics : buildFallbackMetrics(points);
-}
-
-function originalFilenameFor(exp: Experiment): string {
-    return stringValue((exp as { originalFilename?: unknown }).originalFilename)
-        ?? stringValue(exp.name)
-        ?? 'comparison-local-file';
-}
-
-function dateForExperiment(exp: Experiment): Date {
-    if (exp.testDate instanceof Date && !Number.isNaN(exp.testDate.getTime())) return exp.testDate;
-    if (typeof exp.testDate === 'string') {
-        const parsed = new Date(exp.testDate);
-        if (!Number.isNaN(parsed.getTime())) return parsed;
-    }
-    return new Date();
-}
-
-function buildLocalExperimentSavePayload(exp: Experiment): ExperimentSavePayload {
-    const points = rawPointsForExperiment(exp);
-    if (points.length === 0) {
-        throw new Error('Локальный файл не содержит точек данных для сохранения.');
-    }
-
-    const originalFilename = originalFilenameFor(exp);
-    const fluidType = typeof exp.fluidType === 'string' && isFluidType(exp.fluidType)
-        ? exp.fluidType
-        : 'Linear';
-    const maxTemp = Math.max(...points.map((point) => finiteOrZero(point.temperature_c)));
-    const durationMin = points.length > 1
-        ? Math.max(...points.map((point) => finiteOrZero(point.time_sec))) / 60
-        : 0;
-    const detectedType = detectTestCategoryAndType({
-        fluidType,
-        filename: originalFilename,
-        instrumentType: stringValue(exp.instrumentType) ?? '',
-        maxTemp,
-        durationMin,
-    });
-    const record = exp as Record<string, unknown>;
-    const reagents = Array.isArray(record.reagents)
-        ? record.reagents as ExperimentSavePayload['reagents']
-        : [];
-    const hasInstrumentRheology = Array.isArray(record.instrumentRheology)
-        && record.instrumentRheology.length > 0;
-
-    return {
-        name: stringValue(exp.name) ?? originalFilename.replace(/\.[^/.]+$/, ''),
-        fieldName: stringValue(exp.fieldName) ?? '',
-        operatorName: stringValue(exp.operatorName) ?? '',
-        wellNumber: stringValue((exp as { wellNumber?: unknown }).wellNumber) ?? '',
-        testId: stringValue((exp as { testId?: unknown }).testId) ?? undefined,
-        originalFilename,
-        testDate: dateForExperiment(exp),
-        instrumentType: stringValue(exp.instrumentType) ?? 'Unknown',
-        geometry: stringValue((exp as { geometry?: unknown }).geometry),
-        geometrySource: stringValue((exp as { geometrySource?: unknown }).geometrySource),
-        waterSource: stringValue(exp.waterSource) ?? 'Не указано',
-        waterParams: isRecord(record.waterParams)
-            ? record.waterParams as unknown as ExperimentSavePayload['waterParams']
-            : undefined,
-        fluidType,
-        testGroup: detectedType.testCategory === 'Drilling'
-            ? 'Rheology'
-            : detectedType.testType === 'Hydration' ? 'Hydration' : 'Rheology',
-        testCategory: detectedType.testCategory,
-        testType: detectedType.testType,
-        metrics: metricsForExperiment(exp, points),
-        rawPoints: points,
-        calibration: isRecord(record.calibration)
-            ? record.calibration as unknown as ExperimentSavePayload['calibration']
-            : null,
-        reagents,
-        parsedBy: stringValue((exp as { parsedBy?: unknown }).parsedBy),
-        parseSource: stringValue((exp as { parseSource?: unknown }).parseSource),
-        rheologySource: hasInstrumentRheology ? 'instrument' : 'program',
-        rheologyParameters: hasInstrumentRheology
-            ? record.instrumentRheology as ExperimentSavePayload['rheologyParameters']
-            : [],
-    };
-}
-
-function withConflictSuffix(payload: ExperimentSavePayload): ExperimentSavePayload {
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return {
-        ...payload,
-        name: `${payload.name} ${stamp}`,
-    };
+function errorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
 }
 
 function releaseComparisonExportBuffers(kind: ComparisonExportKind): void {
@@ -396,60 +280,94 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
     const [isExporting, setIsExporting] = useState(false);
     const [isExcelExporting, setIsExcelExporting] = useState(false);
     const [exportError, setExportError] = useState<string | null>(null);
+    const localSaveReplacementsRef = useRef<Map<string, Experiment>>(new Map());
+    const experiments = options.experiments;
+    const confirmLocalFileSave = options.confirmLocalFileSave;
 
     const comparisonChartConfig = useMemo(
         () => buildComparisonChartConfig(options.displaySettings, options.chartSettings, options.brushRange),
         [options.displaySettings, options.chartSettings, options.brushRange],
     );
 
-    const persistLocalExperimentsForExport = useCallback(async (): Promise<Experiment[]> => {
-        if (!options.experiments.some(isFileBackedComparisonExperiment)) {
-            return options.experiments;
+    const persistLocalExperimentsForExport = useCallback(async (
+        exportKind: ComparisonExportKind,
+    ): Promise<Experiment[]> => {
+        const currentExperiments = experiments.map(
+            (exp) => localSaveReplacementsRef.current.get(exp.id) ?? exp,
+        );
+        const localExperiments = currentExperiments.filter(isFileBackedComparisonExperiment);
+        if (localExperiments.length === 0) {
+            return currentExperiments;
+        }
+
+        assertLocalSaveQuota(localExperiments.length);
+
+        const confirmationRequest: LocalComparisonFileSaveConfirmationRequest = {
+            count: localExperiments.length,
+            fileNames: localExperiments.map(localComparisonExperimentLabel),
+            exportKind,
+        };
+        const confirmed = confirmLocalFileSave
+            ? await confirmLocalFileSave(confirmationRequest)
+            : true;
+        if (!confirmed) {
+            throw new LocalComparisonExportCancelledError();
         }
 
         const replacementById = new Map<string, Experiment>();
+        const failures: LocalComparisonSaveFailure[] = [];
 
-        for (const exp of options.experiments) {
-            if (!isFileBackedComparisonExperiment(exp)) continue;
+        for (const exp of localExperiments) {
+            try {
+                const payload = buildLocalComparisonExperimentSavePayload(exp);
+                let result = await withPerf('autosave:fileBacked', () => saveExperiment(payload));
+                if (!result.success && result.code === 'NAME_CONFLICT') {
+                    result = await withPerf(
+                        'autosave:fileBackedConflictRetry',
+                        () => saveExperiment(withLocalComparisonSaveConflictSuffix(payload)),
+                    );
+                }
+                if (!result.success || !result.experimentId) {
+                    const detail = result.error || result.message || LOCAL_EXPORT_SAVE_ERROR;
+                    throw new Error(detail);
+                }
 
-            const saveCheck = useLicenseStore.getState().canSaveExperiment();
-            if (!saveCheck.allowed) {
-                throw new Error(saveCheck.message ?? LOCAL_EXPORT_SAVE_ERROR);
+                const savedExperiment = {
+                    ...exp,
+                    id: result.experimentId,
+                    rawPoints: [],
+                    columnarData: undefined,
+                    originalFilename: payload.originalFilename,
+                    testDate: payload.testDate,
+                    fluidType: payload.fluidType,
+                    instrumentType: payload.instrumentType,
+                    waterSource: payload.waterSource,
+                    fieldName: payload.fieldName,
+                    operatorName: payload.operatorName,
+                } as Experiment;
+                replacementById.set(exp.id, savedExperiment);
+            } catch (err) {
+                failures.push({
+                    fileName: localComparisonExperimentLabel(exp),
+                    message: errorMessage(err),
+                });
             }
-
-            const payload = buildLocalExperimentSavePayload(exp);
-            let result = await withPerf('autosave:fileBacked', () => saveExperiment(payload));
-            if (!result.success && result.code === 'NAME_CONFLICT') {
-                result = await withPerf(
-                    'autosave:fileBackedConflictRetry',
-                    () => saveExperiment(withConflictSuffix(payload)),
-                );
-            }
-            if (!result.success || !result.experimentId) {
-                const detail = result.error || result.message || LOCAL_EXPORT_SAVE_ERROR;
-                throw new Error(`${LOCAL_EXPORT_SAVE_ERROR} ${detail}`);
-            }
-
-            const savedExperiment = {
-                ...exp,
-                id: result.experimentId,
-                rawPoints: [],
-                columnarData: undefined,
-                originalFilename: payload.originalFilename,
-                testDate: payload.testDate,
-                fluidType: payload.fluidType,
-                instrumentType: payload.instrumentType,
-                waterSource: payload.waterSource,
-                fieldName: payload.fieldName,
-                operatorName: payload.operatorName,
-            } as Experiment;
-            useComparisonStore.getState().replaceExperiment(exp.id, savedExperiment);
-            void useLicenseStore.getState().refreshExperimentsCount();
-            replacementById.set(exp.id, savedExperiment);
         }
 
-        return options.experiments.map((exp) => replacementById.get(exp.id) ?? exp);
-    }, [options.experiments]);
+        if (failures.length > 0) {
+            throw new Error(formatLocalSaveFailures(failures));
+        }
+
+        for (const exp of localExperiments) {
+            const savedExperiment = replacementById.get(exp.id);
+            if (!savedExperiment) continue;
+            useComparisonStore.getState().replaceExperiment(exp.id, savedExperiment);
+            localSaveReplacementsRef.current.set(exp.id, savedExperiment);
+        }
+        void useLicenseStore.getState().refreshExperimentsCount();
+
+        return currentExperiments.map((exp) => replacementById.get(exp.id) ?? exp);
+    }, [experiments, confirmLocalFileSave]);
 
     const buildByIdsRequest = useCallback((experiments: Experiment[]): ComparisonReportByIdsRequest => ({
         experimentIds: experiments.map((exp) => exp.id),
@@ -555,7 +473,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setExportError(null);
         let bytes: Uint8Array | null = null;
         try {
-            const exportExperiments = await persistLocalExperimentsForExport();
+            const exportExperiments = await persistLocalExperimentsForExport('pdf');
             bytes = await generatePdfBytes(exportExperiments);
             await withPerf('pdf:saveBytes', () => saveBytes({
                 bytes: bytes as Uint8Array,
@@ -564,6 +482,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
                 filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
             }));
         } catch (err) {
+            if (isLocalComparisonExportCancelled(err)) return;
             logger.error('[ComparisonReport] PDF generation failed:', err);
             const msg = err instanceof Error ? err.message : String(err);
             setExportError(`Ошибка генерации PDF: ${msg}`);
@@ -583,7 +502,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         setExportError(null);
         let bytes: Uint8Array | null = null;
         try {
-            const exportExperiments = await persistLocalExperimentsForExport();
+            const exportExperiments = await persistLocalExperimentsForExport('excel');
             bytes = await generateExcelBytes(exportExperiments);
             await withPerf('excel:saveBytes', () => saveBytes({
                 bytes: bytes as Uint8Array,
@@ -592,6 +511,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
                 filters: [{ name: 'Excel Spreadsheet', extensions: ['xlsx'] }],
             }));
         } catch (err) {
+            if (isLocalComparisonExportCancelled(err)) return;
             logger.error('[ComparisonReport] Excel generation failed:', err);
             const msg = err instanceof Error ? err.message : String(err);
             setExportError(`Ошибка генерации Excel: ${msg}`);
@@ -623,7 +543,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
         let pdfBytes: Uint8Array | null = null;
         let excelBytes: Uint8Array | null = null;
         try {
-            const exportExperiments = await persistLocalExperimentsForExport();
+            const exportExperiments = await persistLocalExperimentsForExport('all');
             pdfBytes = await generatePdfBytes(exportExperiments);
             items.push({ bytes: pdfBytes, filename: `${baseFilename}.pdf`, mimeType: PDF_MIME });
             excelBytes = await generateExcelBytes(exportExperiments);
@@ -631,6 +551,7 @@ export function useComparisonReportExport(options: UseComparisonReportExportOpti
 
             await withPerf('all:saveBytesToDir', () => saveBytesToDir([...items]));
         } catch (err) {
+            if (isLocalComparisonExportCancelled(err)) return;
             logger.error('[ComparisonReport] Combined export failed:', err);
             const msg = err instanceof Error ? err.message : String(err);
             setExportError(`Ошибка генерации отчёта: ${msg}`);
