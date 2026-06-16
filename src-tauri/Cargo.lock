@@ -5246,7 +5246,7 @@ dependencies = [
 
 [[package]]
 name = "rheolab-enterprise"
-version = "0.2.3-alpha.19"
+version = "0.2.3-alpha.25"
 dependencies = [
  "aes",
  "aes-gcm",
