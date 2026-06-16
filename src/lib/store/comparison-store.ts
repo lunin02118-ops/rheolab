@@ -174,6 +174,7 @@ interface ComparisonState {
     _isRehydrating: boolean;
     _setHasHydrated: (v: boolean) => void;
     addExperiment: (experiment: Experiment) => boolean; // returns false if limit reached
+    replaceExperiment: (oldId: string, experiment: Experiment) => void;
     removeExperiment: (id: string) => void;
     clear: () => void;
     isInComparison: (id: string) => boolean;
@@ -233,6 +234,35 @@ export const useComparisonStore = create<ComparisonState>()(
                 });
                 return true;
             },
+            replaceExperiment: (oldId, experiment) =>
+                set((state) => {
+                    const compacted = toColumnarExperiment(experiment);
+                    const experiments = state.experiments.reduce<Experiment[]>((acc, existing) => {
+                        if (existing.id === oldId) {
+                            if (!acc.some((item) => item.id === compacted.id)) acc.push(compacted);
+                            return acc;
+                        }
+                        if (existing.id === compacted.id) return acc;
+                        acc.push(existing);
+                        return acc;
+                    }, []);
+                    if (!experiments.some((existing) => existing.id === compacted.id)) {
+                        experiments.push(compacted);
+                    }
+                    const existingById = {
+                        ...state.experimentsById,
+                        [compacted.id]: state.experimentsById[oldId]
+                            ? { ...state.experimentsById[oldId], id: compacted.id, source: 'db' as const }
+                            : state.experimentsById[compacted.id],
+                    };
+                    return {
+                        experiments,
+                        ...deriveComparisonSessionFromExperiments(
+                            experiments,
+                            existingById,
+                        ),
+                    };
+                }),
             removeExperiment: (id) => set((state) => {
                 const experiments = state.experiments.filter(e => e.id !== id);
                 return {

@@ -7,7 +7,7 @@
  * @module comparison/reports/ComparisonReportTab
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { FileText, Layers } from 'lucide-react';
 
@@ -17,7 +17,11 @@ import {
     ComparisonReportSettings,
     type ComparisonReportRheologySourceMode,
 } from './ComparisonReportSettings';
-import { useComparisonReportExport } from './hooks/useComparisonReportExport';
+import { LocalComparisonSaveConfirmDialog } from './LocalComparisonSaveConfirmDialog';
+import {
+    useComparisonReportExport,
+    type LocalComparisonFileSaveConfirmationRequest,
+} from './hooks/useComparisonReportExport';
 
 import { useComparisonStore } from '@/lib/store/comparison-store';
 import { useChartSettingsStore } from '@/lib/store/chart-settings-store';
@@ -26,6 +30,11 @@ import { useAnalysisSettingsStore } from '@/lib/store/analysis-settings-store';
 import { useUIMode } from '@/contexts/ui-mode-context';
 import { DEFAULT_VISCOSITY_SHEAR_RATES } from '@/lib/analysis/constants';
 import { useLicense } from '@/hooks/useLicense';
+
+interface PendingLocalSaveConfirmation {
+    request: LocalComparisonFileSaveConfirmationRequest;
+    resolve: (confirmed: boolean) => void;
+}
 
 export function ComparisonReportTab() {
     const experiments = useComparisonStore(s => s.experiments);
@@ -68,6 +77,19 @@ export function ComparisonReportTab() {
 
     const expertSettings = useAnalysisSettingsStore(s => s.expertSettings);
     const { isExpert } = useUIMode();
+    const [pendingLocalSaveConfirmation, setPendingLocalSaveConfirmation] =
+        useState<PendingLocalSaveConfirmation | null>(null);
+    const confirmLocalFileSave = useCallback((
+        request: LocalComparisonFileSaveConfirmationRequest,
+    ) => new Promise<boolean>((resolve) => {
+        setPendingLocalSaveConfirmation({ request, resolve });
+    }), []);
+    const settleLocalSaveConfirmation = useCallback((confirmed: boolean) => {
+        setPendingLocalSaveConfirmation((pending) => {
+            pending?.resolve(confirmed);
+            return null;
+        });
+    }, []);
     const reportViscosityRates = useMemo(
         () =>
             (isExpert
@@ -97,6 +119,7 @@ export function ComparisonReportTab() {
         reportViscosityRates,
         isExpert,
         expertSettings,
+        confirmLocalFileSave,
     });
 
     return (
@@ -179,6 +202,15 @@ export function ComparisonReportTab() {
                     )}
                 </div>
             </div>
+
+            <LocalComparisonSaveConfirmDialog
+                open={pendingLocalSaveConfirmation !== null}
+                language={language}
+                count={pendingLocalSaveConfirmation?.request.count ?? 0}
+                fileNames={pendingLocalSaveConfirmation?.request.fileNames ?? []}
+                onConfirm={() => settleLocalSaveConfirmation(true)}
+                onCancel={() => settleLocalSaveConfirmation(false)}
+            />
         </div>
     );
 }

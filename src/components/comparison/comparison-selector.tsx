@@ -189,9 +189,20 @@ export function ComparisonSelector({ isOpen, onClose, onSelect }: ComparisonSele
             const syntheticExp: Experiment = {
                 id: `file-${Date.now()}-${Math.random().toString(36).slice(2)}`,
                 name: file.name.replace(/\.[^/.]+$/, ''),
-                testDate: new Date(),
+                testDate: parseResult.metadata.testDate ?? new Date(),
                 fluidType: 'Linear',
-                instrumentType: 'Unknown',
+                fieldName: parseResult.metadata.filenameMetadata?.fieldName ?? null,
+                operatorName: parseResult.metadata.filenameMetadata?.operatorName ?? null,
+                waterSource: parseResult.metadata.filenameMetadata?.waterSource ?? null,
+                instrumentType: parseResult.metadata.instrumentType ?? 'Unknown',
+                originalFilename: parseResult.metadata.filename || file.name,
+                testId: parseResult.metadata.filenameMetadata?.testId,
+                geometry: parseResult.metadata.geometry,
+                geometrySource: parseResult.metadata.geometrySource,
+                calibration: parseResult.metadata.calibration ?? null,
+                parsedBy: parseResult.metadata.parsedBy ?? parseResult.parsedBy,
+                parseSource: parseResult.metadata.parseSource,
+                reagents: parseResult.metadata.filenameMetadata?.recipe ?? [],
                 // Prefer columnarData so the comparison pipeline stays on the SoA path.
                 // Keep rawPoints only as fallback for experiments without columnarData.
                 ...(parseResult.columnarData
